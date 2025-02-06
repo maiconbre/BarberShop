@@ -209,7 +209,7 @@ Aguardo a confirmação.`;
                     {formData.barber ? (
                       <>
                         <img
-                          src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.png`}
+                          src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
                           alt={`QR Code de ${formData.barber}`}
                           className="w-full h-full object-contain"
                         />
