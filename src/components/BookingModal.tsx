@@ -25,7 +25,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     { name: 'Gabriel', whatsapp: '5521997760398', pix: '21997760398' },
     { name: 'Estevão', whatsapp: '5511988888881', pix: '21997764658' }
   ];
-  const services = ['Corte Tradicional', 'Navalha', 'Corte + Barba', 'barba', 'Reflexo', 'Nevou'];
+  const services = ['Corte Tradicional', 'Navalha', 'Corte + Barba', 'Barba', 'Reflexo', 'Nevou'];
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
   // Função para lidar com o envio do formulário
@@ -84,7 +84,7 @@ Aguardo a confirmação.`;
       <div className="bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl modal-animation">
         <div className="p-6">
           {/* Cabeçalho do modal */}
-          <div className="flex justify-between items-center ml-6 mb-4">
+          <div className="flex justify-between items-center ml-10 mb-4">
             <h2 className="text-2xl">
               {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
             </h2>
