@@ -20,10 +20,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     service: '',
   });
 
-  // Dados estáticos
+  // Dados estáticos com a propriedade "pix" adicionada
   const barbers = [
-    { name: 'Gabriel', whatsapp: '5511999999999' },
-    { name: 'Tavin', whatsapp: '5511988888881' }
+    { name: 'Gabriel', whatsapp: '5521997760398', pix: '21997760398' },
+    { name: 'Estevão', whatsapp: '5511988888881', pix: '21997764658' }
   ];
   const services = ['Corte Tradicional', 'Navalha', 'Corte + Barba', 'barba', 'Reflexo', 'Nevou'];
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
@@ -40,11 +40,18 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     return barber?.whatsapp || '';
   };
 
+  // Função para obter o código PIX do barbeiro selecionado
+  const getBarberPix = () => {
+    const barber = barbers.find(b => b.name === formData.barber);
+    return barber?.pix || '';
+  };
+
   // Função que monta a mensagem com os dados do agendamento para o WhatsApp
   const getWhatsappMessage = () => {
+    // Se formData.date estiver vazio, utiliza a data atual
     const formattedDate = formData.date
       ? new Date(formData.date).toLocaleDateString()
-      : '';
+      : new Date().toLocaleDateString();
     const message = `Olá, segue meu agendamento:
 Nome: ${formData.name}
 Barbeiro: ${formData.barber}
@@ -56,6 +63,16 @@ Aguardo a confirmação.`;
     return encodeURIComponent(message);
   };
 
+  // Função para copiar o PIX para a área de transferência
+  const handleCopyPix = () => {
+    const pix = getBarberPix();
+    navigator.clipboard.writeText(pix).then(() => {
+      alert("PIX copiado!");
+    }).catch(err => {
+      console.error("Erro ao copiar PIX:", err);
+    });
+  };
+
   // Obtém a data atual formatada para o input date
   const today = new Date().toISOString().split('T')[0];
 
@@ -64,11 +81,11 @@ Aguardo a confirmação.`;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1A1F2E] rounded-lg max-w-md w-full shadow-2xl modal-animation">
+      <div className="bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl modal-animation">
         <div className="p-6">
           {/* Cabeçalho do modal */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">
+          <div className="flex justify-between items-center ml-6 mb-4">
+            <h2 className="text-2xl">
               {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
             </h2>
             <button
@@ -90,7 +107,9 @@ Aguardo a confirmação.`;
                   required
                   className="w-full px-3 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                 />
               </div>
 
@@ -101,7 +120,9 @@ Aguardo a confirmação.`;
                   required
                   className="w-full px-3 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none"
                   value={formData.barber}
-                  onChange={(e) => setFormData({ ...formData, barber: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, barber: e.target.value })
+                  }
                 >
                   <option value="">Selecione um barbeiro</option>
                   {barbers.map((barber) => (
@@ -119,7 +140,9 @@ Aguardo a confirmação.`;
                   required
                   className="w-full px-3 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none"
                   value={formData.service}
-                  onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, service: e.target.value })
+                  }
                 >
                   <option value="">Selecione um serviço</option>
                   {services.map((service) => (
@@ -139,7 +162,9 @@ Aguardo a confirmação.`;
                   min={today}
                   defaultValue={today}
                   className="w-full px-3 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none"
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, date: e.target.value })
+                  }
                 />
               </div>
 
@@ -156,7 +181,9 @@ Aguardo a confirmação.`;
                           ? 'bg-[#F0B35B] text-black'
                           : 'bg-[#0D121E] hover:bg-[#F0B35B]/20'
                       }`}
-                      onClick={() => setFormData({ ...formData, time })}
+                      onClick={() =>
+                        setFormData({ ...formData, time })
+                      }
                     >
                       {time}
                     </button>
@@ -174,34 +201,31 @@ Aguardo a confirmação.`;
           ) : (
             // Tela de confirmação
             <div className="text-center">
-              {/* Ícone de sucesso */}
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-
               {/* Mensagem de sucesso e QR Code */}
               <div className="bg-[#0D121E] p-6 rounded-lg mb-6">
                 <div className="flex flex-col md:flex-row items-center gap-6 mb-6">
-                  {/* Exibe o QR Code do barbeiro selecionado como uma imagem PNG */}
-                  <div className="w-150 h-150 bg-white p-1 rounded-lg flex items-center justify-center">
+                  {/* Exibe o QR Code do barbeiro selecionado junto com o PIX */}
+                  <div className="w-150 bg-white p-1 rounded-lg flex flex-col items-center justify-center">
                     {formData.barber ? (
-                      <img
-                        src={`/qr-codes/${formData.barber}.png`}
-                        alt={`QR Code de ${formData.barber}`}
-                        className="w-full h-full object-contain"
-                      />
+                      <>
+                        <img
+                          src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.png`}
+                          alt={`QR Code de ${formData.barber}`}
+                          className="w-full h-full object-contain"
+                        />
+                        {/* Área do PIX */}
+                        <div className="mt-2 flex items-center">
+                          <span className="text-sm text-gray-700">
+                            {getBarberPix()}
+                          </span>
+                          <button
+                            onClick={handleCopyPix}
+                            className="ml-2 text-sm bg-green-400 px-2 py-1 rounded"
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                      </>
                     ) : (
                       <span>Sem QR</span>
                     )}
@@ -219,19 +243,29 @@ Aguardo a confirmação.`;
                   className="flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-md hover:bg-green-700 mb-6"
                 >
                   <MessageCircle size={20} />
-                  Enviar comprovante no WhatsApp
+                  Confirmar vaga
                 </a>
 
                 {/* Resumo do agendamento */}
                 <div className="text-left space-y-2 bg-[#1A1F2E] p-4 rounded-lg">
-                  <p><strong>Nome:</strong> {formData.name}</p>
-                  <p><strong>Barbeiro:</strong> {formData.barber}</p>
-                  <p><strong>Serviço:</strong> {formData.service}</p>
+                  <p>
+                    <strong>Nome:</strong> {formData.name}
+                  </p>
+                  <p>
+                    <strong>Barbeiro:</strong> {formData.barber}
+                  </p>
+                  <p>
+                    <strong>Serviço:</strong> {formData.service}
+                  </p>
                   <p>
                     <strong>Data:</strong>{' '}
-                    {formData.date ? new Date(formData.date).toLocaleDateString() : ''}
+                    {formData.date
+                      ? new Date(formData.date).toLocaleDateString()
+                      : new Date().toLocaleDateString()}
                   </p>
-                  <p><strong>Horário:</strong> {formData.time}</p>
+                  <p>
+                    <strong>Horário:</strong> {formData.time}
+                  </p>
                 </div>
               </div>
 
