@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+ import React, { useState } from 'react';
 import { X, MessageCircle } from 'lucide-react';
 
 // Interface para as props do componente
@@ -84,7 +84,7 @@ Aguardo a confirmação.`;
       <div className="bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl modal-animation">
         <div className="p-6">
           {/* Cabeçalho do modal */}
-          <div className="flex justify-center items-center mb-4">
+          <div className="flex justify-center items-center ml-12 mb-4">
             <h2 className="text-2xl">
               {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
             </h2>
