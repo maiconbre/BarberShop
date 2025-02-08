@@ -81,14 +81,20 @@ Aguardo a confirmação.`;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl modal-animation">
-        <div className="p-6">
-          {/* Cabeçalho do modal */}
-            <div className="flex justify-center items-center text-center mb-4">
-            <h2 className="text-2xl">
-              {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
-            </h2>
-          </div>
+      <div className="relative bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl modal-animation">
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-gray-400 hover:text-gray-200"
+      >
+        <X size={20} />
+      </button>
+      <div className="p-6">
+        {/* Cabeçalho do modal */}
+        <div className="flex justify-center items-center text-center mb-4">
+        <h2 className="text-2xl">
+          {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
+        </h2>
+        </div>
 
           {step === 1 ? (
             // Formulário de agendamento
