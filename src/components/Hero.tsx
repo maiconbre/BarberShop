@@ -9,7 +9,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
     <div 
       className="relative min-h-screen flex items-center justify-center"
       style={{
-        backgroundImage: 'linear-gradient(rgba(13, 18, 30, 0.7), rgba(13, 18, 30, 0.7)), url("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3")',
+        backgroundImage: 'linear-gradient(rgba(13, 18, 30, 0.7), rgba(13, 18, 30, 0.7)), url("https://images.unsplash.com/photo-1517832606299-7ae9b720a186?q=80&w=1972&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}

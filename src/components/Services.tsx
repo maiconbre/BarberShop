@@ -5,19 +5,19 @@ const services = [
   {
     name: 'Máquina e Tesoura',
     price: 'R$ 45,00',
-    image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?ixlib=rb-4.0.3',
+    image: 'https://images.unsplash.com/photo-1635273051839-003bf06a8751?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     description: 'Corte completo com acabamento perfeito'
   },
   {
     name: 'Barba',
     price: 'R$ 35,00',
-    image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?ixlib=rb-4.0.3',
+    image: 'https://images.unsplash.com/photo-1532710093739-9470acff878f?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     description: 'Barba aparada e alinhada'
   },
   {
     name: 'Reflexo',
     price: 'R$ 80,00',
-    image: 'https://images.unsplash.com/photo-1622296089863-eb7fc530daa8?ixlib=rb-4.0.3',
+    image: 'https://i.pinimg.com/736x/91/0f/c9/910fc9828671f2a76e51ac56242f61d8.jpg',
     description: 'Mechas e reflexos personalizados'
   }
 ];

@@ -1,4 +1,4 @@
- import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { X, MessageCircle } from 'lucide-react';
 
 // Interface para as props do componente
@@ -84,7 +84,7 @@ Aguardo a confirmação.`;
       <div className="bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl modal-animation">
         <div className="p-6">
           {/* Cabeçalho do modal */}
-          <div className="flex justify-center items-center ml-16 mb-4">
+            <div className="flex justify-center items-center text-center mb-4">
             <h2 className="text-2xl">
               {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
             </h2>
@@ -154,7 +154,7 @@ Aguardo a confirmação.`;
                   type="date"
                   required
                   min={today}
-                  defaultValue={today}
+                  value={formData.date || today}
                   className="w-full px-3 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none"
                   onChange={(e) =>
                     setFormData({ ...formData, date: e.target.value })
@@ -170,11 +170,10 @@ Aguardo a confirmação.`;
                     <button
                       key={time}
                       type="button"
-                      className={`px-3 py-2 rounded-md text-sm ${
-                        formData.time === time
+                      className={`px-3 py-2 rounded-md text-sm ${formData.time === time
                           ? 'bg-[#F0B35B] text-black'
                           : 'bg-[#0D121E] hover:bg-[#F0B35B]/20'
-                      }`}
+                        }`}
                       onClick={() =>
                         setFormData({ ...formData, time })
                       }
