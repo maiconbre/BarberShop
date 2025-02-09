@@ -1,4 +1,3 @@
-import React from 'react';
 import { Scissors } from 'lucide-react';
 
 const services = [
@@ -24,7 +23,7 @@ const services = [
 
 const Services = () => {
   return (
-    <section className="py-20 px-4 bg-[#0D121E]">
+    <section className="py-10 px-4 bg-[#0D121E]">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Nossos Serviços</h2>

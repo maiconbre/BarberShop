@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle, Scissors, User } from 'lucide-react';
+import { Scissors, User } from 'lucide-react';
+import FotoHero from '/img/fotohero.avif';
 
 interface HeroProps {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -24,7 +25,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
         ${bgLoaded ? 'filter blur-0 opacity-100 translate-x-0' : 'filter blur-3xl opacity-0 -translate-x-10'}
       `}
       style={{
-        backgroundImage: 'linear-gradient(rgba(13, 18, 30, 0.7), rgba(13, 18, 30, 0.7)), url("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")',
+        backgroundImage: `linear-gradient(rgba(13, 18, 30, 0.7), rgba(13, 18, 30, 0.7)), url(${FotoHero})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}

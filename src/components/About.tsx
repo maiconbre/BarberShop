@@ -1,13 +1,12 @@
-import React from 'react';
 import { Clock } from 'lucide-react';
 
 const About = () => {
   return (
-    <div className="py-8 px-4 bg-[#0D121E]">
+    <div className=" px-4 bg-[#0D121E]">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h2 className="text-3xl font-bold mb-6">Sobre Nossa Barbearia</h2>
+            <h2 className="text-3xl py-5 flex text-center font-bold mb-6">Sobre Nossa Barbearia</h2>
             <p className="text-gray-300 mb-6">
               Com mais de 10 anos de experiência, nossa barbearia é referência em cortes modernos e clássicos.
               Oferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
