@@ -11,7 +11,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   // Estado para controlar as etapas do agendamento (1: formulário, 2: confirmação)
   const [step, setStep] = useState(1);
 
-  // Estado para armazenar os dados do formulário (agora com os checkboxes "barba" e "sobrancelha")
+  // Estado para armazenar os dados do formulário (incluindo os checkboxes "barba" e "sobrancelha")
   const [formData, setFormData] = useState({
     name: '',
     barber: '',
@@ -22,12 +22,38 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     sobrancelha: false,
   });
 
+  // Mapeamento de preços (valores fictícios em R$)
+  const priceMapping: { [key: string]: number } = {
+    "Corte Tradicional": 50,
+    "Tesoura": 60,
+    "Navalha": 70,
+    "Reflexo": 80,
+    "Nevou": 90,
+    "barba": 30,
+    "sobrancelha": 20,
+  };
+
+  // Função que calcula o valor total do serviço (serviço + extras, se selecionados)
+  const getServicePrice = () => {
+    let total = 0;
+    if (formData.service && priceMapping[formData.service]) {
+      total += priceMapping[formData.service];
+    }
+    if (formData.barba) {
+      total += priceMapping["barba"];
+    }
+    if (formData.sobrancelha) {
+      total += priceMapping["sobrancelha"];
+    }
+    return `R$ ${total.toFixed(2)}`;
+  };
+
   // Dados estáticos com a propriedade "pix" adicionada
   const barbers = [
     { name: 'Gabriel', whatsapp: '5521997760398', pix: '21997760398' },
     { name: 'Estevão', whatsapp: '5511988888881', pix: '21997764658' }
   ];
-  const services = ['Corte Tradicional', 'Navalha', 'Corte + Barba', 'Barba', 'Reflexo', 'Nevou'];
+  const services = ['Corte Tradicional', 'Tesoura', 'Navalha', 'Reflexo', 'Nevou'];
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
   // Função para lidar com o envio do formulário
@@ -48,7 +74,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     return barber?.pix || '';
   };
 
-  // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo os extras
+  // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo os extras e o valor do serviço
   const getWhatsappMessage = () => {
     // Se formData.date estiver vazio, utiliza a data atual
     const formattedDate = formData.date
@@ -65,7 +91,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
 Nome: ${formData.name}
 Barbeiro: ${formData.barber}
 Serviço: ${formData.service}
-${extrasMessage}Data: ${formattedDate}
+${extrasMessage}Valor: ${getServicePrice()}
+Data: ${formattedDate}
 Horário: ${formData.time}
   
 Aguardo a confirmação.`;
@@ -272,9 +299,15 @@ Aguardo a confirmação.`;
                       <span>Sem QR</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-300">
-                    Realize o pagamento via Pix e envie o comprovante para confirmar sua vaga.
-                  </p>
+                  <div>
+                    <p className="text-gray-300">
+                      Pague antecipado e garanta a sua vaga.
+                    </p>
+                    {/* Exibição do valor do serviço */}
+                    <p className="text-gray-300 mt-8">
+                      Valor <strong>{getServicePrice()}</strong>
+                    </p>
+                  </div>
                 </div>
 
                 {/* Botão WhatsApp com mensagem pré-preenchida */}
@@ -301,6 +334,9 @@ Aguardo a confirmação.`;
                   </p>
                   <p>
                     <strong>Extras:</strong> {extrasText.length ? extrasText.join(", ") : "Nenhum"}
+                  </p>
+                  <p>
+                    <strong>Valor:</strong> {getServicePrice()}
                   </p>
                   <p>
                     <strong>Data:</strong>{' '}
