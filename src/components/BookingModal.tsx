@@ -11,13 +11,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   // Estado para controlar as etapas do agendamento (1: formulário, 2: confirmação)
   const [step, setStep] = useState(1);
 
-  // Estado para armazenar os dados do formulário
+  // Estado para armazenar os dados do formulário (agora com os checkboxes "barba" e "sobrancelha")
   const [formData, setFormData] = useState({
     name: '',
     barber: '',
     date: '',
     time: '',
     service: '',
+    barba: false,
+    sobrancelha: false,
   });
 
   // Dados estáticos com a propriedade "pix" adicionada
@@ -46,17 +48,24 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     return barber?.pix || '';
   };
 
-  // Função que monta a mensagem com os dados do agendamento para o WhatsApp
+  // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo os extras
   const getWhatsappMessage = () => {
     // Se formData.date estiver vazio, utiliza a data atual
     const formattedDate = formData.date
       ? new Date(formData.date).toLocaleDateString()
       : new Date().toLocaleDateString();
+
+    // Monta a string com os serviços extras, se selecionados
+    const extras = [];
+    if (formData.barba) extras.push("Barba");
+    if (formData.sobrancelha) extras.push("Sobrancelha");
+    const extrasMessage = extras.length ? `Extras: ${extras.join(', ')}\n` : '';
+
     const message = `Olá, segue meu agendamento:
 Nome: ${formData.name}
 Barbeiro: ${formData.barber}
 Serviço: ${formData.service}
-Data: ${formattedDate}
+${extrasMessage}Data: ${formattedDate}
 Horário: ${formData.time}
   
 Aguardo a confirmação.`;
@@ -79,22 +88,27 @@ Aguardo a confirmação.`;
   // Não renderiza nada se o modal estiver fechado
   if (!isOpen) return null;
 
+  // Calcula os extras para o resumo do agendamento
+  const extrasText: string[] = [];
+  if (formData.barba) extrasText.push("Barba");
+  if (formData.sobrancelha) extrasText.push("Sobrancelha");
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="relative bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl modal-animation">
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 text-gray-400 hover:text-gray-200"
-      >
-        <X size={20} />
-      </button>
-      <div className="p-6">
-        {/* Cabeçalho do modal */}
-        <div className="flex justify-center items-center text-center mb-4">
-        <h2 className="text-2xl">
-          {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
-        </h2>
-        </div>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-200"
+        >
+          <X size={20} />
+        </button>
+        <div className="p-6">
+          {/* Cabeçalho do modal */}
+          <div className="flex justify-center items-center text-center mb-4">
+            <h2 className="text-2xl">
+              {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
+            </h2>
+          </div>
 
           {step === 1 ? (
             // Formulário de agendamento
@@ -153,6 +167,36 @@ Aguardo a confirmação.`;
                 </select>
               </div>
 
+              {/* Checkbox para Barba */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="barba"
+                  value="barba"
+                  checked={formData.barba}
+                  onChange={(e) =>
+                    setFormData({ ...formData, barba: e.target.checked })
+                  }
+                  className="mr-2"
+                />
+                <label htmlFor="barba" className="text-sm">Barba</label>
+              </div>
+              
+              {/* Checkbox para Sobrancelha */}
+              <div className="flex items-center mt-2">
+                <input
+                  type="checkbox"
+                  id="sobrancelha"
+                  value="sobrancelha"
+                  checked={formData.sobrancelha}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sobrancelha: e.target.checked })
+                  }
+                  className="mr-2"
+                />
+                <label htmlFor="sobrancelha" className="text-sm">Sobrancelha</label>
+              </div>
+
               {/* Campo Data */}
               <div>
                 <label className="block text-sm font-medium mb-1">Data</label>
@@ -200,7 +244,6 @@ Aguardo a confirmação.`;
           ) : (
             // Tela de confirmação
             <div className="text-center">
-              {/* Mensagem de sucesso e QR Code */}
               <div className="bg-[#0D121E] p-6 rounded-lg mb-6">
                 <div className="flex flex-col md:flex-row items-center gap-6 mb-6">
                   {/* Exibe o QR Code do barbeiro selecionado junto com o PIX */}
@@ -255,6 +298,9 @@ Aguardo a confirmação.`;
                   </p>
                   <p>
                     <strong>Serviço:</strong> {formData.service}
+                  </p>
+                  <p>
+                    <strong>Extras:</strong> {extrasText.length ? extrasText.join(", ") : "Nenhum"}
                   </p>
                   <p>
                     <strong>Data:</strong>{' '}
