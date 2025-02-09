@@ -34,25 +34,10 @@ const About = () => {
               </ul>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="gap-4">
             <img
               src="https://images.unsplash.com/photo-1572663459735-75425e957ab9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt="Barbearia interior"
-              className="rounded-lg w-full h-48 object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1635273051839-003bf06a8751?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              alt="Corte de cabelo"
-              className="rounded-lg w-full h-48 object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1587909209111-5097ee578ec3?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              alt="Ferramentas de barbeiro"
-              className="rounded-lg w-full h-48 object-cover"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1525708117204-bbe93e711abb?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              alt="Ambiente da barbearia"
               className="rounded-lg w-full h-48 object-cover"
             />
           </div>
