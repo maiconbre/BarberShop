@@ -22,15 +22,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     sobrancelha: false,
   });
 
-  // Mapeamento de preços (valores fictícios em R$)
+  // Mapeamento de preços (valores em R$)
   const priceMapping: { [key: string]: number } = {
-    "Corte Tradicional": 50,
+    "Corte Tradicional": 45,
     "Tesoura": 60,
     "Navalha": 70,
     "Reflexo": 80,
     "Nevou": 90,
-    "barba": 30,
-    "sobrancelha": 20,
+    "barba": 25,
+    "sobrancelha": 10,
   };
 
   // Função que calcula o valor total do serviço (serviço + extras, se selecionados)
@@ -193,7 +193,7 @@ Aguardo a confirmação.`;
               </div>
 
               {/* Checkboxes para extras */}
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-6">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -205,7 +205,7 @@ Aguardo a confirmação.`;
                     }
                     className="mr-2"
                   />
-                  <label htmlFor="barba" className="text-sm">Barba</label>
+                  <label htmlFor="barba" >Barba</label>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -218,7 +218,7 @@ Aguardo a confirmação.`;
                     }
                     className="mr-2"
                   />
-                  <label htmlFor="sobrancelha" className="text-sm">Sobrancelha</label>
+                  <label htmlFor="sobrancelha">Sobrancelha</label>
                 </div>
               </div>
 
