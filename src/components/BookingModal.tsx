@@ -50,8 +50,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
 
   // Dados estáticos com a propriedade "pix" adicionada
   const barbers = [
-    { name: 'Gabriel', whatsapp: '5521997760398', pix: '21997760398' },
-    { name: 'Estevão', whatsapp: '5511988888881', pix: '21997764658' }
+    { name: 'Barbeiro 1', whatsapp: '5521997760398', pix: '21997760398' },
+    { name: 'Barbeiro 2', whatsapp: '5511988888881', pix: '21997764658' }
   ];
   const services = ['Corte Tradicional', 'Tesoura', 'Navalha', 'Reflexo', 'Nevou'];
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
