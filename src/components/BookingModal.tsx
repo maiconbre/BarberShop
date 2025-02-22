@@ -119,32 +119,29 @@ Aguardo a confirmação.`;
   if (formData.sobrancelha) extrasText.push("Sobrancelha");
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-      <div className="relative bg-[#1A1F2E] rounded-lg max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl transform transition-transform duration-300">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6 md:p-8 transition-opacity duration-300">
+      <div className="relative bg-[#1A1F2E] rounded-lg w-[95%] sm:w-[90%] sm:max-w-md max-h-[95vh] sm:max-h-[85vh] overflow-auto shadow-2xl transform transition-transform duration-300">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-200 transition-colors"
+          className="absolute top-1 right-1 sm:top-2 sm:right-2 text-gray-400 hover:text-gray-200 transition-colors"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
-        <div className="p-6">
-          {/* Cabeçalho do modal */}
-          <div className="flex justify-center items-center text-center mb-6">
-            <h2 className="text-2xl font-semibold tracking-wide">
+        <div className="p-2 sm:p-4">
+          <div className="flex justify-center items-center text-center mb-2 sm:mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold tracking-wide">
               {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
             </h2>
           </div>
 
           {step === 1 ? (
-            // Formulário de agendamento
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Campo Nome */}
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Nome</label>
+                <label className="block text-xs sm:text-sm font-medium mb-0.5">Nome</label>
                 <input
                   type="text"
                   required
-                  className="w-full px-4 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors"
+                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -152,12 +149,11 @@ Aguardo a confirmação.`;
                 />
               </div>
 
-              {/* Campo Barbeiro */}
               <div>
-                <label className="block text-sm font-medium mb-1">Barbeiro</label>
+                <label className="block text-xs sm:text-sm font-medium mb-0.5">Barbeiro</label>
                 <select
                   required
-                  className="w-full px-4 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors"
+                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
                   value={formData.barber}
                   onChange={(e) =>
                     setFormData({ ...formData, barber: e.target.value })
@@ -172,12 +168,11 @@ Aguardo a confirmação.`;
                 </select>
               </div>
 
-              {/* Campo Serviço */}
               <div>
-                <label className="block text-sm font-medium mb-1">Serviço</label>
+                <label className="block text-xs sm:text-sm font-medium mb-0.5">Serviço</label>
                 <select
                   required
-                  className="w-full px-4 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors"
+                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
                   value={formData.service}
                   onChange={(e) =>
                     setFormData({ ...formData, service: e.target.value })
@@ -192,8 +187,7 @@ Aguardo a confirmação.`;
                 </select>
               </div>
 
-              {/* Checkboxes para extras */}
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4 text-sm">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -203,9 +197,9 @@ Aguardo a confirmação.`;
                     onChange={(e) =>
                       setFormData({ ...formData, barba: e.target.checked })
                     }
-                    className="mr-2"
+                    className="mr-1"
                   />
-                  <label htmlFor="barba" >Barba</label>
+                  <label htmlFor="barba" className="text-xs sm:text-sm">Barba</label>
                 </div>
                 <div className="flex items-center">
                   <input
@@ -216,36 +210,34 @@ Aguardo a confirmação.`;
                     onChange={(e) =>
                       setFormData({ ...formData, sobrancelha: e.target.checked })
                     }
-                    className="mr-2"
+                    className="mr-1"
                   />
-                  <label htmlFor="sobrancelha">Sobrancelha</label>
+                  <label htmlFor="sobrancelha" className="text-xs sm:text-sm">Sobrancelha</label>
                 </div>
               </div>
 
-              {/* Campo Data */}
               <div>
-                <label className="block text-sm font-medium mb-1">Data</label>
+                <label className="block text-xs sm:text-sm font-medium mb-0.5">Data</label>
                 <input
                   type="date"
                   required
                   min={today}
                   value={formData.date || today}
-                  className="w-full px-4 py-2 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors"
+                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
                   onChange={(e) =>
                     setFormData({ ...formData, date: e.target.value })
                   }
                 />
               </div>
 
-              {/* Campo Horário */}
               <div>
-                <label className="block text-sm font-medium mb-1">Horário</label>
-                <div className="grid grid-cols-4 gap-2">
+                <label className="block text-xs sm:text-sm font-medium mb-0.5">Horário</label>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1">
                   {times.map((time) => (
                     <button
                       key={time}
                       type="button"
-                      className={`px-3 py-2 rounded-md text-sm transition-colors ${formData.time === time
+                      className={`px-2 py-1 rounded-md text-xs sm:text-sm transition-colors ${formData.time === time
                           ? 'bg-[#F0B35B] text-black'
                           : 'bg-[#0D121E] hover:bg-[#F0B35B]/20'
                         }`}
@@ -261,32 +253,30 @@ Aguardo a confirmação.`;
 
               <button
                 type="submit"
-                className="w-full bg-[#F0B35B] text-black py-3 rounded-md font-semibold hover:bg-[#F0B35B]/80 transition-colors"
+                className="w-full bg-[#F0B35B] text-black py-2 rounded-md font-semibold hover:bg-[#F0B35B]/80 transition-colors text-sm sm:text-base mt-2"
               >
                 Confirmar Agendamento
               </button>
             </form>
           ) : (
-            // Tela de confirmação
             <div className="text-center">
-              <div className="bg-[#0D121E] p-6 rounded-lg mb-6 shadow-lg">
-                <div className="flex flex-col md:flex-row items-center gap-6 mb-6">
-                  {/* Área do QR Code e PIX */}
-                  <div className="w-48 bg-white p-2 rounded-lg flex flex-col items-center justify-center">
+              <div className="bg-[#0D121E] p-2 sm:p-4 rounded-lg mb-3 sm:mb-4 shadow-lg">
+                <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center">
                     {formData.barber ? (
                       <>
                         <img
                           src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
                           alt={`QR Code de ${formData.barber}`}
-                          className="w-36 h-36 object-contain hover:scale-105 transition-transform duration-200"
+                          className="w-32 h-32 object-contain hover:scale-105 transition-transform duration-200"
                         />
-                        <div className="mt-2 flex items-center">
+                        <div className="mt-1 flex items-center text-xs">
                           <span className="text-gray-700 font-bold">
                             {getBarberPix()}
                           </span>
                           <button
                             onClick={handleCopyPix}
-                            className="ml-4 text-sm bg-green-400 px-2 py-1 rounded hover:shadow-md transition-shadow"
+                            className="ml-2 text-xs bg-green-400 px-1.5 py-0.5 rounded hover:shadow-md transition-shadow"
                           >
                             Copiar
                           </button>
@@ -297,58 +287,44 @@ Aguardo a confirmação.`;
                     )}
                   </div>
                   <div>
-                    <p className="text-gray-300 text-lg font-medium">
+                    <p className="text-gray-300 text-sm sm:text-base font-medium">
                       Pague antecipado e garanta a sua vaga.
                     </p>
-                    <p className="text-gray-300 mt-4 text-base">
+                    <p className="text-gray-300 mt-2 text-sm sm:text-base">
                       Valor <strong>{getServicePrice()}</strong>
                     </p>
                   </div>
                 </div>
 
-                {/* Botão WhatsApp */}
                 <a
                   href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-md hover:bg-green-700 transition-transform hover:scale-105 mb-6"
+                  className="flex items-center justify-center gap-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition-transform hover:scale-105 mb-3 text-sm"
                 >
-                  <MessageCircle size={20} />
+                  <MessageCircle size={16} />
                   Confirmar vaga
                 </a>
 
-                {/* Resumo do agendamento */}
-                <div className="text-left space-y-2 bg-[#1A1F2E] p-4 rounded-lg">
-                  <p>
-                    <strong>Nome:</strong> {formData.name}
-                  </p>
-                  <p>
-                    <strong>Barbeiro:</strong> {formData.barber}
-                  </p>
-                  <p>
-                    <strong>Serviço:</strong> {formData.service}
-                  </p>
-                  <p>
-                    <strong>Extras:</strong> {extrasText.length ? extrasText.join(", ") : "Nenhum"}
-                  </p>
-                  <p>
-                    <strong>Valor:</strong> {getServicePrice()}
-                  </p>
+                <div className="text-left space-y-1 bg-[#1A1F2E] p-3 rounded-lg text-xs sm:text-sm">
+                  <p><strong>Nome:</strong> {formData.name}</p>
+                  <p><strong>Barbeiro:</strong> {formData.barber}</p>
+                  <p><strong>Serviço:</strong> {formData.service}</p>
+                  <p><strong>Extras:</strong> {extrasText.length ? extrasText.join(", ") : "Nenhum"}</p>
+                  <p><strong>Valor:</strong> {getServicePrice()}</p>
                   <p>
                     <strong>Data:</strong>{' '}
                     {formData.date
                       ? new Date(formData.date).toLocaleDateString()
                       : new Date().toLocaleDateString()}
                   </p>
-                  <p>
-                    <strong>Horário:</strong> {formData.time}
-                  </p>
+                  <p><strong>Horário:</strong> {formData.time}</p>
                 </div>
               </div>
 
               <button
                 onClick={onClose}
-                className="w-full bg-[#F0B35B] text-black py-3 rounded-md font-semibold hover:bg-[#F0B35B]/80 transition-colors"
+                className="w-full bg-[#F0B35B] text-black py-2 rounded-md font-semibold hover:bg-[#F0B35B]/80 transition-colors text-sm"
               >
                 Fechar
               </button>
