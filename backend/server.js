@@ -47,24 +47,29 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 // Atualizar status do agendamento
+// Adicione estas rotas no servidor
 app.patch('/api/appointments/:id', async (req, res) => {
   try {
-    const appointment = await Appointment.findByPk(req.params.id);
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const appointment = await Appointment.findByPk(id);
     if (!appointment) {
       return res.status(404).json({ success: false, message: 'Agendamento não encontrado' });
     }
 
-    await appointment.update({ status: req.body.status });
+    await appointment.update({ status });
     res.json({ success: true, data: appointment });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Deletar agendamento
 app.delete('/api/appointments/:id', async (req, res) => {
   try {
-    const appointment = await Appointment.findByPk(req.params.id);
+    const { id } = req.params;
+    const appointment = await Appointment.findByPk(id);
+    
     if (!appointment) {
       return res.status(404).json({ success: false, message: 'Agendamento não encontrado' });
     }
