@@ -61,14 +61,13 @@ const DashboardPage: React.FC = () => {
     const data = sortedDates.map(date => {
       const dayDate = new Date(date + 'T12:00:00-03:00');
       const fullDate = dayDate.toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long'
-      });
+        weekday: 'short',
+        day: 'numeric'
+      }).replace('.', '').replace('-feira', '');
       
       return {
-        date: String(dayDate.getDate()), // Mantém apenas o dia para exibição
-        fullDate, // Data completa para o tooltip
+        date: String(dayDate.getDate()),
+        fullDate: fullDate.charAt(0).toUpperCase() + fullDate.slice(1), // Capitaliza a primeira letra
         pending: appointmentsByDate[date].pending,
         completed: appointmentsByDate[date].completed
       };
