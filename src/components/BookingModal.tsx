@@ -10,6 +10,9 @@ interface BookingModalProps {
 const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   // Estado para controlar as etapas do agendamento (1: formulário, 2: confirmação)
   const [step, setStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [error, setError] = useState('');
 
   // Estado para armazenar os dados do formulário (incluindo os checkboxes "barba" e "sobrancelha")
   const [formData, setFormData] = useState({
@@ -50,16 +53,74 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
 
   // Dados estáticos com a propriedade "pix" adicionada
   const barbers = [
-    { name: 'Barbeiro 1', whatsapp: '5521997760398', pix: '21997760398' },
-    { name: 'Barbeiro 2', whatsapp: '5511988888881', pix: '21997764658' }
+    { name: 'Maicon', whatsapp: '21997764645', pix: '21997761646' },
+    { name: 'Brendon', whatsapp: '2199774658', pix: '21554875965' }
   ];
   const services = ['Corte Tradicional', 'Tesoura', 'Navalha', 'Reflexo', 'Nevou'];
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
   // Função para lidar com o envio do formulário
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStep(2);
+    setIsLoading(true);
+    setError('');
+  
+    try {
+      const appointmentData = {
+        clientName: formData.name,
+        serviceName: formData.service + (formData.barba ? ', Barba' : '') + (formData.sobrancelha ? ', Sobrancelha' : ''),
+        date: formData.date,
+        time: formData.time,
+        barberId: formData.barber === 'Maicon' ? '01' : '02',
+        barberName: formData.barber,
+        price: parseFloat(getServicePrice().replace('R$ ', ''))
+      };
+  
+      const response = await fetch('http://localhost:3000/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentData),
+      });
+  
+      const result = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(result.message || 'Erro ao criar agendamento');
+      }
+  
+      // Update local storage
+      const storedAppointments = localStorage.getItem('appointments') || '[]';
+      const appointments = JSON.parse(storedAppointments);
+      appointments.push({
+        id: result.data.id.toString(),
+        client_name: appointmentData.clientName,
+        service_name: appointmentData.serviceName,
+        date: appointmentData.date,
+        time: appointmentData.time,
+        status: 'pending',
+        barber_id: appointmentData.barberId,
+        barber_name: appointmentData.barberName,
+        price: appointmentData.price
+      });
+      localStorage.setItem('appointments', JSON.stringify(appointments));
+  
+      // Trigger storage event for dashboard update
+      window.dispatchEvent(new Event('storage'));
+  
+      setShowSuccessMessage(true);
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        setStep(2);
+      }, 1500);
+  
+    } catch (err) {
+      console.error('Error saving appointment:', err);
+      setError('Erro ao salvar agendamento');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Função para obter o WhatsApp do barbeiro selecionado
@@ -119,30 +180,39 @@ Aguardo a confirmação.`;
   if (formData.sobrancelha) extrasText.push("Sobrancelha");
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6 md:p-8 transition-opacity duration-300">
-      <div className="relative bg-[#1A1F2E] rounded-lg w-[95%] sm:w-[90%] sm:max-w-md max-h-[95vh] sm:max-h-[85vh] overflow-auto shadow-2xl transform transition-transform duration-300">
+    <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6 md:p-8 transition-all duration-500 ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+      <div className="relative bg-[#1A1F2E] rounded-lg w-[95%] sm:w-[90%] sm:max-w-md max-h-[95vh] sm:max-h-[85vh] overflow-auto shadow-2xl transform transition-all duration-500 ease-out hover:shadow-[#F0B35B]/10">
         <button
           onClick={onClose}
-          className="absolute top-1 right-1 sm:top-2 sm:right-2 text-gray-400 hover:text-gray-200 transition-colors"
+          className="absolute top-1 right-1 sm:top-2 sm:right-2 text-gray-400 hover:text-gray-200 transition-colors p-2 hover:bg-white/10 rounded-full"
         >
-          <X size={18} />
+          <X size={18} className="transform hover:rotate-90 transition-transform duration-300" />
         </button>
-        <div className="p-2 sm:p-4">
-          <div className="flex justify-center items-center text-center mb-2 sm:mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold tracking-wide">
+        <div className="p-4 sm:p-6">
+          <div className="flex justify-center items-center text-center mb-6">
+            <h2 className={`text-xl sm:text-2xl font-bold tracking-wide bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/70 bg-clip-text text-transparent transform transition-all duration-500 ${step === 1 ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0'}`}>
               {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
             </h2>
           </div>
 
+          {showSuccessMessage && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-10 rounded-lg">
+              <div className="bg-green-500 text-white px-6 py-3 rounded-full font-semibold animate-bounce">
+                Agendamento realizado com sucesso!
+              </div>
+            </div>
+          )}
+
           {step === 1 ? (
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-              <div>
-                <label className="block text-xs sm:text-sm font-medium mb-0.5">Nome</label>
+            <form onSubmit={handleSubmit} className="space-y-4 relative">
+              <div className="group">
+                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Nome</label>
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
+                  className="w-full px-4 py-2.5 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-sm placeholder-gray-500"
                   value={formData.name}
+                  placeholder="Digite seu nome completo"
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
@@ -253,13 +323,22 @@ Aguardo a confirmação.`;
 
               <button
                 type="submit"
-                className="w-full bg-[#F0B35B] text-black py-2 rounded-md font-semibold hover:bg-[#F0B35B]/80 transition-colors text-sm sm:text-base mt-2"
+                disabled={isLoading}
+                className={`w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:bg-[#F0B35B]/90 active:scale-[0.98] ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
-                Confirmar Agendamento
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processando...
+                  </span>
+                ) : 'Confirmar Agendamento'}
               </button>
             </form>
           ) : (
-            <div className="text-center">
+            <div className="text-center transform transition-all duration-500 animate-fadeIn">
               <div className="bg-[#0D121E] p-2 sm:p-4 rounded-lg mb-3 sm:mb-4 shadow-lg">
                 <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
                   <div className="w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center">
