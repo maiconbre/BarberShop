@@ -1,25 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 import AppointmentCard from '../components/AppointmentCard';
 
@@ -43,16 +24,6 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [showCompleted, setShowCompleted] = useState<boolean>(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [currentBarberId, setCurrentBarberId] = useState<string>('');
-  const [chartData, setChartData] = useState<{
-    labels: string[];
-    datasets: {
-      label: string;
-      data: number[];
-      borderColor: string;
-      backgroundColor: string;
-    }[];
-  }>({ labels: [], datasets: [] });
 
   // Calcular estatísticas
   const totalAppointments = appointments.length;
@@ -66,21 +37,7 @@ const DashboardPage: React.FC = () => {
     : appointments.filter(app => app.status !== 'completed');
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const isAdmin = user?.role === 'admin';
-      const barberId = isAdmin ? '' : (localStorage.getItem('currentBarberId') || sessionStorage.getItem('currentBarberId') || '');
-      setCurrentBarberId(barberId);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    handleStorageChange(); // Initial load
     loadAppointments(); // Load appointments on mount
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 
   const loadAppointments = async () => {
@@ -101,65 +58,11 @@ const DashboardPage: React.FC = () => {
           });
 
         setAppointments(formattedAppointments);
-        updateChartData(formattedAppointments);
       }
     } catch (error) {
       console.error('Error loading appointments:', error);
       setAppointments([]);
     }
-  };
-
-  const updateChartData = (currentAppointments: Appointment[]) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(today);
-      date.setDate(date.getDate() - (6 - i));
-      return date.toISOString().split('T')[0];
-    });
-
-    const appointmentCounts = last7Days.map(date => 
-      currentAppointments.filter(app => {
-        const appDate = new Date(app.date);
-        appDate.setHours(0, 0, 0, 0);
-        return appDate.toISOString().split('T')[0] === date;
-      }).length
-    );
-
-    const dailyRevenue = last7Days.map(date => 
-      currentAppointments
-        .filter(app => {
-          const appDate = new Date(app.date);
-          appDate.setHours(0, 0, 0, 0);
-          return appDate.toISOString().split('T')[0] === date;
-        })
-        .reduce((sum, app) => sum + app.price, 0)
-    );
-
-    setChartData({
-      labels: last7Days.map(date => 
-        new Date(date).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
-      ),
-      datasets: [
-        {
-          label: 'Agendamentos',
-          data: appointmentCounts,
-          borderColor: '#F0B35B',
-          backgroundColor: 'rgba(240, 179, 91, 0.2)',
-          borderWidth: 2,
-          yAxisID: 'y'
-        },
-        {
-          label: 'Receita (R$)',
-          data: dailyRevenue,
-          borderColor: '#4CAF50',
-          backgroundColor: 'rgba(76, 175, 80, 0.2)',
-          borderWidth: 2,
-          yAxisID: 'y1'
-        }
-      ]
-    });
   };
 
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
@@ -201,122 +104,6 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Simplificar as opções do gráfico
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false,
-    },
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        labels: { 
-          color: '#fff',
-          padding: 20,
-          font: {
-            size: 12
-          }
-        },
-      },
-      title: { display: false },
-      tooltip: {
-        padding: 12,
-        backgroundColor: 'rgba(26, 31, 46, 0.9)',
-        titleFont: {
-          size: 13
-        },
-        bodyFont: {
-          size: 12
-        },
-        callbacks: {
-          label: function(context: any) {
-            let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
-            if (context.dataset.yAxisID === 'y1') {
-              label += `R$ ${context.parsed.y.toFixed(2)}`;
-            } else {
-              label += context.parsed.y;
-            }
-            return label;
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        type: 'linear' as const,
-        display: true,
-        position: 'left' as const,
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Número de Agendamentos',
-          color: '#fff',
-          font: {
-            size: 12
-          }
-        },
-        ticks: { 
-          color: '#fff', 
-          stepSize: 1,
-          padding: 8,
-          font: {
-            size: 11
-          }
-        },
-        grid: { 
-          color: '#ffffff20',
-          drawBorder: false
-        },
-      },
-      y1: {
-        type: 'linear' as const,
-        display: true,
-        position: 'right' as const,
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Receita (R$)',
-          color: '#fff',
-          font: {
-            size: 12
-          }
-        },
-        ticks: { 
-          color: '#fff',
-          padding: 8,
-          callback: function(value: any) {
-            return 'R$ ' + value.toFixed(2);
-          },
-          font: {
-            size: 11
-          }
-        },
-        grid: {
-          display: false,
-        },
-      },
-      x: {
-        ticks: { 
-          color: '#fff',
-          padding: 8,
-          font: {
-            size: 11
-          }
-        },
-        grid: { 
-          color: '#ffffff20',
-          drawBorder: false
-        },
-      },
-    },
-  };
-
-  // No JSX, garantir que o ID seja uma string válida
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16">
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -346,13 +133,6 @@ const DashboardPage: React.FC = () => {
           <div className="bg-[#1A1F2E] p-4 rounded-lg shadow hover:shadow-lg transition-shadow">
             <h3 className="text-gray-400 text-sm">Concluídos</h3>
             <p className="text-xl font-bold text-green-500">{completedAppointments}</p>
-          </div>
-        </div>
-
-        <div className="mb-6 bg-[#1A1F2E] p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Histórico de Agendamentos</h2>
-          <div className="relative h-[400px] w-full">
-            <Bar options={chartOptions} data={chartData} />
           </div>
         </div>
 
