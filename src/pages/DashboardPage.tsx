@@ -28,16 +28,44 @@ const DashboardPage: React.FC = () => {
 
   // Mova o calculateWeeklyData para antes do useEffect
   const calculateWeeklyData = useCallback(() => {
+    // Função auxiliar para formatar data
+    const formatDateToYYYYMMDD = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Obter data atual no fuso horário de Brasília
+    const today = new Date();
+    today.setHours(today.getHours() - 3); // Ajusta para UTC-3 (Brasília)
+
     const last7Days = [...Array(7)].map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toISOString().split('T')[0];
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      return formatDateToYYYYMMDD(date);
     }).reverse();
 
-    const data = last7Days.map(date => ({
-      date: new Date(date).toLocaleDateString('pt-BR', { weekday: 'short' }),
-      appointments: appointments.filter(app => app.date === date).length
-    }));
+    const data = last7Days.map(date => {
+      // Conta todos os agendamentos para cada dia
+      const appointmentsForDay = appointments.filter(app => {
+        return app.date === date;
+      }).length;
+
+      // Formata o dia da semana
+      const weekDay = new Date(date + 'T12:00:00-03:00')
+        .toLocaleDateString('pt-BR', { 
+          weekday: 'short',
+          timeZone: 'America/Sao_Paulo'
+        })
+        .replace('.', '')
+        .replace('-feira', '');
+
+      return {
+        date: weekDay,
+        appointments: appointmentsForDay
+      };
+    });
 
     setWeeklyData(data);
   }, [appointments]);
