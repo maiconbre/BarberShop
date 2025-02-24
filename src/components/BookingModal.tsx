@@ -66,10 +66,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     setError('');
   
     try {
+      // Se não houver data selecionada, use a data atual
+      const selectedDate = formData.date || new Date().toISOString().split('T')[0];
+      const [year, month, day] = selectedDate.split('-');
+      const formattedDate = `${year}-${month}-${day}`;
+
       const appointmentData = {
         clientName: formData.name,
         serviceName: formData.service + (formData.barba ? ', Barba' : '') + (formData.sobrancelha ? ', Sobrancelha' : ''),
-        date: formData.date,
+        date: formattedDate,
         time: formData.time,
         barberId: formData.barber === 'Maicon' ? '01' : '02',
         barberName: formData.barber,
