@@ -194,6 +194,7 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16">
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Header section */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
           <button
@@ -204,6 +205,7 @@ const DashboardPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Card 1 - Receita Total */}
           <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
@@ -302,6 +304,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Chart Section */}
         <motion.div 
           className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg overflow-hidden mb-6"
           animate={{ height: isChartExpanded ? 'auto' : '80px' }}
@@ -329,87 +332,99 @@ const DashboardPage: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="p-4"
+                className="p-2 sm:p-4"
               >
-                <div className="h-[400px] w-full">
+                <div className="h-[300px] sm:h-[400px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={weeklyData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                      margin={{
+                        top: 10,
+                        right: 10,
+                        left: 0,
+                        bottom: 5
+                      }}
                     >
                       <CartesianGrid 
                         strokeDasharray="3 3" 
                         stroke="#333" 
                         vertical={false}
+                        horizontalPoints={[0, 30, 60, 90]}
                       />
                       <XAxis 
                         dataKey="date" 
                         stroke="#fff"
-                        tick={{ fontSize: 12, fill: '#fff' }}
+                        tick={{ fontSize: 10, fill: '#fff' }}
                         axisLine={{ stroke: '#333' }}
                         tickLine={{ stroke: '#333' }}
+                        height={30}
                       />
                       <YAxis 
                         stroke="#fff"
                         allowDecimals={false}
-                        tick={{ fontSize: 12, fill: '#fff' }}
+                        tick={{ fontSize: 10, fill: '#fff' }}
                         axisLine={{ stroke: '#333' }}
                         tickLine={{ stroke: '#333' }}
+                        width={30}
                       />
                       <Tooltip 
                         cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
                         contentStyle={{ 
                           backgroundColor: '#252B3B',
                           border: '1px solid #F0B35B',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                          color: '#fff'
+                          borderRadius: '4px',
+                          padding: '8px',
+                          fontSize: '12px',
+                          color: '#fff',
+                          maxWidth: '200px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
                         }}
-                        labelStyle={{ color: '#F0B35B', fontWeight: 'bold' }}
+                        labelStyle={{ 
+                          color: '#F0B35B', 
+                          fontWeight: 'bold',
+                          marginBottom: '4px',
+                          fontSize: '11px'
+                        }}
                         formatter={(value: any, name: string) => [
-                          `${value} agendamento(s)`,
+                          value,
                           name === 'pending' ? 'Pendente' : 'Concluído'
                         ]}
-                        labelFormatter={(label: string, payload: any[]) => 
-                          payload?.[0]?.payload?.fullDate || label
-                        }
+                        labelFormatter={(label: string, payload: any[]) => {
+                          const date = payload?.[0]?.payload?.fullDate || label;
+                          // Limitar o tamanho do texto da data
+                          return date.length > 20 ? date.substring(0, 20) + '...' : date;
+                        }}
+                        wrapperStyle={{
+                          zIndex: 1000,
+                          maxWidth: '90vw'
+                        }}
                       />
                       <Legend 
                         formatter={(value) => 
                           value === 'pending' ? 'Pendente' : 'Concluído'
                         }
                         wrapperStyle={{
-                          paddingTop: '20px'
+                          paddingTop: '10px',
+                          fontSize: '11px'
                         }}
+                        height={30}
                       />
                       <Bar 
                         dataKey="pending" 
                         fill="#FFD700"
                         name="pending"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={50}
-                      >
-                        <motion.animate 
-                          attributeName="height"
-                          from="0"
-                          to="100%"
-                          dur="1s"
-                        />
-                      </Bar>
+                        radius={[2, 2, 0, 0]}
+                        maxBarSize={30}
+                      />
                       <Bar 
                         dataKey="completed" 
                         fill="#4CAF50"
                         name="completed"
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={50}
-                      >
-                        <motion.animate 
-                          attributeName="height"
-                          from="0"
-                          to="100%"
-                          dur="1s"
-                        />
-                      </Bar>
+                        radius={[2, 2, 0, 0]}
+                        maxBarSize={30}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -418,6 +433,7 @@ const DashboardPage: React.FC = () => {
           </AnimatePresence>
         </motion.div>
 
+        {/* Appointments Section */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
             <h2 className="text-xl font-semibold text-white">Seus Agendamentos</h2>
@@ -430,7 +446,7 @@ const DashboardPage: React.FC = () => {
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowCompleted(!showCompleted)}
             className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300"
-          ></motion.button>
+          >
             {showCompleted ? 'Ocultar Finalizados' : 'Mostrar Finalizados'}
           </motion.button>
         </div>
