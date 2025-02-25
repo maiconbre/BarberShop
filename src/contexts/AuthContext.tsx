@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initializeMockAppointments } from '../data/mockAppointments';
 import { authenticateUser } from '../services/auth'
 
 interface AuthContextType {
