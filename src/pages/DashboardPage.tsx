@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { FaChartLine, FaMoneyBillWave, FaChevronDown } from 'react-icons/fa';
 import AppointmentCardNew from '../components/AppointmentCardNew';
@@ -87,14 +86,14 @@ const DashboardPage: React.FC = () => {
 
   const loadAppointments = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/appointments');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments`);
       const result = await response.json();
       
       if (result.success) {
         const formattedAppointments = result.data
           .map((app: any) => ({
             ...app,
-            service: app.serviceName // Ajuste para corresponder ao backend
+            service: app.serviceName
           }))
           .sort((a: Appointment, b: Appointment) => {
             const dateA = new Date(`${a.date} ${a.time}`);
@@ -111,11 +110,11 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
-    if (!appointmentId) return; // Evitar chamadas com ID nulo
+    if (!appointmentId) return;
 
     try {
       if (action === 'delete') {
-        const response = await fetch(`http://localhost:3000/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'DELETE'
         });
 
@@ -123,11 +122,10 @@ const DashboardPage: React.FC = () => {
           setAppointments(prev => prev.filter(app => app.id !== appointmentId));
         }
       } else {
-        // Unificar ações de status (complete e toggle)
         const newStatus = action === 'complete' ? 'completed' : 
           (currentStatus === 'completed' ? 'pending' : 'completed');
 
-        const response = await fetch(`http://localhost:3000/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
