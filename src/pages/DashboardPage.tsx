@@ -86,7 +86,14 @@ const DashboardPage: React.FC = () => {
 
   const loadAppointments = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include'
+      });
       const result = await response.json();
       
       if (result.success) {
@@ -115,7 +122,12 @@ const DashboardPage: React.FC = () => {
     try {
       if (action === 'delete') {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
         });
 
         if (response.ok) {
@@ -129,7 +141,9 @@ const DashboardPage: React.FC = () => {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify({ status: newStatus })
         });
 
