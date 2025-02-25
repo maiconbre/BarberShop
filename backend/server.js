@@ -8,7 +8,12 @@ const Appointment = require('./models/Appointment');
 
 const app = express();
 
-app.use(cors());
+// Configuração do CORS para permitir requisições do Vercel e ambiente local
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type']
+}));
 app.use(express.json());
 
 // Nova rota para listar barbeiros
