@@ -61,9 +61,28 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
             <div className={`w-2 h-2 rounded-full ${statusColors[appointment.status]}`} />
             <div>
               <h3 className="text-white font-medium">{appointment.clientName}</h3>
-              <p className="text-sm text-gray-400">
-                {appointment.status === 'pending' ? 'Pendente' : 'Concluído'}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-400">
+                  {appointment.status === 'pending' ? 'Pendente' : 'Concluído'}
+                </p>
+                <span className="text-sm text-gray-400">•</span>
+                <p className="text-sm text-gray-400">
+                  {appointment.time}{' '}
+                  {(() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+                    if (appointment.date === today) {
+                      return <span className="text-green-400">(hoje)</span>;
+                    } else if (appointment.date === tomorrowStr) {
+                      return <span className="text-blue-400">(amanhã)</span>;
+                    }
+                    return null;
+                  })()}
+                </p>
+              </div>
             </div>
           </div>
           <motion.div

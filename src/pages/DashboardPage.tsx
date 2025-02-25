@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import AppointmentCard from '../components/AppointmentCard';
-import { FaChartLine, FaMoneyBillWave, FaClock, FaCheckCircle, FaChevronDown } from 'react-icons/fa';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import { FaChartLine, FaMoneyBillWave, FaChevronDown } from 'react-icons/fa';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 
 interface Appointment {
@@ -29,9 +28,7 @@ interface ChartData {
 }
 
 const DashboardPage: React.FC = () => {
-  const [completingAppointments, setCompletingAppointments] = useState<{[key: number]: boolean}>({});
   const { logout } = useAuth();
-  const navigate = useNavigate();
   const [showCompleted, setShowCompleted] = useState<boolean>(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [weeklyData, setWeeklyData] = useState<ChartData[]>([]);
@@ -205,7 +202,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Card 1 - Receita Total */}
           <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex justify-between items-start">
@@ -227,77 +224,66 @@ const DashboardPage: React.FC = () => {
               <p className="text-sm text-gray-400">
                 Ticket Médio: <span className="text-white">R$ {ticketMedio.toFixed(2)}</span>
               </p>
+              <p className="text-sm text-gray-400 mt-2">
+                Taxa de Conclusão: <span className="text-white">{taxaConclusao.toFixed(1)}%</span>
+              </p>
             </div>
           </div>
 
-          {/* Card 2 - Agendamentos Totais */}
+          {/* Card 2 - Status Overview */}
           <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Total Agendamentos</p>
-                <h3 className="text-2xl font-bold text-white mb-2">
-                  {totalAppointments}
-                </h3>
-                <p className="text-xs text-blue-400">
-                  Taxa de Conclusão: {taxaConclusao.toFixed(1)}%
-                </p>
+              <div className="flex-1">
+                <p className="text-gray-400 text-sm mb-4">Status dos Agendamentos</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-yellow-500 text-xs">Pendente</p>
+                    <p className="text-2xl font-bold text-yellow-500">{pendingAppointments}</p>
+                    <p className="text-sm text-yellow-500">R$ {pendingRevenue.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-green-500 text-xs">Concluídos</p>
+                    <p className="text-2xl font-bold text-green-500">{completedAppointments}</p>
+                    <p className="text-sm text-green-500">R$ {completedRevenue.toFixed(2)}</p>
+                  </div>
+                </div>
               </div>
-              <div className="p-3 bg-blue-500/10 rounded-lg">
-                <FaChartLine className="text-blue-500 text-xl" />
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Meta Mensal:</span>
-                <span className="text-white">{totalAppointments}/100</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3 - Aguardando */}
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Aguardando</p>
-                <h3 className="text-2xl font-bold text-yellow-500 mb-2">
-                  {pendingAppointments}
-                </h3>
-                <p className="text-sm text-yellow-500">
-                  R$ {pendingRevenue.toFixed(2)}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-500/10 rounded-lg">
-                <FaClock className="text-yellow-500 text-xl" />
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Próximo:</span>
-                <span className="text-white">Em 2h</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4 - Concluídos */}
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Concluídos</p>
-                <h3 className="text-2xl font-bold text-green-500 mb-2">
-                  {completedAppointments}
-                </h3>
-                <p className="text-sm text-green-500">
-                  R$ {completedRevenue.toFixed(2)}
-                </p>
-              </div>
-              <div className="p-3 bg-green-500/10 rounded-lg">
-                <FaCheckCircle className="text-green-500 text-xl" />
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Conversão:</span>
-                <span className="text-white">{((completedAppointments/totalAppointments)*100).toFixed(1)}%</span>
+              <div className="w-[120px] h-[120px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Aguardando', value: pendingAppointments, color: '#FFD700' },
+                        { name: 'Concluídos', value: completedAppointments, color: '#4CAF50' }
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={35}
+                      outerRadius={55}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {[
+                        { name: 'Aguardando', value: pendingAppointments, color: '#FFD700' },
+                        { name: 'Concluídos', value: completedAppointments, color: '#4CAF50' }
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#252B3B',
+                        border: '1px solid #F0B35B',
+                        borderRadius: '4px',
+                        color: '#fff'
+                      }}
+                      formatter={(value, name) => [
+                        `${value} (${((Number(value) / totalAppointments) * 100).toFixed(1)}%)`,
+                        name
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
@@ -435,8 +421,8 @@ const DashboardPage: React.FC = () => {
         {/* Appointments Section */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-semibold text-white">Seus Agendamentos</h2>
-            <span className="text-sm text-gray-400">
+            <h2 className="text-xs text-gray-400">Agendamentos</h2>
+            <span className="text-xs text-gray-400">
               ({filteredAppointments.length} total)
             </span>
           </div>
