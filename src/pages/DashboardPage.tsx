@@ -90,9 +90,10 @@ const DashboardPage: React.FC = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
         },
-        credentials: 'include'
+        mode: 'cors'
       });
       const result = await response.json();
       
@@ -125,9 +126,10 @@ const DashboardPage: React.FC = () => {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
           },
-          credentials: 'include'
+          mode: 'cors'
         });
 
         if (response.ok) {
@@ -141,9 +143,10 @@ const DashboardPage: React.FC = () => {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
           },
-          credentials: 'include',
+          mode: 'cors',
           body: JSON.stringify({ status: newStatus })
         });
 
