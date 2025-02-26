@@ -56,11 +56,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
 
   // Dados estáticos com a propriedade "pix" adicionada
   const barbers = [
-    { id:'01', name: 'Maicon', whatsapp: '21997764645', pix: '21997761646' },
-    { id:'02', name: 'Brendon', whatsapp: '2199774658', pix: '21554875965' }
+    { id: '01', name: 'Maicon', whatsapp: '21997764645', pix: '21997761646' },
+    { id: '02', name: 'Brendon', whatsapp: '2199774658', pix: '21554875965' }
   ];
   const services = ['Corte Tradicional', 'Tesoura', 'Navalha', 'Reflexo', 'Nevou'];
-  const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
   // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,10 +78,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     }
     setIsLoading(true);
     setError('');
-  
+
     try {
       const formattedDate = formData.date;
-  
+
       const appointmentData = {
         clientName: formData.name,
         serviceName: formData.service + (formData.barba ? ', Barba' : '') + (formData.sobrancelha ? ', Sobrancelha' : ''),
@@ -92,7 +91,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         barberName: formData.barber,
         price: parseFloat(getServicePrice().replace('R$ ', ''))
       };
-  
+
       const response = await fetch('http://localhost:3000/api/appointments', {
         method: 'POST',
         headers: {
@@ -102,13 +101,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         },
         body: JSON.stringify(appointmentData),
       });
-  
+
       const result = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(result.message || 'Erro ao criar agendamento');
       }
-  
+
       // Update local storage
       const storedAppointments = localStorage.getItem('appointments') || '[]';
       const appointments = JSON.parse(storedAppointments);
@@ -124,16 +123,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         price: appointmentData.price
       });
       localStorage.setItem('appointments', JSON.stringify(appointments));
-  
+
       // Trigger storage event for dashboard update
       window.dispatchEvent(new Event('storage'));
-  
+
       setShowSuccessMessage(true);
       setTimeout(() => {
         setShowSuccessMessage(false);
         setStep(2);
       }, 1500);
-  
+
     } catch (err) {
       console.error('Error saving appointment:', err);
       setError('Erro ao salvar agendamento');
@@ -159,12 +158,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     const formattedDate = formData.date
       ? format(new Date(formData.date), 'dd/MM/yyyy')
       : format(new Date(), 'dd/MM/yyyy');
-  
+
     const extras = [];
     if (formData.barba) extras.push("Barba");
     if (formData.sobrancelha) extras.push("Sobrancelha");
     const extrasMessage = extras.length ? `Extras: ${extras.join(', ')}\n` : '';
-  
+
     const message = `Olá, segue meu agendamento:
 Nome: ${formData.name}
 Barbeiro: ${formData.barber}
@@ -187,9 +186,6 @@ Aguardo a confirmação.`;
     });
   };
 
-  // Obtém a data atual formatada para o input date
-  const today = new Date().toISOString().split('T')[0];
-
   // Não renderiza nada se o modal estiver fechado
   if (!isOpen) return null;
 
@@ -209,7 +205,7 @@ Aguardo a confirmação.`;
         </button>
         <div className="p-4 sm:p-6">
           <div className=" mb-6">
-           
+
           </div>
 
           {showSuccessMessage && (

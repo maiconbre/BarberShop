@@ -40,11 +40,11 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
     const brasiliaOffset = -3 * 60; // UTC-3 em minutos
     const localOffset = today.getTimezoneOffset();
     const offsetDiff = localOffset + brasiliaOffset;
-    
+
     // Ajusta para o horário de Brasília
     today.setMinutes(today.getMinutes() + offsetDiff);
     today.setHours(0, 0, 0, 0);
-    
+
     const dates = Array.from({ length: 15 }, (_, i) => {
       const date = addDays(today, i);
       date.setHours(0, 0, 0, 0);
@@ -69,7 +69,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
         const localOffset = dateInBrasilia.getTimezoneOffset();
         const offsetDiff = localOffset + brasiliaOffset;
         dateInBrasilia.setMinutes(dateInBrasilia.getMinutes() + offsetDiff);
-        
+
         const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
 
         const response = await fetch('http://localhost:3000/api/appointments', {
