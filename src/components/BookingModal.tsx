@@ -81,7 +81,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         price: parseFloat(getServicePrice().replace('R$ ', ''))
       };
   
-      const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
+      const response = await fetch('http://localhost:3000/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,10 +194,8 @@ Aguardo a confirmação.`;
           <X size={18} className="transform hover:rotate-90 transition-transform duration-300" />
         </button>
         <div className="p-4 sm:p-6">
-          <div className="flex justify-center items-center text-center mb-6">
-            <h2 className={`text-xl sm:text-2xl font-bold tracking-wide bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/70 bg-clip-text text-transparent transform transition-all duration-500 ${step === 1 ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0'}`}>
-              {step === 1 ? 'Agendar Horário' : 'Agendamento Confirmado!'}
-            </h2>
+          <div className=" mb-6">
+           
           </div>
 
           {showSuccessMessage && (
