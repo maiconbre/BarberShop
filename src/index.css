@@ -19,6 +19,14 @@
     @apply outline-2 outline-primary outline-offset-2 rounded;
   }
 }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* Custom scrollbar with improved contrast */
 ::-webkit-scrollbar {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Scissors, User, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+// @ts-ignore
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
@@ -73,38 +74,29 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
         </h1>
 
         <p 
-          className="text-lg md:text-xl lg:text-2xl mb-8 max-w-2xl mx-auto text-gray-200"
+          className="text-lg md:text-xl lg:text-2xl mb-12 max-w-2xl mx-auto text-gray-200 leading-relaxed"
           itemProp="description"
         >
           Transforme seu visual com os melhores profissionais de Bangu
         </p>
 
-        <div className="flex justify-center space-x-4 mt-6 mb-8">
-          <Scissors 
-            className="text-[#F0B35B] animate-bounce hover:scale-110 transition-transform cursor-pointer" 
-            size={40} 
-            aria-label="Tesoura de barbeiro"
-          />
-          <User 
-            className="text-[#F0B35B] animate-pulse hover:scale-110 transition-transform cursor-pointer" 
-            size={40} 
-            aria-label="Ícone de cliente"
-          />
-        </div>
-
         <button
           onClick={handleBookingClick}
           className="
-            mt-8 bg-[#F0B35B] text-black px-8 py-4 rounded-lg
-            text-lg md:text-xl font-semibold shadow-lg
-            hover:bg-[#F0B35B]/90 hover:scale-105
-            focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:ring-offset-2 focus:ring-offset-[#0D121E]
-            transform transition-all duration-300 ease-out
+            relative overflow-hidden group
+            mt-8 bg-[#F0B35B] text-black px-12 py-4 rounded-lg
+            text-lg md:text-xl font-semibold
+            transition-all duration-300 ease-out
+            hover:bg-[#F0B35B]/90 hover:shadow-[0_0_20px_rgba(240,179,91,0.3)]
             active:scale-95
           "
-          aria-label="Agendar horário na barbearia"
         >
-          Agendar horário
+          <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-6 transition-all duration-300"></span>
+            Agende Agora
+            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-6 transition-all duration-300"></span>
+          </span>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 -skew-x-45 group-hover:animate-shine"></div>
         </button>
       </div>
     </section>

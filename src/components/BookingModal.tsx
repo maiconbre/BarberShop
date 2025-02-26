@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, MessageCircle } from 'lucide-react';
+import Calendar from './Calendar';
 
 // Interface para as props do componente
 interface BookingModalProps {
@@ -70,7 +71,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
       const selectedDate = formData.date || new Date().toISOString().split('T')[0];
       const [year, month, day] = selectedDate.split('-');
       const formattedDate = `${year}-${month}-${day}`;
-
+  
       const appointmentData = {
         clientName: formData.name,
         serviceName: formData.service + (formData.barba ? ', Barba' : '') + (formData.sobrancelha ? ', Sobrancelha' : ''),
@@ -289,40 +290,11 @@ Aguardo a confirmação.`;
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs sm:text-sm font-medium mb-0.5">Data</label>
-                <input
-                  type="date"
-                  required
-                  min={today}
-                  value={formData.date || today}
-                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs sm:text-sm font-medium mb-0.5">Horário</label>
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1">
-                  {times.map((time) => (
-                    <button
-                      key={time}
-                      type="button"
-                      className={`px-2 py-1 rounded-md text-xs sm:text-sm transition-colors ${formData.time === time
-                          ? 'bg-[#F0B35B] text-black'
-                          : 'bg-[#0D121E] hover:bg-[#F0B35B]/20'
-                        }`}
-                      onClick={() =>
-                        setFormData({ ...formData, time })
-                      }
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <Calendar
+                onSelectDate={(date) => setFormData({ ...formData, date })}
+                onSelectTime={(time) => setFormData({ ...formData, time })}
+                selectedBarber={formData.barber}
+              />
 
               <button
                 type="submit"
