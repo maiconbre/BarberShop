@@ -4,99 +4,142 @@ import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 
 interface CalendarProps {
-  onSelectDate: (date: string) => void;
-  onSelectTime: (time: string) => void;
   selectedBarber: string;
+  onTimeSelect?: (date: Date, time: string) => void;
 }
 
-interface BookedSlot {
+interface Appointment {
+  id: string;
   date: string;
   time: string;
   barberId: string;
+  barberName: string;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ onSelectDate, onSelectTime, selectedBarber }) => {
+interface BookedSlot {
+  time: string;
+  isBooked: boolean;
+}
+
+const timeSlots = [
+  '09:00', '10:00', '11:00', '14:00', '15:00',
+  '16:00', '17:00', '18:00', '19:00', '20:00'
+];
+
+const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
-  const timeSlots = [
-    '09:00', '10:00', '11:00', '14:00', '15:00',
-    '16:00', '17:00', '18:00', '19:00', '20:00'
-  ];
-
+  // Define os dias disponíveis (15 dias a partir de hoje)
   useEffect(() => {
     const today = new Date();
+    const brasiliaOffset = -3 * 60; // UTC-3 em minutos
+    const localOffset = today.getTimezoneOffset();
+    const offsetDiff = localOffset + brasiliaOffset;
+    
+    // Ajusta para o horário de Brasília
+    today.setMinutes(today.getMinutes() + offsetDiff);
     today.setHours(0, 0, 0, 0);
-    const dates = Array.from({ length: 15 }, (_, i) => addDays(today, i));
+    
+    const dates = Array.from({ length: 15 }, (_, i) => {
+      const date = addDays(today, i);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    });
     setAvailableDates(dates);
   }, []);
 
+  // Busca os horários já agendados
   useEffect(() => {
     const fetchBookedSlots = async () => {
-      if (!selectedDate || !selectedBarber) return;
+      if (!selectedDate || !selectedBarber) {
+        setBookedSlots([]);
+        return;
+      }
 
       setIsLoading(true);
       setError(null);
       try {
-        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-        const response = await fetch(
-          `http://localhost:5432/api/appointments/booked-slots?date=${formattedDate}&barberId=${selectedBarber}`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            }
+        const dateInBrasilia = new Date(selectedDate);
+        const brasiliaOffset = -3 * 60;
+        const localOffset = dateInBrasilia.getTimezoneOffset();
+        const offsetDiff = localOffset + brasiliaOffset;
+        dateInBrasilia.setMinutes(dateInBrasilia.getMinutes() + offsetDiff);
+        
+        const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
+
+        const response = await fetch('http://localhost:3000/api/appointments', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
           }
-        );
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        setBookedSlots(data);
+        const jsonData = await response.json();
+        if (!jsonData.success) {
+          throw new Error('Erro na resposta da API');
+        }
+
+        const appointments: Appointment[] = jsonData.data.filter(
+          (appointment: Appointment) => {
+            const barberId = selectedBarber === 'Maicon' ? '01' : '02';
+            return appointment.date === formattedDate && appointment.barberId === barberId;
+          }
+        );
+
+        const updatedSlots = timeSlots.map(time => ({
+          time,
+          isBooked: appointments.some(appointment => appointment.time === time)
+        }));
+        setBookedSlots(updatedSlots);
       } catch (error) {
         console.error('Erro ao buscar horários ocupados:', error);
         setError('Não foi possível carregar os horários. Tente novamente.');
-        setBookedSlots([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchBookedSlots();
+
+    const pollInterval = setInterval(fetchBookedSlots, 30000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, [selectedDate, selectedBarber]);
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
-    onSelectDate(format(date, 'yyyy-MM-dd'));
+    setSelectedTime(null);
   };
 
-  const isTimeSlotBooked = (time: string) => {
-    if (!selectedDate) return false;
-    
-    return bookedSlots.some(slot => 
-      slot.time === time && 
-      slot.date === format(selectedDate, 'yyyy-MM-dd') &&
-      slot.barberId === selectedBarber
-    );
-  };
-
-  const handleTimeClick = (time: string) => {
-    if (isTimeSlotBooked(time)) return;
-    onSelectTime(time);
+  const handleTimeClick = (time: string, isBooked: boolean) => {
+    if (isBooked || !selectedDate) return;
+    setSelectedTime(time);
+    // Apenas atualiza o estado local e notifica o componente pai
+    if (onTimeSelect) {
+      onTimeSelect(selectedDate, time);
+    }
   };
 
   return (
     <div className="space-y-4">
-      {/* Calendário */}
       <div className="flex overflow-x-auto pb-2 hide-scrollbar">
         <div className="flex space-x-2">
-          {availableDates.map((date) => (
+          {availableDates.map(date => (
             <button
+              type="button"
               key={date.toISOString()}
               onClick={() => handleDateClick(date)}
               className={`
@@ -118,7 +161,6 @@ const Calendar: React.FC<CalendarProps> = ({ onSelectDate, onSelectTime, selecte
         </div>
       </div>
 
-      {/* Horários */}
       {selectedDate && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
           {isLoading ? (
@@ -130,22 +172,29 @@ const Calendar: React.FC<CalendarProps> = ({ onSelectDate, onSelectTime, selecte
               {error}
             </div>
           ) : (
-            timeSlots.map((time) => (
-              <button
-                key={time}
-                onClick={() => handleTimeClick(time)}
-                disabled={isTimeSlotBooked(time)}
-                className={`
-                  py-2 px-4 rounded-lg text-sm font-medium
-                  transition-all duration-200
-                  ${isTimeSlotBooked(time)
-                    ? 'bg-red-500/20 text-red-300 cursor-not-allowed'
-                    : 'bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black'}
-                `}
-              >
-                {time}
-              </button>
-            ))
+            timeSlots.map(time => {
+              const slot = bookedSlots.find(slot => slot.time === time);
+              const isBooked = slot ? slot.isBooked : false;
+              const isSelected = selectedTime === time;
+              return (
+                <button
+                  type="button"
+                  key={time}
+                  onClick={() => handleTimeClick(time, isBooked)}
+                  disabled={isBooked}
+                  className={`
+                    py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200
+                    ${isBooked
+                      ? 'bg-red-500/20 text-red-300 cursor-not-allowed'
+                      : isSelected
+                        ? 'bg-[#F0B35B] text-black transform scale-105'
+                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105'}
+                  `}
+                >
+                  {time}
+                </button>
+              );
+            })
           )}
         </div>
       )}

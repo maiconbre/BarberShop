@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, MessageCircle } from 'lucide-react';
 import Calendar from './Calendar';
+import { format } from 'date-fns';
 
 // Interface para as props do componente
 interface BookingModalProps {
@@ -19,6 +20,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
     name: '',
     barber: '',
+    barberId: '',
     date: '',
     time: '',
     service: '',
@@ -54,8 +56,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
 
   // Dados estáticos com a propriedade "pix" adicionada
   const barbers = [
-    { name: 'Maicon', whatsapp: '21997764645', pix: '21997761646' },
-    { name: 'Brendon', whatsapp: '2199774658', pix: '21554875965' }
+    { id:'01', name: 'Maicon', whatsapp: '21997764645', pix: '21997761646' },
+    { id:'02', name: 'Brendon', whatsapp: '2199774658', pix: '21554875965' }
   ];
   const services = ['Corte Tradicional', 'Tesoura', 'Navalha', 'Reflexo', 'Nevou'];
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
@@ -63,14 +65,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.time || !formData.date) {
+      setError('Por favor, selecione uma data e horário');
+      return;
+    }
+    if (!formData.barber) {
+      setError('Por favor, selecione um barbeiro');
+      return;
+    }
+    if (!formData.service) {
+      setError('Por favor, selecione um serviço');
+      return;
+    }
     setIsLoading(true);
     setError('');
   
     try {
-      // Se não houver data selecionada, use a data atual
-      const selectedDate = formData.date || new Date().toISOString().split('T')[0];
-      const [year, month, day] = selectedDate.split('-');
-      const formattedDate = `${year}-${month}-${day}`;
+      const formattedDate = formData.date;
   
       const appointmentData = {
         clientName: formData.name,
@@ -86,6 +97,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
         },
         body: JSON.stringify(appointmentData),
       });
@@ -144,14 +157,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo os extras e o valor do serviço
   const getWhatsappMessage = () => {
     const formattedDate = formData.date
-      ? new Date(formData.date).toLocaleDateString()
-      : new Date().toLocaleDateString();
-
+      ? format(new Date(formData.date), 'dd/MM/yyyy')
+      : format(new Date(), 'dd/MM/yyyy');
+  
     const extras = [];
     if (formData.barba) extras.push("Barba");
     if (formData.sobrancelha) extras.push("Sobrancelha");
     const extrasMessage = extras.length ? `Extras: ${extras.join(', ')}\n` : '';
-
+  
     const message = `Olá, segue meu agendamento:
 Nome: ${formData.name}
 Barbeiro: ${formData.barber}
@@ -228,14 +241,19 @@ Aguardo a confirmação.`;
                 <select
                   required
                   className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
-                  value={formData.barber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, barber: e.target.value })
-                  }
+                  value={formData.barberId}
+                  onChange={(e) => {
+                    const selectedBarber = barbers.find(b => b.id === e.target.value);
+                    setFormData({
+                      ...formData,
+                      barberId: e.target.value,
+                      barber: selectedBarber?.name || ''
+                    });
+                  }}
                 >
                   <option value="">Selecione um barbeiro</option>
                   {barbers.map((barber) => (
-                    <option key={barber.name} value={barber.name}>
+                    <option key={barber.id} value={barber.id}>
                       {barber.name}
                     </option>
                   ))}
@@ -291,9 +309,14 @@ Aguardo a confirmação.`;
               </div>
 
               <Calendar
-                onSelectDate={(date) => setFormData({ ...formData, date })}
-                onSelectTime={(time) => setFormData({ ...formData, time })}
                 selectedBarber={formData.barber}
+                onTimeSelect={(date, time) => {
+                  setFormData({
+                    ...formData,
+                    date: format(date, 'yyyy-MM-dd'),
+                    time: time
+                  });
+                }}
               />
 
               <button
@@ -369,8 +392,8 @@ Aguardo a confirmação.`;
                   <p>
                     <strong>Data:</strong>{' '}
                     {formData.date
-                      ? new Date(formData.date).toLocaleDateString()
-                      : new Date().toLocaleDateString()}
+                      ? format(new Date(formData.date.replace(/-/g, '/')), 'dd/MM/yyyy')
+                      : format(new Date(), 'dd/MM/yyyy')}
                   </p>
                   <p><strong>Horário:</strong> {formData.time}</p>
                 </div>
