@@ -277,6 +277,10 @@ const DashboardPage: React.FC = () => {
                       outerRadius={55}
                       paddingAngle={5}
                       dataKey="value"
+                      onClick={(data) => {
+                        const percentage = ((data.value / totalAppointments) * 100).toFixed(1);
+                        alert(`${data.name === 'Aguardando' ? 'Pendentes' : 'Concluídos'}: ${data.value} (${percentage}%)`);
+                      }}
                     >
                       {[
                         { name: 'Aguardando', value: pendingAppointments, color: '#FFD700' },
@@ -285,17 +289,40 @@ const DashboardPage: React.FC = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: '#252B3B',
-                        border: '1px solid #F0B35B',
-                        borderRadius: '4px',
-                        color: '#fff'
-                      }}
-                      formatter={(value, name) => [
-                        `${value} (${((Number(value) / totalAppointments) * 100).toFixed(1)}%)`,
-                        name
-                      ]}
+                      <Tooltip
+                        contentStyle={{ 
+                          backgroundColor: '#252B3B',
+                          border: '1px solid #F0B35B',
+                          borderRadius: '4px',
+                          padding: '8px',
+                          fontSize: '12px',
+                          color: '#F0B35B',
+                          maxWidth: '200px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: '#FFD700',
+                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+                          zIndex: 1000
+                        }}
+                        formatter={(value, name) => [
+                          `${value} (${((Number(value) / totalAppointments) * 100).toFixed(1)}%)`,
+                          name === 'Aguardando' ? 'Pendentes' : 'Concluídos'
+                        ]}
+                        labelStyle={{ 
+                          color: '#F0B35B',
+                          fontWeight: 'bold',
+                          marginBottom: '4px',
+                          fontSize: '10px'
+                        }}
+                        wrapperStyle={{
+                          zIndex: 1000,
+                          maxWidth: '90vw',
+                          visibility: 'visible',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0
+                        }}
+                        isAnimationActive={false}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -451,21 +478,26 @@ const DashboardPage: React.FC = () => {
           </motion.button>
         </div>
 
-        <motion.div
-          layout
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-        >
-          <AnimatePresence>
-            {filteredAppointments.map((appointment) => (
-              <AppointmentCardNew
-                key={appointment.id}
-                appointment={appointment}
-                onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAppointments.map((appointment) => (
+            <motion.div
+              key={appointment.id}
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <AnimatePresence mode="wait">
+                <AppointmentCardNew
+                  key={appointment.id}
+                  appointment={appointment}
+                  onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                  onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                />
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
       </main>
     </div>
   );

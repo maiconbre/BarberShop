@@ -38,7 +38,8 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
   };
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR');
+    const [year, month, day] = date.split('-');
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString('pt-BR');
   };
 
   return (
@@ -69,15 +70,15 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
                 <p className="text-sm text-gray-400">
                   {appointment.time}{' '}
                   {(() => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const tomorrow = new Date();
-                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const now = new Date();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+                    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
                     const tomorrowStr = tomorrow.toISOString().split('T')[0];
     
                     if (appointment.date === today) {
-                      return <span className="text-green-400">(hoje)</span>;
+                      return <span className="text-right ml-24 text-green-300 text-xs">hoje</span>;
                     } else if (appointment.date === tomorrowStr) {
-                      return <span className="text-blue-400">(amanhã)</span>;
+                      return <span className="text-right ml-24 text-yellow-200 text-xs">amanhã</span>;
                     }
                     return null;
                   })()}
