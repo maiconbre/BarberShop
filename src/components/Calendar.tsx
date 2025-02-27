@@ -72,7 +72,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
 
         const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
 
-        const response = await fetch('http://localhost:3000/api/appointments', {
+        const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
