@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
@@ -28,32 +28,38 @@ const timeSlots = [
 
 const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [availableDates, setAvailableDates] = useState<Date[]>([]);
-  const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([]);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [appointmentsCache, setAppointmentsCache] = useState<Appointment[]>([]);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Define os dias disponíveis (15 dias a partir de hoje)
-  useEffect(() => {
+  // Dias disponíveis (15 dias a partir de hoje) computados uma única vez
+  const availableDates = useMemo(() => {
     const today = new Date();
     const brasiliaOffset = -3 * 60; // UTC-3 em minutos
     const localOffset = today.getTimezoneOffset();
     const offsetDiff = localOffset + brasiliaOffset;
     today.setMinutes(today.getMinutes() + offsetDiff);
     today.setHours(0, 0, 0, 0);
-
-    const dates = Array.from({ length: 15 }, (_, i) => {
+    return Array.from({ length: 15 }, (_, i) => {
       const date = addDays(today, i);
       date.setHours(0, 0, 0, 0);
       return date;
     });
-    setAvailableDates(dates);
+  }, []);
+
+  // Função para ajustar a data para o horário de Brasília
+  const adjustToBrasilia = useCallback((date: Date) => {
+    const adjusted = new Date(date);
+    const brasiliaOffset = -3 * 60;
+    const localOffset = adjusted.getTimezoneOffset();
+    const offsetDiff = localOffset + brasiliaOffset;
+    adjusted.setMinutes(adjusted.getMinutes() + offsetDiff);
+    return adjusted;
   }, []);
 
   // Função única para buscar todos os agendamentos e atualizar o cache
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -72,7 +78,6 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
       if (!jsonData.success) {
         throw new Error('Erro na resposta da API');
       }
-      // Atualiza o cache com os agendamentos retornados
       setAppointmentsCache(jsonData.data);
     } catch (err) {
       console.error('Erro ao buscar agendamentos:', err);
@@ -80,57 +85,47 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  // Dispara a busca assim que o barbeiro for selecionado e atualiza a cada 30 segundos
+  // Dispara a busca quando o barbeiro for selecionado e atualiza a cada 30 segundos
   useEffect(() => {
     if (selectedBarber) {
       fetchAppointments();
       const interval = setInterval(fetchAppointments, 30000);
       return () => clearInterval(interval);
     }
-  }, [selectedBarber]);
+  }, [selectedBarber, fetchAppointments]);
 
-  // Atualiza os horários disponíveis com base na data selecionada, barbeiro e cache dos agendamentos
-  useEffect(() => {
+  // Computa os horários reservados (bookedSlots) com base na data, barbeiro e cache
+  const computedBookedSlots = useMemo(() => {
     if (selectedDate && selectedBarber) {
-      const dateInBrasilia = new Date(selectedDate);
-      const brasiliaOffset = -3 * 60;
-      const localOffset = dateInBrasilia.getTimezoneOffset();
-      const offsetDiff = localOffset + brasiliaOffset;
-      dateInBrasilia.setMinutes(dateInBrasilia.getMinutes() + offsetDiff);
+      const dateInBrasilia = adjustToBrasilia(selectedDate);
       const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
       const barberId = selectedBarber === 'Maicon' ? '01' : '02';
-
       const filteredAppointments = appointmentsCache.filter(
-        (appointment) =>
+        appointment =>
           appointment.date === formattedDate && appointment.barberId === barberId
       );
-
-      const updatedSlots = timeSlots.map(time => ({
+      return timeSlots.map(time => ({
         time,
         isBooked: filteredAppointments.some(appointment => appointment.time === time)
       }));
-      setBookedSlots(updatedSlots);
-    } else {
-      setBookedSlots([]);
     }
-  }, [selectedDate, selectedBarber, appointmentsCache]);
+    return [];
+  }, [selectedDate, selectedBarber, appointmentsCache, adjustToBrasilia]);
 
-  // Trata o clique em uma data
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
-  };
+  }, []);
 
-  // Trata o clique em um horário
-  const handleTimeClick = (time: string, isBooked: boolean) => {
+  const handleTimeClick = useCallback((time: string, isBooked: boolean) => {
     if (isBooked || !selectedDate) return;
     setSelectedTime(time);
     if (onTimeSelect) {
       onTimeSelect(selectedDate, time);
     }
-  };
+  }, [selectedDate, onTimeSelect]);
 
   return (
     <div className="space-y-4">
@@ -172,7 +167,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
             </div>
           ) : (
             timeSlots.map(time => {
-              const slot = bookedSlots.find(slot => slot.time === time);
+              const slot = computedBookedSlots.find(slot => slot.time === time);
               const isBooked = slot ? slot.isBooked : false;
               const isSelected = selectedTime === time;
               return (
