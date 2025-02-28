@@ -30,9 +30,10 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [appointmentsCache, setAppointmentsCache] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Define os dias disponíveis (15 dias a partir de hoje)
   useEffect(() => {
@@ -40,8 +41,6 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
     const brasiliaOffset = -3 * 60; // UTC-3 em minutos
     const localOffset = today.getTimezoneOffset();
     const offsetDiff = localOffset + brasiliaOffset;
-
-    // Ajusta para o horário de Brasília
     today.setMinutes(today.getMinutes() + offsetDiff);
     today.setHours(0, 0, 0, 0);
 
@@ -53,81 +52,81 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
     setAvailableDates(dates);
   }, []);
 
-  // Busca os horários já agendados
+  // Função única para buscar todos os agendamentos e atualizar o cache
+  const fetchAppointments = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const jsonData = await response.json();
+      if (!jsonData.success) {
+        throw new Error('Erro na resposta da API');
+      }
+      // Atualiza o cache com os agendamentos retornados
+      setAppointmentsCache(jsonData.data);
+    } catch (err) {
+      console.error('Erro ao buscar agendamentos:', err);
+      setError('Não foi possível carregar os horários. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Dispara a busca assim que o barbeiro for selecionado e atualiza a cada 30 segundos
   useEffect(() => {
-    const fetchBookedSlots = async () => {
-      if (!selectedDate || !selectedBarber) {
-        setBookedSlots([]);
-        return;
-      }
+    if (selectedBarber) {
+      fetchAppointments();
+      const interval = setInterval(fetchAppointments, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedBarber]);
 
-      setIsLoading(true);
-      setError(null);
-      try {
-        const dateInBrasilia = new Date(selectedDate);
-        const brasiliaOffset = -3 * 60;
-        const localOffset = dateInBrasilia.getTimezoneOffset();
-        const offsetDiff = localOffset + brasiliaOffset;
-        dateInBrasilia.setMinutes(dateInBrasilia.getMinutes() + offsetDiff);
+  // Atualiza os horários disponíveis com base na data selecionada, barbeiro e cache dos agendamentos
+  useEffect(() => {
+    if (selectedDate && selectedBarber) {
+      const dateInBrasilia = new Date(selectedDate);
+      const brasiliaOffset = -3 * 60;
+      const localOffset = dateInBrasilia.getTimezoneOffset();
+      const offsetDiff = localOffset + brasiliaOffset;
+      dateInBrasilia.setMinutes(dateInBrasilia.getMinutes() + offsetDiff);
+      const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
+      const barberId = selectedBarber === 'Maicon' ? '01' : '02';
 
-        const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
+      const filteredAppointments = appointmentsCache.filter(
+        (appointment) =>
+          appointment.date === formattedDate && appointment.barberId === barberId
+      );
 
-        const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-          }
-        });
+      const updatedSlots = timeSlots.map(time => ({
+        time,
+        isBooked: filteredAppointments.some(appointment => appointment.time === time)
+      }));
+      setBookedSlots(updatedSlots);
+    } else {
+      setBookedSlots([]);
+    }
+  }, [selectedDate, selectedBarber, appointmentsCache]);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const jsonData = await response.json();
-        if (!jsonData.success) {
-          throw new Error('Erro na resposta da API');
-        }
-
-        const appointments: Appointment[] = jsonData.data.filter(
-          (appointment: Appointment) => {
-            const barberId = selectedBarber === 'Maicon' ? '01' : '02';
-            return appointment.date === formattedDate && appointment.barberId === barberId;
-          }
-        );
-
-        const updatedSlots = timeSlots.map(time => ({
-          time,
-          isBooked: appointments.some(appointment => appointment.time === time)
-        }));
-        setBookedSlots(updatedSlots);
-      } catch (error) {
-        console.error('Erro ao buscar horários ocupados:', error);
-        setError('Não foi possível carregar os horários. Tente novamente.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBookedSlots();
-
-    const pollInterval = setInterval(fetchBookedSlots, 30000);
-
-    return () => {
-      clearInterval(pollInterval);
-    };
-  }, [selectedDate, selectedBarber]);
-
+  // Trata o clique em uma data
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
   };
 
+  // Trata o clique em um horário
   const handleTimeClick = (time: string, isBooked: boolean) => {
     if (isBooked || !selectedDate) return;
     setSelectedTime(time);
-    // Apenas atualiza o estado local e notifica o componente pai
     if (onTimeSelect) {
       onTimeSelect(selectedDate, time);
     }

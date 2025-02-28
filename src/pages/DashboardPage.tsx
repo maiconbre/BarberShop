@@ -23,7 +23,7 @@ interface ChartData {
   date: string;
   pending: number;
   completed: number;
-  fullDate: string; // Nova propriedade para data completa
+  fullDate: string;
 }
 
 const DashboardPage: React.FC = () => {
@@ -33,58 +33,8 @@ const DashboardPage: React.FC = () => {
   const [weeklyData, setWeeklyData] = useState<ChartData[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
 
-  const calculateWeeklyData = useCallback(() => {
-    // Agrupar todos os agendamentos por data
-    const appointmentsByDate = appointments.reduce((acc, app) => {
-      if (!acc[app.date]) {
-        acc[app.date] = {
-          pending: 0,
-          completed: 0
-        };
-      }
-      if (app.status === 'pending') {
-        acc[app.date].pending++;
-      } else if (app.status === 'completed') {
-        acc[app.date].completed++;
-      }
-      return acc;
-    }, {} as { [key: string]: { pending: number; completed: number } });
-
-    // Ordenar as datas
-    const sortedDates = Object.keys(appointmentsByDate).sort();
-
-    // Criar dados do gráfico
-    const data = sortedDates.map(date => {
-      const dayDate = new Date(date + 'T12:00:00-03:00');
-      const fullDate = dayDate.toLocaleDateString('pt-BR', {
-        weekday: 'short',
-        day: 'numeric'
-      }).replace('.', '').replace('-feira', '');
-      
-      return {
-        date: String(dayDate.getDate()),
-        fullDate: fullDate.charAt(0).toUpperCase() + fullDate.slice(1), // Capitaliza a primeira letra
-        pending: appointmentsByDate[date].pending,
-        completed: appointmentsByDate[date].completed
-      };
-    });
-
-    setWeeklyData(data);
-  }, [appointments]);
-
-  useEffect(() => {
-    loadAppointments();
-  }, []);
-
-  useEffect(() => {
-    if (appointments?.length > 0) {
-      calculateWeeklyData();
-    } else {
-      setWeeklyData([]); // Definir um array vazio quando não houver dados
-    }
-  }, [appointments, calculateWeeklyData]);
-
-  const loadAppointments = async () => {
+  // Função centralizada para carregar os agendamentos, memoizada para evitar recriações desnecessárias
+  const loadAppointments = useCallback(async () => {
     try {
       const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
         method: 'GET',
@@ -96,7 +46,6 @@ const DashboardPage: React.FC = () => {
         mode: 'cors'
       });
       const result = await response.json();
-      
       if (result.success) {
         const formattedAppointments = result.data
           .map((app: any) => ({
@@ -108,18 +57,64 @@ const DashboardPage: React.FC = () => {
             const dateB = new Date(`${b.date} ${b.time}`);
             return dateA.getTime() - dateB.getTime();
           });
-
         setAppointments(formattedAppointments);
       }
     } catch (error) {
       console.error('Error loading appointments:', error);
       setAppointments([]);
     }
-  };
+  }, []);
 
+  // Carrega os agendamentos ao montar o componente e configura o polling a cada 30 segundos
+  useEffect(() => {
+    loadAppointments();
+    const interval = setInterval(loadAppointments, 30000);
+    return () => clearInterval(interval);
+  }, [loadAppointments]);
+
+  // Calcula os dados semanais para o gráfico
+  const calculateWeeklyData = useCallback(() => {
+    const appointmentsByDate = appointments.reduce((acc, app) => {
+      if (!acc[app.date]) {
+        acc[app.date] = { pending: 0, completed: 0 };
+      }
+      if (app.status === 'pending') {
+        acc[app.date].pending++;
+      } else if (app.status === 'completed') {
+        acc[app.date].completed++;
+      }
+      return acc;
+    }, {} as { [key: string]: { pending: number; completed: number } });
+
+    const sortedDates = Object.keys(appointmentsByDate).sort();
+    const data = sortedDates.map(date => {
+      const dayDate = new Date(date + 'T12:00:00-03:00');
+      const fullDate = dayDate.toLocaleDateString('pt-BR', {
+        weekday: 'short',
+        day: 'numeric'
+      }).replace('.', '').replace('-feira', '');
+      
+      return {
+        date: String(dayDate.getDate()),
+        fullDate: fullDate.charAt(0).toUpperCase() + fullDate.slice(1),
+        pending: appointmentsByDate[date].pending,
+        completed: appointmentsByDate[date].completed
+      };
+    });
+    setWeeklyData(data);
+  }, [appointments]);
+
+  useEffect(() => {
+    if (appointments?.length > 0) {
+      calculateWeeklyData();
+    } else {
+      setWeeklyData([]);
+    }
+  }, [appointments, calculateWeeklyData]);
+
+  // Atualiza localmente o estado dos agendamentos após ações (delete, toggle status)
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
     if (!appointmentId) return;
-
     try {
       if (action === 'delete') {
         const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
@@ -131,14 +126,11 @@ const DashboardPage: React.FC = () => {
           },
           mode: 'cors'
         });
-
         if (response.ok) {
           setAppointments(prev => prev.filter(app => app.id !== appointmentId));
         }
       } else {
-        const newStatus = action === 'complete' ? 'completed' : 
-          (currentStatus === 'completed' ? 'pending' : 'completed');
-
+        const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
         const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
           method: 'PATCH',
           headers: {
@@ -149,12 +141,10 @@ const DashboardPage: React.FC = () => {
           mode: 'cors',
           body: JSON.stringify({ status: newStatus })
         });
-
         if (response.ok) {
-          setAppointments(prev => 
-            prev.map(app => app.id === appointmentId 
-              ? { ...app, status: newStatus } 
-              : app
+          setAppointments(prev =>
+            prev.map(app =>
+              app.id === appointmentId ? { ...app, status: newStatus } : app
             )
           );
         }
@@ -164,48 +154,29 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Calcular estatísticas
+  // Estatísticas
   const totalAppointments = appointments.length;
   const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
   const pendingAppointments = appointments.filter(app => app.status === 'pending').length;
   const completedAppointments = appointments.filter(app => app.status === 'completed').length;
-  const pendingRevenue = appointments
-    .filter(app => app.status === 'pending')
-    .reduce((sum, app) => sum + app.price, 0);
-  const completedRevenue = appointments
-    .filter(app => app.status === 'completed')
-    .reduce((sum, app) => sum + app.price, 0);
+  const pendingRevenue = appointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
+  const completedRevenue = appointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
 
-
-    // Adicionar cálculos de estatísticas financeiras
   const calculateStats = () => {
     const hoje = new Date().toISOString().split('T')[0];
-    const receitaHoje = appointments
-      .filter(app => app.date === hoje)
-      .reduce((sum, app) => sum + app.price, 0);
-    
-    const ticketMedio = totalAppointments > 0 
-      ? totalRevenue / totalAppointments 
-      : 0;
-
-    const taxaConclusao = totalAppointments > 0 
-      ? (completedAppointments / totalAppointments) * 100 
-      : 0;
-
+    const receitaHoje = appointments.filter(app => app.date === hoje).reduce((sum, app) => sum + app.price, 0);
+    const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
+    const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
     return { receitaHoje, ticketMedio, taxaConclusao };
   };
 
   const { receitaHoje, ticketMedio, taxaConclusao } = calculateStats();
-
-  // Filtrar agendamentos baseado no estado showCompleted
-  const filteredAppointments = showCompleted 
-    ? appointments 
-    : appointments.filter(app => app.status !== 'completed');
+  const filteredAppointments = showCompleted ? appointments : appointments.filter(app => app.status !== 'completed');
 
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16">
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Header section */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
           <button
@@ -216,9 +187,8 @@ const DashboardPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Card 1 - Receita Total */}
           <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex justify-between items-start">
               <div>
@@ -245,7 +215,6 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Card 2 - Status Overview */}
           <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex justify-between items-start">
               <div className="flex-1">
@@ -289,40 +258,40 @@ const DashboardPage: React.FC = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                      <Tooltip
-                        contentStyle={{ 
-                          backgroundColor: '#252B3B',
-                          border: '1px solid #F0B35B',
-                          borderRadius: '4px',
-                          padding: '8px',
-                          fontSize: '12px',
-                          color: '#F0B35B',
-                          maxWidth: '200px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: '#FFD700',
-                          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-                          zIndex: 1000
-                        }}
-                        formatter={(value, name) => [
-                          `${value} (${((Number(value) / totalAppointments) * 100).toFixed(1)}%)`,
-                          name === 'Aguardando' ? 'Pendentes' : 'Concluídos'
-                        ]}
-                        labelStyle={{ 
-                          color: '#F0B35B',
-                          fontWeight: 'bold',
-                          marginBottom: '4px',
-                          fontSize: '10px'
-                        }}
-                        wrapperStyle={{
-                          zIndex: 1000,
-                          maxWidth: '90vw',
-                          visibility: 'visible',
-                          position: 'absolute',
-                          top: 0,
-                          left: 0
-                        }}
-                        isAnimationActive={false}
+                    <Tooltip
+                      contentStyle={{ 
+                        backgroundColor: '#252B3B',
+                        border: '1px solid #F0B35B',
+                        borderRadius: '4px',
+                        padding: '8px',
+                        fontSize: '12px',
+                        color: '#F0B35B',
+                        maxWidth: '200px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: '#FFD700',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+                        zIndex: 1000
+                      }}
+                      formatter={(value, name) => [
+                        `${value} (${((Number(value) / totalAppointments) * 100).toFixed(1)}%)`,
+                        name === 'Aguardando' ? 'Pendentes' : 'Concluídos'
+                      ]}
+                      labelStyle={{ 
+                        color: '#F0B35B',
+                        fontWeight: 'bold',
+                        marginBottom: '4px',
+                        fontSize: '10px'
+                      }}
+                      wrapperStyle={{
+                        zIndex: 1000,
+                        maxWidth: '90vw',
+                        visibility: 'visible',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                      isAnimationActive={false}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -331,7 +300,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Chart Section */}
+        {/* Seção do Gráfico */}
         <motion.div 
           className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg overflow-hidden mb-6"
           animate={{ height: isChartExpanded ? 'auto' : '80px' }}
@@ -352,7 +321,6 @@ const DashboardPage: React.FC = () => {
               <FaChevronDown className="text-gray-400 text-xl" />
             </motion.div>
           </div>
-
           <AnimatePresence>
             {isChartExpanded && (
               <motion.div
@@ -365,12 +333,7 @@ const DashboardPage: React.FC = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={weeklyData}
-                      margin={{
-                        top: 10,
-                        right: 10,
-                        left: 0,
-                        bottom: 5
-                      }}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
                     >
                       <CartesianGrid 
                         strokeDasharray="3 3" 
@@ -420,22 +383,13 @@ const DashboardPage: React.FC = () => {
                         ]}
                         labelFormatter={(label: string, payload: any[]) => {
                           const date = payload?.[0]?.payload?.fullDate || label;
-                          // Limitar o tamanho do texto da data
                           return date.length > 20 ? date.substring(0, 20) + '...' : date;
                         }}
-                        wrapperStyle={{
-                          zIndex: 1000,
-                          maxWidth: '90vw'
-                        }}
+                        wrapperStyle={{ zIndex: 1000, maxWidth: '90vw' }}
                       />
                       <Legend 
-                        formatter={(value) => 
-                          value === 'pending' ? 'Pendente' : 'Concluído'
-                        }
-                        wrapperStyle={{
-                          paddingTop: '10px',
-                          fontSize: '11px'
-                        }}
+                        formatter={(value) => value === 'pending' ? 'Pendente' : 'Concluído'}
+                        wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }}
                         height={30}
                       />
                       <Bar 
@@ -460,13 +414,11 @@ const DashboardPage: React.FC = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Appointments Section */}
+        {/* Seção de Agendamentos */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
             <h2 className="text-xs text-gray-400">Agendamentos</h2>
-            <span className="text-xs text-gray-400">
-              ({filteredAppointments.length} total)
-            </span>
+            <span className="text-xs text-gray-400">({filteredAppointments.length} total)</span>
           </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
