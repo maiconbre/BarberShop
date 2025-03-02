@@ -28,12 +28,105 @@ interface ChartData {
 
 const DashboardPage: React.FC = () => {
   const { logout } = useAuth();
-  const [showCompleted, setShowCompleted] = useState<boolean>(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [weeklyData, setWeeklyData] = useState<ChartData[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('total');
-  // Função centralizada para carregar os agendamentos, memoizada para evitar recriações desnecessárias
+  const [filterMode, setFilterMode] = useState('all');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+
+  // Estatísticas
+  const totalAppointments = appointments.length;
+  const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
+  const completedAppointments = appointments.filter(app => app.status === 'completed').length;
+  const getFilteredAppointmentsByDate = () => {
+    const hoje = new Date().toISOString().split('T')[0];
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    switch (revenueDisplayMode) {
+      case 'day':
+        return appointments.filter(app => app.date === hoje);
+      case 'week':
+        return appointments.filter(app => {
+          const appDate = new Date(app.date);
+          return appDate >= startOfWeek && appDate <= endOfWeek;
+        });
+      default:
+        return appointments;
+    }
+  };
+  const currentFilteredAppointments = getFilteredAppointmentsByDate();
+  const filteredPendingAppointments = currentFilteredAppointments.filter(app => app.status === 'pending').length;
+  const filteredCompletedAppointments = currentFilteredAppointments.filter(app => app.status === 'completed').length;
+  const filteredPendingRevenue = currentFilteredAppointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
+  const filteredCompletedRevenue = currentFilteredAppointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
+  const calculateStats = () => {
+    const hoje = new Date().toISOString().split('T')[0];
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    const receitaHoje = appointments.filter(app => app.date === hoje).reduce((sum, app) => sum + app.price, 0);
+    const receitaSemana = appointments.filter(app => {
+      const appDate = new Date(app.date);
+      return appDate >= startOfWeek && appDate <= endOfWeek;
+    }).reduce((sum, app) => sum + app.price, 0);
+    const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
+    const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
+
+    const clientesHoje = appointments.filter(app => app.date === hoje).length;
+    const clientesSemana = appointments.filter(app => {
+      const appDate = new Date(app.date);
+      return appDate >= startOfWeek && appDate <= endOfWeek;
+    }).length;
+
+    return { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana };
+  };
+  const getFilteredAppointments = useCallback(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const hojeStr = hoje.toISOString().split('T')[0];
+
+    const amanha = new Date(hoje);
+    amanha.setDate(amanha.getDate() + 1);
+    const amanhaStr = amanha.toISOString().split('T')[0];
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    // First check revenueDisplayMode
+    if (revenueDisplayMode !== 'total') {
+      switch (revenueDisplayMode) {
+        case 'day':
+          return appointments.filter(app => app.date === hojeStr);
+        case 'week':
+          return appointments.filter(app => {
+            const appDate = new Date(app.date);
+            return appDate >= startOfWeek && appDate <= endOfWeek;
+          });
+      }
+    }
+
+    // Then check filterMode if revenueDisplayMode is 'total'
+    switch (filterMode) {
+      case 'today':
+        return appointments.filter(app => app.date === hojeStr);
+      case 'tomorrow':
+        return appointments.filter(app => app.date === amanhaStr);
+      default:
+        return appointments;
+    }
+  }, [appointments, filterMode, revenueDisplayMode]);
+
+  const filteredAppointments = getFilteredAppointments();
+  const { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana } = calculateStats();
+
   const loadAppointments = useCallback(async () => {
     try {
       const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
@@ -93,7 +186,7 @@ const DashboardPage: React.FC = () => {
         weekday: 'short',
         day: 'numeric'
       }).replace('.', '').replace('-feira', '');
-      
+
       return {
         date: String(dayDate.getDate()),
         fullDate: fullDate.charAt(0).toUpperCase() + fullDate.slice(1),
@@ -154,63 +247,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Estatísticas
-  const totalAppointments = appointments.length;
-  const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
-  const pendingAppointments = appointments.filter(app => app.status === 'pending').length;
-  const completedAppointments = appointments.filter(app => app.status === 'completed').length;
-  const pendingRevenue = appointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
-  const completedRevenue = appointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
-  const getFilteredAppointments = () => {
-    const hoje = new Date().toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
-
-    switch (revenueDisplayMode) {
-      case 'day':
-        return appointments.filter(app => app.date === hoje);
-      case 'week':
-        return appointments.filter(app => {
-          const appDate = new Date(app.date);
-          return appDate >= startOfWeek && appDate <= endOfWeek;
-        });
-      default:
-        return appointments;
-    }
-  };
-const currentFilteredAppointments = getFilteredAppointments();
-  const filteredPendingAppointments = currentFilteredAppointments.filter(app => app.status === 'pending').length;
-  const filteredCompletedAppointments = currentFilteredAppointments.filter(app => app.status === 'completed').length;
-  const filteredPendingRevenue = currentFilteredAppointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
-  const filteredCompletedRevenue = currentFilteredAppointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
-  const calculateStats = () => {
-    const hoje = new Date().toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
-
-    const receitaHoje = appointments.filter(app => app.date === hoje).reduce((sum, app) => sum + app.price, 0);
-    const receitaSemana = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= startOfWeek && appDate <= endOfWeek;
-    }).reduce((sum, app) => sum + app.price, 0);
-    const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
-    const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
-
-    const clientesHoje = appointments.filter(app => app.date === hoje).length;
-    const clientesSemana = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= startOfWeek && appDate <= endOfWeek;
-    }).length;
-
-    return { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana };
-  };
-
-  const { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana } = calculateStats();
-  const filteredAppointments = getFilteredAppointments();
+  
 
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16">
@@ -357,12 +394,12 @@ const currentFilteredAppointments = getFilteredAppointments();
         </div>
 
         {/* Seção do Gráfico */}
-        <motion.div 
+        <motion.div
           className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg overflow-hidden mb-6"
           animate={{ height: isChartExpanded ? 'auto' : '80px' }}
           transition={{ duration: 0.3 }}
         >
-          <div 
+          <div
             className="p-4 flex justify-between items-center cursor-pointer hover:bg-[#1F2737] transition-colors"
             onClick={() => setIsChartExpanded(!isChartExpanded)}
           >
@@ -391,21 +428,21 @@ const currentFilteredAppointments = getFilteredAppointments();
                       data={weeklyData}
                       margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
                     >
-                      <CartesianGrid 
-                        strokeDasharray="3 3" 
-                        stroke="#333" 
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#333"
                         vertical={false}
                         horizontalPoints={[0, 30, 60, 90]}
                       />
-                      <XAxis 
-                        dataKey="date" 
+                      <XAxis
+                        dataKey="date"
                         stroke="#fff"
                         tick={{ fontSize: 10, fill: '#fff' }}
                         axisLine={{ stroke: '#333' }}
                         tickLine={{ stroke: '#333' }}
                         height={30}
                       />
-                      <YAxis 
+                      <YAxis
                         stroke="#fff"
                         allowDecimals={false}
                         tick={{ fontSize: 10, fill: '#fff' }}
@@ -413,9 +450,9 @@ const currentFilteredAppointments = getFilteredAppointments();
                         tickLine={{ stroke: '#333' }}
                         width={30}
                       />
-                      <Tooltip 
+                      <Tooltip
                         cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
-                        contentStyle={{ 
+                        contentStyle={{
                           backgroundColor: '#252B3B',
                           border: '1px solid #F0B35B',
                           borderRadius: '4px',
@@ -427,8 +464,8 @@ const currentFilteredAppointments = getFilteredAppointments();
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
                         }}
-                        labelStyle={{ 
-                          color: '#F0B35B', 
+                        labelStyle={{
+                          color: '#F0B35B',
                           fontWeight: 'bold',
                           marginBottom: '4px',
                           fontSize: '11px'
@@ -443,20 +480,20 @@ const currentFilteredAppointments = getFilteredAppointments();
                         }}
                         wrapperStyle={{ zIndex: 1000, maxWidth: '90vw' }}
                       />
-                      <Legend 
+                      <Legend
                         formatter={(value) => value === 'pending' ? 'Pendente' : 'Concluído'}
                         wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }}
                         height={30}
                       />
-                      <Bar 
-                        dataKey="pending" 
+                      <Bar
+                        dataKey="pending"
                         fill="#FFD700"
                         name="pending"
                         radius={[2, 2, 0, 0]}
                         maxBarSize={30}
                       />
-                      <Bar 
-                        dataKey="completed" 
+                      <Bar
+                        dataKey="completed"
                         fill="#4CAF50"
                         name="completed"
                         radius={[2, 2, 0, 0]}
@@ -476,14 +513,50 @@ const currentFilteredAppointments = getFilteredAppointments();
             <h2 className="text-xs text-gray-400">Agendamentos</h2>
             <span className="text-xs text-gray-400">({filteredAppointments.length} total)</span>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowCompleted(!showCompleted)}
-            className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300"
-          >
-            {showCompleted ? 'Ocultar Finalizados' : 'Mostrar Finalizados'}
-          </motion.button>
+          <div className="relative">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300 flex items-center gap-2"
+            >
+              {filterMode === 'today' ? 'Hoje' : filterMode === 'tomorrow' ? 'Amanhã' : 'Todos'}
+              <FaChevronDown className={`transform transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </motion.button>
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-10">
+                <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                  <button
+                    onClick={() => {
+                      setFilterMode('all');
+                      setIsDropdownOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFilterMode('today');
+                      setIsDropdownOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
+                  >
+                    Hoje
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFilterMode('tomorrow');
+                      setIsDropdownOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
+                  >
+                    Amanhã
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
