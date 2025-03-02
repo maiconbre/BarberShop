@@ -63,7 +63,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
           className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight tracking-tight"
           itemProp="headline"
         >
-          <span className="sr-only">GR Barber - </span>
+          <span className="sr-only">BarberShop - </span>
           ESTILO É UM REFLEXO DA SUA<br />
           <span 
             className="text-[#F0B35B] font-extrabold inline-block animate-pulse transition-transform hover:scale-110"

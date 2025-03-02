@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { Settings } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { FaChartLine, FaMoneyBillWave, FaChevronDown } from 'react-icons/fa';
 import AppointmentCardNew from '../components/AppointmentCardNew';
@@ -255,12 +256,41 @@ const DashboardPage: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
-          <button
-            onClick={logout}
-            className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300 transform hover:scale-105"
-          >
-            Sair
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="p-2 rounded-full hover:bg-[#F0B35B]/10 transition-colors duration-300"
+            >
+              <Settings className="w-6 h-6 text-[#F0B35B]" />
+            </button>
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
+                <div className="py-1" role="menu">
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
+                    role="menuitem"
+                  >
+                    Adicionar Barbeiro
+                  </button>
+                  <button
+                    onClick={() => navigate('/trocar-senha')}
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
+                    role="menuitem"
+                  >
+                    Trocar Senha
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
+                    role="menuitem"
+                  >
+                    Sair
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Cards de Estatísticas */}

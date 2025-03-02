@@ -10,6 +10,7 @@ import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const AppContent = () => {
@@ -39,6 +40,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trocar-senha"
+          element={
+            <ProtectedRoute>
+              <TrocaSenha />
             </ProtectedRoute>
           }
         />
