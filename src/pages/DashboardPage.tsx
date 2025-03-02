@@ -28,12 +28,105 @@ interface ChartData {
 
 const DashboardPage: React.FC = () => {
   const { logout } = useAuth();
-  const [showCompleted, setShowCompleted] = useState<boolean>(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [weeklyData, setWeeklyData] = useState<ChartData[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
+  const [revenueDisplayMode, setRevenueDisplayMode] = useState('total');
+  const [filterMode, setFilterMode] = useState('all');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Função centralizada para carregar os agendamentos, memoizada para evitar recriações desnecessárias
+
+  // Estatísticas
+  const totalAppointments = appointments.length;
+  const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
+  const completedAppointments = appointments.filter(app => app.status === 'completed').length;
+  const getFilteredAppointmentsByDate = () => {
+    const hoje = new Date().toISOString().split('T')[0];
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    switch (revenueDisplayMode) {
+      case 'day':
+        return appointments.filter(app => app.date === hoje);
+      case 'week':
+        return appointments.filter(app => {
+          const appDate = new Date(app.date);
+          return appDate >= startOfWeek && appDate <= endOfWeek;
+        });
+      default:
+        return appointments;
+    }
+  };
+  const currentFilteredAppointments = getFilteredAppointmentsByDate();
+  const filteredPendingAppointments = currentFilteredAppointments.filter(app => app.status === 'pending').length;
+  const filteredCompletedAppointments = currentFilteredAppointments.filter(app => app.status === 'completed').length;
+  const filteredPendingRevenue = currentFilteredAppointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
+  const filteredCompletedRevenue = currentFilteredAppointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
+  const calculateStats = () => {
+    const hoje = new Date().toISOString().split('T')[0];
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    const receitaHoje = appointments.filter(app => app.date === hoje).reduce((sum, app) => sum + app.price, 0);
+    const receitaSemana = appointments.filter(app => {
+      const appDate = new Date(app.date);
+      return appDate >= startOfWeek && appDate <= endOfWeek;
+    }).reduce((sum, app) => sum + app.price, 0);
+    const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
+    const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
+
+    const clientesHoje = appointments.filter(app => app.date === hoje).length;
+    const clientesSemana = appointments.filter(app => {
+      const appDate = new Date(app.date);
+      return appDate >= startOfWeek && appDate <= endOfWeek;
+    }).length;
+
+    return { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana };
+  };
+  const getFilteredAppointments = useCallback(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const hojeStr = hoje.toISOString().split('T')[0];
+
+    const amanha = new Date(hoje);
+    amanha.setDate(amanha.getDate() + 1);
+    const amanhaStr = amanha.toISOString().split('T')[0];
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+    // First check revenueDisplayMode
+    if (revenueDisplayMode !== 'total') {
+      switch (revenueDisplayMode) {
+        case 'day':
+          return appointments.filter(app => app.date === hojeStr);
+        case 'week':
+          return appointments.filter(app => {
+            const appDate = new Date(app.date);
+            return appDate >= startOfWeek && appDate <= endOfWeek;
+          });
+      }
+    }
+
+    // Then check filterMode if revenueDisplayMode is 'total'
+    switch (filterMode) {
+      case 'today':
+        return appointments.filter(app => app.date === hojeStr);
+      case 'tomorrow':
+        return appointments.filter(app => app.date === amanhaStr);
+      default:
+        return appointments;
+    }
+  }, [appointments, filterMode, revenueDisplayMode]);
+
+  const filteredAppointments = getFilteredAppointments();
+  const { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana } = calculateStats();
+
   const loadAppointments = useCallback(async () => {
     try {
       const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
@@ -93,7 +186,7 @@ const DashboardPage: React.FC = () => {
         weekday: 'short',
         day: 'numeric'
       }).replace('.', '').replace('-feira', '');
-      
+
       return {
         date: String(dayDate.getDate()),
         fullDate: fullDate.charAt(0).toUpperCase() + fullDate.slice(1),
@@ -154,24 +247,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Estatísticas
-  const totalAppointments = appointments.length;
-  const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
-  const pendingAppointments = appointments.filter(app => app.status === 'pending').length;
-  const completedAppointments = appointments.filter(app => app.status === 'completed').length;
-  const pendingRevenue = appointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
-  const completedRevenue = appointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
-
-  const calculateStats = () => {
-    const hoje = new Date().toISOString().split('T')[0];
-    const receitaHoje = appointments.filter(app => app.date === hoje).reduce((sum, app) => sum + app.price, 0);
-    const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
-    const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
-    return { receitaHoje, ticketMedio, taxaConclusao };
-  };
-
-  const { receitaHoje, ticketMedio, taxaConclusao } = calculateStats();
-  const filteredAppointments = showCompleted ? appointments : appointments.filter(app => app.status !== 'completed');
+  
 
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16">
@@ -189,28 +265,79 @@ const DashboardPage: React.FC = () => {
 
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer w-full"
+            onClick={() => setRevenueDisplayMode(revenueDisplayMode === 'total' ? 'week' : revenueDisplayMode === 'week' ? 'day' : 'total')}
+          >
             <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-400 text-sm mb-1">Receita Total</p>
-                <h3 className="text-2xl font-bold text-[#F0B35B] mb-2">
-                  R$ {totalRevenue.toFixed(2)}
-                </h3>
-                <p className="text-xs text-green-400">
-                  <span className="inline-block mr-1">↑</span>
-                  Hoje: R$ {receitaHoje.toFixed(2)}
-                </p>
-              </div>
-              <div className="p-3 bg-[#F0B35B]/10 rounded-lg">
-                <FaMoneyBillWave className="text-[#F0B35B] text-xl" />
+              <motion.div className="flex-1 p-2 rounded-lg">
+                <AnimatePresence mode="wait">
+                  {revenueDisplayMode === 'total' ? (
+                    <motion.div
+                      key="total"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-center sm:text-left"
+                    >
+                      <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Total</p>
+                      <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B]">
+                        R$ {totalRevenue.toFixed(2)}
+                      </h4>
+                      <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
+                        <span className="inline-block mr-1">↑</span>
+                        <span>+{((receitaHoje / totalRevenue) * 100).toFixed(1)}% hoje</span>
+                      </div>
+                    </motion.div>
+                  ) : revenueDisplayMode === 'week' ? (
+                    <motion.div
+                      key="week"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-center sm:text-left"
+                    >
+                      <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Semanal</p>
+                      <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B]">
+                        R$ {receitaSemana.toFixed(2)}
+                      </h4>
+                      <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
+                        <span className="inline-block mr-1">↑</span>
+                        <span>{clientesSemana} clientes nesta semana</span>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="day"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-center sm:text-left"
+                    >
+                      <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Hoje</p>
+                      <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B]">
+                        R$ {receitaHoje.toFixed(2)}
+                      </h4>
+                      <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
+                        <span className="inline-block mr-1">↑</span>
+                        <span>{clientesHoje} clientes hoje</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+              <div className="p-3 bg-[#F0B35B]/10 rounded-lg hidden sm:block">
+                <FaMoneyBillWave className="text-[#F0B35B] text-2xl" />
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <p className="text-sm text-gray-400">
-                Ticket Médio: <span className="text-white">R$ {ticketMedio.toFixed(2)}</span>
+            <div className="mt-4 pt-4">
+              <p className="text-sm sm:text-base text-gray-400">
+                Ticket Médio: <span className="text-white font-semibold">R$ {ticketMedio.toFixed(2)}</span>
               </p>
-              <p className="text-sm text-gray-400 mt-2">
-                Taxa de Conclusão: <span className="text-white">{taxaConclusao.toFixed(1)}%</span>
+              <p className="text-sm sm:text-base text-gray-400 mt-2">
+                Taxa de Conclusão: <span className="text-white font-semibold">{taxaConclusao.toFixed(1)}%</span>
               </p>
             </div>
           </div>
@@ -218,17 +345,18 @@ const DashboardPage: React.FC = () => {
           <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex justify-between items-start">
               <div className="flex-1">
-                <p className="text-gray-400 text-sm mb-4">Status dos Agendamentos</p>
+                <p className="text-gray-400 text-sm mb-4">Status dos Agendamentos {revenueDisplayMode === 'day' ? 'de Hoje' : revenueDisplayMode === 'week' ? 'da Semana' : 'Totais'}
+                </p>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-yellow-500 text-xs">Pendente</p>
-                    <p className="text-2xl font-bold text-yellow-500">{pendingAppointments}</p>
-                    <p className="text-sm text-yellow-500">R$ {pendingRevenue.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-yellow-500">{filteredPendingAppointments}</p>
+                    <p className="text-sm text-yellow-500">R$ {filteredPendingRevenue.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-green-500 text-xs">Concluídos</p>
-                    <p className="text-2xl font-bold text-green-500">{completedAppointments}</p>
-                    <p className="text-sm text-green-500">R$ {completedRevenue.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-500">{filteredCompletedAppointments}</p>
+                    <p className="text-sm text-green-500">R$ {filteredCompletedRevenue.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -237,8 +365,8 @@ const DashboardPage: React.FC = () => {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: 'Aguardando', value: pendingAppointments, color: '#FFD700' },
-                        { name: 'Concluídos', value: completedAppointments, color: '#4CAF50' }
+                        { name: 'Aguardando', value: filteredPendingAppointments, color: '#FFD700' },
+                        { name: 'Concluídos', value: filteredCompletedAppointments, color: '#4CAF50' }
                       ]}
                       cx="50%"
                       cy="50%"
@@ -247,52 +375,17 @@ const DashboardPage: React.FC = () => {
                       paddingAngle={5}
                       dataKey="value"
                       onClick={(data) => {
-                        const percentage = ((data.value / totalAppointments) * 100).toFixed(1);
+                        const percentage = ((data.value / (filteredPendingAppointments + filteredCompletedAppointments)) * 100).toFixed(1);
                         alert(`${data.name === 'Aguardando' ? 'Pendentes' : 'Concluídos'}: ${data.value} (${percentage}%)`);
                       }}
                     >
                       {[
-                        { name: 'Aguardando', value: pendingAppointments, color: '#FFD700' },
-                        { name: 'Concluídos', value: completedAppointments, color: '#4CAF50' }
+                        { name: 'Aguardando', value: filteredPendingAppointments, color: '#FFD700' },
+                        { name: 'Concluídos', value: filteredCompletedAppointments, color: '#4CAF50' }
                       ].map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{ 
-                        backgroundColor: '#252B3B',
-                        border: '1px solid #F0B35B',
-                        borderRadius: '4px',
-                        padding: '8px',
-                        fontSize: '12px',
-                        color: '#F0B35B',
-                        maxWidth: '200px',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: '#FFD700',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-                        zIndex: 1000
-                      }}
-                      formatter={(value, name) => [
-                        `${value} (${((Number(value) / totalAppointments) * 100).toFixed(1)}%)`,
-                        name === 'Aguardando' ? 'Pendentes' : 'Concluídos'
-                      ]}
-                      labelStyle={{ 
-                        color: '#F0B35B',
-                        fontWeight: 'bold',
-                        marginBottom: '4px',
-                        fontSize: '10px'
-                      }}
-                      wrapperStyle={{
-                        zIndex: 1000,
-                        maxWidth: '90vw',
-                        visibility: 'visible',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0
-                      }}
-                      isAnimationActive={false}
-                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -301,12 +394,12 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Seção do Gráfico */}
-        <motion.div 
+        <motion.div
           className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg overflow-hidden mb-6"
           animate={{ height: isChartExpanded ? 'auto' : '80px' }}
           transition={{ duration: 0.3 }}
         >
-          <div 
+          <div
             className="p-4 flex justify-between items-center cursor-pointer hover:bg-[#1F2737] transition-colors"
             onClick={() => setIsChartExpanded(!isChartExpanded)}
           >
@@ -335,21 +428,21 @@ const DashboardPage: React.FC = () => {
                       data={weeklyData}
                       margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
                     >
-                      <CartesianGrid 
-                        strokeDasharray="3 3" 
-                        stroke="#333" 
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#333"
                         vertical={false}
                         horizontalPoints={[0, 30, 60, 90]}
                       />
-                      <XAxis 
-                        dataKey="date" 
+                      <XAxis
+                        dataKey="date"
                         stroke="#fff"
                         tick={{ fontSize: 10, fill: '#fff' }}
                         axisLine={{ stroke: '#333' }}
                         tickLine={{ stroke: '#333' }}
                         height={30}
                       />
-                      <YAxis 
+                      <YAxis
                         stroke="#fff"
                         allowDecimals={false}
                         tick={{ fontSize: 10, fill: '#fff' }}
@@ -357,9 +450,9 @@ const DashboardPage: React.FC = () => {
                         tickLine={{ stroke: '#333' }}
                         width={30}
                       />
-                      <Tooltip 
+                      <Tooltip
                         cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
-                        contentStyle={{ 
+                        contentStyle={{
                           backgroundColor: '#252B3B',
                           border: '1px solid #F0B35B',
                           borderRadius: '4px',
@@ -371,8 +464,8 @@ const DashboardPage: React.FC = () => {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
                         }}
-                        labelStyle={{ 
-                          color: '#F0B35B', 
+                        labelStyle={{
+                          color: '#F0B35B',
                           fontWeight: 'bold',
                           marginBottom: '4px',
                           fontSize: '11px'
@@ -387,20 +480,20 @@ const DashboardPage: React.FC = () => {
                         }}
                         wrapperStyle={{ zIndex: 1000, maxWidth: '90vw' }}
                       />
-                      <Legend 
+                      <Legend
                         formatter={(value) => value === 'pending' ? 'Pendente' : 'Concluído'}
                         wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }}
                         height={30}
                       />
-                      <Bar 
-                        dataKey="pending" 
+                      <Bar
+                        dataKey="pending"
                         fill="#FFD700"
                         name="pending"
                         radius={[2, 2, 0, 0]}
                         maxBarSize={30}
                       />
-                      <Bar 
-                        dataKey="completed" 
+                      <Bar
+                        dataKey="completed"
                         fill="#4CAF50"
                         name="completed"
                         radius={[2, 2, 0, 0]}
@@ -420,14 +513,50 @@ const DashboardPage: React.FC = () => {
             <h2 className="text-xs text-gray-400">Agendamentos</h2>
             <span className="text-xs text-gray-400">({filteredAppointments.length} total)</span>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowCompleted(!showCompleted)}
-            className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300"
-          >
-            {showCompleted ? 'Ocultar Finalizados' : 'Mostrar Finalizados'}
-          </motion.button>
+          <div className="relative">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300 flex items-center gap-2"
+            >
+              {filterMode === 'today' ? 'Hoje' : filterMode === 'tomorrow' ? 'Amanhã' : 'Todos'}
+              <FaChevronDown className={`transform transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </motion.button>
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-10">
+                <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                  <button
+                    onClick={() => {
+                      setFilterMode('all');
+                      setIsDropdownOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFilterMode('today');
+                      setIsDropdownOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
+                  >
+                    Hoje
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFilterMode('tomorrow');
+                      setIsDropdownOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
+                  >
+                    Amanhã
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
