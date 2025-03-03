@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth} from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -20,15 +20,21 @@ const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      const success = await login(formData.username, formData.password, formData.rememberMe);
-      if (success) {
-        navigate('/dashboard');
-      } else {
-        setError('Credenciais inválidas');
+      if (!formData.username || !formData.password) {
+        setError('Por favor, preencha todos os campos');
+        return;
       }
-    } catch (err) {
-      console.error('Error during login:', err);
-      setError('Erro ao fazer login');
+
+      const result = await login(formData.username, formData.password, formData.rememberMe);
+      
+      if (result) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        setError('username ou senha incorretos');
+      }
+    } catch (err: any) {
+      console.error('Erro durante o login:', err);
+      setError(err.message || 'Ocorreu um erro ao tentar fazer login. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +45,7 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 rounded-lg shadow-xl">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-            GR Barber
+            BarberShop
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
             Faça login para acessar o painel
@@ -54,15 +60,15 @@ const LoginPage: React.FC = () => {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
-                Username
+                username
               </label>
               <input
                 id="username"
                 name="username"
-                type="text"
+                type="username"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] rounded-t-md focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Username"
+                placeholder="username"
                 value={formData.username}
                 onChange={(e) =>
                   setFormData({ ...formData, username: e.target.value })
@@ -117,14 +123,6 @@ const LoginPage: React.FC = () => {
               ) : (
                 'Entrar'
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/register')}
-              className="w-full text-center text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm"
-            >
-              Não tem uma conta? Cadastre-se
             </button>
           </div>
         </form>

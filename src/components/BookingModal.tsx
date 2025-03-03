@@ -29,7 +29,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   });
 
   // Mapeamento de preços (valores em R$)
-  const priceMapping: { [key: string]: number } = {
+  const getServicePrice: { [key: string]: number } = {
     "Corte Tradicional": 45,
     "Tesoura": 60,
     "Navalha": 70,
@@ -38,29 +38,29 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     "barba": 25,
     "sobrancelha": 10,
   };
-
-  // Função que calcula o valor total do serviço (serviço + extras, se selecionados)
-  const getServicePrice = () => {
-    let total = 0;
-    if (formData.service && priceMapping[formData.service]) {
-      total += priceMapping[formData.service];
-    }
-    if (formData.barba) {
-      total += priceMapping["barba"];
-    }
-    if (formData.sobrancelha) {
-      total += priceMapping["sobrancelha"];
-    }
-    return `R$ ${total.toFixed(2)}`;
-  };
-
-  // Dados estáticos com a propriedade "pix" adicionada
-  const barbers = [
+  const [barbers, setBarbers] = useState([
     { id: '01', name: 'Maicon', whatsapp: '21997764645', pix: '21997761646' },
     { id: '02', name: 'Brendon', whatsapp: '2199774658', pix: '21554875965' }
-  ];
+  ]);
   const services = ['Corte Tradicional', 'Tesoura', 'Navalha', 'Reflexo', 'Nevou'];
+  // Buscar barbeiros da API ao carregar o componente
+  React.useEffect(() => {
+    const fetchBarbers = async () => {
+      try {
+        const response = await fetch('https://barber-backend-spm8.onrender.com/api/barbers');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setBarbers(result.data);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar barbeiros:', error);
+      }
+    };
 
+    fetchBarbers();
+  }, []);
   // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,9 +87,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         serviceName: formData.service + (formData.barba ? ', Barba' : '') + (formData.sobrancelha ? ', Sobrancelha' : ''),
         date: formattedDate,
         time: formData.time,
-        barberId: formData.barber === 'Maicon' ? '01' : '02',
+        barberId: formData.barberId,
         barberName: formData.barber,
-        price: parseFloat(getServicePrice().replace('R$ ', ''))
+        price: getServicePrice[formData.service] + 
+               (formData.barba ? getServicePrice["barba"] : 0) + 
+               (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)
       };
 
       const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
@@ -168,7 +170,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
 Nome: ${formData.name}
 Barbeiro: ${formData.barber}
 Serviço: ${formData.service}
-${extrasMessage}Valor: ${getServicePrice()}
+${extrasMessage}Valor: R$ ${getServicePrice[formData.service] + 
+  (formData.barba ? getServicePrice["barba"] : 0) + 
+  (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}
 Data: ${formattedDate}
 Horário: ${formData.time}
   
@@ -364,7 +368,9 @@ Aguardo a confirmação.`;
                       Pague antecipado e garanta a sua vaga.
                     </p>
                     <p className="text-gray-300 mt-2 text-sm sm:text-base">
-                      Valor <strong>{getServicePrice()}</strong>
+                      Valor <strong>R$ {getServicePrice[formData.service] + 
+                        (formData.barba ? getServicePrice["barba"] : 0) + 
+                        (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</strong>
                     </p>
                   </div>
                 </div>
@@ -384,7 +390,9 @@ Aguardo a confirmação.`;
                   <p><strong>Barbeiro:</strong> {formData.barber}</p>
                   <p><strong>Serviço:</strong> {formData.service}</p>
                   <p><strong>Extras:</strong> {extrasText.length ? extrasText.join(", ") : "Nenhum"}</p>
-                  <p><strong>Valor:</strong> {getServicePrice()}</p>
+                  <p><strong>Valor:</strong> R$ {getServicePrice[formData.service] + 
+                    (formData.barba ? getServicePrice["barba"] : 0) + 
+                    (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</p>
                   <p>
                     <strong>Data:</strong>{' '}
                     {formData.date

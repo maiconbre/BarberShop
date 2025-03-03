@@ -101,10 +101,9 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
     if (selectedDate && selectedBarber) {
       const dateInBrasilia = adjustToBrasilia(selectedDate);
       const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
-      const barberId = selectedBarber === 'Maicon' ? '01' : '02';
       const filteredAppointments = appointmentsCache.filter(
         appointment =>
-          appointment.date === formattedDate && appointment.barberId === barberId
+          appointment.date === formattedDate && appointment.barberName === selectedBarber
       );
       return timeSlots.map(time => ({
         time,
