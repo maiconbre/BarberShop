@@ -47,22 +47,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   React.useEffect(() => {
     const fetchBarbers = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/barbers');
+        const response = await fetch('https://barber-backend-spm8.onrender.com/api/barbers');
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
             setBarbers(result.data);
-            // Limpa a seleção se o barbeiro foi excluído
-            if (formData.barberId) {
-              const barberExists = result.data.some((b: any) => b.id === formData.barberId);
-              if (!barberExists) {
-                setFormData(prev => ({
-                  ...prev,
-                  barber: '',
-                  barberId: ''
-                }));
-              }
-            }
           }
         }
       } catch (error) {
@@ -71,16 +60,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     };
 
     fetchBarbers();
-    // Adiciona listener para atualizar a lista quando um barbeiro for excluído
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'barberDeleted') {
-        fetchBarbers();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [formData.barberId]);
+  }, []);
   // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +94,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
                (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)
       };
 
-      const response = await fetch('http://localhost:3000/api/appointments', {
+      const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

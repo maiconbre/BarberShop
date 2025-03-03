@@ -131,7 +131,7 @@ const DashboardPage: React.FC = () => {
 
   const loadAppointments = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/appointments`, {
+      const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +222,7 @@ const DashboardPage: React.FC = () => {
     if (!appointmentId) return;
     try {
       if (action === 'delete') {
-        const response = await fetch(`http://localhost:3000/api/appointments/${appointmentId}`, {
+        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ const DashboardPage: React.FC = () => {
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
-        const response = await fetch(`http://localhost:3000/api/appointments/${appointmentId}`, {
+        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

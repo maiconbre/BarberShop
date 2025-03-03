@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const axiosInstance = axios.create({
   timeout: 30000, // 30 segundos
-  baseURL: 'http://localhost:3000/api'
+  baseURL: 'https://barber-backend-spm8.onrender.com/api'
 });
 
 const retryRequest = async (fn: () => Promise<any>, retries = 2, delay = 1000) => {

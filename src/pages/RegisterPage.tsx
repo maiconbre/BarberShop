@@ -63,7 +63,7 @@ const RegisterPage: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/barbers');
+      const response = await fetch('https://barber-backend-spm8.onrender.com/api/barbers');
       const data = await response.json();
       if (data.success) {
         setUsers(data.data);
@@ -102,7 +102,7 @@ const RegisterPage: React.FC = () => {
       }
       
       // Criar novo barbeiro
-      const response = await fetch('http://localhost:3000/api/barbers', {
+      const response = await fetch('https://barber-backend-spm8.onrender.com/api/barbers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ const RegisterPage: React.FC = () => {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/barbers/${selectedUser.id}`, {
+      const response = await fetch(`https://barber-backend-spm8.onrender.com/api/barbers/${selectedUser.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
