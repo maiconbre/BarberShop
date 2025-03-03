@@ -28,7 +28,8 @@ interface ChartData {
 }
 
 const DashboardPage: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, getCurrentUser } = useAuth();
+  const currentUser = getCurrentUser();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [weeklyData, setWeeklyData] = useState<ChartData[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
@@ -141,16 +142,26 @@ const DashboardPage: React.FC = () => {
       });
       const result = await response.json();
       if (result.success) {
-        const formattedAppointments = result.data
+        let formattedAppointments = result.data
           .map((app: any) => ({
             ...app,
             service: app.serviceName
-          }))
-          .sort((a: Appointment, b: Appointment) => {
-            const dateA = new Date(`${a.date} ${a.time}`);
-            const dateB = new Date(`${b.date} ${b.time}`);
-            return dateA.getTime() - dateB.getTime();
-          });
+          }));
+
+        // Filtra os agendamentos se o usuário não for admin
+        if (currentUser?.role !== 'admin') {
+          formattedAppointments = formattedAppointments.filter(
+            (app: Appointment) => app.barberId === currentUser?.id
+          );
+        }
+
+        // Ordena os agendamentos por data e hora
+        formattedAppointments.sort((a: Appointment, b: Appointment) => {
+          const dateA = new Date(`${a.date} ${a.time}`);
+          const dateB = new Date(`${b.date} ${b.time}`);
+          return dateA.getTime() - dateB.getTime();
+        });
+
         setAppointments(formattedAppointments);
       }
     } catch (error) {
@@ -259,30 +270,32 @@ const DashboardPage: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="p-2 rounded-full hover:bg-[#F0B35B]/10 transition-colors duration-300"
+              className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
             >
-              <Settings className="w-6 h-6 text-[#F0B35B]" />
+              <Settings className="w-6 h-6 text-black " />
             </button>
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
                 <div className="py-1" role="menu">
-                  <button
-                    onClick={() => window.location.href = '/register'}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
-                    role="menuitem"
-                  >
-                    Adicionar Barbeiro
-                  </button>
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      onClick={() => window.location.href = '/register'}
+                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
+                      role="menuitem"
+                    >
+                      Adicionar Barbeiro
+                    </button>
+                  )}
                   <button
                     onClick={() => window.location.href = '/trocar-senha'}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
                     role="menuitem"
                   >
                     Trocar Senha
                   </button>
                   <button
                     onClick={logout}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
                     role="menuitem"
                   >
                     Sair
@@ -311,7 +324,7 @@ const DashboardPage: React.FC = () => {
                       className="text-center sm:text-left"
                     >
                       <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Total</p>
-                      <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B]">
+                      <h4 className="text-4xl sm:text-4xl font-bold text-[#F0B35B] bg">
                         R$ {totalRevenue.toFixed(2)}
                       </h4>
                       <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
@@ -329,7 +342,7 @@ const DashboardPage: React.FC = () => {
                       className="text-center sm:text-left"
                     >
                       <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Semanal</p>
-                      <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B]">
+                      <h4 className="text-4xl sm:text-4xl font-bold text-[#F0B35B] bg">
                         R$ {receitaSemana.toFixed(2)}
                       </h4>
                       <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
@@ -347,7 +360,7 @@ const DashboardPage: React.FC = () => {
                       className="text-center sm:text-left"
                     >
                       <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Hoje</p>
-                      <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B]">
+                      <h4 className="text-4xl sm:text-4xl font-bold text-[#F0B35B] bg">
                         R$ {receitaHoje.toFixed(2)}
                       </h4>
                       <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
@@ -359,7 +372,7 @@ const DashboardPage: React.FC = () => {
                 </AnimatePresence>
               </motion.div>
               <div className="p-3 bg-[#F0B35B]/10 rounded-lg hidden sm:block">
-                <FaMoneyBillWave className="text-[#F0B35B] text-2xl" />
+                <FaMoneyBillWave className="text-white bg text-2xl" />
               </div>
             </div>
             <div className="mt-4 pt-4">
@@ -434,7 +447,7 @@ const DashboardPage: React.FC = () => {
             onClick={() => setIsChartExpanded(!isChartExpanded)}
           >
             <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <FaChartLine className="text-[#F0B35B]" />
+              <FaChartLine className="text-white bg" />
               Agendamentos por Data
             </h2>
             <motion.div

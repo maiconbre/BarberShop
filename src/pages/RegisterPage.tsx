@@ -1,6 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
+
+interface DeleteConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  barberName: string;
+}
+
+const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpen, onClose, onConfirm, barberName }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-[#1A1F2E] p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <h3 className="text-xl font-bold text-white mb-4">Confirmar Exclusão</h3>
+        <p className="text-gray-300 mb-6">
+          Você está prestes a excluir o barbeiro <span className="font-semibold text-white">{barberName}</span>.
+          Esta ação também removerá todos os agendamentos associados a este barbeiro.
+          Esta ação não pode ser desfeita.
+        </p>
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+          >
+            Confirmar Exclusão
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,177 +51,289 @@ const RegisterPage: React.FC = () => {
     whatsapp: '',
     pix: ''
   });
+  const [users, setUsers] = useState([]);
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/barbers');
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.data);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar usuários:', err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-  
+
     try {
-      // Form validation
-      if (!formData.name.trim() || !formData.username.trim() || !formData.password || !formData.whatsapp.trim() || !formData.pix.trim()) {
-        setError('Por favor, preencha todos os campos corretamente');
-        return;
+      // Validações
+      const whatsappRegex = /^\d{10,11}$/;
+      let cleanWhatsapp = formData.whatsapp.replace(/\D/g, '');
+      
+      // Remove o prefixo 55 se já existir
+      if (cleanWhatsapp.startsWith('55')) {
+        cleanWhatsapp = cleanWhatsapp.substring(2);
       }
-  
-      if (formData.name.trim().length < 3) {
-        setError('O nome deve ter pelo menos 3 caracteres');
-        return;
-      }
-  
-      if (formData.username.trim().length < 3) {
-        setError('O nome de usuário deve ter pelo menos 3 caracteres');
-        return;
-      }
-  
-      if (formData.password.length < 6) {
-        setError('A senha deve ter pelo menos 6 caracteres');
-        return;
-      }
-  
-      const whatsappRegex = /^\d{10,14}$/;
-      const cleanWhatsapp = formData.whatsapp.replace(/\D/g, '');
+      
       if (!whatsappRegex.test(cleanWhatsapp)) {
-        setError('O número do WhatsApp deve conter entre 10 e 14 dígitos');
+        setError('O número do WhatsApp deve conter entre 10 e 11 dígitos (DDD + número)');
         return;
       }
-  
+      
+      // Adiciona o prefixo 55 ao WhatsApp
+      cleanWhatsapp = '55' + cleanWhatsapp;
+      
       if (formData.pix.trim().length < 3) {
         setError('Por favor, insira uma chave PIX válida');
         return;
       }
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock successful registration
-      localStorage.setItem('mockUser', JSON.stringify({
-        id: 'mock-' + Date.now(),
-        ...formData,
-        whatsapp: cleanWhatsapp
-      }));
+      // Criar novo barbeiro
+      const response = await fetch('http://localhost:3000/api/barbers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          username: formData.username.trim(),
+          password: formData.password,
+          whatsapp: cleanWhatsapp,
+          pix: formData.pix.trim(),
+          role: 'barber'
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Erro ao criar conta');
+      }
 
       // Redirect to login page
       navigate('/login');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error during registration:', err);
-      setError('Erro inesperado ao criar conta. Por favor, tente novamente.');
+      setError(err.message || 'Erro inesperado ao criar conta. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleDeleteUser = async (userId: number, userName: string) => {
+    setSelectedUser({ id: userId, name: userName });
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/barbers/${selectedUser.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+      });
+
+      if (response.ok) {
+        setDeleteSuccess('Usuário e seus agendamentos foram excluídos com sucesso!');
+        fetchUsers();
+        setTimeout(() => setDeleteSuccess(''), 3000);
+      } else {
+        const data = await response.json();
+        throw new Error(data.message || 'Erro ao excluir usuário');
+      }
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir usuário');
+      setTimeout(() => setDeleteError(''), 3000);
+    } finally {
+      setIsDeleteModalOpen(false);
+      setSelectedUser(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0D121E] py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 rounded-lg shadow-xl">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-            Cadastro de Barbeiro
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-            Crie sua conta para começar
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-
-          <div className="rounded-md shadow-sm -space-y-px">
+    <div className="min-h-screen bg-[#0D121E] py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        barberName={selectedUser?.name || ''}
+      />
+      
+      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
+        <div className="w-full md:flex-1">
+          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
             <div>
-              <label htmlFor="name" className="sr-only">Nome</label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="appearance-none rounded-t-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Nome completo"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+              <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-extrabold text-white">
+                Cadastro
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-400">
+                Cadastre um novo Barbeiro
+              </p>
             </div>
-            <div>
-              <label htmlFor="username" className="sr-only">username</label>
-              <input
-                id="username"
-                name="username"
-                type="username"
-                required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="username"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Senha</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Senha"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-            <div>
-              <label htmlFor="whatsapp" className="sr-only">WhatsApp</label>
-              <input
-                id="whatsapp"
-                name="whatsapp"
-                type="tel"
-                required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="WhatsApp (ex: 5521999999999)"
-                value={formData.whatsapp}
-                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-              />
-            </div>
-            <div>
-              <label htmlFor="pix" className="sr-only">PIX</label>
-              <input
-                id="pix"
-                name="pix"
-                type="text"
-                required
-                className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Chave PIX"
-                value={formData.pix}
-                onChange={(e) => setFormData({ ...formData, pix: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <Loader2 className="animate-spin h-5 w-5" />
-              ) : (
-                'Criar conta'
+            
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
+                  {error}
+                </div>
               )}
-            </button>
+              
+              <div className="rounded-md shadow-sm -space-y-px">
+                <div>
+                  <label htmlFor="name" className="sr-only">Nome</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    className="appearance-none rounded-t-md relative block w-full px-3 py-3 sm:py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 text-base sm:text-sm"
+                    placeholder="Nome"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="username" className="sr-only">username</label>
+                  <input
+                    id="username"
+                    name="username"
+                    type="username"
+                    required
+                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
+                    placeholder="Usuário"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="sr-only">Senha</label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
+                    placeholder="Senha"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="whatsapp" className="sr-only">WhatsApp</label>
+                  <input
+                    id="whatsapp"
+                    name="whatsapp"
+                    type="tel"
+                    required
+                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
+                    placeholder="WhatsApp (ex: 21999999999)"
+                    value={formData.whatsapp}
+                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="pix" className="sr-only">PIX</label>
+                  <input
+                    id="pix"
+                    name="pix"
+                    type="text"
+                    required
+                    className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
+                    placeholder="Chave PIX"
+                    value={formData.pix}
+                    onChange={(e) => setFormData({ ...formData, pix: e.target.value })}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="group relative w-full flex justify-center py-3 sm:py-2 px-4 border border-transparent text-base sm:text-sm font-medium rounded-md text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <Loader2 className="animate-spin h-5 w-5" />
+                  ) : (
+                    'Criar conta'
+                  )}
+                </button>
+              </div>
+              
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm"
+                >
+                  Voltar para o Dashboard
+                </button>
+              </div>
+            </form>
           </div>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm"
-            >
-              Já tem uma conta? Faça login
-            </button>
+        </div>
+        
+        <div className="w-full md:flex-1">
+          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
+            <h2 className="text-center text-xl sm:text-2xl font-bold text-white">Usuários Cadastrados</h2>
+            
+            {deleteSuccess && (
+              <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
+                {deleteSuccess}
+              </div>
+            )}
+            
+            {deleteError && (
+              <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
+                {deleteError}
+              </div>
+            )}
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="hidden sm:table-header-group">
+                  <tr>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Usuário</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700">
+                  {users.map((user: any) => (
+                    <tr key={user.id} className="hover:bg-[#252B3B] transition-colors">
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.name}</td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.username}</td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.name)}
+                          className="text-red-500 hover:text-red-600 transition-colors"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

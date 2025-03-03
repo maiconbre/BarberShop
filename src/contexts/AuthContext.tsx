@@ -69,6 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const storage = rememberMe ? localStorage : sessionStorage;
       
       storage.setItem('user', JSON.stringify(user));
+      storage.setItem('token', user.token);
       updateSessionExpiry(storage);
 
       if (user.role === 'barber') {

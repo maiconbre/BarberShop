@@ -124,14 +124,6 @@ const LoginPage: React.FC = () => {
                 'Entrar'
               )}
             </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/register')}
-              className="w-full text-center text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm"
-            >
-              Não tem uma conta? Cadastre-se
-            </button>
           </div>
         </form>
       </div>
