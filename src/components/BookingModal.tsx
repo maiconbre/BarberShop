@@ -52,6 +52,17 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
           const result = await response.json();
           if (result.success && result.data) {
             setBarbers(result.data);
+            // Limpa a seleção se o barbeiro foi excluído
+            if (formData.barberId) {
+              const barberExists = result.data.some((b: any) => b.id === formData.barberId);
+              if (!barberExists) {
+                setFormData(prev => ({
+                  ...prev,
+                  barber: '',
+                  barberId: ''
+                }));
+              }
+            }
           }
         }
       } catch (error) {
@@ -60,7 +71,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     };
 
     fetchBarbers();
-  }, []);
+    // Adiciona listener para atualizar a lista quando um barbeiro for excluído
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'barberDeleted') {
+        fetchBarbers();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [formData.barberId]);
   // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
