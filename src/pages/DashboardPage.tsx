@@ -130,7 +130,7 @@ const DashboardPage: React.FC = () => {
 
   const loadAppointments = useCallback(async () => {
     try {
-      const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
+      const response = await fetch(`http://localhost:3000/api/appointments`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ const DashboardPage: React.FC = () => {
     if (!appointmentId) return;
     try {
       if (action === 'delete') {
-        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
+        const response = await fetch(`http://localhost:3000/api/appointments/${appointmentId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -225,7 +225,7 @@ const DashboardPage: React.FC = () => {
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
-        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
+        const response = await fetch(`http://localhost:3000/api/appointments/${appointmentId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -267,14 +267,14 @@ const DashboardPage: React.FC = () => {
               <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
                 <div className="py-1" role="menu">
                   <button
-                    onClick={() => navigate('/register')}
+                    onClick={() => window.location.href = '/register'}
                     className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
                     role="menuitem"
                   >
                     Adicionar Barbeiro
                   </button>
                   <button
-                    onClick={() => navigate('/trocar-senha')}
+                    onClick={() => window.location.href = '/trocar-senha'}
                     className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B]/10 hover:text-[#F0B35B]"
                     role="menuitem"
                   >

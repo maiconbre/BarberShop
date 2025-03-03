@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+
 
 const TrocaSenha: React.FC = () => {
   const navigate = useNavigate();
+  const { getCurrentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -36,13 +39,19 @@ const TrocaSenha: React.FC = () => {
         return;
       }
 
-      const response = await fetch('https://barber-backend-spm8.onrender.com/api/users/change-password', {
+      const currentUser = getCurrentUser();
+      if (!currentUser || !currentUser.id) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const response = await fetch('http://localhost:3000/api/users/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + localStorage.getItem('token')
         },
         body: JSON.stringify({
+          userId: currentUser.id,
           currentPassword: formData.senhaAtual,
           newPassword: formData.novaSenha
         })
@@ -53,6 +62,16 @@ const TrocaSenha: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.message || 'Erro ao alterar senha');
       }
+
+      // Atualizar o token de autenticação
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      // Atualizar informações do usuário no storage
+      const updatedUser = { ...currentUser };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
 
       setSuccess('Senha alterada com sucesso!');
       

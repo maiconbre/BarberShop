@@ -1,46 +1,32 @@
-interface User {
-  id: string;
-  email: string;
-  role: string;
-  name: string;
-}
+import axios from 'axios';
 
-export async function authenticateUser(email: string, password: string): Promise<User> {
-  // Mock admin credentials
-  const mockUsers = [
-    {
-      id: '1',
-      email: 'admin',
-      password: '123456',
-      role: 'admin',
-      name: 'Admin'
-    },
-    {
-      id: '2',
-      email: 'maicon@grbarber.com',
-      password: '123456',
-      role: 'barber',
-      name: 'Maicon'
-    },
-    {
-      id: '3',
-      email: 'brendon@grbarber.com',
-      password: '123456',
-      role: 'barber',
-      name: 'Brendon'
+export const authenticateUser = async (username: string, password: string) => {
+  try {
+    const response = await axios.post('http://localhost:3000/api/auth/login', {
+      username,
+      password
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.data || !response.data.token) {
+      throw new Error('Token não encontrado na resposta');
     }
-  ];
 
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+    // Store token in both localStorage and sessionStorage for consistency
+    localStorage.setItem('token', response.data.token);
+    sessionStorage.setItem('token', response.data.token);
 
-  const user = mockUsers.find(u => u.email === email && u.password === password);
-
-  if (!user) {
-    throw new Error('Invalid credentials');
+    return response.data.user;
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      throw new Error('Credenciais inválidas');
+    }
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw new Error('Erro ao autenticar usuário');
   }
-
-  // Don't send password in the response
-  const { password: _, ...userWithoutPassword } = user;
-  return userWithoutPassword;
-}
+};

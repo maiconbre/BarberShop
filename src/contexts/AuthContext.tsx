@@ -5,6 +5,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (username: string, password: string, rememberMe: boolean) => Promise<boolean>;
   logout: () => void;
+  getCurrentUser: () => any | null;
 }
 
 interface AuthProviderProps {
@@ -27,8 +28,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const checkSessionValidity = () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const expiryTime = localStorage.getItem('sessionExpiry') || sessionStorage.getItem('sessionExpiry');
-    if (!expiryTime) return false;
+    if (!token || !expiryTime) return false;
 
     const currentTime = new Date().getTime();
     return currentTime < parseInt(expiryTime);
@@ -41,13 +43,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const validateSession = () => {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-      if (token && checkSessionValidity()) {
+      if (checkSessionValidity()) {
         setIsAuthenticated(true);
         // Update expiry time when session is still valid
-        if (localStorage.getItem('authToken')) {
+        if (localStorage.getItem('token')) {
           updateSessionExpiry(localStorage);
-        } else if (sessionStorage.getItem('authToken')) {
+        } else if (sessionStorage.getItem('token')) {
           updateSessionExpiry(sessionStorage);
         }
       } else {
@@ -62,13 +63,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const login = async (email: string, password: string, rememberMe: boolean) => {
+  const login = async (username: string, password: string, rememberMe: boolean) => {
     try {
-      const user = await authenticateUser(email, password)
+      const user = await authenticateUser(username, password);
       const storage = rememberMe ? localStorage : sessionStorage;
       
       storage.setItem('user', JSON.stringify(user));
-      storage.setItem('authToken', 'true');
       updateSessionExpiry(storage);
 
       if (user.role === 'barber') {
@@ -85,19 +85,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('currentBarberId');
-    localStorage.removeItem('user');
-    localStorage.removeItem('sessionExpiry');
-    sessionStorage.removeItem('authToken');
-    sessionStorage.removeItem('currentBarberId');
-    sessionStorage.removeItem('user');
-    sessionStorage.removeItem('sessionExpiry');
+    
+    // Clear all auth-related items from both storages
+    const items = ['token', 'authToken', 'currentBarberId', 'user', 'sessionExpiry'];
+    items.forEach(item => {
+      localStorage.removeItem(item);
+      sessionStorage.removeItem(item);
+    });
+  };
+
+  const getCurrentUser = () => {
+    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, getCurrentUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export default AuthContext;

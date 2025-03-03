@@ -46,9 +46,7 @@ const AppContent = () => {
         <Route
           path="/trocar-senha"
           element={
-            <ProtectedRoute>
               <TrocaSenha />
-            </ProtectedRoute>
           }
         />
       </Routes>
