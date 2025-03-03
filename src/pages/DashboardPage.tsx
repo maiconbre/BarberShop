@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { Settings } from 'lucide-react';
@@ -33,6 +34,7 @@ const DashboardPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [weeklyData, setWeeklyData] = useState<ChartData[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
+  const navigate = useNavigate();
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('total');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -279,15 +281,15 @@ const DashboardPage: React.FC = () => {
                 <div className="py-1" role="menu">
                   {currentUser?.role === 'admin' && (
                     <button
-                      onClick={() => window.location.href = '/register'}
+                      onClick={() => navigate ('/register')}
                       className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
                       role="menuitem"
                     >
-                      Adicionar Barbeiro
+                      Gerenciar Barbeiros
                     </button>
                   )}
                   <button
-                    onClick={() => window.location.href = '/trocar-senha'}
+                    onClick={() => navigate ('/trocar-senha') }
                     className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
                     role="menuitem"
                   >

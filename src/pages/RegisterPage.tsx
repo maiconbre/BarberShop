@@ -44,10 +44,12 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     username: '',
     password: '',
+    confirmPassword: '',
     whatsapp: '',
     pix: ''
   });
@@ -80,6 +82,12 @@ const RegisterPage: React.FC = () => {
 
     try {
       // Validações
+      // Verificar se as senhas coincidem
+      if (formData.password !== formData.confirmPassword) {
+        setError('As senhas não coincidem. Por favor, verifique.');
+        return;
+      }
+
       const whatsappRegex = /^\d{10,11}$/;
       let cleanWhatsapp = formData.whatsapp.replace(/\D/g, '');
       
@@ -122,8 +130,21 @@ const RegisterPage: React.FC = () => {
         throw new Error(data.message || 'Erro ao criar conta');
       }
 
-      // Redirect to login page
-      navigate('/login');
+      // Mostrar mensagem de sucesso
+      setSuccess('Barbeiro cadastrado com sucesso!');
+      // Limpar o formulário
+      setFormData({
+        name: '',
+        username: '',
+        password: '',
+        confirmPassword: '',
+        whatsapp: '',
+        pix: ''
+      });
+      // Atualizar a lista de usuários
+      fetchUsers();
+      // Limpar a mensagem após 3 segundos
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       console.error('Error during registration:', err);
       setError(err.message || 'Erro inesperado ao criar conta. Por favor, tente novamente.');
@@ -167,154 +188,40 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0D121E] py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0D121E] py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
         barberName={selectedUser?.name || ''}
       />
-      
-      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
-        <div className="w-full md:flex-1">
-          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
-            <div>
-              <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-extrabold text-white">
-                Cadastro
-              </h2>
-              <p className="mt-2 text-center text-sm text-gray-400">
-                Cadastre um novo Barbeiro
-              </p>
-            </div>
-            
-            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-              {error && (
-                <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
-                  {error}
-                </div>
-              )}
-              
-              <div className="rounded-md shadow-sm -space-y-px">
-                <div>
-                  <label htmlFor="name" className="sr-only">Nome</label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    className="appearance-none rounded-t-md relative block w-full px-3 py-3 sm:py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 text-base sm:text-sm"
-                    placeholder="Nome"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="username" className="sr-only">username</label>
-                  <input
-                    id="username"
-                    name="username"
-                    type="username"
-                    required
-                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="Usuário"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="sr-only">Senha</label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="Senha"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="whatsapp" className="sr-only">WhatsApp</label>
-                  <input
-                    id="whatsapp"
-                    name="whatsapp"
-                    type="tel"
-                    required
-                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="WhatsApp (ex: 21999999999)"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="pix" className="sr-only">PIX</label>
-                  <input
-                    id="pix"
-                    name="pix"
-                    type="text"
-                    required
-                    className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="Chave PIX"
-                    value={formData.pix}
-                    onChange={(e) => setFormData({ ...formData, pix: e.target.value })}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="group relative w-full flex justify-center py-3 sm:py-2 px-4 border border-transparent text-base sm:text-sm font-medium rounded-md text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <Loader2 className="animate-spin h-5 w-5" />
-                  ) : (
-                    'Criar conta'
-                  )}
-                </button>
-              </div>
-              
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm"
-                >
-                  Voltar para o Dashboard
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-        
-        <div className="w-full md:flex-1">
-          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
-            <h2 className="text-center text-xl sm:text-2xl font-bold text-white">Usuários Cadastrados</h2>
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit">
+            <h2 className="text-center text-xl sm:text-2xl font-bold text-white mb-6">Usuários Cadastrados</h2>
             
             {deleteSuccess && (
-              <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
+              <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm mb-4">
                 {deleteSuccess}
               </div>
             )}
             
             {deleteError && (
-              <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
+              <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm mb-4">
                 {deleteError}
               </div>
             )}
             
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-gray-700">
               <table className="min-w-full divide-y divide-gray-700">
-                <thead className="hidden sm:table-header-group">
+                <thead className="bg-[#252B3B]">
                   <tr>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Usuário</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"></th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700">
+                <tbody className="bg-[#1A1F2E] divide-y divide-gray-700">
                   {users.map((user: any) => (
                     <tr key={user.id} className="hover:bg-[#252B3B] transition-colors">
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.name}</td>
@@ -322,7 +229,8 @@ const RegisterPage: React.FC = () => {
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">
                         <button
                           onClick={() => handleDeleteUser(user.id, user.name)}
-                          className="text-red-500 hover:text-red-600 transition-colors"
+                          className="text-red-500 hover:text-red-600 transition-colors p-2 hover:bg-red-500/10 rounded-full"
+                          title="Excluir usuário"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -332,6 +240,136 @@ const RegisterPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div className="bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit">
+            <div className="mb-8">
+              <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-white">
+                Cadastro
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-400">
+                Cadastre um novo Barbeiro
+              </p>
+            </div>
+            
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {error && (
+                <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+              
+              {success && (
+                <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
+                  {success}
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-400 mb-1">Nome</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
+                    placeholder="Nome completo"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-1">Usuário</label>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    required
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
+                    placeholder="Nome de usuário"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1">Senha</label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
+                    placeholder="Senha segura"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-400 mb-1">Confirmar Senha</label>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    required
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
+                    placeholder="Confirme sua senha"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-400 mb-1">WhatsApp</label>
+                  <input
+                    id="whatsapp"
+                    name="whatsapp"
+                    type="tel"
+                    required
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
+                    placeholder="DDD + número (ex: 21999999999)"
+                    value={formData.whatsapp}
+                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="pix" className="block text-sm font-medium text-gray-400 mb-1">PIX</label>
+                  <input
+                    id="pix"
+                    name="pix"
+                    type="text"
+                    required
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
+                    placeholder="Sua chave PIX"
+                    value={formData.pix}
+                    onChange={(e) => setFormData({ ...formData, pix: e.target.value })}
+                  />
+                </div>
+              </div>
+              
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                >
+                  {isLoading ? (
+                    <Loader2 className="animate-spin h-5 w-5" />
+                  ) : (
+                    'Criar conta'
+                  )}
+                </button>
+              </div>
+              
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm transition-colors duration-200"
+                >
+                  Voltar para o Dashboard
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

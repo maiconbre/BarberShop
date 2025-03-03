@@ -29,11 +29,11 @@ const AppContent = () => {
     <div className="min-h-screen bg-[#0D121E] text-white">
       {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && (
         <Navbar 
-          isModalOpen={isModalOpen}
-          setIsModalOpen={setIsModalOpen}
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-        />
+        isModalOpen={isModalOpen}
+        setIsModalOpen={setIsModalOpen}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
       )}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
@@ -63,13 +63,17 @@ const AppContent = () => {
             <Route
               path="/trocar-senha"
               element={
+                <ProtectedRoute>
                   <TrocaSenha />
+                  </ProtectedRoute>
               }
             />
             <Route
               path="/register"
               element={
+                <ProtectedRoute>
                   <RegisterPage />
+                </ProtectedRoute>
               }
             />
           </Routes>
