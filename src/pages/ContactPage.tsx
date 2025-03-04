@@ -50,7 +50,7 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0D121E] text-white pt-24 pb-12 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0D121E] text-white relative overflow-hidden">
       {/* Elementos decorativos */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
@@ -249,7 +249,6 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
-      
       <Footer />
     </div>
   );

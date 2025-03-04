@@ -120,18 +120,8 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
         className="relative z-10 text-center px-4 py-12 transition-all duration-1000 ease-out max-w-5xl mx-auto"
         role="banner"
       >
-        {/* Logo/Marca */}
-        <div className="mb-8 transform hover:scale-105 transition-transform duration-500">
-          <div className="inline-block relative">
-            <div className="text-[#F0B35B] text-2xl font-bold tracking-widest border-2 border-[#F0B35B] px-4 py-2 rounded">
-              BARBER<span className="text-white">SHOP</span>
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-full h-full border-2 border-white/20 rounded"></div>
-          </div>
-        </div>
-
         <h1
-          className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight tracking-tight"
+          className="text-3xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight tracking-tight"
           itemProp="headline"
         >
           <span className="sr-only">BarberShop - </span>
@@ -168,26 +158,25 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
             <span className="w-2 h-2 rounded-full bg-black group-hover:w-6 transition-all duration-300"></span>          </span>
           <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
         </button>
-
-        {/* Features rotativas */}
-
-        <div className="relative  z-20 flex justify-center mt-22">
-          <div className="bg-[#1A1F2E]/80 backdrop-blur-md rounded-xl px-6 py-3 inline-flex items-center space-x-3 border border-[#F0B35B]/20 shadow-lg overflow-hidden w-full max-w-sm sm:max-w-md mx-4">
-            <div className="text-[#F0B35B] transition-all duration-500 flex-shrink-0">
-              {features[activeFeature].icon}
-            </div>
-            <div className="h-8 w-px bg-[#F0B35B]/30 flex-shrink-0"></div>
-            <div className="relative w-full min-w-[200px] sm:min-w-[150px] h-6 overflow-hidden flex items-center justify-center">
-              <div
-                className={`absolute text-white/90 font-medium text-center transition-all duration-300 ease-in-out w-full whitespace-nowrap
-                  ${isFeatureChanging
-                    ? featureDirection === 'right'
-                      ? 'opacity-0 -translate-x-full'
-                      : 'opacity-100 translate-x-0'
-                    : 'opacity-100 translate-x-0'}`}
-              >
-                {features[activeFeature].text}
-              </div>
+      </div>
+      
+      {/* Features rotativas - Fixo na parte inferior */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex justify-center pb-6">
+        <div className="bg-[#1A1F2E]/60 backdrop-blur-md rounded-lg px-4 py-2 inline-flex items-center space-x-2 border border-[#F0B35B]/10 shadow-md overflow-hidden w-full max-w-xs sm:max-w-sm mx-4">
+          <div className="text-[#F0B35B] transition-all duration-500 flex-shrink-0">
+            {features[activeFeature].icon}
+          </div>
+          <div className="h-6 w-px bg-[#F0B35B]/20 flex-shrink-0"></div>
+          <div className="relative w-full min-w-[150px] sm:min-w-[120px] h-5 overflow-hidden flex items-center justify-center">
+            <div
+              className={`absolute text-white/80 text-sm font-medium text-center transition-all duration-300 ease-in-out w-full whitespace-nowrap
+                ${isFeatureChanging
+                  ? featureDirection === 'right'
+                    ? 'opacity-0 -translate-x-full'
+                    : 'opacity-100 translate-x-0'
+                  : 'opacity-100 translate-x-0'}`}
+            >
+              {features[activeFeature].text}
             </div>
           </div>
         </div>
