@@ -121,21 +121,22 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
         role="banner"
       >
         <h1
-          className="text-3xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight tracking-tight"
+          className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight tracking-tight"
           itemProp="headline"
         >
           <span className="sr-only">BarberShop - </span>
-          <span className="block mb-2 text-white/90 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">ESTILO É UM REFLEXO DA SUA</span>
+          <span className="block mb-2 text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">ESTILO É UM REFLEXO DA SUA</span>
           <span
-            className="text-[#F0B35B] font-extrabold inline-block transition-transform hover:scale-110 drop-shadow-[0_2px_4px_rgba(240,179,91,0.3)]"
+            className="text-[#F0B35B] font-extrabold inline-block transition-transform hover:scale-105 drop-shadow-[0_1px_3px_rgba(240,179,91,0.3)] relative overflow-hidden group"
             itemProp="alternativeHeadline"
           >
-            ATITUDE E PERSONALIDADE
+            <span className="relative z-10">ATITUDE E PERSONALIDADE</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 -skew-x-45 group-hover:animate-shine"></div>
           </span>
         </h1>
 
         <p
-          className="text-lg md:text-xl lg:text-2xl mb-8 max-w-2xl mx-auto text-gray-200 leading-relaxed"
+          className="text-lg md:text-xl lg:text-2xl mb-8 max-w-2xl mx-auto text-gray-300 leading-relaxed"
           itemProp="description"
         >
           Transforme seu visual com os melhores profissionais de Bangu
@@ -149,27 +150,27 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
             mt-4 bg-[#F0B35B] text-black px-12 py-4 rounded-lg
             text-lg md:text-xl font-semibold
             transition-all duration-300 ease-out
-            hover:bg-[#F0B35B]/90 shadow-[0_0_20px_rgba(240,179,91,0.3)]
-            active:scale-90 border border-[#F0B35B]/50
+            hover:bg-[#F0B35B] hover:scale-105 shadow-[0_0_25px_rgba(240,179,91,0.4)]
+            hover:shadow-[0_0_30px_rgba(240,179,91,0.6)] active:scale-95 border-2 border-[#F0B35B]/70
           "
         >
           <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
-            <span className="w-2 h-2 rounded-full bg-black group-hover:w-6 transition-all duration-300"></span>            Agende Agora
-            <span className="w-2 h-2 rounded-full bg-black group-hover:w-6 transition-all duration-300"></span>          </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
+            <span className="w-2 h-2 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>            Agende Agora
+            <span className="w-2 h-2 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>          </span>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
         </button>
       </div>
       
       {/* Features rotativas - Fixo na parte inferior */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex justify-center pb-6">
-        <div className="bg-[#1A1F2E]/60 backdrop-blur-md rounded-lg px-4 py-2 inline-flex items-center space-x-2 border border-[#F0B35B]/10 shadow-md overflow-hidden w-full max-w-xs sm:max-w-sm mx-4">
+        <div className="bg-[#1A1F2E]/70 backdrop-blur-md rounded-lg px-4 py-2 inline-flex items-center space-x-2 border border-[#F0B35B]/20 shadow-md hover:shadow-[#F0B35B]/20 overflow-hidden w-full max-w-xs sm:max-w-sm mx-4 transition-all duration-300">
           <div className="text-[#F0B35B] transition-all duration-500 flex-shrink-0">
             {features[activeFeature].icon}
           </div>
           <div className="h-6 w-px bg-[#F0B35B]/20 flex-shrink-0"></div>
           <div className="relative w-full min-w-[150px] sm:min-w-[120px] h-5 overflow-hidden flex items-center justify-center">
             <div
-              className={`absolute text-white/80 text-sm font-medium text-center transition-all duration-300 ease-in-out w-full whitespace-nowrap
+              className={`absolute text-white/70 text-sm font-medium text-center transition-all duration-300 ease-in-out w-full whitespace-nowrap
                 ${isFeatureChanging
                   ? featureDirection === 'right'
                     ? 'opacity-0 -translate-x-full'

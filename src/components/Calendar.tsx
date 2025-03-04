@@ -137,18 +137,19 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
               onClick={() => handleDateClick(date)}
               className={`
                 flex flex-col items-center justify-center p-3 rounded-lg min-w-[80px]
-                transition-all duration-200 transform hover:scale-105
+                transition-all duration-200 transform hover:scale-105 relative overflow-hidden
                 ${selectedDate && isSameDay(date, selectedDate)
                   ? 'bg-[#F0B35B] text-black'
                   : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}
               `}
             >
-              <span className="text-xs opacity-75">
+              <span className="text-xs opacity-75 relative z-10">
                 {format(date, 'EEE', { locale: ptBR })}
               </span>
-              <span className="text-lg font-bold">
+              <span className="text-lg font-bold relative z-10">
                 {format(date, 'd')}
               </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:animate-shine"></div>
             </button>
           ))}
         </div>
@@ -176,7 +177,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
                   onClick={() => handleTimeClick(time, isBooked)}
                   disabled={isBooked}
                   className={`
-                    py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200
+                    py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden
                     ${isBooked
                       ? 'bg-red-500/20 text-red-300 cursor-not-allowed'
                       : isSelected
@@ -184,7 +185,8 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
                         : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105'}
                   `}
                 >
-                  {time}
+                  <span className="relative z-10">{time}</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:animate-shine"></div>
                 </button>
               );
             })

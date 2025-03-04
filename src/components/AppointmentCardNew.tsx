@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaUser, 
-  FaClock, 
-  FaCalendar, 
-  FaMoneyBill, 
-  FaCut, 
-  FaCheck, 
-  FaTrash, 
-  FaChevronDown 
+import {
+  FaUser,
+  FaClock,
+  FaCalendar,
+  FaMoneyBill,
+  FaCut,
+  FaCheck,
+  FaTrash,
+  FaChevronDown
 } from 'react-icons/fa';
 
 interface Appointment {
@@ -31,42 +31,8 @@ interface Props {
   appointments: Appointment[];
 }
 
-const getFilteredAppointments = (appointments: Appointment[], filterMode: string, revenueDisplayMode: string) => {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const hojeStr = hoje.toISOString().split('T')[0];
 
-  const amanha = new Date(hoje);
-  amanha.setDate(amanha.getDate() + 1);
-  const amanhaStr = amanha.toISOString().split('T')[0];
-  const startOfWeek = new Date();
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(endOfWeek.getDate() + 6);
-
-  if (revenueDisplayMode !== 'total') {
-    switch (revenueDisplayMode) {
-      case 'day':
-        return appointments.filter(app => app.date === hojeStr);
-      case 'week':
-        return appointments.filter(app => {
-          const appDate = new Date(app.date);
-          return appDate >= startOfWeek && appDate <= endOfWeek;
-        });
-    }
-  }
-
-  switch (filterMode) {
-    case 'today':
-      return appointments.filter(app => app.date === hojeStr);
-    case 'tomorrow':
-      return appointments.filter(app => app.date === amanhaStr);
-    default:
-      return appointments;
-  }
-};
-
-const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleStatus, filterMode, revenueDisplayMode, appointments }) => {
+const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleStatus }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const statusColors = {
@@ -112,7 +78,7 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
                     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
                     const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
                     const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    
+
                     if (appointment.date === today) {
                       return <span className="text-right ml-24 text-green-300 text-xs">hoje</span>;
                     } else if (appointment.date === tomorrowStr) {
@@ -179,11 +145,10 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`p-2 rounded-full ${
-                    appointment.status === 'completed'
+                  className={`p-2 rounded-full ${appointment.status === 'completed'
                       ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20'
                       : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
-                  }`}
+                    }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleStatus();

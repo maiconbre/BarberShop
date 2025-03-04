@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, MessageCircle } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
@@ -27,6 +27,34 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     barba: false,
     sobrancelha: false,
   });
+
+  // Efeito para prevenir zoom em dispositivos móveis quando o teclado é aberto
+  useEffect(() => {
+    if (isOpen) {
+      // Função para prevenir zoom quando um input recebe foco
+      const preventZoom = (e: Event) => {
+        e.preventDefault();
+        document.body.style.height = window.innerHeight + 'px';
+      };
+
+      // Adiciona listeners para eventos de foco em inputs e selects
+      document.addEventListener('focus', preventZoom, true);
+      
+      // Função para restaurar o comportamento normal quando o input perde o foco
+      const restoreZoom = () => {
+        document.body.style.height = '';
+      };
+      
+      document.addEventListener('blur', restoreZoom, true);
+      
+      // Cleanup function
+      return () => {
+        document.removeEventListener('focus', preventZoom, true);
+        document.removeEventListener('blur', restoreZoom, true);
+        document.body.style.height = '';
+      };
+    }
+  }, [isOpen]);
 
   // Mapeamento de preços (valores em R$)
   const getServicePrice: { [key: string]: number } = {
@@ -190,6 +218,14 @@ Aguardo a confirmação.`;
     });
   };
 
+  // Função para prevenir zoom ao clicar em inputs
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+    // Previne o comportamento padrão que pode causar zoom
+    e.preventDefault();
+    // Ajusta o tamanho da fonte para evitar que o navegador faça zoom
+    document.documentElement.style.fontSize = '16px';
+  };
+
   // Não renderiza nada se o modal estiver fechado
   if (!isOpen) return null;
 
@@ -217,7 +253,7 @@ Aguardo a confirmação.`;
               </div>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">
-              Transforme seu <span className="text-[#F0B35B]">Visual</span>
+              Transforme seu <span className="text-[#F0B35B] relative overflow-hidden group-hover:scale-110 transition-transform duration-300"><span className="relative z-10">Visual</span><div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 group-hover:animate-shine"></div></span>
             </h2>
           </div>
 
@@ -243,6 +279,7 @@ Aguardo a confirmação.`;
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
+                    onFocus={handleInputFocus}
                   />
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -268,6 +305,7 @@ Aguardo a confirmação.`;
                         barber: selectedBarber?.name || ''
                       });
                     }}
+                    onFocus={handleInputFocus}
                   >
                     <option value="">Selecione um barbeiro</option>
                     {barbers.map((barber) => (
@@ -300,6 +338,7 @@ Aguardo a confirmação.`;
                     onChange={(e) =>
                       setFormData({ ...formData, service: e.target.value })
                     }
+                    onFocus={handleInputFocus}
                   >
                     <option value="">Selecione um Corte</option>
                     {services.map((service) => (
@@ -336,6 +375,7 @@ Aguardo a confirmação.`;
                           setFormData({ ...formData, barba: e.target.checked })
                         }
                         className="appearance-none w-5 h-5 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
+                        onFocus={handleInputFocus}
                       />
                       <svg className="absolute left-1 top-1 w-3 h-3 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -354,6 +394,7 @@ Aguardo a confirmação.`;
                           setFormData({ ...formData, sobrancelha: e.target.checked })
                         }
                         className="appearance-none w-5 h-5 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
+                        onFocus={handleInputFocus}
                       />
                       <svg className="absolute left-1 top-1 w-3 h-3 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
@@ -378,17 +419,20 @@ Aguardo a confirmação.`;
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:bg-[#F0B35B]/90 active:scale-[0.98] ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:bg-[#F0B35B]/90 active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed"
               >
-                {isLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processando...
-                  </span>
-                ) : 'Confirmar Agendamento'}
+                <span className="relative z-10 flex items-center justify-center">
+                  {isLoading ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processando...
+                    </span>
+                  ) : 'Confirmar Agendamento'}
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 group-hover:animate-shine"></div>
               </button>
             </form>
           ) : (

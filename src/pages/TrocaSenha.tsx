@@ -95,8 +95,32 @@ const TrocaSenha: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0D121E] py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 rounded-lg shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-[#0D121E] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Elementos decorativos */}
+      <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3 animate-pulse-slow delay-1000"></div>
+      
+      {/* Padrão de linhas decorativas */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="h-full w-full" style={{ 
+          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)', 
+          backgroundSize: '40px 40px'
+        }}></div>
+      </div>
+
+      {/* Logo clicável */}
+      <div onClick={() => navigate('/dashboard')} className="absolute top-8 left-1/2 -translate-x-1/2 cursor-pointer z-20">
+        <div className="transform hover:scale-110 transition-transform duration-300">
+          <div className="inline-block relative">
+            <div className="text-[#F0B35B] text-xl font-medium tracking-wider border border-[#F0B35B]/70 px-3 py-1.5 rounded">
+              BARBER<span className="text-white/90">SHOP</span>
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-full h-full border border-white/10 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 rounded-lg shadow-xl relative z-10">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
             Alterar Senha
