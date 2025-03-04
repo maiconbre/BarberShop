@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { Settings } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import { FaChartLine, FaMoneyBillWave, FaChevronDown } from 'react-icons/fa';
+import { FaChevronDown } from 'react-icons/fa';
 import AppointmentCardNew from '../components/AppointmentCardNew';
+import Stats from '../components/Stats';
+import Grafico from '../components/Grafico';
 
+// [ID: INTERFACES-001] - Definição das interfaces principais
+// Interface que define a estrutura de um agendamento
 interface Appointment {
   id: string;
   clientName: string;
@@ -21,14 +24,15 @@ interface Appointment {
   updatedAt?: string;
 }
 
+// Interface que define a estrutura dos dados do gráfico
 interface ChartData {
   date: string;
   pending: number;
   completed: number;
   fullDate: string;
 }
-
 const DashboardPage: React.FC = () => {
+  // Hooks de autenticação e navegação
   const { logout, getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -38,60 +42,11 @@ const DashboardPage: React.FC = () => {
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('total');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-
-  // Estatísticas
-  const totalAppointments = appointments.length;
-  const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
-  const completedAppointments = appointments.filter(app => app.status === 'completed').length;
-  const getFilteredAppointmentsByDate = () => {
-    const hoje = new Date().toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
-
-    switch (revenueDisplayMode) {
-      case 'day':
-        return appointments.filter(app => app.date === hoje);
-      case 'week':
-        return appointments.filter(app => {
-          const appDate = new Date(app.date);
-          return appDate >= startOfWeek && appDate <= endOfWeek;
-        });
-      default:
-        return appointments;
-    }
-  };
-  const currentFilteredAppointments = getFilteredAppointmentsByDate();
-  const filteredPendingAppointments = currentFilteredAppointments.filter(app => app.status === 'pending').length;
-  const filteredCompletedAppointments = currentFilteredAppointments.filter(app => app.status === 'completed').length;
-  const filteredPendingRevenue = currentFilteredAppointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
-  const filteredCompletedRevenue = currentFilteredAppointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
-  const calculateStats = () => {
-    const hoje = new Date().toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
-
-    const receitaHoje = appointments.filter(app => app.date === hoje).reduce((sum, app) => sum + app.price, 0);
-    const receitaSemana = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= startOfWeek && appDate <= endOfWeek;
-    }).reduce((sum, app) => sum + app.price, 0);
-    const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
-    const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
-
-    const clientesHoje = appointments.filter(app => app.date === hoje).length;
-    const clientesSemana = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= startOfWeek && appDate <= endOfWeek;
-    }).length;
-
-    return { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana };
-  };
-  const getFilteredAppointments = useCallback(() => {
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const appointmentsPerPage = 7;
+  // [ID: STATS-001] - Estatísticas básicas movidas para o componente Stats
+  const filteredAppointments = appointments.filter(app => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const hojeStr = hoje.toISOString().split('T')[0];
@@ -99,38 +54,19 @@ const DashboardPage: React.FC = () => {
     const amanha = new Date(hoje);
     amanha.setDate(amanha.getDate() + 1);
     const amanhaStr = amanha.toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
 
-    // First check revenueDisplayMode
-    if (revenueDisplayMode !== 'total') {
-      switch (revenueDisplayMode) {
-        case 'day':
-          return appointments.filter(app => app.date === hojeStr);
-        case 'week':
-          return appointments.filter(app => {
-            const appDate = new Date(app.date);
-            return appDate >= startOfWeek && appDate <= endOfWeek;
-          });
-      }
-    }
-
-    // Then check filterMode if revenueDisplayMode is 'total'
     switch (filterMode) {
       case 'today':
-        return appointments.filter(app => app.date === hojeStr);
+        return app.date === hojeStr;
       case 'tomorrow':
-        return appointments.filter(app => app.date === amanhaStr);
+        return app.date === amanhaStr;
       default:
-        return appointments;
+        return true;
     }
-  }, [appointments, filterMode, revenueDisplayMode]);
+  });
 
-  const filteredAppointments = getFilteredAppointments();
-  const { receitaHoje, receitaSemana, ticketMedio, taxaConclusao, clientesHoje, clientesSemana } = calculateStats();
-
+  // [ID: API-001] - Carregamento de dados da API
+  // Função para carregar agendamentos do backend
   const loadAppointments = useCallback(async () => {
     try {
       const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
@@ -176,9 +112,11 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     loadAppointments();
     const interval = setInterval(loadAppointments, 30000);
+    // [ID: UI-001] - Renderização da interface do usuário
+    // Estrutura principal do dashboard com cards, gráficos e lista de agendamentos
     return () => clearInterval(interval);
   }, [loadAppointments]);
-
+  // [ID: CHART-001] - Processamento de dados para gráficos movido para o componente Grafico
   // Calcula os dados semanais para o gráfico
   const calculateWeeklyData = useCallback(() => {
     const appointmentsByDate = appointments.reduce((acc, app) => {
@@ -210,16 +148,23 @@ const DashboardPage: React.FC = () => {
     });
     setWeeklyData(data);
   }, [appointments]);
-
+  useEffect(() => {
+    // Sincroniza o filterMode com o revenueDisplayMode
+    if (revenueDisplayMode === 'day') {
+      setFilterMode('today');
+    } else if (revenueDisplayMode === 'week') {
+      setFilterMode('all');
+    }
+  }, [revenueDisplayMode]);
   useEffect(() => {
     if (appointments?.length > 0) {
       calculateWeeklyData();
     } else {
       setWeeklyData([]);
     }
-  }, [appointments, calculateWeeklyData]);
+  }, [appointments, calculateWeeklyData, revenueDisplayMode]);
 
-  // Atualiza localmente o estado dos agendamentos após ações (delete, toggle status)
+  // Gerencia ações de completar, deletar ou alternar status dos agendamentos
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
     if (!appointmentId) return;
     try {
@@ -260,9 +205,15 @@ const DashboardPage: React.FC = () => {
       console.error(`Erro na ação ${action}:`, error);
     }
   };
-
-  
-
+  // Pagination logic
+  const indexOfLastAppointment = currentPage * appointmentsPerPage;
+  const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
+  const currentAppointments = filteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const totalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
+  const handlePageChange = (pageNumber: number): void => {
+    setCurrentPage(pageNumber);
+  };
+  // Estrutura principal do dashboard com cards, gráficos e lista de agendamentos
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16">
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -281,7 +232,7 @@ const DashboardPage: React.FC = () => {
                 <div className="py-1" role="menu">
                   {currentUser?.role === 'admin' && (
                     <button
-                      onClick={() => navigate ('/register')}
+                      onClick={() => navigate('/register')}
                       className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
                       role="menuitem"
                     >
@@ -289,7 +240,7 @@ const DashboardPage: React.FC = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => navigate ('/trocar-senha') }
+                    onClick={() => navigate('/trocar-senha')}
                     className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
                     role="menuitem"
                   >
@@ -309,248 +260,18 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer w-full"
-            onClick={() => setRevenueDisplayMode(revenueDisplayMode === 'total' ? 'week' : revenueDisplayMode === 'week' ? 'day' : 'total')}
-          >
-            <div className="flex justify-between items-start">
-              <motion.div className="flex-1 p-2 rounded-lg">
-                <AnimatePresence mode="wait">
-                  {revenueDisplayMode === 'total' ? (
-                    <motion.div
-                      key="total"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-center sm:text-left"
-                    >
-                      <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Total</p>
-                      <h4 className="text-4xl sm:text-4xl font-bold text-[#F0B35B] bg">
-                        R$ {totalRevenue.toFixed(2)}
-                      </h4>
-                      <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
-                        <span className="inline-block mr-1">↑</span>
-                        <span>+{((receitaHoje / totalRevenue) * 100).toFixed(1)}% hoje</span>
-                      </div>
-                    </motion.div>
-                  ) : revenueDisplayMode === 'week' ? (
-                    <motion.div
-                      key="week"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-center sm:text-left"
-                    >
-                      <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Semanal</p>
-                      <h4 className="text-4xl sm:text-4xl font-bold text-[#F0B35B] bg">
-                        R$ {receitaSemana.toFixed(2)}
-                      </h4>
-                      <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
-                        <span className="inline-block mr-1">↑</span>
-                        <span>{clientesSemana} clientes nesta semana</span>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="day"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-center sm:text-left"
-                    >
-                      <p className="text-gray-400 text-sm sm:text-base mb-2">Receita Hoje</p>
-                      <h4 className="text-4xl sm:text-4xl font-bold text-[#F0B35B] bg">
-                        R$ {receitaHoje.toFixed(2)}
-                      </h4>
-                      <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
-                        <span className="inline-block mr-1">↑</span>
-                        <span>{clientesHoje} clientes hoje</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-              <div className="p-3 bg-[#F0B35B]/10 rounded-lg hidden sm:block">
-                <FaMoneyBillWave className="text-white bg text-2xl" />
-              </div>
-            </div>
-            <div className="mt-4 pt-4">
-              <p className="text-sm sm:text-base text-gray-400">
-                Ticket Médio: <span className="text-white font-semibold">R$ {ticketMedio.toFixed(2)}</span>
-              </p>
-              <p className="text-sm sm:text-base text-gray-400 mt-2">
-                Taxa de Conclusão: <span className="text-white font-semibold">{taxaConclusao.toFixed(1)}%</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <p className="text-gray-400 text-sm mb-4">Status dos Agendamentos {revenueDisplayMode === 'day' ? 'de Hoje' : revenueDisplayMode === 'week' ? 'da Semana' : 'Totais'}
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-yellow-500 text-xs">Pendente</p>
-                    <p className="text-2xl font-bold text-yellow-500">{filteredPendingAppointments}</p>
-                    <p className="text-sm text-yellow-500">R$ {filteredPendingRevenue.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-green-500 text-xs">Concluídos</p>
-                    <p className="text-2xl font-bold text-green-500">{filteredCompletedAppointments}</p>
-                    <p className="text-sm text-green-500">R$ {filteredCompletedRevenue.toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="w-[120px] h-[120px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Aguardando', value: filteredPendingAppointments, color: '#FFD700' },
-                        { name: 'Concluídos', value: filteredCompletedAppointments, color: '#4CAF50' }
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={35}
-                      outerRadius={55}
-                      paddingAngle={5}
-                      dataKey="value"
-                      onClick={(data) => {
-                        const percentage = ((data.value / (filteredPendingAppointments + filteredCompletedAppointments)) * 100).toFixed(1);
-                        alert(`${data.name === 'Aguardando' ? 'Pendentes' : 'Concluídos'}: ${data.value} (${percentage}%)`);
-                      }}
-                    >
-                      {[
-                        { name: 'Aguardando', value: filteredPendingAppointments, color: '#FFD700' },
-                        { name: 'Concluídos', value: filteredCompletedAppointments, color: '#4CAF50' }
-                      ].map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Stats
+          appointments={appointments}
+          revenueDisplayMode={revenueDisplayMode}
+          setRevenueDisplayMode={setRevenueDisplayMode}
+        />
 
         {/* Seção do Gráfico */}
-        <motion.div
-          className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg overflow-hidden mb-6"
-          animate={{ height: isChartExpanded ? 'auto' : '80px' }}
-          transition={{ duration: 0.3 }}
-        >
-          <div
-            className="p-4 flex justify-between items-center cursor-pointer hover:bg-[#1F2737] transition-colors"
-            onClick={() => setIsChartExpanded(!isChartExpanded)}
-          >
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <FaChartLine className="text-white bg" />
-              Agendamentos por Data
-            </h2>
-            <motion.div
-              animate={{ rotate: isChartExpanded ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <FaChevronDown className="text-gray-400 text-xl" />
-            </motion.div>
-          </div>
-          <AnimatePresence>
-            {isChartExpanded && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="p-2 sm:p-4"
-              >
-                <div className="h-[300px] sm:h-[400px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={weeklyData}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                    >
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="#333"
-                        vertical={false}
-                        horizontalPoints={[0, 30, 60, 90]}
-                      />
-                      <XAxis
-                        dataKey="date"
-                        stroke="#fff"
-                        tick={{ fontSize: 10, fill: '#fff' }}
-                        axisLine={{ stroke: '#333' }}
-                        tickLine={{ stroke: '#333' }}
-                        height={30}
-                      />
-                      <YAxis
-                        stroke="#fff"
-                        allowDecimals={false}
-                        tick={{ fontSize: 10, fill: '#fff' }}
-                        axisLine={{ stroke: '#333' }}
-                        tickLine={{ stroke: '#333' }}
-                        width={30}
-                      />
-                      <Tooltip
-                        cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
-                        contentStyle={{
-                          backgroundColor: '#252B3B',
-                          border: '1px solid #F0B35B',
-                          borderRadius: '4px',
-                          padding: '8px',
-                          fontSize: '12px',
-                          color: '#fff',
-                          maxWidth: '200px',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                        labelStyle={{
-                          color: '#F0B35B',
-                          fontWeight: 'bold',
-                          marginBottom: '4px',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value: any, name: string) => [
-                          value,
-                          name === 'pending' ? 'Pendente' : 'Concluído'
-                        ]}
-                        labelFormatter={(label: string, payload: any[]) => {
-                          const date = payload?.[0]?.payload?.fullDate || label;
-                          return date.length > 20 ? date.substring(0, 20) + '...' : date;
-                        }}
-                        wrapperStyle={{ zIndex: 1000, maxWidth: '90vw' }}
-                      />
-                      <Legend
-                        formatter={(value) => value === 'pending' ? 'Pendente' : 'Concluído'}
-                        wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }}
-                        height={30}
-                      />
-                      <Bar
-                        dataKey="pending"
-                        fill="#FFD700"
-                        name="pending"
-                        radius={[2, 2, 0, 0]}
-                        maxBarSize={30}
-                      />
-                      <Bar
-                        dataKey="completed"
-                        fill="#4CAF50"
-                        name="completed"
-                        radius={[2, 2, 0, 0]}
-                        maxBarSize={30}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        <Grafico
+          weeklyData={weeklyData}
+          isChartExpanded={isChartExpanded}
+          setIsChartExpanded={setIsChartExpanded}
+        />
 
         {/* Seção de Agendamentos */}
         <div className="flex justify-between items-center mb-4">
@@ -562,40 +283,37 @@ const DashboardPage: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
               className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300 flex items-center gap-2"
             >
               {filterMode === 'today' ? 'Hoje' : filterMode === 'tomorrow' ? 'Amanhã' : 'Todos'}
-              <FaChevronDown className={`transform transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <FaChevronDown className={`transform transition-transform duration-300 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
             </motion.button>
-            {isDropdownOpen && (
+            {isFilterDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-10">
                 <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                   <button
                     onClick={() => {
                       setFilterMode('all');
-                      setIsDropdownOpen(false);
+                      setIsFilterDropdownOpen(false);
                     }}
-                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
-                  >
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white">
                     Todos
                   </button>
                   <button
                     onClick={() => {
                       setFilterMode('today');
-                      setIsDropdownOpen(false);
+                      setIsFilterDropdownOpen(false);
                     }}
-                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
-                  >
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white">
                     Hoje
                   </button>
                   <button
                     onClick={() => {
                       setFilterMode('tomorrow');
-                      setIsDropdownOpen(false);
+                      setIsFilterDropdownOpen(false);
                     }}
-                    className="block w-full px-4 py-2 text-sm text-white hover:bg-[#252B3B] text-left"
-                  >
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white">
                     Amanhã
                   </button>
                 </div>
@@ -604,25 +322,61 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredAppointments.map((appointment) => (
-            <motion.div
-              key={appointment.id}
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <AnimatePresence mode="wait">
-                <AppointmentCardNew
-                  key={appointment.id}
-                  appointment={appointment}
-                  onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                  onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                />
-              </AnimatePresence>
-            </motion.div>
-          ))}
+        {/* Lista de Agendamentos */}
+        <div className="space-y-4 mb-8">
+          <AnimatePresence>
+            {filteredAppointments.length > 0 ? (
+              <>
+                {currentAppointments.map((appointment) => (
+                  <AppointmentCardNew
+                    key={appointment.id}
+                    appointment={appointment}
+                    onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                    onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                    filterMode={filterMode}
+                    revenueDisplayMode={revenueDisplayMode}
+                    appointments={appointments}
+                  />
+                ))}
+
+                {/* Controles de Paginação */}
+                {totalPages > 1 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-center items-center gap-2 mt-6"
+                  >
+                    {Array.from({ length: totalPages }, (_, index) => (
+                      <motion.button
+                        key={index + 1}
+                        onClick={() => handlePageChange(index + 1)}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${currentPage === index + 1
+                          ? 'bg-[#F0B35B] text-black'
+                          : 'bg-[#1A1F2E] text-gray-400 hover:bg-[#252B3B]'}`}
+                      >
+                        {index + 1}
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                )}
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="bg-[#1A1F2E] p-6 rounded-lg text-center"
+              >
+                <p className="text-gray-400">
+                  {filterMode === 'today' ? 'Nenhum agendamento para hoje' :
+                    filterMode === 'tomorrow' ? 'Nenhum agendamento para amanhã' :
+                      'Nenhum agendamento encontrado'}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
     </div>

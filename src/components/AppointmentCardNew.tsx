@@ -26,9 +26,47 @@ interface Props {
   appointment: Appointment;
   onDelete: () => void;
   onToggleStatus: () => void;
+  filterMode: string;
+  revenueDisplayMode: string;
+  appointments: Appointment[];
 }
 
-const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleStatus }) => {
+const getFilteredAppointments = (appointments: Appointment[], filterMode: string, revenueDisplayMode: string) => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const hojeStr = hoje.toISOString().split('T')[0];
+
+  const amanha = new Date(hoje);
+  amanha.setDate(amanha.getDate() + 1);
+  const amanhaStr = amanha.toISOString().split('T')[0];
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+  if (revenueDisplayMode !== 'total') {
+    switch (revenueDisplayMode) {
+      case 'day':
+        return appointments.filter(app => app.date === hojeStr);
+      case 'week':
+        return appointments.filter(app => {
+          const appDate = new Date(app.date);
+          return appDate >= startOfWeek && appDate <= endOfWeek;
+        });
+    }
+  }
+
+  switch (filterMode) {
+    case 'today':
+      return appointments.filter(app => app.date === hojeStr);
+    case 'tomorrow':
+      return appointments.filter(app => app.date === amanhaStr);
+    default:
+      return appointments;
+  }
+};
+
+const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleStatus, filterMode, revenueDisplayMode, appointments }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const statusColors = {

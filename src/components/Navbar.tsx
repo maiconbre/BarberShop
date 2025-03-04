@@ -10,7 +10,6 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({
-  isModalOpen,
   setIsModalOpen,
   isMobileMenuOpen,
   setIsMobileMenuOpen,
@@ -62,7 +61,7 @@ const Navbar: React.FC<NavbarProps> = ({
               }}
               className="text-[#F0B35B] font-bold text-xl cursor-pointer transition-transform duration-300 hover:scale-110"
             >
-              GR Barber
+            BarberShop
             </a>
           </div>
           {/* Menu Desktop */}
