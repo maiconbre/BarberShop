@@ -82,8 +82,8 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
       `}
     >
       {/* Elementos decorativos */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3 animate-pulse-slow delay-1000"></div>
+      <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 "></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3  delay-1000"></div>
 
       {/* Imagem de fundo com efeito parallax */}
       <div ref={parallaxRef} className="absolute inset-0 w-full h-full overflow-hidden">
@@ -108,7 +108,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
         <div className="absolute inset-0 bg-[#0D121E]/30 backdrop-filter backdrop-blur-[2px] mix-blend-multiply"></div>
 
         {/* Padrão de linhas decorativas */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-5">
           <div className="h-full w-full" style={{
             backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
             backgroundSize: '40px 40px'
@@ -127,11 +127,10 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
           <span className="sr-only">BarberShop - </span>
           <span className="block mb-2 text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">ESTILO É UM REFLEXO DA SUA</span>
           <span
-            className="text-[#F0B35B] font-extrabold inline-block transition-transform hover:scale-105 drop-shadow-[0_1px_3px_rgba(240,179,91,0.3)] relative overflow-hidden group"
+            className="text-[#F0B35B] font-extrabold inline-block drop-shadow-[0_1px_3px_rgba(240,179,91,0.3)]"
             itemProp="alternativeHeadline"
           >
-            <span className="relative z-10">ATITUDE E PERSONALIDADE</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 -skew-x-45 group-hover:animate-shine"></div>
+            <span className="relative z-10 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 bg-clip-text animate-shine-text">ATITUDE E PERSONALIDADE</span>
           </span>
         </h1>
 
@@ -149,18 +148,20 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
             relative overflow-hidden group
             mt-4 bg-[#F0B35B] text-black px-12 py-4 rounded-lg
             text-lg md:text-xl font-semibold
-            transition-all duration-300 ease-out
-            hover:bg-[#F0B35B] hover:scale-105 shadow-[0_0_25px_rgba(240,179,91,0.4)]
-            hover:shadow-[0_0_30px_rgba(240,179,91,0.6)] active:scale-95 border-2 border-[#F0B35B]/70
+            transition-all duration-700 ease-out
+            scale-100 shadow-[0_0_25px_rgba(240,179,91,0.4)]
+             border-2 border-[#F0B35B]
           "
         >
           <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
-            <span className="w-2 h-2 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>            Agende Agora
-            <span className="w-2 h-2 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>          </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
+            <span className="w-8 h-2 rounded-full bg-black "></span>
+            Agende Agora
+            <span className="w-8 h-2 rounded-full bg-black "></span>
+          </span>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B] via-white/80 to-[#F0B35B] -skew-x-45 animate-shine"></div>
         </button>
       </div>
-      
+
       {/* Features rotativas - Fixo na parte inferior */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex justify-center pb-6">
         <div className="bg-[#1A1F2E]/70 backdrop-blur-md rounded-lg px-4 py-2 inline-flex items-center space-x-2 border border-[#F0B35B]/20 shadow-md hover:shadow-[#F0B35B]/20 overflow-hidden w-full max-w-xs sm:max-w-sm mx-4 transition-all duration-300">
