@@ -155,8 +155,8 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
           "
         >
           <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
-            <span className="w-2 h-2 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>            Agende Agora
-            <span className="w-2 h-2 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>          </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>            Agende Agora
+            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>          </span>
           <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
         </button>
       </div>
