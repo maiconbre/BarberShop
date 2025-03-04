@@ -215,8 +215,20 @@ const DashboardPage: React.FC = () => {
   };
   // Estrutura principal do dashboard com cards, gráficos e lista de agendamentos
   return (
-    <div className="min-h-screen bg-[#0D121E] pt-16">
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
+      {/* Elementos decorativos */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
+      
+      {/* Padrão de linhas decorativas */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="h-full w-full" style={{ 
+          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)', 
+          backgroundSize: '40px 40px'
+        }}></div>
+      </div>
+      
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
