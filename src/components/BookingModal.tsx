@@ -73,7 +73,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
       return;
     }
     if (!formData.service) {
-      setError('Por favor, selecione um serviço');
+      setError('Por favor, selecione um Corte');
       return;
     }
     setIsLoading(true);
@@ -89,9 +89,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
         time: formData.time,
         barberId: formData.barberId,
         barberName: formData.barber,
-        price: getServicePrice[formData.service] + 
-               (formData.barba ? getServicePrice["barba"] : 0) + 
-               (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)
+        price: getServicePrice[formData.service] +
+          (formData.barba ? getServicePrice["barba"] : 0) +
+          (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)
       };
 
       const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
@@ -155,7 +155,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     return barber?.pix || '';
   };
 
-  // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo os extras e o valor do serviço
+  // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo os extras e o valor do Corte
   const getWhatsappMessage = () => {
     const formattedDate = formData.date
       ? format(new Date(formData.date), 'dd/MM/yyyy')
@@ -169,10 +169,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     const message = `Olá, segue meu agendamento:
 Nome: ${formData.name}
 Barbeiro: ${formData.barber}
-Serviço: ${formData.service}
-${extrasMessage}Valor: R$ ${getServicePrice[formData.service] + 
-  (formData.barba ? getServicePrice["barba"] : 0) + 
-  (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}
+Corte: ${formData.service}
+${extrasMessage}Valor: R$ ${getServicePrice[formData.service] +
+      (formData.barba ? getServicePrice["barba"] : 0) +
+      (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}
 Data: ${formattedDate}
 Horário: ${formData.time}
   
@@ -208,8 +208,17 @@ Aguardo a confirmação.`;
           <X size={18} className="transform hover:rotate-90 transition-transform duration-300" />
         </button>
         <div className="p-4 sm:p-6">
-          <div className=" mb-6">
-
+          <div className="text-center mb-6">
+            <div className="inline-block mb-2">
+              <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
+                <div className="h-px w-5 bg-[#F0B35B]"></div>
+                <span className="uppercase text-xs font-semibold tracking-wider">Agende seu horário</span>
+                <div className="h-px w-5 bg-[#F0B35B]"></div>
+              </div>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              Transforme seu <span className="text-[#F0B35B]">Visual</span>
+            </h2>
           </div>
 
           {showSuccessMessage && (
@@ -222,89 +231,136 @@ Aguardo a confirmação.`;
 
           {step === 1 ? (
             <form onSubmit={handleSubmit} className="space-y-4 relative">
-              <div className="group">
+              <div className="group relative">
                 <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Nome</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full px-4 py-2.5 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-sm placeholder-gray-500"
-                  value={formData.name}
-                  placeholder="Digite seu nome completo"
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs sm:text-sm font-medium mb-0.5">Barbeiro</label>
-                <select
-                  required
-                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
-                  value={formData.barberId}
-                  onChange={(e) => {
-                    const selectedBarber = barbers.find(b => b.id === e.target.value);
-                    setFormData({
-                      ...formData,
-                      barberId: e.target.value,
-                      barber: selectedBarber?.name || ''
-                    });
-                  }}
-                >
-                  <option value="">Selecione um barbeiro</option>
-                  {barbers.map((barber) => (
-                    <option key={barber.id} value={barber.id}>
-                      {barber.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs sm:text-sm font-medium mb-0.5">Serviço</label>
-                <select
-                  required
-                  className="w-full px-3 py-1.5 bg-[#0D121E] rounded-md focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm"
-                  value={formData.service}
-                  onChange={(e) =>
-                    setFormData({ ...formData, service: e.target.value })
-                  }
-                >
-                  <option value="">Selecione um serviço</option>
-                  {services.map((service) => (
-                    <option key={service} value={service}>
-                      {service}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center space-x-4 text-sm">
-                <div className="flex items-center">
+                <div className="relative">
                   <input
-                    type="checkbox"
-                    id="barba"
-                    value="barba"
-                    checked={formData.barba}
+                    type="text"
+                    required
+                    className="w-full pl-10 pr-4 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-sm placeholder-gray-500"
+                    value={formData.name}
+                    placeholder="Digite seu nome completo"
                     onChange={(e) =>
-                      setFormData({ ...formData, barba: e.target.checked })
+                      setFormData({ ...formData, name: e.target.value })
                     }
-                    className="mr-1"
                   />
-                  <label htmlFor="barba" className="text-xs sm:text-sm">Barba</label>
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
                 </div>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="sobrancelha"
-                    value="sobrancelha"
-                    checked={formData.sobrancelha}
+              </div>
+
+              <div className="group relative">
+                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Barbeiro</label>
+                <div className="relative">
+                  <select
+                    required
+                    className="w-full appearance-none pl-10 pr-10 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm border border-transparent hover:border-[#F0B35B]/30"
+                    value={formData.barberId}
+                    onChange={(e) => {
+                      const selectedBarber = barbers.find(b => b.id === e.target.value);
+                      setFormData({
+                        ...formData,
+                        barberId: e.target.value,
+                        barber: selectedBarber?.name || ''
+                      });
+                    }}
+                  >
+                    <option value="">Selecione um barbeiro</option>
+                    {barbers.map((barber) => (
+                      <option key={barber.id} value={barber.id}>
+                        {barber.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                    </svg>
+                  </div>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
+                </div>
+              </div>
+
+              <div className="group relative">
+                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Corte</label>
+                <div className="relative">
+                  <select
+                    required
+                    className="w-full appearance-none pl-10 pr-10 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm border border-transparent hover:border-[#F0B35B]/30"
+                    value={formData.service}
                     onChange={(e) =>
-                      setFormData({ ...formData, sobrancelha: e.target.checked })
+                      setFormData({ ...formData, service: e.target.value })
                     }
-                    className="mr-1"
-                  />
-                  <label htmlFor="sobrancelha" className="text-xs sm:text-sm">Sobrancelha</label>
+                  >
+                    <option value="">Selecione um Corte</option>
+                    {services.map((service) => (
+                      <option key={service} value={service}>
+                        {service}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
+                </div>
+              </div>
+
+              <div className="bg-[#0D121E]/80 p-4 rounded-lg border border-[#F0B35B]/10 mb-2">
+                <p className="text-sm text-gray-300 mb-3 font-medium">Serviços adicionais:</p>
+                <div className="flex items-center space-x-4 text-xs">
+                  <div className="flex items-center space-x-2 group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        id="barba"
+                        value="barba"
+                        checked={formData.barba}
+                        onChange={(e) =>
+                          setFormData({ ...formData, barba: e.target.checked })
+                        }
+                        className="appearance-none w-5 h-5 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
+                      />
+                      <svg className="absolute left-1 top-1 w-3 h-3 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <label htmlFor="barba" className="text-xs text-gray-300 group-hover:text-white transition-colors">Barba (+R$ {getServicePrice["barba"]})</label>
+                  </div>
+                  <div className="flex items-center space-x-2 group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        id="sobrancelha"
+                        value="sobrancelha"
+                        checked={formData.sobrancelha}
+                        onChange={(e) =>
+                          setFormData({ ...formData, sobrancelha: e.target.checked })
+                        }
+                        className="appearance-none w-5 h-5 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
+                      />
+                      <svg className="absolute left-1 top-1 w-3 h-3 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <label htmlFor="sobrancelha" className="text-xs text-gray-300 group-hover:text-white transition-colors">Sobrancelha (+R$ {getServicePrice["sobrancelha"]})</label>
+                  </div>
                 </div>
               </div>
 
@@ -368,8 +424,8 @@ Aguardo a confirmação.`;
                       Pague antecipado e garanta a sua vaga.
                     </p>
                     <p className="text-gray-300 mt-2 text-sm sm:text-base">
-                      Valor <strong>R$ {getServicePrice[formData.service] + 
-                        (formData.barba ? getServicePrice["barba"] : 0) + 
+                      Valor <strong>R$ {getServicePrice[formData.service] +
+                        (formData.barba ? getServicePrice["barba"] : 0) +
                         (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</strong>
                     </p>
                   </div>
@@ -388,10 +444,10 @@ Aguardo a confirmação.`;
                 <div className="text-left space-y-1 bg-[#1A1F2E] p-3 rounded-lg text-xs sm:text-sm">
                   <p><strong>Nome:</strong> {formData.name}</p>
                   <p><strong>Barbeiro:</strong> {formData.barber}</p>
-                  <p><strong>Serviço:</strong> {formData.service}</p>
+                  <p><strong>Corte:</strong> {formData.service}</p>
                   <p><strong>Extras:</strong> {extrasText.length ? extrasText.join(", ") : "Nenhum"}</p>
-                  <p><strong>Valor:</strong> R$ {getServicePrice[formData.service] + 
-                    (formData.barba ? getServicePrice["barba"] : 0) + 
+                  <p><strong>Valor:</strong> R$ {getServicePrice[formData.service] +
+                    (formData.barba ? getServicePrice["barba"] : 0) +
                     (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</p>
                   <p>
                     <strong>Data:</strong>{' '}
@@ -417,4 +473,4 @@ Aguardo a confirmação.`;
   );
 };
 
-export default BookingModal;
+export default BookingModal

@@ -52,17 +52,16 @@ const Navbar: React.FC<NavbarProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo com efeito de hover aumentado */}
+          {/* Logo com efeito de hover sutil */}
           <div className="flex-shrink-0">
-            <a
-              onClick={() => {
-                navigate('/');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="text-[#F0B35B] font-bold text-xl cursor-pointer transition-transform duration-300 hover:scale-110"
-            >
-            BarberShop
-            </a>
+            <div className="transform hover:scale-[1.02] transition-transform duration-300">
+              <div className="inline-block relative">
+                <div className="text-[#F0B35B] text-lg font-medium tracking-wider border border-[#F0B35B]/70 px-2 py-1 rounded">
+                  BARBER<span className="text-white/90">SHOP</span>
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-full h-full border border-white/10 rounded"></div>
+              </div>
+            </div>
           </div>
           {/* Menu Desktop */}
           <div className="hidden md:block">
