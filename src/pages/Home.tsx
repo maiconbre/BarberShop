@@ -21,7 +21,7 @@ const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
         <About />
       </div>
 
-      <div id="contacts" className="pt-20">
+      <div id="contacts" >
         <Footer />
       </div>
     </>

@@ -57,7 +57,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <div className="transform hover:scale-[1.02] transition-transform duration-300">
               <div className="inline-block relative">
                 <div className="text-[#F0B35B] text-lg font-medium tracking-wider border border-[#F0B35B]/70 px-2 py-1 rounded">
-                  BARBER<span className="text-white/90">SHOP</span>
+                  BARBER<span className="text-white/80">SHOP</span>
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 w-full h-full border border-white/10 rounded"></div>
               </div>
@@ -68,21 +68,22 @@ const Navbar: React.FC<NavbarProps> = ({
             <div className="ml-10 flex items-baseline space-x-8">
               <button
                 onClick={() => scrollToSection('services')}
-                className="text-white hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-105"
+                className="text-white/90 hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-105"
               >
                 Serviços
               </button>
               <button
                 onClick={() => scrollToSection('about')}
-                className="text-white hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-105"
+                className="text-white/90 hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-105"
               >
                 Sobre
               </button>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-colors transition-transform duration-300 hover:scale-105"
+                className="relative overflow-hidden group bg-[#F0B35B] text-black px-4 py-2 rounded-md transition-all duration-300 hover:scale-110 border-2 border-[#F0B35B]/70 hover:shadow-[0_0_15px_rgba(240,179,91,0.4)]"
               >
-                Agendar horário
+                <span className="relative z-10">Agendar horário</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
               </button>
             </div>
           </div>
@@ -90,7 +91,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <div className="md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-white hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-105"
+              className="text-white hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-110"
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -106,7 +107,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 scrollToSection('about');
                 setIsMobileMenuOpen(false);
               }}
-              className="block text-white hover:text-[#F0B35B] py-2 px-3 transition-colors transition-transform duration-300 hover:scale-105"
+              className="block text-white/90 hover:text-[#F0B35B] py-2 px-3 transition-colors transition-transform duration-300 hover:scale-105"
             >
               Sobre
             </button>
@@ -115,7 +116,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 scrollToSection('services');
                 setIsMobileMenuOpen(false);
               }}
-              className="block text-white hover:text-[#F0B35B] py-2 px-3 transition-colors transition-transform duration-300 hover:scale-105"
+              className="block text-white/90 hover:text-[#F0B35B] py-2 px-3 transition-colors transition-transform duration-300 hover:scale-105"
             >
               Serviços
             </button>
@@ -124,9 +125,10 @@ const Navbar: React.FC<NavbarProps> = ({
                 setIsModalOpen(true);
                 setIsMobileMenuOpen(false);
               }}
-              className="w-full text-left bg-[#F0B35B] text-black px-3 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-colors transition-transform duration-300 hover:scale-105"
+              className="relative overflow-hidden group w-full text-left bg-[#F0B35B] text-black px-3 py-2 rounded-md transition-all duration-300 hover:scale-105 border-2 border-[#F0B35B]/70 hover:shadow-[0_0_15px_rgba(240,179,91,0.4)]"
             >
-              Agendar horário
+              <span className="relative z-10">Agendar horário</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
             </button>
           </div>
         </div>

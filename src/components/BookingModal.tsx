@@ -253,7 +253,7 @@ Aguardo a confirmação.`;
               </div>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">
-              Transforme seu <span className="text-[#F0B35B] relative overflow-hidden group-hover:scale-110 transition-transform duration-300"><span className="relative z-10">Visual</span><div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 group-hover:animate-shine"></div></span>
+              Transforme seu <span className="text-[#F0B35B] relative overflow-hidden "><span className="relative z-10">Visual</span></span>
             </h2>
           </div>
 
@@ -349,7 +349,8 @@ Aguardo a confirmação.`;
                   </select>
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clipRule="evenodd" />
+                      <path d="M5.5 13a3.5 3.5 0 0 1 2.25-3.27l1.54 1.54a1 1 0 0 0 1.42 0l1.54-1.54a3.5 3.5 0 0 1 2.25 3.27V14H5.5v-1zM10 4.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm-5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm1.35 5.65L8 11.79l1.65-1.64a2.5 2.5 0 1 0-3.3 0z"/>
+                      <path d="M15 4.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm-1.35 5.65L12 11.79l-1.65-1.64a2.5 2.5 0 1 1 3.3 0z"/>
                     </svg>
                   </div>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70 pointer-events-none">
@@ -361,46 +362,55 @@ Aguardo a confirmação.`;
                 </div>
               </div>
 
+            
+
               <div className="bg-[#0D121E]/80 p-4 rounded-lg border border-[#F0B35B]/10 mb-2">
                 <p className="text-sm text-gray-300 mb-3 font-medium">Serviços adicionais:</p>
-                <div className="flex items-center space-x-4 text-xs">
-                  <div className="flex items-center space-x-2 group">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        id="barba"
-                        value="barba"
-                        checked={formData.barba}
-                        onChange={(e) =>
-                          setFormData({ ...formData, barba: e.target.checked })
-                        }
-                        className="appearance-none w-5 h-5 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
-                        onFocus={handleInputFocus}
-                      />
-                      <svg className="absolute left-1 top-1 w-3 h-3 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                <div className="flex flex-row justify-around space-x-4 text-xs">
+                  <div className="flex flex-col space-y-1 group">
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          id="barba"
+                          value="barba"
+                          checked={formData.barba}
+                          onChange={(e) =>
+                            setFormData({ ...formData, barba: e.target.checked })
+                          }
+                          className="appearance-none w-4 h-4 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
+                          onFocus={handleInputFocus}
+                        />
+                        <svg className="absolute left-1 top-1 w-2 h-2 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <label htmlFor="barba" className="text-sm text-gray-300 group-hover:text-white transition-colors">Barba</label>
                     </div>
-                    <label htmlFor="barba" className="text-xs text-gray-300 group-hover:text-white transition-colors">Barba (+R$ {getServicePrice["barba"]})</label>
+                    <span className="text-xs text-[#F0B35B] ml-6">R$ {getServicePrice["barba"]}</span>
                   </div>
-                  <div className="flex items-center space-x-2 group">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        id="sobrancelha"
-                        value="sobrancelha"
-                        checked={formData.sobrancelha}
-                        onChange={(e) =>
-                          setFormData({ ...formData, sobrancelha: e.target.checked })
-                        }
-                        className="appearance-none w-5 h-5 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
-                        onFocus={handleInputFocus}
-                      />
-                      <svg className="absolute left-1 top-1 w-3 h-3 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+
+                  <div className="flex flex-col space-y-1 group">
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          id="sobrancelha"
+                          value="sobrancelha"
+                          checked={formData.sobrancelha}
+                          onChange={(e) =>
+                            setFormData({ ...formData, sobrancelha: e.target.checked })
+                          }
+                          className="appearance-none w-4 h-4 border-2 border-[#F0B35B]/30 rounded checked:bg-[#F0B35B] checked:border-[#F0B35B] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 transition-colors duration-200"
+                          onFocus={handleInputFocus}
+                        />
+                        <svg className="absolute left-1 top-1 w-2 h-2 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <label htmlFor="sobrancelha" className="text-sm text-gray-300 group-hover:text-white transition-colors">Sobrancelha</label>
                     </div>
-                    <label htmlFor="sobrancelha" className="text-xs text-gray-300 group-hover:text-white transition-colors">Sobrancelha (+R$ {getServicePrice["sobrancelha"]})</label>
+                    <span className="text-xs text-[#F0B35B] ml-6">R$ {getServicePrice["sobrancelha"]}</span>
                   </div>
                 </div>
               </div>
@@ -419,7 +429,7 @@ Aguardo a confirmação.`;
               <button
                 type="submit"
                 disabled={isLoading}
-                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:bg-[#F0B35B]/90 active:scale-[0.98] disabled:opacity-75 disabled:cursor-not-allowed"
+                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_25px_rgba(240,179,91,0.5)] active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed border-2 border-[#F0B35B]/70"
               >
                 <span className="relative z-10 flex items-center justify-center">
                   {isLoading ? (
@@ -432,7 +442,7 @@ Aguardo a confirmação.`;
                     </span>
                   ) : 'Confirmar Agendamento'}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 group-hover:animate-shine"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
               </button>
             </form>
           ) : (
@@ -453,7 +463,7 @@ Aguardo a confirmação.`;
                           </span>
                           <button
                             onClick={handleCopyPix}
-                            className="ml-2 text-xs bg-green-400 px-1.5 py-0.5 rounded hover:shadow-md transition-shadow"
+                            className="ml-2 text-xs bg-green-400 text-black px-1.5 py-0.5 rounded hover:shadow-md hover:scale-105 transition-all duration-200"
                           >
                             Copiar
                           </button>
@@ -479,10 +489,13 @@ Aguardo a confirmação.`;
                   href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition-transform hover:scale-105 mb-3 text-sm"
+                  className="relative overflow-hidden group flex items-center justify-center gap-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all duration-300 hover:scale-105 mb-3 text-sm"
                 >
-                  <MessageCircle size={16} />
-                  Confirmar vaga
+                  <span className="relative z-10 flex items-center gap-1">
+                    <MessageCircle size={16} />
+                    Confirmar vaga
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 via-white/30 to-green-600/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
                 </a>
 
                 <div className="text-left space-y-1 bg-[#1A1F2E] p-3 rounded-lg text-xs sm:text-sm">
@@ -505,9 +518,10 @@ Aguardo a confirmação.`;
 
               <button
                 onClick={onClose}
-                className="w-full bg-[#F0B35B] text-black py-2 rounded-md font-semibold hover:bg-[#F0B35B]/80 transition-colors text-sm"
+                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-2 rounded-md font-semibold hover:bg-[#F0B35B] hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-sm border-2 border-[#F0B35B]/70"
               >
-                Fechar
+                <span className="relative z-10">Fechar</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
               </button>
             </div>
           )}
