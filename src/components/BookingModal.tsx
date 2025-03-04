@@ -324,7 +324,7 @@ Aguardo a confirmação.`;
 
               <div className="bg-[#0D121E]/80 p-4 rounded-lg border border-[#F0B35B]/10 mb-2">
                 <p className="text-sm text-gray-300 mb-3 font-medium">Serviços adicionais:</p>
-                <div className="flex items-center space-x-4 text-sm">
+                <div className="flex items-center space-x-4 text-xs">
                   <div className="flex items-center space-x-2 group">
                     <div className="relative">
                       <input
@@ -341,7 +341,7 @@ Aguardo a confirmação.`;
                         <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <label htmlFor="barba" className="text-sm text-gray-300 group-hover:text-white transition-colors">Barba (+R$ {getServicePrice["barba"]})</label>
+                    <label htmlFor="barba" className="text-xs text-gray-300 group-hover:text-white transition-colors">Barba (+R$ {getServicePrice["barba"]})</label>
                   </div>
                   <div className="flex items-center space-x-2 group">
                     <div className="relative">
@@ -359,7 +359,7 @@ Aguardo a confirmação.`;
                         <path d="M5 12L10 17L20 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
-                    <label htmlFor="sobrancelha" className="text-sm text-gray-300 group-hover:text-white transition-colors">Sobrancelha (+R$ {getServicePrice["sobrancelha"]})</label>
+                    <label htmlFor="sobrancelha" className="text-xs text-gray-300 group-hover:text-white transition-colors">Sobrancelha (+R$ {getServicePrice["sobrancelha"]})</label>
                   </div>
                 </div>
               </div>
