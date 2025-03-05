@@ -104,9 +104,6 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
           </div>
         )}
 
-        {/* Overlay com textura */}
-        <div className="absolute inset-0 bg-[#0D121E]/30 backdrop-filter backdrop-blur-[2px] mix-blend-multiply"></div>
-
         {/* Padrão de linhas decorativas */}
         <div className="absolute inset-0 opacity-5">
           <div className="h-full w-full" style={{

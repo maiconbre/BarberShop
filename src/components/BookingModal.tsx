@@ -282,9 +282,18 @@ Aguardo a confirmação.`;
                     onFocus={handleInputFocus}
                   />
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
+<svg 
+  xmlns="http://www.w3.org/2000/svg" 
+  className="h-5 w-5" 
+  viewBox="0 0 20 20" 
+  fill="currentColor"
+>
+  <path 
+    fillRule="evenodd" 
+    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" 
+    clipRule="evenodd" 
+  />
+</svg>
                   </div>
                   <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
                 </div>
@@ -306,6 +315,7 @@ Aguardo a confirmação.`;
                       });
                     }}
                     onFocus={handleInputFocus}
+                    style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none' }}
                   >
                     <option value="">Selecione um barbeiro</option>
                     {barbers.map((barber) => (
@@ -339,6 +349,7 @@ Aguardo a confirmação.`;
                       setFormData({ ...formData, service: e.target.value })
                     }
                     onFocus={handleInputFocus}
+                    style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none' }}
                   >
                     <option value="">Selecione um Corte</option>
                     {services.map((service) => (
