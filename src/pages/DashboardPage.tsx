@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings } from 'lucide-react';
-import { FaChevronDown } from 'react-icons/fa';
+import { Settings, Calendar } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -288,52 +287,46 @@ const DashboardPage: React.FC = () => {
         {/* Seção de Agendamentos */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
-            <h2 className="text-xs text-gray-400">Agendamentos</h2>
-            <span className="text-xs text-gray-400">({filteredAppointments.length} total)</span>
-          </div>
+          <h2 className="text-xs text-gray-400">Agendamentos</h2>
+            <span className="text-xs text-gray-400">{filteredAppointments.length} total</span>
+          
+        </div>
           <div className="relative">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-              className="bg-[#F0B35B] text-black px-4 py-2 rounded-md hover:bg-[#F0B35B]/80 transition-all duration-300 flex items-center gap-2"
-            >
-              {filterMode === 'today' ? 'Hoje' : filterMode === 'tomorrow' ? 'Amanhã' : 'Todos'}
-              <FaChevronDown className={`transform transition-transform duration-300 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
-            </motion.button>
-            {isFilterDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-10">
-                <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                  <button
-                    onClick={() => {
-                      setFilterMode('all');
-                      setIsFilterDropdownOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white">
-                    Todos
-                  </button>
-                  <button
-                    onClick={() => {
-                      setFilterMode('today');
-                      setIsFilterDropdownOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white">
-                    Hoje
-                  </button>
-                  <button
-                    onClick={() => {
-                      setFilterMode('tomorrow');
-                      setIsFilterDropdownOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white">
-                    Amanhã
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="flex flex-row items-center justify-start gap-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setFilterMode('today');
+                  setIsFilterDropdownOpen(false);
+                }}
+                className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              >
+                Hoje
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setFilterMode('tomorrow');
+                  setIsFilterDropdownOpen(false);
+                }}
+                className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              >
+                Amanhã
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/calendar')}
+                className="p-2 rounded-md bg-[#252B3B] text-white hover:bg-[#F0B35B]/20 transition-all duration-300 flex items-center justify-center"
+                title="Ver calendário"
+              >
+                <Calendar className="w-5 h-5" />
+              </motion.button>
+            </div>
           </div>
         </div>
-
         {/* Lista de Agendamentos */}
         <div className="space-y-4 mb-8">
           <AnimatePresence>

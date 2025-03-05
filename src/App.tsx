@@ -11,6 +11,7 @@ import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import CalendarPage from './pages/CalendarPage';
 import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -57,6 +58,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={
+                <ProtectedRoute>
+                  <CalendarPage />
                 </ProtectedRoute>
               }
             />
