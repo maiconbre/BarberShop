@@ -1,8 +1,13 @@
 import { Clock, Scissors, Award, MapPin, Star } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 
 const About = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [name, setName] = useState('');
+  const [comment, setComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -197,11 +202,98 @@ const About = () => {
                 </div>
               </div>
             </div>
+
+            {/* Seção de Comentários */}
+            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Star className="text-[#F0B35B] w-4 h-4" /> Deixe seu comentário
+              </h3>
+              <form className="space-y-4" onSubmit={handleSubmitComment}>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Seu nome"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="w-full bg-[#0D121E] border border-[#F0B35B]/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-[#F0B35B]/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <textarea
+                    placeholder="Seu comentário"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    required
+                    rows={4}
+                    className="w-full bg-[#0D121E] border border-[#F0B35B]/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-[#F0B35B]/50 transition-colors resize-none"
+                  ></textarea>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-[#F0B35B] text-black px-6 py-2 rounded-lg font-semibold hover:bg-[#F0B35B]/90 transition-colors w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Enviando...' : 'Enviar Comentário'}
+                </button>
+                
+                {submitSuccess && (
+                  <div className="mt-3 p-3 bg-green-500/20 text-green-400 rounded-lg text-sm">
+                    Comentário enviado com sucesso! Aguardando aprovação do administrador.
+                  </div>
+                )}
+                
+                {submitError && (
+                  <div className="mt-3 p-3 bg-red-500/20 text-red-400 rounded-lg text-sm">
+                    {submitError}
+                  </div>
+                )}
+              </form>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+  // Função para enviar o comentário para o backend
+  const handleSubmitComment = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    if (!name.trim() || !comment.trim()) return;
+    
+    setIsSubmitting(true);
+    setSubmitSuccess(false);
+    setSubmitError('');
+    
+    try {
+      const response = await fetch('https://barber-backend-spm8.onrender.com/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          comment,
+          status: 'pending'
+        })
+      });
+      
+      if (response.ok) {
+        setSubmitSuccess(true);
+        setName('');
+        setComment('');
+      } else {
+        const errorData = await response.json();
+        setSubmitError(errorData.message || 'Erro ao enviar comentário. Tente novamente.');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar comentário:', error);
+      setSubmitError('Erro ao enviar comentário. Verifique sua conexão e tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
 export default About;

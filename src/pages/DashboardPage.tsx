@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar } from 'lucide-react';
+import { Settings, Calendar, Bell } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -24,6 +24,14 @@ interface Appointment {
 }
 
 // Interface que define a estrutura dos dados do gráfico
+interface Comment {
+  id: string;
+  name: string;
+  comment: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
 interface ChartData {
   date: string;
   pending: number;
@@ -41,6 +49,9 @@ const DashboardPage: React.FC = () => {
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('total');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [pendingComments, setPendingComments] = useState<Comment[]>([]);
+  const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const appointmentsPerPage = 7;
@@ -107,14 +118,73 @@ const DashboardPage: React.FC = () => {
     }
   }, []);
 
-  // Carrega os agendamentos ao montar o componente e configura o polling a cada 30 segundos
+  // Função para carregar comentários pendentes
+  const loadPendingComments = useCallback(async () => {
+    if (currentUser?.role !== 'admin') return;
+    
+    try {
+      const response = await fetch('https://barber-backend-spm8.onrender.com/api/comments?status=pending', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        mode: 'cors'
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        setPendingComments(result.data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar comentários pendentes:', error);
+    }
+  }, [currentUser]);
+
+  // Função para gerenciar ações nos comentários (aprovar/recusar)
+  const handleCommentAction = async (commentId: string, action: 'approve' | 'reject') => {
+    try {
+      const response = await fetch(`https://barber-backend-spm8.onrender.com/api/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        mode: 'cors',
+        body: JSON.stringify({
+          status: action === 'approve' ? 'approved' : 'rejected'
+        })
+      });
+      
+      if (response.ok) {
+        // Remove o comentário da lista de pendentes
+        setPendingComments(prev => prev.filter(comment => comment.id !== commentId));
+        setIsNotificationDropdownOpen(false);
+      }
+    } catch (error) {
+      console.error(`Erro na ação ${action} do comentário:`, error);
+    }
+  };
+
+  // Carrega os agendamentos e comentários ao montar o componente e configura o polling
   useEffect(() => {
     loadAppointments();
-    const interval = setInterval(loadAppointments, 30000);
+    if (currentUser?.role === 'admin') {
+      loadPendingComments();
+    }
+    
+    const appointmentsInterval = setInterval(loadAppointments, 30000);
+    const commentsInterval = currentUser?.role === 'admin' ? setInterval(loadPendingComments, 60000) : null;
+    
     // [ID: UI-001] - Renderização da interface do usuário
     // Estrutura principal do dashboard com cards, gráficos e lista de agendamentos
-    return () => clearInterval(interval);
-  }, [loadAppointments]);
+    return () => {
+      clearInterval(appointmentsInterval);
+      if (commentsInterval) clearInterval(commentsInterval);
+    };
+  }, [loadAppointments, loadPendingComments, currentUser]);
   // [ID: CHART-001] - Processamento de dados para gráficos movido para o componente Grafico
   // Calcula os dados semanais para o gráfico
   const calculateWeeklyData = useCallback(() => {
@@ -231,7 +301,52 @@ const DashboardPage: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
-          <div className="relative">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <button
+                onClick={() => setIsNotificationDropdownOpen(!isNotificationDropdownOpen)}
+                className="p-2 rounded-full bg-[#1A1F2E] transition-colors duration-300 relative"
+              >
+                <Bell className="w-6 h-6 text-[#F0B35B]" />
+                {pendingComments.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
+                    {pendingComments.length}
+                  </span>
+                )}
+              </button>
+              {isNotificationDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="py-1" role="menu">
+                    {pendingComments.length > 0 ? (
+                      pendingComments.map((comment) => (
+                        <div key={comment.id} className="px-4 py-3 border-b border-gray-700/30 last:border-0">
+                          <p className="text-sm text-white font-medium">{comment.name}</p>
+                          <p className="text-xs text-gray-400 mt-1">{comment.comment}</p>
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => handleCommentAction(comment.id, 'approve')}
+                              className="text-xs px-3 py-1 rounded-md bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                            >
+                              Aprovar
+                            </button>
+                            <button
+                              onClick={() => handleCommentAction(comment.id, 'reject')}
+                              className="text-xs px-3 py-1 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                            >
+                              Recusar
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-gray-400">
+                        Nenhum comentário pendente
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
