@@ -440,7 +440,13 @@ Aguardo a confirmação.`;
               <button
                 type="submit"
                 disabled={isLoading}
-                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_25px_rgba(240,179,91,0.5)] active:scale-95 disabled:opacity-75 disabled:cursor-not-allowed border-2 border-[#F0B35B]/70"
+                className="relative overflow-hidden group
+                 w-full bg-[#F0B35B] text-black py-3 rounded-lg
+                  font-semibold transition-all duration-300 
+                  transform hover:scale-105 
+                  hover:shadow-[0_0_25px_rgba(240,179,91,0.5)] 
+                  active:scale-95 disabled:opacity-75 
+                  disabled:cursor-not-allowed border-2 border-[#F0B35B]/70"
               >
                 <span className="relative z-10 flex items-center justify-center">
                   {isLoading ? (

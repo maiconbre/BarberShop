@@ -1,55 +1,89 @@
 import { Instagram, Facebook, Twitter, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const Footer = () => {
+  const socialLinks = [
+    { icon: <Instagram size={20} />, label: 'Instagram' },
+    { icon: <Facebook size={20} />, label: 'Facebook' },
+    { icon: <Twitter size={20} />, label: 'Twitter' }
+  ];
+
   return (
-    <footer className="bg-[#1A1F2E] py-4 px-4">
+    <motion.footer
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+      viewport={{ once: true }}
+      className="bg-gradient-to-b from-[#1A1F2E] to-[#0D121E] py-8 px-4 border-t border-[#252B3B]/50"
+    >
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-6">
-            <a 
-              href="#" 
-              className="text-gray-400 hover:text-[#F0B35B] transition-colors"
-              aria-label="Instagram"
-            >
-              <Instagram size={20} />
-            </a>
-            <a 
-              href="#" 
-              className="text-gray-400 hover:text-[#F0B35B] transition-colors"
-              aria-label="Facebook"
-            >
-              <Facebook size={20} />
-            </a>
-            <a 
-              href="#" 
-              className="text-gray-400 hover:text-[#F0B35B] transition-colors"
-              aria-label="Twitter"
-            >
-              <Twitter size={20} />
-            </a>
-            <a 
-              href="#" 
-              className="text-gray-400 hover:text-[#F0B35B] transition-colors"
-              aria-label="Youtube"
-            >
-              <Youtube size={20} />
-            </a>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Social Links */}
+          <div className="flex flex-col items-center md:items-start">
+            <h3 className="text-[#F0B35B] text-sm font-semibold mb-4">Siga-nos</h3>
+            <div className="flex gap-4">
+              {socialLinks.map((link) => (
+                <motion.a
+                  key={link.label}
+                  href="#"
+                  className="text-gray-400 hover:text-[#F0B35B] transition-colors p-2 rounded-lg hover:bg-[#252B3B]/50"
+                  aria-label={link.label}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  {link.icon}
+                </motion.a>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-col items-center md:items-end gap-1">
-            <p className="text-gray-400 text-[10px] text-sm">
-              Maicon B. © 2024 All rights reserved.
-            </p>
-            <Link 
-              to="/login" 
-              className="text-gray-500 text-[10px] hover:text-gray-400 transition-colors"
+
+          {/* Quick Links */}
+          <div className="flex flex-col items-center">
+            <h3 className="text-[#F0B35B] text-sm font-semibold mb-4">Links Rápidos</h3>
+            <div className="flex flex-col items-center gap-2">
+              <Link
+                to="/services"
+                className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors"
+              >
+                Serviços
+              </Link>
+              <Link
+                to="/about"
+                className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors"
+              >
+                Sobre Nós
+              </Link>
+              <Link
+                to="/contact"
+                className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors"
+              >
+                Contato
+              </Link>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="flex flex-col items-center md:items-end gap-2">
+            
+            <Link
+              to="/login"
+              className="text-[#F0B35B] text-sm transition-colors"
             >
-              sou barbeiro
+              Área do Barbeiro
             </Link>
           </div>
         </div>
+
+        {/* Divider */}
+        <div className="border-t border-[#252B3B]/50 mt-4 pt-4 text-center">
+          <p className="text-gray-500 text-sm">
+          Nexus®  All rights reserved © {new Date().getFullYear()}
+          </p>
+        </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 

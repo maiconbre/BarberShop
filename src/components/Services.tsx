@@ -1,4 +1,5 @@
 import { Scissors } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const services = [
   {
@@ -23,40 +24,71 @@ const services = [
 
 const Services = () => {
   return (
-    <section className="py-10 px-4 bg-[#0D121E]">
+    <section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#0D121E] min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Nossos Serviços</h2>
-          <p className="text-gray-300">Escolha entre nossa variedade de serviços profissionais</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-sm sm:max-w-none mx-auto">
-          {services.map((service) => (
-            <div 
-              key={service.name} 
-              className="bg-[#1A1F2E] rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 parallax"
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12 sm:mb-16"
+        >
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80">
+            Nossos Serviços
+          </h2>
+          <p className="text-gray-300 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto">
+            Escolha entre nossa variedade de serviços profissionais para uma experiência única
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 max-w-sm sm:max-w-none mx-auto">
+          {services.map((service, index) => (
+            <motion.div 
+              key={service.name}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ y: -5 }}
+              className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300"
             >
-              <div className="h-48 sm:h-40 lg:h-48 overflow-hidden">
-                <img 
+              <div className="relative h-48 sm:h-56 lg:h-64 overflow-hidden group">
+                <motion.img 
                   src={service.image} 
                   alt={service.name}
-                  className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
+                  className="w-full h-full object-cover transition-transform duration-700 ease-out"
+                  whileHover={{ scale: 1.1 }}
+                  loading="lazy"
                 />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
-              <div className="p-4 sm:p-5 lg:p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg sm:text-xl font-semibold">{service.name}</h3>
-                  <Scissors className="text-[#F0B35B]" size={20} />
+
+              <div className="p-6 sm:p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-300">
+                    {service.name}
+                  </h3>
+                  <motion.div
+                    whileHover={{ rotate: 180 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Scissors className="text-[#F0B35B] w-6 h-6 sm:w-7 sm:h-7" />
+                  </motion.div>
                 </div>
-                <p className="text-gray-300 text-sm mb-4">{service.description}</p>
+
+                <p className="text-gray-300 text-sm sm:text-base mb-6">{service.description}</p>
+
                 <div className="flex justify-between items-center">
-                  <span className="text-[#F0B35B] font-bold text-lg sm:text-xl">{service.price}</span>
-                  <button className="relative overflow-hidden group bg-[#F0B35B] text-black px-4 py-2 rounded-md transition-all duration-300 hover:scale-110 border-2 border-[#F0B35B]/70 hover:shadow-[0_0_15px_rgba(240,179,91,0.5)]">
+                  <span className="text-[#F0B35B] font-bold text-xl sm:text-2xl">{service.price}</span>
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="relative overflow-hidden group bg-[#F0B35B] text-black px-6 py-2.5 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base hover:shadow-[0_0_20px_rgba(240,179,91,0.4)] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50"
+                  >
                     <span className="relative z-10">Agendar</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
-                  </button>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -skew-x-45 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-700"></div>
+                  </motion.button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

@@ -142,12 +142,17 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
         <button
           onClick={handleBookingClick}
           className="
-            relative overflow-hidden group
+            relative overflow-hidden
             mt-4 bg-[#F0B35B] text-black px-12 py-4 rounded-lg
             text-lg md:text-xl font-semibold
-            transition-all duration-700 ease-out
+            transition-all duration-700
             scale-100 shadow-[0_0_25px_rgba(240,179,91,0.4)]
-             border-2 border-[#F0B35B]
+            border-2 border-[#F0B35B]
+           
+            before:absolute before:inset-0
+            before:bg-gradient-to-r before:from-[#F0B35B]/0 
+            before:via-white/40 before:to-[#F0B35B]/0
+            before:-skew-x-45 before:animate-shine
           "
         >
           <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">

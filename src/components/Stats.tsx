@@ -133,6 +133,18 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     setRevenueDisplayMode(mode);
     setChartKey(prev => prev + 1);
   };
+  
+  // Atualiza o chartKey sempre que os dados relevantes para o gráfico mudarem
+  useEffect(() => {
+    setChartKey(prev => prev + 1);
+  }, [filteredPendingAppointments, filteredCompletedAppointments, filteredPendingRevenue, filteredCompletedRevenue, revenueDisplayMode]);
+  
+  // Também atualiza o chartKey quando os appointments mudarem
+  useEffect(() => {
+    if (appointments.length > 0) {
+      setChartKey(prev => prev + 1);
+    }
+  }, [appointments]);
 
   return (
     <div className="mb-6 sm:mb-8 sm:px-0">
@@ -265,7 +277,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                         animationEasing="ease-out"
                       >
                         <Cell key="cell-0" fill="#F59E0B" />
-                        <Cell key="cell-1" fill="#10B981" />
+                        <Cell key="cell-1" fill="#4CAF50" />
                       </Pie>
                       <Tooltip 
                         formatter={(value, name, props) => [
@@ -292,7 +304,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#10B981]"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#4CAF50]"></div>
                     <p className="text-sm text-gray-300">
                       Concluídos: <span className="font-semibold">{filteredCompletedAppointments}</span>
                       <span className="block text-xs text-gray-400">R$ {filteredCompletedRevenue.toFixed(2)}</span>

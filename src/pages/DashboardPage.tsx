@@ -287,9 +287,7 @@ const DashboardPage: React.FC = () => {
         {/* Seção de Agendamentos */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
-          <h2 className="text-xs text-gray-400">Agendamentos</h2>
-            <span className="text-xs text-gray-400">{filteredAppointments.length} total</span>
-          
+            <span className="text-xs pl-10 text-gray-400">{filteredAppointments.length} total</span>
         </div>
           <div className="relative">
             <div className="flex flex-row items-center justify-start gap-2">

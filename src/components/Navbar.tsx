@@ -83,7 +83,9 @@ const Navbar: React.FC<NavbarProps> = ({
                 className="relative overflow-hidden group bg-[#F0B35B] text-black px-4 py-2 rounded-md transition-all duration-300 hover:scale-110 border-2 border-[#F0B35B]/70 hover:shadow-[0_0_15px_rgba(240,179,91,0.4)]"
               >
                 <span className="relative z-10">Agendar horário</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 
+                via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-100 
+                animate-shine"></div>
               </button>
             </div>
           </div>

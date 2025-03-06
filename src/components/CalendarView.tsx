@@ -96,8 +96,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, selectedDate,
           onClick={() => onDateSelect(date)}
           className={`relative h-10 sm:h-14 rounded-lg flex items-center justify-center transition-colors
             ${isSelected ? 'bg-[#F0B35B] text-black' : 'hover:bg-[#252B3B]'}
-            ${!isSelected && hasApps ? 'bg-[#1A1F2E]' : ''}
-            ${!isSelected && !hasApps ? 'text-gray-600' : 'text-white'}
+            ${!isSelected && hasApps ? 'bg-[#1A1F2E] text-white' : ''}
           `}
         >
           <span className={`text-sm sm:text-base ${isSelected ? 'font-bold' : ''}`}>
@@ -168,10 +167,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, selectedDate,
 
       {/* Legenda */}
       <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-gray-400">
-        <div className="flex items-center">
-          <div className="w-2 h-2 rounded-full bg-[#F0B35B] mr-2"></div>
-          <span>Com Agendamentos</span>
-        </div>
+        
         <div className="flex items-center">
           <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
           <span>Hoje</span>
