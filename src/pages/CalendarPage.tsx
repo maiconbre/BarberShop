@@ -31,13 +31,21 @@ const CalendarPage: React.FC = () => {
   // Função para carregar agendamentos do backend
   const loadAppointments = useCallback(async () => {
     try {
+      // Configurar headers básicos sem necessidade de token
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      
+      // Adicionar token apenas se estiver disponível (para operações que possam precisar)
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
+        headers,
         mode: 'cors'
       });
       const result = await response.json();

@@ -11,12 +11,42 @@ interface ChartData {
 }
 
 interface GraficoProps {
-  weeklyData: ChartData[];
+  appointments: any[];
   isChartExpanded: boolean;
   setIsChartExpanded: (expanded: boolean) => void;
 }
 
-const Grafico: React.FC<GraficoProps> = ({ weeklyData, isChartExpanded, setIsChartExpanded }) => {
+const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsChartExpanded }) => {
+  // Calcular os dados do gráfico a partir dos appointments
+  const weeklyData = React.useMemo(() => {
+    const appointmentsByDate = appointments.reduce((acc, app) => {
+      if (!acc[app.date]) {
+        acc[app.date] = { pending: 0, completed: 0 };
+      }
+      if (app.status === 'pending') {
+        acc[app.date].pending++;
+      } else if (app.status === 'completed') {
+        acc[app.date].completed++;
+      }
+      return acc;
+    }, {} as { [key: string]: { pending: number; completed: number } });
+
+    const sortedDates = Object.keys(appointmentsByDate).sort();
+    return sortedDates.map(date => {
+      const dayDate = new Date(date + 'T12:00:00-03:00');
+      const fullDate = dayDate.toLocaleDateString('pt-BR', {
+        weekday: 'short',
+        day: 'numeric'
+      }).replace('.', '').replace('-feira', '');
+
+      return {
+        date: String(dayDate.getDate()),
+        fullDate: fullDate.charAt(0).toUpperCase() + fullDate.slice(1),
+        pending: appointmentsByDate[date].pending,
+        completed: appointmentsByDate[date].completed
+      };
+    });
+  }, [appointments]);
   return (
     <motion.div
       className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg overflow-hidden mb-6"
