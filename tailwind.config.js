@@ -49,6 +49,7 @@ export default {
         'fade-in': 'fadeIn 0.5s ease-out forwards',
         'scale': 'scale 0.3s ease-out forwards',
         'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-once': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) 3',
         'bounce-slow': 'bounce 3s infinite',
         'scroll-down': 'scrollDown 1.5s ease-in-out infinite',
         'shine': 'shine 1.5s ease-in-out infinite',
