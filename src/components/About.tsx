@@ -88,11 +88,6 @@ const About = () => {
       icon: <Award className="w-6 h-6" />,
       title: "Qualidade Premium",
       description: "Utilizamos produtos de alta qualidade para garantir o melhor resultado para nossos clientes."
-    },
-    {
-      icon: <MapPin className="w-6 h-6" />,
-      title: "Localização Privilegiada",
-      description: "Estamos localizados em um ponto de fácil acesso, com estacionamento próximo."
     }
   ];
 
