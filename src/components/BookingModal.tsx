@@ -75,7 +75,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
   React.useEffect(() => {
     const fetchBarbers = async () => {
       try {
-        const response = await fetch('https://barber-backend-spm8.onrender.com/api/barbers');
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -122,7 +122,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
           (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)
       };
 
-      const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

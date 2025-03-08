@@ -31,7 +31,7 @@ const CalendarPage: React.FC = () => {
   // Função para carregar agendamentos do backend
   const loadAppointments = useCallback(async () => {
     try {
-      const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ const CalendarPage: React.FC = () => {
     if (!appointmentId) return;
     try {
       if (action === 'delete') {
-        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ const CalendarPage: React.FC = () => {
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
-        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

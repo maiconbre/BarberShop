@@ -16,10 +16,7 @@ interface Appointment {
   barberName: string;
 }
 
-interface BookedSlot {
-  time: string;
-  isBooked: boolean;
-}
+
 
 const timeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
@@ -63,7 +60,7 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('https://barber-backend-spm8.onrender.com/api/appointments', {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,5 @@
-import { Clock, Scissors, Award, MapPin, Star } from 'lucide-react';
-import { useState, useEffect, FormEvent } from 'react';
+import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 
 const About = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -9,6 +9,19 @@ const About = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  // Estados para os comentários aprovados
+  const [approvedComments, setApprovedComments] = useState<any[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentsError, setCommentsError] = useState('');
+
+  // Estados para paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const commentsPerPage = 5;
+  // Referência para o elemento da seção
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Efeito para detectar quando o componente entra na viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -17,17 +30,54 @@ const About = () => {
           observer.disconnect();
         }
       },
-      { threshold: 0.2 }
+      {
+        threshold: 0.1, // Quando pelo menos 10% do componente estiver visível
+        rootMargin: '0px'
+      }
     );
 
-    const element = document.getElementById('about-section');
-    if (element) observer.observe(element);
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
 
     return () => {
-      if (element) observer.unobserve(element);
+      if (sectionRef.current) {
+        observer.unobserve(sectionRef.current);
+      }
     };
   }, []);
 
+  // Efeito para carregar os comentários aprovados
+  useEffect(() => {
+    const fetchApprovedComments = async () => {
+      setIsLoadingComments(true);
+      setCommentsError('');
+
+      try {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/comments?status=approved`);
+
+        if (!response.ok) {
+          throw new Error('Erro ao carregar comentários');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          setApprovedComments(data.data);
+          setTotalPages(Math.ceil(data.data.length / commentsPerPage));
+        } else {
+          throw new Error(data.message || 'Erro ao carregar comentários');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar comentários:', error);
+        setCommentsError('Não foi possível carregar os comentários. Tente novamente mais tarde.');
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+
+    fetchApprovedComments();
+  }, []);
   const features = [
     {
       icon: <Scissors className="w-6 h-6" />,
@@ -47,15 +97,15 @@ const About = () => {
   ];
 
   return (
-    <div id="about-section" className="py-20 px-4 bg-[#0D121E] relative overflow-hidden">
+    <div ref={sectionRef} id="about-section" className="py-20 px-4 bg-[#0D121E] relative overflow-hidden">
       {/* Elementos decorativos */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-      
+
       {/* Padrão de linhas decorativas */}
       <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{ 
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)', 
+        <div className="h-full w-full" style={{
+          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
           backgroundSize: '40px 40px'
         }}></div>
       </div>
@@ -84,11 +134,11 @@ const About = () => {
               qualificados cuidam do seu visual. Nossa missão é proporcionar uma experiência única de cuidado pessoal,
               combinando técnicas tradicionais com tendências contemporâneas.
             </p>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
               {features.map((feature, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[#F0B35B]/5 hover:-translate-y-1"
                 >
                   <div className="flex items-center gap-3 mb-3">
@@ -162,44 +212,73 @@ const About = () => {
                 <Star className="text-[#F0B35B] w-4 h-4" /> Avaliações
               </h3>
               <div className="space-y-3">
-                <div className="p-3 bg-[#0D121E]/50 rounded-lg hover:bg-[#0D121E] transition-colors duration-300">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex text-[#F0B35B] gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                    <span className="text-xs text-gray-400">2d</span>
+                {isLoadingComments ? (
+                  <div className="flex justify-center items-center py-6">
+                    <Loader2 className="w-6 h-6 text-[#F0B35B] animate-spin" />
+                    <span className="ml-2 text-gray-400">Carregando comentários...</span>
                   </div>
-                  <p className="text-gray-300 text-xs italic leading-relaxed">"Melhor barbearia da região! Atendimento excelente e resultado impecável."</p>
-                  <p className="text-[#F0B35B] text-xs mt-1.5 font-medium">- Carlos S.</p>
-                </div>
+                ) : commentsError ? (
+                  <div className="p-3 bg-red-500/10 text-red-400 rounded-lg text-sm">
+                    {commentsError}
+                  </div>
+                ) : approvedComments.length === 0 ? (
+                  <div className="p-3 bg-[#0D121E]/50 rounded-lg text-center">
+                    <p className="text-gray-400 text-sm">Nenhum comentário aprovado ainda.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Comentários paginados */}
+                    {approvedComments
+                      .slice((currentPage - 1) * commentsPerPage, currentPage * commentsPerPage)
+                      .map((comment, index) => (
+                        <div key={comment.id} className="p-3 bg-[#0D121E]/50 rounded-lg hover:bg-[#0D121E] transition-colors duration-300">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex text-[#F0B35B] gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className="w-3 h-3 fill-current" />
+                              ))}
+                            </div>
+                            <span className="text-xs text-gray-400">
+                              {new Date(comment.createdAt).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-gray-300 text-xs italic leading-relaxed">"{comment.comment}"</p>
+                          <p className="text-[#F0B35B] text-xs mt-1.5 font-medium">- {comment.name}</p>
+                        </div>
+                      ))}
 
-                <div className="p-3 bg-[#0D121E]/50 rounded-lg hover:bg-[#0D121E] transition-colors duration-300">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex text-[#F0B35B] gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                    <span className="text-xs text-gray-400">1sem</span>
-                  </div>
-                  <p className="text-gray-300 text-xs italic leading-relaxed">"Profissionais atenciosos e ambiente agradável. Corte perfeito!"</p>
-                  <p className="text-[#F0B35B] text-xs mt-1.5 font-medium">- Rafael M.</p>
-                </div>
+                    {/* Controles de paginação */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center space-x-4 mt-4">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="p-1 rounded-full bg-[#0D121E] text-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label="Página anterior"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
 
-                <div className="p-3 bg-[#0D121E]/50 rounded-lg hover:bg-[#0D121E] transition-colors duration-300">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex text-[#F0B35B] gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-current" />
-                      ))}
-                    </div>
-                    <span className="text-xs text-gray-400">2sem</span>
-                  </div>
-                  <p className="text-gray-300 text-xs italic leading-relaxed">"Ótimo atendimento, preço justo e ambiente acolhedor. Minha barbearia favorita!"</p>
-                  <p className="text-[#F0B35B] text-xs mt-1.5 font-medium">- Pedro H.</p>
-                </div>
+                        <span className="text-sm text-gray-300">
+                          {currentPage} de {totalPages}
+                        </span>
+
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="p-1 rounded-full bg-[#0D121E] text-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label="Próxima página"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
@@ -208,7 +287,51 @@ const About = () => {
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Star className="text-[#F0B35B] w-4 h-4" /> Deixe seu comentário
               </h3>
-              <form className="space-y-4" onSubmit={handleSubmitComment}>
+              <form className="space-y-4" onSubmit={async (e: FormEvent) => {
+                e.preventDefault();
+                setIsSubmitting(true);
+                setSubmitError('');
+
+                // Prevent multiple submissions within 20 seconds
+                const lastSubmitTime = localStorage.getItem('lastCommentSubmit');
+                const now = Date.now();
+                if (lastSubmitTime && now - parseInt(lastSubmitTime) < 20000) {
+                  setSubmitError('Por favor, aguarde 20 segundos entre os comentários.');
+                  setIsSubmitting(false);
+                  return;
+                }
+
+                try {
+                  const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/comments`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                      // Removido o token de autorização, pois a rota é pública
+                    },
+                    body: JSON.stringify({
+                      name,
+                      comment,
+                      status: 'pending'
+                    })
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Erro ao enviar comentário');
+                  }
+
+                  // Store submission timestamp
+                  localStorage.setItem('lastCommentSubmit', now.toString());
+
+                  setSubmitSuccess(true);
+                  setName('');
+                  setComment('');
+                } catch (error) {
+                  console.error(error);
+                  setSubmitError('Erro ao enviar comentário. Tente novamente.');
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}>
                 <div>
                   <input
                     type="text"
@@ -236,13 +359,14 @@ const About = () => {
                 >
                   {isSubmitting ? 'Enviando...' : 'Enviar Comentário'}
                 </button>
-                
+
                 {submitSuccess && (
                   <div className="mt-3 p-3 bg-green-500/20 text-green-400 rounded-lg text-sm">
                     Comentário enviado com sucesso! Aguardando aprovação do administrador.
+                    <p className="mt-1 text-xs">Seu comentário será exibido após aprovação.</p>
                   </div>
                 )}
-                
+
                 {submitError && (
                   <div className="mt-3 p-3 bg-red-500/20 text-red-400 rounded-lg text-sm">
                     {submitError}
@@ -257,43 +381,6 @@ const About = () => {
   );
 };
 
-  // Função para enviar o comentário para o backend
-  const handleSubmitComment = async (e: FormEvent) => {
-    e.preventDefault();
-    
-    if (!name.trim() || !comment.trim()) return;
-    
-    setIsSubmitting(true);
-    setSubmitSuccess(false);
-    setSubmitError('');
-    
-    try {
-      const response = await fetch('https://barber-backend-spm8.onrender.com/api/comments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          comment,
-          status: 'pending'
-        })
-      });
-      
-      if (response.ok) {
-        setSubmitSuccess(true);
-        setName('');
-        setComment('');
-      } else {
-        const errorData = await response.json();
-        setSubmitError(errorData.message || 'Erro ao enviar comentário. Tente novamente.');
-      }
-    } catch (error) {
-      console.error('Erro ao enviar comentário:', error);
-      setSubmitError('Erro ao enviar comentário. Verifique sua conexão e tente novamente.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
 export default About;

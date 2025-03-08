@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Calendar } from 'lucide-react';
@@ -46,7 +46,6 @@ const CountUp = ({ end, duration = 0.8, prefix = '' }: { end: number; duration?:
 
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
   const navigate = useNavigate();
-  const [chartKey, setChartKey] = useState(0);
   
   const totalAppointments = appointments.length;
   const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
@@ -81,14 +80,30 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     }
   };
 
-  const currentFilteredAppointments = getFilteredAppointmentsByDate();
-  const filteredPendingAppointments = currentFilteredAppointments.filter(app => app.status === 'pending').length;
-  const filteredCompletedAppointments = currentFilteredAppointments.filter(app => app.status === 'completed').length;
-  const filteredPendingRevenue = currentFilteredAppointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0);
-  const filteredCompletedRevenue = currentFilteredAppointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0);
+  // Usando useMemo para evitar recálculos desnecessários
+  const currentFilteredAppointments = useMemo(() => getFilteredAppointmentsByDate(), 
+    [appointments, revenueDisplayMode]);
+    
+  const filteredPendingAppointments = useMemo(() => 
+    currentFilteredAppointments.filter(app => app.status === 'pending').length, 
+    [currentFilteredAppointments]);
+    
+  const filteredCompletedAppointments = useMemo(() => 
+    currentFilteredAppointments.filter(app => app.status === 'completed').length, 
+    [currentFilteredAppointments]);
+    
+  const filteredPendingRevenue = useMemo(() => 
+    currentFilteredAppointments.filter(app => app.status === 'pending')
+      .reduce((sum, app) => sum + app.price, 0), 
+    [currentFilteredAppointments]);
+    
+  const filteredCompletedRevenue = useMemo(() => 
+    currentFilteredAppointments.filter(app => app.status === 'completed')
+      .reduce((sum, app) => sum + app.price, 0), 
+    [currentFilteredAppointments]);
 
-  // Cálculo de estatísticas detalhadas
-  const calculateStats = () => {
+  // Cálculo de estatísticas detalhadas usando useMemo
+  const calculatedStats = useMemo(() => {
     const hoje = new Date().toISOString().split('T')[0];
     const startOfWeek = new Date();
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
@@ -124,27 +139,20 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     }).length;
 
     return { receitaHoje, receitaSemana, receitaMes, ticketMedio, taxaConclusao, clientesHoje, clientesSemana, clientesMes };
-  };
+  }, [appointments, totalAppointments, totalRevenue, completedAppointments]);
 
-  const { receitaHoje, receitaSemana, receitaMes, ticketMedio, taxaConclusao, clientesHoje, clientesSemana, clientesMes } = calculateStats();
+  const { receitaHoje, receitaSemana, receitaMes, ticketMedio, taxaConclusao, clientesHoje, clientesSemana, clientesMes } = calculatedStats;
 
-  // Função para atualizar o modo de exibição e forçar animação do gráfico
+  // Função para atualizar o modo de exibição
   const handleModeChange = (mode: string) => {
     setRevenueDisplayMode(mode);
-    setChartKey(prev => prev + 1);
   };
   
-  // Atualiza o chartKey sempre que os dados relevantes para o gráfico mudarem
-  useEffect(() => {
-    setChartKey(prev => prev + 1);
-  }, [filteredPendingAppointments, filteredCompletedAppointments, filteredPendingRevenue, filteredCompletedRevenue, revenueDisplayMode]);
-  
-  // Também atualiza o chartKey quando os appointments mudarem
-  useEffect(() => {
-    if (appointments.length > 0) {
-      setChartKey(prev => prev + 1);
-    }
-  }, [appointments]);
+  // Dados do gráfico memoizados para evitar recriação a cada renderização
+  const pieChartData = useMemo(() => [
+    { name: 'Pendentes', value: filteredPendingAppointments, revenue: filteredPendingRevenue },
+    { name: 'Concluídos', value: filteredCompletedAppointments, revenue: filteredCompletedRevenue }
+  ], [filteredPendingAppointments, filteredCompletedAppointments, filteredPendingRevenue, filteredCompletedRevenue]);
 
   return (
     <div className="mb-6 sm:mb-8 sm:px-0">
@@ -258,12 +266,9 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
               <div className="flex flex-row items-center gap-3">
                 <div className="h-[140px] w-[140px] sm:h-[160px] sm:w-[160px] relative">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart key={chartKey}>
+                    <PieChart>
                       <Pie
-                        data={[
-                          { name: 'Pendentes', value: filteredPendingAppointments, revenue: filteredPendingRevenue },
-                          { name: 'Concluídos', value: filteredCompletedAppointments, revenue: filteredCompletedRevenue }
-                        ]}
+                        data={pieChartData}
                         cx="50%"
                         cy="50%"
                         innerRadius={30}

@@ -68,8 +68,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const user = await authenticateUser(username, password);
       const storage = rememberMe ? localStorage : sessionStorage;
       
+      // Store user in the selected storage
       storage.setItem('user', JSON.stringify(user));
-      storage.setItem('token', user.token);
+      
+      // Token is already stored in both localStorage and sessionStorage by authenticateUser
+      // Just update the session expiry in the appropriate storage
       updateSessionExpiry(storage);
 
       if (user.role === 'barber') {

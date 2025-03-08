@@ -7,8 +7,6 @@ import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
 
-// [ID: INTERFACES-001] - Definição das interfaces principais
-// Interface que define a estrutura de um agendamento
 interface Appointment {
   id: string;
   clientName: string;
@@ -23,7 +21,6 @@ interface Appointment {
   updatedAt?: string;
 }
 
-// Interface que define a estrutura dos dados do gráfico
 interface Comment {
   id: string;
   name: string;
@@ -39,13 +36,13 @@ interface ChartData {
   fullDate: string;
 }
 const DashboardPage: React.FC = () => {
-  // Hooks de autenticação e navegação
   const { logout, getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
+  const navigate = useNavigate();
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [weeklyData, setWeeklyData] = useState<ChartData[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
-  const navigate = useNavigate();
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('total');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -54,8 +51,14 @@ const DashboardPage: React.FC = () => {
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [retryCount, setRetryCount] = useState(0);
+  const [hasError, setHasError] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+
   const appointmentsPerPage = 7;
-  // [ID: STATS-001] - Estatísticas básicas movidas para o componente Stats
+  const FETCH_COOLDOWN = 5000;
+  const MAX_RETRIES = 3;
+
   const filteredAppointments = appointments.filter(app => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -75,55 +78,81 @@ const DashboardPage: React.FC = () => {
     }
   });
 
-  // [ID: API-001] - Carregamento de dados da API
-  // Função para carregar agendamentos do backend
-  const loadAppointments = useCallback(async () => {
-    try {
-      const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
-        mode: 'cors'
-      });
-      const result = await response.json();
-      if (result.success) {
-        let formattedAppointments = result.data
-          .map((app: any) => ({
-            ...app,
-            service: app.serviceName
-          }));
+  const fetchWithRetry = useCallback(async (url: string, options: RequestInit, maxRetries = MAX_RETRIES) => {
+    let attempts = 0;
+    const now = Date.now();
 
-        // Filtra os agendamentos se o usuário não for admin
-        if (currentUser?.role !== 'admin') {
-          formattedAppointments = formattedAppointments.filter(
-            (app: Appointment) => app.barberId === currentUser?.id
-          );
-        }
-
-        // Ordena os agendamentos por data e hora
-        formattedAppointments.sort((a: Appointment, b: Appointment) => {
-          const dateA = new Date(`${a.date} ${a.time}`);
-          const dateB = new Date(`${b.date} ${b.time}`);
-          return dateA.getTime() - dateB.getTime();
-        });
-
-        setAppointments(formattedAppointments);
-      }
-    } catch (error) {
-      console.error('Error loading appointments:', error);
-      setAppointments([]);
+    if (now - lastFetchTime < FETCH_COOLDOWN) {
+      return null;
     }
-  }, []);
 
-  // Função para carregar comentários pendentes
-  const loadPendingComments = useCallback(async () => {
-    if (currentUser?.role !== 'admin') return;
+    // Ensure we have a valid token in the headers
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) {
+      console.error('No authentication token found');
+      setHasError(true);
+      logout();
+      return null;
+    }
+
+    // Make sure Authorization header is properly set
+    if (!options.headers) {
+      options.headers = {};
+    }
     
-    try {
-      const response = await fetch('https://barber-backend-spm8.onrender.com/api/comments?status=pending', {
+    options.headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+
+    while (attempts < maxRetries) {
+      try {
+        const response = await fetch(url, options);
+        setLastFetchTime(Date.now());
+        
+        if (response.status === 403 || response.status === 401) {
+          console.error(`Authentication error: ${response.status}`);
+          // For 403 errors, we should stop retrying immediately as it indicates
+          // the user doesn't have permission to access this resource
+          if (response.status === 403) {
+            // Don't logout on 403, just return null to indicate permission error
+            setHasError(true);
+            return null;
+          }
+          
+          // For 401 errors, retry until max attempts then logout
+          if (attempts === maxRetries - 1) {
+            logout();
+            return null;
+          }
+        }
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        setHasError(false);
+        setRetryCount(0);
+        return data;
+      } catch (error) {
+        attempts++;
+        setRetryCount(attempts);
+        setHasError(true);
+        console.error(`Tentativa ${attempts} falhou:`, error);
+        if (attempts === maxRetries) {
+          console.error('Número máximo de tentativas atingido');
+          return null;
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+      }
+    }
+    return null;
+  }, [lastFetchTime, logout]);
+
+  const loadAppointments = useCallback(async () => {
+    const result = await fetchWithRetry(
+      `${(import.meta as any).env.VITE_API_URL}/api/appointments`,
+      {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -131,62 +160,127 @@ const DashboardPage: React.FC = () => {
           'Authorization': 'Bearer ' + localStorage.getItem('token')
         },
         mode: 'cors'
+      }
+    );
+
+    if (result?.success) {
+      let formattedAppointments = result.data
+        .map((app: any) => ({
+          ...app,
+          service: app.serviceName
+        }));
+
+      if (currentUser?.role !== 'admin') {
+        formattedAppointments = formattedAppointments.filter(
+          (app: Appointment) => app.barberId === currentUser?.id
+        );
+      }
+
+      formattedAppointments.sort((a: Appointment, b: Appointment) => {
+        const dateA = new Date(`${a.date} ${a.time}`);
+        const dateB = new Date(`${b.date} ${b.time}`);
+        return dateA.getTime() - dateB.getTime();
       });
-      
-      const result = await response.json();
-      if (result.success) {
-        setPendingComments(result.data || []);
+
+      setAppointments(formattedAppointments);
+    }
+  }, [currentUser, fetchWithRetry]);
+
+  const loadPendingComments = useCallback(async () => {
+    // Removida verificação de admin para permitir acesso público aos comentários pendentes
+    
+    // Don't retry if we've already reached the maximum retry count
+    if (retryCount >= MAX_RETRIES) {
+      console.log('Maximum retry attempts reached for pending comments');
+      return;
+    }
+
+    try {
+      // Fazendo requisição sem autenticação
+      const response = await fetch(
+        `${(import.meta as any).env.VITE_API_URL}/api/comments?status=pending`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+            // Removido o token de autorização para permitir acesso público
+          },
+          mode: 'cors'
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setPendingComments(result.data || []);
+          setHasError(false);
+        }
+      } else {
+        console.error(`Erro ao buscar comentários: ${response.status}`);
+        setHasError(true);
       }
     } catch (error) {
-      console.error('Erro ao carregar comentários pendentes:', error);
+      console.error('Error fetching pending comments:', error);
+      setHasError(true);
     }
-  }, [currentUser]);
+  }, [retryCount]); // Removida dependência de fetchWithRetry e logout
 
-  // Função para gerenciar ações nos comentários (aprovar/recusar)
+  useEffect(() => {
+    let isSubscribed = true;
+    let interval: NodeJS.Timeout;
+
+    const fetchData = async () => {
+      if (!isSubscribed) return;
+      
+      try {
+        // Always load appointments for all users
+        await loadAppointments();
+        
+        // Carregar comentários pendentes para todos os usuários, sem verificação de admin
+        await loadPendingComments();
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setHasError(true);
+      }
+    };
+
+    fetchData();
+
+    // Only set up polling if there are no errors
+    if (!hasError) {
+      interval = setInterval(fetchData, 30000);
+    }
+
+    return () => {
+      isSubscribed = false;
+      if (interval) clearInterval(interval);
+    };
+  }, [loadAppointments, loadPendingComments, hasError]); // Removida dependência de currentUser
+
+
   const handleCommentAction = async (commentId: string, action: 'approve' | 'reject') => {
+    if (!commentId) return;
+
     try {
-      const response = await fetch(`https://barber-backend-spm8.onrender.com/api/comments/${commentId}`, {
+      const newStatus = action === 'approve' ? 'approved' : 'rejected';
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/comments/${commentId}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
+          'Content-Type': 'application/json'
+          // Removido o token de autorização para permitir acesso público
         },
-        mode: 'cors',
-        body: JSON.stringify({
-          status: action === 'approve' ? 'approved' : 'rejected'
-        })
+        body: JSON.stringify({ status: newStatus })
       });
-      
+
       if (response.ok) {
-        // Remove o comentário da lista de pendentes
         setPendingComments(prev => prev.filter(comment => comment.id !== commentId));
-        setIsNotificationDropdownOpen(false);
+        setIsNotificationDropdownOpen(pendingComments.length > 1);
       }
     } catch (error) {
-      console.error(`Erro na ação ${action} do comentário:`, error);
+      console.error(`Erro ao ${action === 'approve' ? 'aprovar' : 'rejeitar'} comentário:`, error);
     }
   };
-
-  // Carrega os agendamentos e comentários ao montar o componente e configura o polling
-  useEffect(() => {
-    loadAppointments();
-    if (currentUser?.role === 'admin') {
-      loadPendingComments();
-    }
-    
-    const appointmentsInterval = setInterval(loadAppointments, 30000);
-    const commentsInterval = currentUser?.role === 'admin' ? setInterval(loadPendingComments, 60000) : null;
-    
-    // [ID: UI-001] - Renderização da interface do usuário
-    // Estrutura principal do dashboard com cards, gráficos e lista de agendamentos
-    return () => {
-      clearInterval(appointmentsInterval);
-      if (commentsInterval) clearInterval(commentsInterval);
-    };
-  }, [loadAppointments, loadPendingComments, currentUser]);
-  // [ID: CHART-001] - Processamento de dados para gráficos movido para o componente Grafico
-  // Calcula os dados semanais para o gráfico
   const calculateWeeklyData = useCallback(() => {
     const appointmentsByDate = appointments.reduce((acc, app) => {
       if (!acc[app.date]) {
@@ -218,7 +312,6 @@ const DashboardPage: React.FC = () => {
     setWeeklyData(data);
   }, [appointments]);
   useEffect(() => {
-    // Sincroniza o filterMode com o revenueDisplayMode
     if (revenueDisplayMode === 'day') {
       setFilterMode('today');
     } else if (revenueDisplayMode === 'week') {
@@ -233,12 +326,11 @@ const DashboardPage: React.FC = () => {
     }
   }, [appointments, calculateWeeklyData, revenueDisplayMode]);
 
-  // Gerencia ações de completar, deletar ou alternar status dos agendamentos
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
     if (!appointmentId) return;
     try {
       if (action === 'delete') {
-        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -252,7 +344,7 @@ const DashboardPage: React.FC = () => {
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
-        const response = await fetch(`https://barber-backend-spm8.onrender.com/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -274,7 +366,6 @@ const DashboardPage: React.FC = () => {
       console.error(`Erro na ação ${action}:`, error);
     }
   };
-  // Pagination logic
   const indexOfLastAppointment = currentPage * appointmentsPerPage;
   const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
   const currentAppointments = filteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
@@ -282,40 +373,47 @@ const DashboardPage: React.FC = () => {
   const handlePageChange = (pageNumber: number): void => {
     setCurrentPage(pageNumber);
   };
-  // Estrutura principal do dashboard com cards, gráficos e lista de agendamentos
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
-      {/* Elementos decorativos */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-      
-      {/* Padrão de linhas decorativas */}
+
       <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{ 
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)', 
+        <div className="h-full w-full" style={{
+          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
           backgroundSize: '40px 40px'
         }}></div>
       </div>
-      
+
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
           <div className="flex items-center gap-4">
             <div className="relative">
-              <button
+              <Bell
+                className={`w-6 h-6 ${pendingComments.length > 0 ? 'text-[#F0B35B]' : 'text-gray-400'}`}
                 onClick={() => setIsNotificationDropdownOpen(!isNotificationDropdownOpen)}
-                className="p-2 rounded-full bg-[#1A1F2E] transition-colors duration-300 relative"
-              >
-                <Bell className="w-6 h-6 text-[#F0B35B]" />
-                {pendingComments.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
-                    {pendingComments.length}
-                  </span>
-                )}
-              </button>
-              {isNotificationDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
+              />
+              {pendingComments.length > 0 && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+              )}
+            </div>
+            {isNotificationDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 bg-black/50 z-40"
+                  onClick={() => setIsNotificationDropdownOpen(false)}
+                ></div>
+                <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm max-h-[80vh] overflow-y-auto rounded-lg shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="flex justify-between items-center p-4 border-b border-gray-700/30">
+                    <h3 className="text-lg font-semibold text-white">Notificações</h3>
+                    <button
+                      onClick={() => setIsNotificationDropdownOpen(false)}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
                   <div className="py-1" role="menu">
                     {pendingComments.length > 0 ? (
                       pendingComments.map((comment) => (
@@ -345,21 +443,36 @@ const DashboardPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-              )}
-            </div>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
-            >
-              <Settings className="w-6 h-6 text-black " />
-            </button>
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
+              </>
+            )}
+          </div>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
+          >
+            <Settings className="w-6 h-6 text-black" />
+          </button>
+          {isDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 bg-black/50 z-40"
+                onClick={() => setIsDropdownOpen(false)}
+              />
+              <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm max-h-[80vh] overflow-y-auto rounded-lg shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
+                <div className="flex justify-between items-center p-4 border-b border-gray-700/30">
+                  <h3 className="text-lg font-semibold text-white">Configurações</h3>
+                  <button
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
                 <div className="py-1" role="menu">
                   {currentUser?.role === 'admin' && (
                     <button
                       onClick={() => navigate('/register')}
-                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
+                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white"
                       role="menuitem"
                     >
                       Gerenciar Barbeiros
@@ -367,43 +480,40 @@ const DashboardPage: React.FC = () => {
                   )}
                   <button
                     onClick={() => navigate('/trocar-senha')}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white"
                     role="menuitem"
                   >
                     Trocar Senha
                   </button>
                   <button
                     onClick={logout}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
+                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white"
                     role="menuitem"
                   >
                     Sair
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Cards de Estatísticas */}
         <Stats
           appointments={appointments}
           revenueDisplayMode={revenueDisplayMode}
           setRevenueDisplayMode={setRevenueDisplayMode}
         />
 
-        {/* Seção do Gráfico */}
         <Grafico
           weeklyData={weeklyData}
           isChartExpanded={isChartExpanded}
           setIsChartExpanded={setIsChartExpanded}
         />
 
-        {/* Seção de Agendamentos */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
             <span className="text-xs pl-10 text-gray-400">{filteredAppointments.length} total</span>
-        </div>
+          </div>
           <div className="relative">
             <div className="flex flex-row items-center justify-start gap-2">
               <motion.button
@@ -440,7 +550,7 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
         </div>
-        {/* Lista de Agendamentos */}
+
         <div className="space-y-4 mb-8">
           <AnimatePresence>
             {filteredAppointments.length > 0 ? (
@@ -457,7 +567,6 @@ const DashboardPage: React.FC = () => {
                   />
                 ))}
 
-                {/* Controles de Paginação */}
                 {totalPages > 1 && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -472,7 +581,8 @@ const DashboardPage: React.FC = () => {
                         whileTap={{ scale: 0.95 }}
                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${currentPage === index + 1
                           ? 'bg-[#F0B35B] text-black'
-                          : 'bg-[#1A1F2E] text-gray-400 hover:bg-[#252B3B]'}`}
+                          : 'bg-[#1A1F2E] text-gray-400 hover:bg-[#252B3B]'
+                          }`}
                       >
                         {index + 1}
                       </motion.button>
@@ -488,9 +598,11 @@ const DashboardPage: React.FC = () => {
                 className="bg-[#1A1F2E] p-6 rounded-lg text-center"
               >
                 <p className="text-gray-400">
-                  {filterMode === 'today' ? 'Nenhum agendamento para hoje' :
-                    filterMode === 'tomorrow' ? 'Nenhum agendamento para amanhã' :
-                      'Nenhum agendamento encontrado'}
+                  {filterMode === 'today'
+                    ? 'Nenhum agendamento para hoje'
+                    : filterMode === 'tomorrow'
+                      ? 'Nenhum agendamento para amanhã'
+                      : 'Nenhum agendamento encontrado'}
                 </p>
               </motion.div>
             )}
@@ -498,7 +610,8 @@ const DashboardPage: React.FC = () => {
         </div>
       </main>
     </div>
+
   );
-};
+}
 
 export default DashboardPage;

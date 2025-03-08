@@ -44,7 +44,7 @@ const TrocaSenha: React.FC = () => {
         throw new Error('Usuário não encontrado');
       }
 
-      const response = await fetch('https://barber-backend-spm8.onrender.com/api/users/change-password', {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/users/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
