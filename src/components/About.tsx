@@ -225,7 +225,7 @@ const About = () => {
                     {/* Comentários paginados */}
                     {approvedComments
                       .slice((currentPage - 1) * commentsPerPage, currentPage * commentsPerPage)
-                      .map((comment, index) => (
+                      .map((comment) => (
                         <div key={comment.id} className="p-3 bg-[#0D121E]/50 rounded-lg hover:bg-[#0D121E] transition-colors duration-300">
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex text-[#F0B35B] gap-0.5">

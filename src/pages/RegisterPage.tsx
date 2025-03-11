@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Edit } from 'lucide-react';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   barberName: string;
+}
+
+interface PasswordConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (password: string) => void;
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpen, onClose, onConfirm, barberName }) => {
@@ -40,6 +46,81 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpe
   );
 };
 
+const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ isOpen, onClose, onConfirm }) => {
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password.trim()) {
+      setError('Por favor, insira sua senha');
+      return;
+    }
+    setIsLoading(true);
+    onConfirm(password);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-[#1A1F2E] p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <h3 className="text-xl font-bold text-white mb-4">Confirmar Alterações</h3>
+        <p className="text-gray-300 mb-6">
+          Para confirmar as alterações, por favor insira sua senha.
+        </p>
+        
+        <form onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm mb-4">
+              {error}
+            </div>
+          )}
+          
+          <div className="mb-4">
+            <label htmlFor="confirm-password" className="sr-only">Senha</label>
+            <input
+              id="confirm-password"
+              name="password"
+              type="password"
+              required
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
+              placeholder="Sua senha"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError('');
+              }}
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-[#F0B35B] text-black rounded hover:bg-[#F0B35B]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <Loader2 className="animate-spin h-5 w-5" />
+              ) : (
+                'Confirmar'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +137,10 @@ const RegisterPage: React.FC = () => {
   const [deleteError, setDeleteError] = useState('');
   const [deleteSuccess, setDeleteSuccess] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editSuccess, setEditSuccess] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -76,6 +160,14 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Se estiver em modo de edição, abrir modal de senha
+    if (isEditMode && selectedUser) {
+      setIsPasswordModalOpen(true);
+      return;
+    }
+    
+    // Caso contrário, continuar com o fluxo normal de criação
     setIsLoading(true);
     setError('');
 
@@ -91,6 +183,7 @@ const RegisterPage: React.FC = () => {
 
       if (!whatsappRegex.test(cleanWhatsapp)) {
         setError('O número do WhatsApp deve conter entre 10 e 11 dígitos (DDD + número)');
+        setIsLoading(false);
         return;
       }
 
@@ -99,6 +192,7 @@ const RegisterPage: React.FC = () => {
 
       if (formData.pix.trim().length < 3) {
         setError('Por favor, insira uma chave PIX válida');
+        setIsLoading(false);
         return;
       }
 
@@ -125,6 +219,8 @@ const RegisterPage: React.FC = () => {
 
       // Mostrar mensagem de sucesso
       setSuccess('Barbeiro cadastrado com sucesso!');
+      setTimeout(() => setSuccess(''), 3000);
+
       // Limpar o formulário
       setFormData({
         name: '',
@@ -135,11 +231,83 @@ const RegisterPage: React.FC = () => {
       });
       // Atualizar a lista de usuários
       fetchUsers();
-      // Limpar a mensagem após 3 segundos
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      console.error('Error during registration:', err);
-      setError(err.message || 'Erro inesperado ao criar conta. Por favor, tente novamente.');
+      console.error('Error during operation:', err);
+      setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmUpdate = async (password: string) => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Validações
+      const whatsappRegex = /^\d{10,11}$/;
+      let cleanWhatsapp = formData.whatsapp.replace(/\D/g, '');
+
+      // Remove o prefixo 55 se já existir
+      if (cleanWhatsapp.startsWith('55')) {
+        cleanWhatsapp = cleanWhatsapp.substring(2);
+      }
+
+      if (!whatsappRegex.test(cleanWhatsapp)) {
+        setError('O número do WhatsApp deve conter entre 10 e 11 dígitos (DDD + número)');
+        return;
+      }
+
+      // Adiciona o prefixo 55 ao WhatsApp
+      cleanWhatsapp = '55' + cleanWhatsapp;
+
+      if (formData.pix.trim().length < 3) {
+        setError('Por favor, insira uma chave PIX válida');
+        return;
+      }
+
+      // Atualizar barbeiro existente
+      const updateData: any = {
+        name: formData.name.trim(),
+        whatsapp: cleanWhatsapp,
+        pix: formData.pix.trim(),
+        password: password // Usar a senha fornecida no modal
+      };
+
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers/${selectedUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Erro ao atualizar barbeiro');
+      }
+
+      setEditSuccess('Barbeiro atualizado com sucesso!');
+      setTimeout(() => setEditSuccess(''), 3000);
+      setIsEditMode(false);
+      setIsPasswordModalOpen(false);
+      
+      // Limpar o formulário
+      setFormData({
+        name: '',
+        username: '',
+        password: '',
+        whatsapp: '',
+        pix: ''
+      });
+      // Atualizar a lista de usuários
+      fetchUsers();
+      // Resetar o usuário selecionado
+      setSelectedUser(null);
+    } catch (err: any) {
+      console.error('Error during operation:', err);
+      setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -148,6 +316,32 @@ const RegisterPage: React.FC = () => {
   const handleDeleteUser = async (userId: number, userName: string) => {
     setSelectedUser({ id: userId, name: userName });
     setIsDeleteModalOpen(true);
+  };
+
+  const handleEditUser = async (user: any) => {
+    // Formatar o número de WhatsApp para exibição (remover o prefixo 55)
+    let displayWhatsapp = user.whatsapp;
+    if (displayWhatsapp.startsWith('55')) {
+      displayWhatsapp = displayWhatsapp.substring(2);
+    }
+
+    // Preencher o formulário com os dados do usuário
+    setFormData({
+      name: user.name,
+      username: user.username,
+      password: '', // Não preencher a senha por segurança
+      whatsapp: displayWhatsapp,
+      pix: user.pix
+    });
+
+    // Definir o modo de edição e o usuário selecionado
+    setIsEditMode(true);
+    setSelectedUser(user);
+
+    // Limpar mensagens anteriores
+    setSuccess('');
+    setError('');
+    setEditSuccess('');
   };
 
   const confirmDelete = async () => {
@@ -211,16 +405,22 @@ const RegisterPage: React.FC = () => {
         onConfirm={confirmDelete}
         barberName={selectedUser?.name || ''}
       />
+      
+      <PasswordConfirmationModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        onConfirm={handleConfirmUpdate}
+      />
 
       <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto relative z-10 pt-10 mt-8">
         <div className="w-full md:flex-1">
           <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
             <div>
               <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-extrabold text-white">
-                Cadastro
+                {isEditMode ? 'Editar Barbeiro' : 'Cadastro'}
               </h2>
               <p className="mt-2 text-center text-sm text-gray-400">
-                Cadastre um novo Barbeiro
+                {isEditMode ? 'Edite os dados do barbeiro' : 'Cadastre um novo Barbeiro'}
               </p>
             </div>
 
@@ -237,6 +437,12 @@ const RegisterPage: React.FC = () => {
                 </div>
               )}
 
+              {editSuccess && (
+                <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
+                  {editSuccess}
+                </div>
+              )}
+
               <div className="rounded-md shadow-sm -space-y-px">
                 <div>
                   <label htmlFor="name" className="sr-only">Nome</label>
@@ -245,38 +451,42 @@ const RegisterPage: React.FC = () => {
                     name="name"
                     type="text"
                     required
-                    className="appearance-none rounded-t-md relative block w-full px-3 py-3 sm:py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 text-base sm:text-sm"
+                    className={`appearance-none ${!isEditMode ? 'rounded-t-md' : 'rounded-t-md'} relative block w-full px-3 py-3 sm:py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 text-base sm:text-sm`}
                     placeholder="Nome"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label htmlFor="username" className="sr-only">username</label>
-                  <input
-                    id="username"
-                    name="username"
-                    type="username"
-                    required
-                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="Usuário"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="sr-only">Senha</label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="Senha"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  />
-                </div>
+                {!isEditMode && (
+                  <>
+                    <div>
+                      <label htmlFor="username" className="sr-only">username</label>
+                      <input
+                        id="username"
+                        name="username"
+                        type="username"
+                        required
+                        className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
+                        placeholder="Usuário"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="password" className="sr-only">Senha</label>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
+                        placeholder="Senha"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
                   <label htmlFor="whatsapp" className="sr-only">WhatsApp</label>
                   <input
@@ -314,12 +524,31 @@ const RegisterPage: React.FC = () => {
                   {isLoading ? (
                     <Loader2 className="animate-spin h-5 w-5" />
                   ) : (
-                    'Criar conta'
+                    isEditMode ? 'Atualizar barbeiro' : 'Criar conta'
                   )}
                 </button>
               </div>
 
-              <div className="text-center">
+              <div className="text-center space-y-2">
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditMode(false);
+                      setSelectedUser(null);
+                      setFormData({
+                        name: '',
+                        username: '',
+                        password: '',
+                        whatsapp: '',
+                        pix: ''
+                      });
+                    }}
+                    className="w-full text-gray-400 hover:text-white transition-colors text-sm"
+                  >
+                    Cancelar edição
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => navigate('/dashboard')}
@@ -336,7 +565,7 @@ const RegisterPage: React.FC = () => {
 
         <div className="w-full md:flex-1 order-first">
           <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
-            <h2 className="text-center text-xl sm:text-2xl font-bold text-white">Usuários Cadastrados</h2>
+            <h2 className="text-center text-xl sm:text-2xl font-bold text-white">Barbeiros Cadastrados</h2>
 
             {deleteSuccess && (
               <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
@@ -365,12 +594,20 @@ const RegisterPage: React.FC = () => {
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.name}</td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.username}</td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">
-                        <button
-                          onClick={() => handleDeleteUser(user.id, user.name)}
-                          className="text-red-500 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="text-blue-500 hover:text-blue-600 transition-colors"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id, user.name)}
+                            className="text-red-500 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
