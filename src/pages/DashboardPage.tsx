@@ -61,9 +61,16 @@ const DashboardPage: React.FC = () => {
   // Usando o hook personalizado para filtrar agendamentos
   const filteredAppointments = useFilteredAppointments(appointments, filterMode);
 
+  // Efeito para rolar para o topo da página quando o componente for renderizado
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, []); // Executar apenas uma vez na montagem do componente
+
   useEffect(() => {
     let isSubscribed = true;
-    let interval: NodeJS.Timeout | null = null;
 
     const fetchData = async () => {
       if (!isSubscribed) return;
@@ -100,13 +107,10 @@ const DashboardPage: React.FC = () => {
     // Fazer apenas uma requisição ao montar o componente
     fetchData();
 
-    // Não configuramos mais um intervalo para evitar requisições infinitas
-
     return () => {
       isSubscribed = false;
-      if (interval) clearInterval(interval);
     };
-  }, [loadAppointments, getCurrentUser]);
+  }, []); // Removendo dependências para evitar requisições duplicadas
 
 
   // Efeito para verificar se os agendamentos foram carregados corretamente

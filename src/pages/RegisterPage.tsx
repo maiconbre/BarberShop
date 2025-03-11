@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Trash2, Edit } from 'lucide-react';
+import EditConfirmationModal from '../components/EditConfirmationModal';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -22,10 +23,10 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpe
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-[#1A1F2E] p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
         <h3 className="text-xl font-bold text-white mb-4">Confirmar Exclusão</h3>
-        <p className="text-gray-300 mb-6">
-          Você está prestes a excluir o barbeiro <span className="font-semibold text-white">{barberName}</span>.
-          Esta ação também removerá todos os agendamentos associados a este barbeiro.
-          Esta ação não pode ser desfeita.
+        <p className="text-gray-300 mb-6 leading-relaxed">
+          Excluir o barbeiro <span className="font-semibold text-white">{barberName}</span>.
+          <br /> Você removerá todos agendamentos deste barbeiro.
+          <br /> Esta ação não pode ser desfeita.
         </p>
         <div className="flex justify-end space-x-4">
           <button
@@ -89,14 +90,14 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
         <p className="text-gray-300 mb-6">
           Para confirmar as alterações, por favor insira sua senha de administrador.
         </p>
-        
+
         <form onSubmit={handleSubmit}>
           {modalError && (
             <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm mb-4">
               {modalError}
             </div>
           )}
-          
+
           <div className="mb-4">
             <label htmlFor="confirm-password" className="sr-only">Senha de Administrador</label>
             <input
@@ -113,7 +114,7 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
               }}
             />
           </div>
-          
+
           <div className="flex justify-end space-x-4">
             <button
               type="button"
@@ -162,6 +163,7 @@ const RegisterPage: React.FC = () => {
   const [deleteSuccess, setDeleteSuccess] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isEditConfirmModalOpen, setIsEditConfirmModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
@@ -184,13 +186,13 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Se estiver em modo de edição, abrir modal de senha
+
+    // Se estiver em modo de edição, abrir modal de confirmação de senha do admin
     if (isEditMode && selectedUser) {
       setIsPasswordModalOpen(true);
       return;
     }
-    
+
     // Caso contrário, continuar com o fluxo normal de criação
     setIsLoading(true);
     setError('');
@@ -265,7 +267,7 @@ const RegisterPage: React.FC = () => {
 
   const handleConfirmUpdate = async (password: string) => {
     setIsLoading(true);
-    
+
     try {
       // Validações
       const whatsappRegex = /^\d{10,11}$/;
@@ -313,7 +315,7 @@ const RegisterPage: React.FC = () => {
 
       setEditSuccess('Barbeiro atualizado com sucesso!');
       setTimeout(() => setEditSuccess(''), 3000);
-      
+
       // Reset todos os estados
       setIsEditMode(false);
       setIsPasswordModalOpen(false);
@@ -326,10 +328,10 @@ const RegisterPage: React.FC = () => {
         whatsapp: '',
         pix: ''
       });
-      
+
       // Atualizar a lista de usuários
       await fetchUsers();
-      
+
     } catch (err: any) {
       console.error('Error during operation:', err);
       setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
@@ -344,6 +346,19 @@ const RegisterPage: React.FC = () => {
   };
 
   const handleEditUser = async (user: any) => {
+    // Definir o usuário selecionado para uso no modal
+    setSelectedUser(user);
+
+    // Abrir o modal de confirmação primeiro
+    setIsEditConfirmModalOpen(true);
+
+    // Limpar mensagens anteriores
+    setSuccess('');
+    setError('');
+    setEditSuccess('');
+  };
+
+  const prepareEditForm = (user: any) => {
     // Formatar o número de WhatsApp para exibição (remover o prefixo 55)
     let displayWhatsapp = user.whatsapp;
     if (displayWhatsapp.startsWith('55')) {
@@ -359,14 +374,11 @@ const RegisterPage: React.FC = () => {
       pix: user.pix
     });
 
-    // Definir o modo de edição e o usuário selecionado
+    // Definir o modo de edição
     setIsEditMode(true);
-    setSelectedUser(user);
 
-    // Limpar mensagens anteriores
-    setSuccess('');
-    setError('');
-    setEditSuccess('');
+    // Fechar o modal de confirmação
+    setIsEditConfirmModalOpen(false);
   };
 
   const confirmDelete = async () => {
@@ -430,7 +442,14 @@ const RegisterPage: React.FC = () => {
         onConfirm={confirmDelete}
         barberName={selectedUser?.name || ''}
       />
-      
+
+      <EditConfirmationModal
+        isOpen={isEditConfirmModalOpen}
+        onClose={() => setIsEditConfirmModalOpen(false)}
+        onConfirm={() => prepareEditForm(selectedUser)}
+        barberName={selectedUser?.name || ''}
+      />
+
       <PasswordConfirmationModal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
@@ -616,7 +635,7 @@ const RegisterPage: React.FC = () => {
                 <tbody className="divide-y divide-gray-700">
                   {users.map((user: any) => (
                     <tr key={user.id} className="hover:bg-[#252B3B] transition-colors">
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.name}</td>
+                      <td className="px-6 sm:px-6 py-4 whitespace-nowrap text-white">{user.name}</td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.username}</td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">
                         <div className="flex space-x-3">
@@ -624,13 +643,13 @@ const RegisterPage: React.FC = () => {
                             onClick={() => handleEditUser(user)}
                             className="text-blue-500 hover:text-blue-600 transition-colors"
                           >
-                            <Edit size={18} />
+                            <Edit size={22} />
                           </button>
                           <button
                             onClick={() => handleDeleteUser(user.id, user.name)}
                             className="text-red-500 hover:text-red-600 transition-colors"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={22} />
                           </button>
                         </div>
                       </td>
