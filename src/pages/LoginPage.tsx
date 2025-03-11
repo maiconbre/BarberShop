@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -14,6 +14,16 @@ const LoginPage: React.FC = () => {
     rememberMe: false
   });
 
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('savedUsername');
+    if (savedUsername) {
+      setFormData(prev => ({
+        ...prev,
+        username: savedUsername
+      }));
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -28,6 +38,11 @@ const LoginPage: React.FC = () => {
       const result = await login(formData.username, formData.password, formData.rememberMe);
       
       if (result) {
+        if (formData.rememberMe) {
+          localStorage.setItem('savedUsername', formData.username);
+        } else {
+          localStorage.removeItem('savedUsername');
+        }
         navigate('/dashboard', { replace: true });
       } else {
         setError('username ou senha incorretos');
@@ -131,7 +146,7 @@ const LoginPage: React.FC = () => {
                 }
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
-                Lembrar-me
+                Salvar usuário
               </label>
             </div>
           </div>
