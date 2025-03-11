@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,27 +23,6 @@ interface Appointment {
   viewed?: boolean;
 }
 
-// Hook personalizado para filtrar agendamentos
-const useFilteredAppointments = (appointments: Appointment[], filterMode: string) => {
-  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
-
-  useEffect(() => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
-
-    if (filterMode === 'today') {
-      setFilteredAppointments(appointments.filter(app => app.date === today));
-    } else if (filterMode === 'tomorrow') {
-      setFilteredAppointments(appointments.filter(app => app.date === tomorrow));
-    } else {
-      setFilteredAppointments(appointments);
-    }
-  }, [appointments, filterMode]);
-
-  return filteredAppointments;
-};
-
 const DashboardPage: React.FC = () => {
   const { logout, getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
@@ -58,8 +37,18 @@ const DashboardPage: React.FC = () => {
   // Usando o hook de notificações
   const { loadAppointments } = useNotifications();
 
-  // Usando o hook personalizado para filtrar agendamentos
-  const filteredAppointments = useFilteredAppointments(appointments, filterMode);
+  // Otimizar filtragem de agendamentos usando useMemo
+  const filteredAppointments = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
+
+    return appointments.filter(app => {
+      if (filterMode === 'today') return app.date === today;
+      if (filterMode === 'tomorrow') return app.date === tomorrow;
+      return true;
+    });
+  }, [appointments, filterMode]);
 
   // Efeito para rolar para o topo da página quando o componente for renderizado
   useEffect(() => {
@@ -295,9 +284,15 @@ const DashboardPage: React.FC = () => {
 
         {/* Lista de agendamentos */}
         <div className="space-y-4 mb-8">
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {filteredAppointments.length > 0 ? (
-              <>
+              <motion.div 
+                className="space-y-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
                 {filteredAppointments.map((appointment) => (
                   <AppointmentCardNew
                     key={appointment.id}
@@ -309,7 +304,7 @@ const DashboardPage: React.FC = () => {
                     appointments={appointments}
                   />
                 ))}
-              </>
+              </motion.div>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
