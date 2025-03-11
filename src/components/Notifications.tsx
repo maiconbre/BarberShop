@@ -315,55 +315,52 @@ export const useNotifications = () => {
 };
 
 const Notifications: React.FC = () => {
-  const {
-    pendingComments,
-    newAppointments,
-    isNotificationDropdownOpen,
-    notificationTab,
-    setNotificationTab,
-    handleCommentAction,
-    handleAppointmentAction,
-    toggleNotificationDropdown
-  } = useNotifications();
+  const { pendingComments, newAppointments, isNotificationDropdownOpen, notificationTab, setNotificationTab, toggleNotificationDropdown, handleCommentAction, handleAppointmentAction } = useNotifications();
+
+  // Calcular o total de notificações não lidas
+  const totalNotifications = pendingComments.length + newAppointments.length;
 
   return (
     <div className="relative">
-      <Bell
-        className={`w-6 h-6 ${pendingComments.length > 0 || newAppointments.length > 0 ? 'text-[#F0B35B]' : 'text-gray-400'}`}
+      <button
         onClick={toggleNotificationDropdown}
-      />
-      {(pendingComments.length > 0 || newAppointments.length > 0) && (
-        <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-      )}
+        className="relative p-2.5 rounded-full bg-[#1A1F2E] hover:bg-[#252B3B] transition-colors duration-300 flex items-center justify-center"
+        aria-label="Notificações"
+      >
+        <Bell className="w-5 h-5 text-white" />
+        {totalNotifications > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
+            {totalNotifications}
+          </span>
+        )}
+      </button>
 
       {isNotificationDropdownOpen && (
         <>
-          <div
-            className="fixed inset-0 bg-black/50 z-40"
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" 
             onClick={toggleNotificationDropdown}
-          ></div>
-          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[85%] max-w-xs max-h-[70vh] overflow-y-auto rounded-lg shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
-            <div className="flex justify-between items-center p-3 border-b border-gray-700/30">
-              <h3 className="text-base font-semibold text-white">Notificações</h3>
+          />
+          <div className="fixed sm:absolute top-[20%] sm:top-full left-[50%] sm:left-auto right-auto sm:right-0 transform-gpu -translate-x-1/2 sm:translate-x-0 -translate-y-0 sm:-translate-y-0 mt-0 sm:mt-4 w-[90vw] sm:w-[450px] md:w-[500px] max-h-[70vh] xs:max-h-[75vh] sm:max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1A1F2E] ring-1 ring-[#F0B35B]/20 z-50 animate-fade-in-up">
+            <div className="sticky top-0 flex justify-between items-center p-3 sm:p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
+              <h3 className="text-lg sm:text-xl font-semibold text-white">Notificações</h3>
               <button
                 onClick={toggleNotificationDropdown}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-gray-700/30 rounded-lg"
               >
                 ✕
               </button>
             </div>
 
-            {/* Botões de alternância entre comentários e agendamentos */}
-            <div className="flex border-b border-gray-700/30">
+            <div className="flex border-b border-gray-700/30 sticky top-[60px] sm:top-[65px] bg-[#1A1F2E] z-10">
               <button
                 onClick={() => setNotificationTab('comments')}
-                className={`flex-1 py-1.5 text-xs sm:text-sm font-medium transition-colors ${notificationTab === 'comments' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
+                className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${notificationTab === 'comments' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
               >
-                <div className="flex items-center justify-center gap-1">
-                  <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Comentários
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" />
+                  <span className="hidden xs:inline">Comentários</span>
                   {pendingComments.length > 0 && (
-                    <span className="ml-1 px-1 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs">
+                    <span className="px-1.5 sm:px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
                       {pendingComments.length}
                     </span>
                   )}
@@ -371,13 +368,13 @@ const Notifications: React.FC = () => {
               </button>
               <button
                 onClick={() => setNotificationTab('appointments')}
-                className={`flex-1 py-1.5 text-xs sm:text-sm font-medium transition-colors ${notificationTab === 'appointments' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
+                className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${notificationTab === 'appointments' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
               >
-                <div className="flex items-center justify-center gap-1">
-                  <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Agendamentos
+                <div className="flex items-center justify-center gap-1 sm:gap-2">
+                  <CalendarIcon className="w-6 h-6 sm:w-5 sm:h-5" />
+                  <span className="hidden xs:inline">Agendamentos</span>
                   {newAppointments.length > 0 && (
-                    <span className="ml-1 px-1 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs">
+                    <span className="px-2 sm:px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
                       {newAppointments.length}
                     </span>
                   )}
@@ -385,24 +382,28 @@ const Notifications: React.FC = () => {
               </button>
             </div>
 
-            <div className="py-1" role="menu">
+            <div className="divide-y divide-gray-700/30" role="menu">
               {notificationTab === 'comments' ? (
-                /* Conteúdo de comentários */
                 pendingComments.length > 0 ? (
                   pendingComments.map((comment) => (
-                    <div key={comment.id} className="px-3 py-2.5 border-b border-gray-700/30 last:border-0">
-                      <p className="text-xs sm:text-sm text-white font-medium">{comment.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{comment.comment}</p>
-                      <div className="flex gap-1.5 mt-1.5">
+                    <div key={comment.id} className="p-3 sm:p-4 hover:bg-[#252B3B] transition-colors">
+                      <div className="flex justify-between items-start mb-1 sm:mb-2">
+                        <p className="text-xs sm:text-sm md:text-base text-white font-medium">{comment.name}</p>
+                        <span className="text-[10px] sm:text-xs text-gray-400">
+                          {new Date(comment.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-300 mt-1 sm:mt-2 p-2 sm:p-3 bg-[#0D121E]/50 rounded-lg">{comment.comment}</p>
+                      <div className="flex gap-1 sm:gap-2 mt-2 sm:mt-3 justify-end">
                         <button
                           onClick={() => handleCommentAction(comment.id, 'approve')}
-                          className="text-xs px-2 py-0.5 rounded-md bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs sm:text-sm font-medium transition-colors"
                         >
                           Aprovar
                         </button>
                         <button
                           onClick={() => handleCommentAction(comment.id, 'reject')}
-                          className="text-xs px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs sm:text-sm font-medium transition-colors"
                         >
                           Recusar
                         </button>
@@ -410,32 +411,40 @@ const Notifications: React.FC = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="px-3 py-2.5 text-xs sm:text-sm text-gray-400">
+                  <div className="p-6 text-center text-gray-400">
                     Nenhum comentário pendente
                   </div>
                 )
               ) : (
-                /* Conteúdo de agendamentos */
                 newAppointments.length > 0 ? (
                   newAppointments.map((appointment) => (
                     <div
                       key={appointment.id}
-                      className="px-3 py-2.5 border-b border-gray-700/30 last:border-0 hover:bg-[#252B3B] cursor-pointer transition-colors"
+                      className="p-3 sm:p-4 hover:bg-[#252B3B] cursor-pointer transition-colors"
                       onClick={() => handleAppointmentAction(appointment.id, 'view')}
                     >
-                      <p className="text-xs sm:text-sm text-white font-medium">{appointment.clientName}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{appointment.service}</p>
-                      <p className="text-xs font-bold mt-1.5 text-green-400">R$ {appointment.price.toFixed(2)}</p>
-                      <div className="flex justify-between items-center mt-1">
-                        <p className="text-xs sm:text-sm text-[#F0B35B]">Dia {new Date(appointment.date).getDate()} às {appointment.time}</p>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-xs sm:text-sm md:text-base text-white font-medium">{appointment.clientName}</p>
+                          <p className="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">{appointment.service}</p>
+                        </div>
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] sm:text-xs font-medium">
                           Novo
                         </span>
+                      </div>
+                      <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-[#0D121E]/50 rounded-lg">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                          <p className="text-xs sm:text-sm font-bold text-green-400">R$ {appointment.price.toFixed(2)}</p>
+                          <p className="text-xs sm:text-sm text-[#F0B35B]">
+                            {new Date(appointment.date).toLocaleDateString('pt-BR')} às {appointment.time}
+                          </p>
+                        </div>
+                        <p className="text-[10px] sm:text-xs text-gray-400 mt-1 sm:mt-2">Barbeiro: {appointment.barberName}</p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="px-4 py-3 text-sm text-gray-400">
+                  <div className="p-6 text-center text-gray-400">
                     Nenhum agendamento novo
                   </div>
                 )
