@@ -49,18 +49,37 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ isOpe
 const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ isOpen, onClose, onConfirm }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [modalError, setModalError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
-      setError('Por favor, insira sua senha');
+      setModalError('Por favor, insira sua senha');
       return;
     }
+
     setIsLoading(true);
-    onConfirm(password);
+    try {
+      // Verificar a senha do administrador
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/auth/verify-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password })
+      });
+
+      if (!response.ok) {
+        throw new Error('Senha incorreta');
+      }
+
+      onConfirm(password);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'Senha incorreta');
+      setIsLoading(false); // Importante: parar o loading em caso de erro
+    }
   };
 
   return (
@@ -68,29 +87,29 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
       <div className="bg-[#1A1F2E] p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
         <h3 className="text-xl font-bold text-white mb-4">Confirmar Alterações</h3>
         <p className="text-gray-300 mb-6">
-          Para confirmar as alterações, por favor insira sua senha.
+          Para confirmar as alterações, por favor insira sua senha de administrador.
         </p>
         
         <form onSubmit={handleSubmit}>
-          {error && (
+          {modalError && (
             <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm mb-4">
-              {error}
+              {modalError}
             </div>
           )}
           
           <div className="mb-4">
-            <label htmlFor="confirm-password" className="sr-only">Senha</label>
+            <label htmlFor="confirm-password" className="sr-only">Senha de Administrador</label>
             <input
               id="confirm-password"
               name="password"
               type="password"
               required
               className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-              placeholder="Sua senha"
+              placeholder="Senha de administrador"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                setError('');
+                setModalError('');
               }}
             />
           </div>
@@ -98,7 +117,12 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
           <div className="flex justify-end space-x-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                setPassword('');
+                setModalError('');
+                setIsLoading(false);
+                onClose();
+              }}
               className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
             >
               Cancelar
@@ -106,7 +130,7 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-[#F0B35B] text-black rounded hover:bg-[#F0B35B]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center px-4 py-2 bg-[#F0B35B] text-black rounded hover:bg-[#F0B35B]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin h-5 w-5" />
@@ -241,7 +265,6 @@ const RegisterPage: React.FC = () => {
 
   const handleConfirmUpdate = async (password: string) => {
     setIsLoading(true);
-    setError('');
     
     try {
       // Validações
@@ -290,10 +313,12 @@ const RegisterPage: React.FC = () => {
 
       setEditSuccess('Barbeiro atualizado com sucesso!');
       setTimeout(() => setEditSuccess(''), 3000);
+      
+      // Reset todos os estados
       setIsEditMode(false);
       setIsPasswordModalOpen(false);
-      
-      // Limpar o formulário
+      setSelectedUser(null);
+      setError('');
       setFormData({
         name: '',
         username: '',
@@ -301,15 +326,15 @@ const RegisterPage: React.FC = () => {
         whatsapp: '',
         pix: ''
       });
+      
       // Atualizar a lista de usuários
-      fetchUsers();
-      // Resetar o usuário selecionado
-      setSelectedUser(null);
+      await fetchUsers();
+      
     } catch (err: any) {
       console.error('Error during operation:', err);
       setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Garantir que o loading seja desativado em qualquer cenário
     }
   };
 
