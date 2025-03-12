@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaChevronDown } from 'react-icons/fa';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface ChartData {
   date: string;
@@ -59,7 +59,7 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
       >
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
           <FaChartLine className="text-white bg" />
-          Agendamentos por Data
+          Analise dos agendamentos
         </h2>
         <motion.div
           animate={{ rotate: isChartExpanded ? 180 : 0 }}
@@ -78,82 +78,84 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
           >
             <div className="h-[300px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <AreaChart
                   data={weeklyData}
                   margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
                 >
+                  <defs>
+                    <linearGradient id="colorPending" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FFD700" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#FFD700" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4CAF50" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#4CAF50" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="#333"
+                    stroke="rgba(255,255,255,0.1)"
                     vertical={false}
-                    horizontalPoints={[0, 30, 60, 90]}
                   />
                   <XAxis
-                    dataKey="date"
+                    dataKey="fullDate"
                     stroke="#fff"
                     tick={{ fontSize: 10, fill: '#fff' }}
-                    axisLine={{ stroke: '#333' }}
-                    tickLine={{ stroke: '#333' }}
-                    height={30}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                    height={60}
+                    angle={-45}
+                    textAnchor="end"
                   />
                   <YAxis
                     stroke="#fff"
                     allowDecimals={false}
                     tick={{ fontSize: 10, fill: '#fff' }}
-                    axisLine={{ stroke: '#333' }}
-                    tickLine={{ stroke: '#333' }}
-                    width={30}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                    tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                    width={40}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
                     contentStyle={{
-                      backgroundColor: '#252B3B',
-                      border: '1px solid #F0B35B',
-                      borderRadius: '4px',
-                      padding: '8px',
+                      backgroundColor: 'rgba(26,31,46,0.95)',
+                      border: '1px solid rgba(240,179,91,0.5)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                       fontSize: '12px',
-                      color: '#fff',
-                      maxWidth: '200px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                    labelStyle={{
-                      color: '#F0B35B',
-                      fontWeight: 'bold',
-                      marginBottom: '4px',
-                      fontSize: '11px'
+                      color: '#fff'
                     }}
                     formatter={(value: any, name: string) => [
                       value,
                       name === 'pending' ? 'Pendente' : 'Concluído'
                     ]}
-                    labelFormatter={(label: string, payload: any[]) => {
-                      const date = payload?.[0]?.payload?.fullDate || label;
-                      return date.length > 20 ? date.substring(0, 20) + '...' : date;
-                    }}
-                    wrapperStyle={{ zIndex: 1000, maxWidth: '90vw' }}
+                    labelFormatter={(label) => `Data: ${label}`}
                   />
                   <Legend
                     formatter={(value) => value === 'pending' ? 'Pendente' : 'Concluído'}
-                    wrapperStyle={{ paddingTop: '10px', fontSize: '11px' }}
-                    height={30}
+                    wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }}
                   />
-                  <Bar
+                  <Area
+                    type="monotone"
                     dataKey="pending"
-                    fill="#FFD700"
                     name="pending"
-                    radius={[2, 2, 0, 0]}
-                    maxBarSize={30}
+                    stroke="#FFD700"
+                    fillOpacity={1}
+                    fill="url(#colorPending)"
+                    strokeWidth={2}
+                    activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
                   />
-                  <Bar
+                  <Area
+                    type="monotone"
                     dataKey="completed"
-                    fill="#4CAF50"
                     name="completed"
-                    radius={[2, 2, 0, 0]}
-                    maxBarSize={30}
+                    stroke="#4CAF50"
+                    fillOpacity={1}
+                    fill="url(#colorCompleted)"
+                    strokeWidth={2}
+                    activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
                   />
-                </BarChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </motion.div>

@@ -11,7 +11,7 @@ interface StatsProps {
 }
 
 // Componente para animação de contagem
-const CountUp = ({ end, duration = 0.8, prefix = '' }: { end: number; duration?: number; prefix?: string }) => {
+const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?: number; prefix?: string }) => {
   const [count, setCount] = useState(0);
   const prevEndRef = useRef(end);
 
