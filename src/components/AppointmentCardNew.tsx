@@ -1,14 +1,8 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Tooltip } from 'react-tooltip';
+import React, { useState, memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaClock,
-  FaCalendar,
-  FaMoneyBill,
-  FaCut,
   FaCheck,
   FaTrash,
-  FaChevronDown,
   FaTimes
 } from 'react-icons/fa';
 
@@ -164,7 +158,7 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) 
               </h3>
               <p className="text-xs text-gray-400">{appointment.service}</p>
             </div>
-            <span className={`text-xs font-medium ${status.text} ${status.bg} 
+            <span className={`text-xs font-medium ${status.text}  
                             px-2 py-1 rounded-full`}>
               {formatDateTime(appointment.date, appointment.time)}
             </span>
@@ -181,16 +175,16 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) 
               </span>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-3 mr-2">
               <button
                 onClick={() => setShowCompleteModal(true)}
-                className={`p-1.5 rounded-lg ${status.text} hover:${status.bg} transition-colors`}
+                className={`p-1.5 rounded-lg ${status.text} ${status.bg} transition-colors`}
               >
-                {appointment.status === 'completed' ? <FaTimes size={14} /> : <FaCheck size={16} />}
+                {appointment.status === 'completed' ? <FaTimes size={16} /> : <FaCheck size={16} />}
               </button>
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+                className="p-1.5 rounded-lg text-red-400 bg-red-400/10 transition-colors"
               >
                 <FaTrash size={16} />
               </button>
