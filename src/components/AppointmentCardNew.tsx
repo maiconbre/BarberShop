@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Tooltip } from 'react-tooltip';
 import {
-  FaUser,
   FaClock,
   FaCalendar,
   FaMoneyBill,
@@ -33,7 +32,16 @@ interface Props {
   appointments: Appointment[];
 }
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => (
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmButtonClass?: string;
+}
+
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmButtonClass = "" }: ConfirmationModalProps) => (
   <AnimatePresence>
     {isOpen && (
       <motion.div
@@ -61,7 +69,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => (
             </button>
             <button
               onClick={onConfirm}
-              className="px-4 py-2 text-sm bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors"
+              className={confirmButtonClass || "px-4 py-2 text-sm bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors"}
             >
               Confirmar
             </button>
@@ -73,9 +81,24 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => (
 );
 
 const statusStyles = {
-  pending: { text: 'text-yellow-400', label: 'Pendente' },
-  completed: { text: 'text-green-400', label: 'Concluído' },
-  confirmed: { text: 'text-blue-400', label: 'Confirmado' }
+  pending: { 
+    text: 'text-yellow-400', 
+    label: 'Pendente',
+    border: 'border-l-yellow-400',
+    bg: 'bg-yellow-400/10'
+  },
+  completed: { 
+    text: 'text-green-400', 
+    label: 'Concluído',
+    border: 'border-l-green-400',
+    bg: 'bg-green-400/10'
+  },
+  confirmed: { 
+    text: 'text-blue-400', 
+    label: 'Confirmado',
+    border: 'border-l-blue-400',
+    bg: 'bg-blue-400/10'
+  }
 };
 
 const formatDateTime = (date: string, time: string) => {
@@ -129,26 +152,20 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) 
         layout
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="relative bg-[#1A1F2E] rounded-xl border border-white/5 overflow-hidden"
+        className={`relative bg-[#1A1F2E] rounded-xl border border-white/5 overflow-hidden
+                   border-l-4 ${statusStyles[appointment.status].border} hover:shadow-lg transition-shadow`}
       >
-        {/* Indicador de Status */}
-        <div className={`absolute top-0 left-0 w-1 h-full ${status.text.replace('text', 'bg')}`} />
-
         <div className="p-3 sm:p-4">
           {/* Cabeçalho do Card */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${status.text} bg-white/5`}>
-                <FaUser className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-white font-medium text-sm sm:text-base">
-                  {appointment.clientName}
-                </h3>
-                <p className="text-xs text-gray-400">{appointment.service}</p>
-              </div>
+            <div>
+              <h3 className="text-white font-medium text-sm sm:text-base">
+                {appointment.clientName}
+              </h3>
+              <p className="text-xs text-gray-400">{appointment.service}</p>
             </div>
-            <span className={`text-xs font-medium ${status.text} bg-white/5 px-2 py-1 rounded-full`}>
+            <span className={`text-xs font-medium ${status.text} ${status.bg} 
+                            px-2 py-1 rounded-full`}>
               {formatDateTime(appointment.date, appointment.time)}
             </span>
           </div>
@@ -159,7 +176,7 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) 
               <span className="text-xs text-green-400">
                 R$ {appointment.price.toFixed(2)}
               </span>
-              <span className={`text-xs ${status.text}`}>
+              <span className={`text-xs ${status.text} px-2 py-0.5 rounded-full ${status.bg}`}>
                 {status.label}
               </span>
             </div>
@@ -167,13 +184,13 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) 
             <div className="flex gap-2">
               <button
                 onClick={() => setShowCompleteModal(true)}
-                className={`p-1.5 rounded-lg ${status.text} bg-white/5 hover:bg-white/10 transition-colors`}
+                className={`p-1.5 rounded-lg ${status.text} hover:${status.bg} transition-colors`}
               >
                 {appointment.status === 'completed' ? <FaTimes size={14} /> : <FaCheck size={16} />}
               </button>
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="p-1.5 rounded-lg text-red-400 bg-white/5 hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
               >
                 <FaTrash size={16} />
               </button>
@@ -191,6 +208,7 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) 
         }}
         title="Confirmar exclusão"
         message="Tem certeza que deseja excluir este agendamento?"
+        confirmButtonClass="px-4 py-2 text-sm bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
       />
 
       <ConfirmationModal
