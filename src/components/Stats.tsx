@@ -27,7 +27,7 @@ const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?:
       const timePassed = Date.now() - startTime;
       const progress = Math.min(timePassed / (duration * 1000), 1);
       const currentCount = Math.floor(progress * end);
-      
+
       if (progress === 1 || currentCount === end) {
         clearInterval(timer);
         setCount(end);
@@ -47,7 +47,7 @@ const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?:
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
   const navigate = useNavigate();
   const [isTransitioning, setIsTransitioning] = useState(false);
-  
+
   const totalAppointments = appointments.length;
   const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
   const completedAppointments = appointments.filter(app => app.status === 'completed').length;
@@ -62,7 +62,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
-    
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     thirtyDaysAgo.setHours(0, 0, 0, 0);
@@ -89,25 +89,25 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
   };
 
   // Usando useMemo para evitar recálculos desnecessários
-  const currentFilteredAppointments = useMemo(() => getFilteredAppointmentsByDate(), 
+  const currentFilteredAppointments = useMemo(() => getFilteredAppointmentsByDate(),
     [appointments, revenueDisplayMode]);
-    
-  const filteredPendingAppointments = useMemo(() => 
-    currentFilteredAppointments.filter(app => app.status === 'pending').length, 
+
+  const filteredPendingAppointments = useMemo(() =>
+    currentFilteredAppointments.filter(app => app.status === 'pending').length,
     [currentFilteredAppointments]);
-    
-  const filteredCompletedAppointments = useMemo(() => 
-    currentFilteredAppointments.filter(app => app.status === 'completed').length, 
+
+  const filteredCompletedAppointments = useMemo(() =>
+    currentFilteredAppointments.filter(app => app.status === 'completed').length,
     [currentFilteredAppointments]);
-    
-  const filteredPendingRevenue = useMemo(() => 
+
+  const filteredPendingRevenue = useMemo(() =>
     currentFilteredAppointments.filter(app => app.status === 'pending')
-      .reduce((sum, app) => sum + app.price, 0), 
+      .reduce((sum, app) => sum + app.price, 0),
     [currentFilteredAppointments]);
-    
-  const filteredCompletedRevenue = useMemo(() => 
+
+  const filteredCompletedRevenue = useMemo(() =>
     currentFilteredAppointments.filter(app => app.status === 'completed')
-      .reduce((sum, app) => sum + app.price, 0), 
+      .reduce((sum, app) => sum + app.price, 0),
     [currentFilteredAppointments]);
 
   // Cálculo de estatísticas detalhadas usando useMemo
@@ -117,7 +117,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
-    
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -126,12 +126,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
       const appDate = new Date(app.date);
       return appDate >= startOfWeek && appDate <= endOfWeek;
     }).reduce((sum, app) => sum + app.price, 0);
-    
+
     const receitaMes = appointments.filter(app => {
       const appDate = new Date(app.date);
       return appDate >= thirtyDaysAgo;
     }).reduce((sum, app) => sum + app.price, 0);
-    
+
     const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
     const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
 
@@ -140,7 +140,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
       const appDate = new Date(app.date);
       return appDate >= startOfWeek && appDate <= endOfWeek;
     }).length;
-    
+
     const clientesMes = appointments.filter(app => {
       const appDate = new Date(app.date);
       return appDate >= thirtyDaysAgo;
@@ -158,14 +158,14 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     // Reset do estado após a transição
     setTimeout(() => setIsTransitioning(false), 50);
   };
-  
+
   // Dados do gráfico memoizados para evitar recriação a cada renderização
   const pieChartData = useMemo(() => {
     const pending = filteredPendingAppointments || 0;
     const completed = filteredCompletedAppointments || 0;
     const pendingRev = filteredPendingRevenue || 0;
     const completedRev = filteredCompletedRevenue || 0;
-    
+
     // Sempre retornar um array com dois elementos para manter consistência
     return [
       { name: 'Pendentes', value: pending, revenue: pendingRev },
@@ -179,40 +179,40 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center flex-wrap gap-2 sm:gap-3 sm:pr-0">
             <div className="flex flex-1 justify-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/calendar')}
-              className="fixed right-4 top-20 z-30 px-3 sm:px-6 py-2 sm:py-3 rounded-lg bg-[#F0B35B] text-black font-medium shadow-lg hover:bg-[#F0B35B]/90 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 border-2 border-[#F0B35B]/50 min-w-[40px] sm:min-w-[160px]" 
-              title="Ver calendário"
-            >
-              <Calendar className="w-6 h-6 sm:w-6 sm:h-6" />
-              <span className="hidden sm:inline font-bold">Calendário</span>
-              <span className="absolute top-1 right-1 flex h-3 w-3 sm:h-3 sm:w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F0B35B] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-[#F0B35B]"></span>
-              </span>
-            </motion.button>
-              <button 
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/calendar')}
+                className="fixed right-4 top-20 z-30 px-3 sm:px-6 py-2 sm:py-3 rounded-lg bg-[#F0B35B] text-black font-medium shadow-lg hover:bg-[#F0B35B]/90 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 border-2 border-[#F0B35B]/50 min-w-[40px] sm:min-w-[160px]"
+                title="Ver calendário"
+              >
+                <Calendar className="w-6 h-6 sm:w-6 sm:h-6" />
+                <span className="hidden sm:inline font-bold">Calendário</span>
+                <span className="absolute top-1 right-1 flex h-3 w-3 sm:h-3 sm:w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F0B35B] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-[#F0B35B]"></span>
+                </span>
+              </motion.button>
+              <button
                 onClick={() => handleModeChange('month')}
                 className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
               >
-                Mensal
+                Mensal 
               </button>
-              <button 
+              <button
                 onClick={() => handleModeChange('week')}
                 className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
               >
                 Semana
               </button>
-              <button 
+              <button
                 onClick={() => handleModeChange('day')}
                 className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'day' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
               >
                 Hoje
               </button>
             </div>
-            
+
           </div>
 
           <div className="flex flex-col lg:flex-row gap-4 items-center sm:items-start">
@@ -273,74 +273,88 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     </div>
                   </motion.div>
                 )}
-                      </AnimatePresence>
-                    </motion.div>
-                
-                    {/* Gráfico de Pizza */}
-                    <div className="w-full lg:w-auto flex flex-row items-center justify-center gap-4">
-                      <div className="w-[120px] h-[120px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={pieChartData}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              outerRadius={50}
-                              innerRadius={30}
-                              fill="#8884d8"
-                              dataKey="value"
-                              stroke="rgba(255,255,255,0.1)"
-                              strokeWidth={1}
-                            >
-                              <Cell key="pending" fill="#FFD700" />
-                              <Cell key="completed" fill="#4CAF50" />
-                            </Pie>
-                            <Tooltip
-                              formatter={(value: any, name: string, props: any) => {
-                                const data = props.payload;
-                                return [`${value} agendamentos - R$ ${data.revenue.toFixed(2)}`, name];
-                              }}
-                              contentStyle={{
-                                backgroundColor: 'rgba(26,31,46,0.95)',
-                                border: '1px solid rgba(240,179,91,0.5)',
-                                borderRadius: '8px',
-                                padding: '8px',
-                                color: '#fff',
-                                fontSize: '12px'
-                              }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="flex flex-col justify-center gap-2">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-[#FFD700]"></div>
-                          <span className="text-xs text-gray-300">Pendentes ({filteredPendingAppointments})</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
-                          <span className="text-xs text-gray-300">Concluídos ({filteredCompletedAppointments})</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                
-                  {/* Estatísticas adicionais */}
-                  <div className="flex flex-row gap-4 mt-4">
-                    <div className="flex-1 bg-[#1A1F2E]/50 p-3 rounded-lg">
-                      <p className="text-gray-400 text-xs mb-1">Ticket Médio</p>
-                      <h5 className="text-xl font-semibold text-white">R$ {ticketMedio.toFixed(2)}</h5>
-                    </div>
-                    <div className="flex-1 bg-[#1A1F2E]/50 p-3 rounded-lg">
-                      <p className="text-gray-400 text-xs mb-1">Taxa de Conclusão</p>
-                      <h5 className="text-xl font-semibold text-white">{taxaConclusao.toFixed(1)}%</h5>
-                    </div>
-                  </div>
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Gráfico de Pizza */}
+            <div className="w-full lg:w-auto flex flex-row items-center justify-center gap-4">
+              <div className="w-[140px] h-[140px]">  {/* Increased from 120px to 140px */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={60} 
+                      innerRadius={35} 
+                      fill="#8884d8"
+                      dataKey="value"
+                      stroke="rgba(255,255,255,0.1)"
+                      strokeWidth={1}
+                    >
+                      <Cell key="pending" fill="#FFD700" />
+                      <Cell key="completed" fill="#4CAF50" />
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: any, name: string, props: any) => {
+                        const data = props.payload;
+                        return [`${value} agendamentos - R$ ${data.revenue.toFixed(2)}`, name];
+                      }}
+                      contentStyle={{
+                        backgroundColor: 'rgba(26,31,46,0.95)',
+                        border: '1px solid rgba(240,179,91,0.5)',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        color: '#fff',
+                        fontSize: '12px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-col justify-center gap-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-[#FFD700]"></div>
+                  <span className="text-xs text-gray-300">Pendentes ({filteredPendingAppointments})</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
+                  <span className="text-xs text-gray-300">Concluídos ({filteredCompletedAppointments})</span>
                 </div>
               </div>
             </div>
-          
+          </div>
+
+          {/* Estatísticas adicionais */}
+          <div className="flex flex-row gap-4 mt-4">
+            <div className="flex-1 bg-[#1A1F2E]/50 p-1 rounded-lg text-center ">  {/* Reduced padding from p-3 to p-2 */}
+              <p className="text-gray-400 text-xs my-2">Ticket Médio</p>  {/* Reduced margin from mb-1 to mb-0.5 */}
+              <h5 className="text-lg font-semibold flex items-center justify-center text-white">R$ {ticketMedio.toFixed(2)}</h5>  {/* Reduced font from text-xl to text-lg */}
+            </div>
+            <div className="flex-1 bg-[#1A1F2E]/50 p-2 rounded-lg">  {/* Reduced padding from p-3 to p-2 */}
+              <p className="text-gray-400 text-xs mb-0.5">Taxa de Conclusão</p>  {/* Reduced margin from mb-1 to mb-0.5 */}
+              <div className="flex flex-col gap-1">
+                <h5 className="text-lg font-semibold text-white">{taxaConclusao.toFixed(1)}%</h5>
+                <div className="w-full h-2 bg-[#1A1F2E] rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full rounded-full" 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(taxaConclusao, 100)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    style={{
+                      background: `linear-gradient(90deg, 
+                        ${taxaConclusao < 30 ? '#FF4D4D' : taxaConclusao < 70 ? '#FFD700' : '#4CAF50'} 0%, 
+                        ${taxaConclusao < 30 ? '#FF8C00' : taxaConclusao < 70 ? '#4CAF50' : '#00FF7F'} 100%)`
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

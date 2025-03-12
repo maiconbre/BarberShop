@@ -225,26 +225,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 Resetar Filtros
               </span>
             </motion.button>
-
-            {/* Indicador de Período Selecionado */}
-            {isRangeFilterActive && (startDate || endDate) && (
-              <div className="w-full sm:w-auto flex-1 bg-[#252B3B] px-4 py-2.5 rounded-lg">
-                <div className="text-[#F0B35B] text-sm font-medium text-center">
-                  {!endDate && startDate && (
-                    <>Início: {new Date(startDate).toLocaleDateString('pt-BR')}</>
-                  )}
-                  {startDate && endDate && (
-                    <>
-                      {new Date(startDate).toLocaleDateString('pt-BR')} 
-                      <span className="mx-2">→</span>
-                      {new Date(endDate).toLocaleDateString('pt-BR')}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        </div>
+          
+          {/* Indicador de Período Selecionado */}
+          {isRangeFilterActive && (startDate || endDate) && (
+            <div className="mt-2 bg-[#252B3B] px-3 py-2 rounded-lg w-full">
+              <div className="text-[#F0B35B] text-sm font-medium text-center">
+                {!endDate && startDate && (
+                  <>Início: {new Date(startDate).toLocaleDateString('pt-BR')}</>
+                )}
+                {startDate && endDate && (
+                  <>
+                    {new Date(startDate).toLocaleDateString('pt-BR')} 
+                    <span className="mx-2">→</span>
+                    {new Date(endDate).toLocaleDateString('pt-BR')}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          </div>
       </div>
 
       {/* Separador Estilizado */}
