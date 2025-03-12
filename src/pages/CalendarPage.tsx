@@ -27,6 +27,16 @@ const CalendarPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+
+  const resetFilters = () => {
+    setIsRangeFilterActive(false);
+    setStartDate(null);
+    setEndDate(null);
+    setSelectedDate(new Date().toISOString().split('T')[0]);
+  };
 
   // Função para carregar agendamentos do backend
   const loadAppointments = useCallback(async () => {
@@ -85,8 +95,46 @@ const CalendarPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [loadAppointments]);
 
-  // Filtra os agendamentos pela data selecionada
-  const filteredAppointments = appointments.filter(app => app.date === selectedDate);
+  const handleDateSelection = (date: string) => {
+    if (!isRangeFilterActive) {
+      setSelectedDate(date);
+      return;
+    }
+
+    if (!startDate || (startDate && endDate)) {
+      setStartDate(date);
+      setEndDate(null);
+    } else {
+      if (new Date(date) < new Date(startDate)) {
+        setEndDate(startDate);
+        setStartDate(date);
+      } else {
+        setEndDate(date);
+      }
+    }
+  };
+
+  const calculateTotalValue = (apps: Appointment[]) => {
+    return apps.reduce((total, app) => total + (app.price || 0), 0);
+  };
+
+  // Modifica a lógica de filtro para suportar intervalo de datas
+  const filteredAppointments = appointments.filter(app => {
+    if (!isRangeFilterActive || !startDate) {
+      return app.date === selectedDate;
+    }
+    
+    if (startDate && endDate) {
+      const appDate = new Date(app.date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return appDate >= start && appDate <= end;
+    }
+    
+    return app.date === startDate;
+  });
+
+  const totalValue = calculateTotalValue(filteredAppointments);
 
   // Gerencia ações de completar, deletar ou alternar status dos agendamentos
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
@@ -147,7 +195,7 @@ const CalendarPage: React.FC = () => {
 
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Header */}
+        {/* Header com navegação */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Agenda</h1>
           <div className="flex items-center gap-2">
@@ -199,44 +247,56 @@ const CalendarPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Calendário */}
-        <div className="mb-6">
-          <CalendarView
-            appointments={appointments}
-            selectedDate={selectedDate}
-            onDateSelect={setSelectedDate}
-          />
-        </div>
+        {/* Calendário unificado com filtros e estatísticas */}
+        <CalendarView
+          appointments={appointments}
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelection}
+          startDate={startDate}
+          endDate={endDate}
+          currentUser={currentUser}
+          isRangeFilterActive={isRangeFilterActive}
+          onToggleRangeFilter={() => {
+            setIsRangeFilterActive(!isRangeFilterActive);
+            setStartDate(null);
+            setEndDate(null);
+          }}
+          onResetFilters={resetFilters}
+          totalValue={totalValue}
+        />
 
         {/* Lista de Agendamentos */}
-        <div className="space-y-4 mb-8">
-          <div className="flex items-center space-x-2 mb-4">
-            <h2 className="text-xs text-gray-400">Agendamentos para {new Date(selectedDate).toLocaleDateString('pt-BR')}</h2>
-            <span className="text-xs text-gray-400">({filteredAppointments.length} total)</span>
-          </div>
-
+        <div className="my-4">
           <AnimatePresence>
             {filteredAppointments.length > 0 ? (
               filteredAppointments.map((appointment) => (
-                <AppointmentCardNew
+                <motion.div
                   key={appointment.id}
-                  appointment={appointment}
-                  onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                  onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                  filterMode="all"
-                  revenueDisplayMode="total"
-                  appointments={appointments}
-                />
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="mb-2"
+                >
+                  <AppointmentCardNew
+                    appointment={appointment}
+                    onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                    onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                    filterMode="all"
+                    revenueDisplayMode="total"
+                    appointments={appointments}
+                  />
+                </motion.div>
               ))
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="bg-[#1A1F2E] p-6 rounded-lg text-center"
+                className="bg-[#1A1F2E] p-6 rounded-lg text-center border border-[#F0B35B]/10"
               >
                 <p className="text-gray-400">
-                  Nenhum agendamento encontrado para esta data
+                  Nenhum agendamento encontrado para este período
                 </p>
               </motion.div>
             )}

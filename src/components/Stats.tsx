@@ -46,6 +46,7 @@ const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?:
 
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
   const navigate = useNavigate();
+  const [isTransitioning, setIsTransitioning] = useState(false);
   
   const totalAppointments = appointments.length;
   const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
@@ -53,18 +54,25 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
   // Função para filtrar agendamentos por data
   const getFilteredAppointmentsByDate = () => {
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = new Date();
+    const hojeStr = hoje.toISOString().split('T')[0];
     const startOfWeek = new Date();
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
     
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
 
     switch (revenueDisplayMode) {
       case 'day':
-        return appointments.filter(app => app.date === hoje);
+        return appointments.filter(app => {
+          const appDate = new Date(app.date);
+          return appDate.toISOString().split('T')[0] === hojeStr;
+        });
       case 'week':
         return appointments.filter(app => {
           const appDate = new Date(app.date);
@@ -145,14 +153,25 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
   // Função para atualizar o modo de exibição
   const handleModeChange = (mode: string) => {
+    setIsTransitioning(true);
     setRevenueDisplayMode(mode);
+    // Reset do estado após a transição
+    setTimeout(() => setIsTransitioning(false), 50);
   };
   
   // Dados do gráfico memoizados para evitar recriação a cada renderização
-  const pieChartData = useMemo(() => [
-    { name: 'Pendentes', value: filteredPendingAppointments, revenue: filteredPendingRevenue },
-    { name: 'Concluídos', value: filteredCompletedAppointments, revenue: filteredCompletedRevenue }
-  ], [filteredPendingAppointments, filteredCompletedAppointments, filteredPendingRevenue, filteredCompletedRevenue]);
+  const pieChartData = useMemo(() => {
+    const pending = filteredPendingAppointments || 0;
+    const completed = filteredCompletedAppointments || 0;
+    const pendingRev = filteredPendingRevenue || 0;
+    const completedRev = filteredCompletedRevenue || 0;
+    
+    // Sempre retornar um array com dois elementos para manter consistência
+    return [
+      { name: 'Pendentes', value: pending, revenue: pendingRev },
+      { name: 'Concluídos', value: completed, revenue: completedRev }
+    ];
+  }, [filteredPendingAppointments, filteredCompletedAppointments, filteredPendingRevenue, filteredCompletedRevenue]);
 
   return (
     <div className="mb-6 sm:mb-8 sm:px-0">
@@ -268,6 +287,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
+                        key={`pie-${revenueDisplayMode}-${isTransitioning}`}
                         data={pieChartData}
                         cx="50%"
                         cy="50%"
@@ -278,11 +298,16 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                         startAngle={90}
                         endAngle={450}
                         animationBegin={0}
-                        animationDuration={800}
-                        animationEasing="ease-out"
+                        animationDuration={1000}
+                        animationEasing="ease-in-out"
+                        minAngle={0}
                       >
-                        <Cell key="cell-0" fill="#F59E0B" />
-                        <Cell key="cell-1" fill="#4CAF50" />
+                        {pieChartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}-${revenueDisplayMode}`}
+                            fill={index === 0 ? '#F59E0B' : '#4CAF50'}
+                          />
+                        ))}
                       </Pie>
                       <Tooltip 
                         formatter={(value, name, props) => [
