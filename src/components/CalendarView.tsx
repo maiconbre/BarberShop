@@ -13,13 +13,22 @@ interface CalendarViewProps {
   appointments: Appointment[];
   selectedDate: string;
   onDateSelect: (date: string) => void;
-  currentUser?: {
+currentUser?: {
     id: string;
     role?: string;
   };
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ appointments, selectedDate, onDateSelect, currentUser }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({
+  appointments,
+  selectedDate,
+  onDateSelect,
+  startDate,
+  endDate,
+  currentUser
+}) => {
   const [currentMonth, setCurrentMonth] = React.useState(new Date());
 
   // Função para obter o primeiro dia do mês
@@ -65,6 +74,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ appointments, selectedDate,
       }
       return newDate;
     });
+  };
+
+  const isDateInRange = (date: string) => {
+    if (!startDate || !endDate) return false;
+    const current = new Date(date);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return current >= start && current <= end;
+  };
+
+  const hasAppointmentsOnDate = (date: string) => {
+    return appointments.some(app => app.date === date);
   };
 
   // Gera o grid do calendário
