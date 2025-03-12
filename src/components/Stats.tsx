@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 
 interface StatsProps {
   appointments: any[];
-  revenueDisplayMode: 'day' | 'week' | 'month';
-  setRevenueDisplayMode: (mode: 'day' | 'week' | 'month') => void;
+  revenueDisplayMode: string;
+  setRevenueDisplayMode: (mode: string) => void;
 }
 
 // Componente para animação de contagem
@@ -64,11 +64,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
     switch (revenueDisplayMode) {
       case 'day':
-        // Garantir que estamos usando a data correta para hoje
-        return appointments.filter(app => {
-          const appDate = new Date(app.date).toISOString().split('T')[0];
-          return appDate === hoje;
-        });
+        return appointments.filter(app => app.date === hoje);
       case 'week':
         return appointments.filter(app => {
           const appDate = new Date(app.date);
@@ -86,7 +82,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
   // Usando useMemo para evitar recálculos desnecessários
   const currentFilteredAppointments = useMemo(() => getFilteredAppointmentsByDate(), 
-    [appointments, revenueDisplayMode, getFilteredAppointmentsByDate]);
+    [appointments, revenueDisplayMode]);
     
   const filteredPendingAppointments = useMemo(() => 
     currentFilteredAppointments.filter(app => app.status === 'pending').length, 
@@ -148,7 +144,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
   const { receitaHoje, receitaSemana, receitaMes, ticketMedio, taxaConclusao, clientesHoje, clientesSemana, clientesMes } = calculatedStats;
 
   // Função para atualizar o modo de exibição
-  const handleModeChange = (mode: 'day' | 'week' | 'month') => {
+  const handleModeChange = (mode: string) => {
     setRevenueDisplayMode(mode);
   };
   
