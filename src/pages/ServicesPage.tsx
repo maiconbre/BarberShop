@@ -3,8 +3,18 @@ import { Helmet } from 'react-helmet-async';
 import Services from '../components/Services';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
+import BookingModal from '../components/BookingModal';
+import { useState } from 'react';
 
 const ServicesPage = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState('');
+  
+  const handleOpenModal = (serviceName: string) => {
+    setSelectedService(serviceName);
+    setIsModalOpen(true);
+  };
+
   return (
     <>
       <Helmet>
@@ -20,15 +30,20 @@ const ServicesPage = () => {
         className="min-h-screen bg-[#0D121E] flex flex-col"
       >
         <Navbar 
-          isModalOpen={false}
-          setIsModalOpen={() => {}}
+          isModalOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
           isMobileMenuOpen={false}
           setIsMobileMenuOpen={() => {}}
         />
         <main className="flex-grow">
-          <Services />
+          <Services onSchedule={handleOpenModal} />
         </main>
         <Footer />
+        <BookingModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          initialService={selectedService}
+        />
       </motion.div>
     </>
   );

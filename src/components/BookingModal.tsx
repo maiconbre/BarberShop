@@ -7,9 +7,10 @@ import { format } from 'date-fns';
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialService?: string;
 }
 
-const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
+const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '' }) => {
   // Estado para controlar as etapas do agendamento (1: formulário, 2: confirmação)
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,10 +24,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose }) => {
     barberId: '',
     date: '',
     time: '',
-    service: '',
+    service: initialService || '',
     barba: false,
     sobrancelha: false,
   });
+  
+  // Atualiza o serviço quando o initialService mudar
+  useEffect(() => {
+    if (initialService) {
+      setFormData(prev => ({
+        ...prev,
+        service: initialService
+      }));
+    }
+  }, [initialService]);
 
   // Efeito para prevenir zoom em dispositivos móveis quando o teclado é aberto
   useEffect(() => {

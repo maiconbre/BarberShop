@@ -3,26 +3,43 @@ import { motion } from 'framer-motion';
 
 const services = [
   {
-    name: 'Máquina e Tesoura',
+    name: 'Corte Tradicional',
     price: 'R$ 45,00',
     image: 'https://images.unsplash.com/photo-1635273051839-003bf06a8751?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    description: 'Corte completo com acabamento perfeito'
+    description: 'Corte completo com máquina e acabamento perfeito'
   },
   {
-    name: 'Barba',
-    price: 'R$ 35,00',
-    image: 'https://images.unsplash.com/photo-1532710093739-9470acff878f?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    description: 'Barba aparada e alinhada'
+    name: 'Tesoura',
+    price: 'R$ 60,00',
+    image: 'https://img.freepik.com/fotos-premium/barbeiro-corte-cabelo-masculino-corte-de-cabelo-moderno-com-tesoura_118478-2296.jpg',
+
+    description: 'Corte exclusivo feito com tesoura para um visual personalizado'
+  },
+  {
+    name: 'Navalha',
+    price: 'R$ 70,00',
+    image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    description: 'Acabamento preciso com navalha para um visual impecável'
   },
   {
     name: 'Reflexo',
     price: 'R$ 80,00',
     image: 'https://i.pinimg.com/736x/91/0f/c9/910fc9828671f2a76e51ac56242f61d8.jpg',
-    description: 'Mechas e reflexos personalizados'
+    description: 'Mechas e reflexos personalizados para um visual renovado'
+  },
+  {
+    name: 'Nevou',
+    price: 'R$ 90,00',
+    image: 'https://i.pinimg.com/736x/26/27/d4/2627d4170cf5a1fe8e18b17f5f81647a.jpg',
+    description: 'Descoloração completa para um visual platinado e moderno'
   }
 ];
 
-const Services = () => {
+interface ServicesProps {
+  onSchedule?: (serviceName: string) => void;
+}
+
+const Services: React.FC<ServicesProps> = ({ onSchedule }) => {
   return (
     <section className="py-12 px-4 sm:px-6 lg:px-8 bg-[#0D121E] min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -81,6 +98,12 @@ const Services = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (onSchedule) {
+                        // Passa o nome do serviço diretamente para o BookingModal
+                        onSchedule(service.name);
+                      }
+                    }}
                     className="relative overflow-hidden group bg-[#F0B35B] text-black px-6 py-2.5 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base hover:shadow-[0_0_20px_rgba(240,179,91,0.4)] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50"
                   >
                     <span className="relative z-10">Agendar</span>
