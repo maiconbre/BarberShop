@@ -33,6 +33,8 @@ const DashboardPage: React.FC = () => {
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const appointmentsPerPage = 8;
 
   // Usando o hook de notificações
   const { loadAppointments } = useNotifications();
@@ -49,6 +51,80 @@ const DashboardPage: React.FC = () => {
       return true;
     });
   }, [appointments, filterMode]);
+
+  const paginatedAppointments = useMemo(() => {
+    const startIndex = (currentPage - 1) * appointmentsPerPage;
+    return filteredAppointments.slice(startIndex, startIndex + appointmentsPerPage);
+  }, [filteredAppointments, currentPage]);
+
+  const totalPages = useMemo(() => Math.ceil(filteredAppointments.length / appointmentsPerPage), [filteredAppointments.length]);
+
+  const PaginationControls = () => {
+    if (totalPages <= 1) return null;
+
+    const renderPageNumbers = () => {
+      let pages = [];
+      const currentPageIndex = currentPage - 1;
+
+      // Sempre mostrar duas páginas
+      if (currentPageIndex === 0) {
+        // Na primeira página
+        pages = [1, 2];
+      } else if (currentPage === totalPages) {
+        // Na última página
+        pages = [currentPage - 1, currentPage];
+      } else {
+        // Em qualquer outra página
+        pages = [currentPage, currentPage + 1];
+      }
+
+      return pages.map((pageNum) => (
+        pageNum <= totalPages && (
+          <motion.button
+            key={pageNum}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setCurrentPage(pageNum)}
+            className={`w-12 h-12 rounded-xl text-lg font-medium transition-all duration-300 ${
+              currentPage === pageNum
+                ? 'bg-[#F0B35B] text-black shadow-lg shadow-[#F0B35B]/20'
+                : 'text-[#F0B35B] hover:bg-[#F0B35B]/10'
+            }`}
+          >
+            {pageNum}
+          </motion.button>
+        )
+      ));
+    };
+
+    return (
+      <div className="flex justify-center items-center gap-3 mt-8">
+        {currentPage > 1 && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            className="w-12 h-12 rounded-xl text-[#F0B35B] hover:bg-[#F0B35B]/10 transition-all duration-300 flex items-center justify-center text-lg font-bold"
+          >
+            &lt;
+          </motion.button>
+        )}
+
+        {renderPageNumbers()}
+
+        {currentPage < totalPages && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            className="w-12 h-12 rounded-xl text-[#F0B35B] hover:bg-[#F0B35B]/10 transition-all duration-300 flex items-center justify-center text-lg font-bold"
+          >
+            &gt;
+          </motion.button>
+        )}
+      </div>
+    );
+  };
 
   // Efeito para rolar para o topo da página quando o componente for renderizado
   useEffect(() => {
@@ -251,9 +327,17 @@ const DashboardPage: React.FC = () => {
         {/* Filtros de agendamentos */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-gray-400">Total: {filteredAppointments.length}</span>
+            <span className="text-sm ml-3 text-gray-200"> {filteredAppointments.length}</span>
           </div>
-          <div className="flex flex-row items-center justify-start gap-2">
+            <div className="flex flex-row items-center justify-start gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setFilterMode('all')}
+              className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'all' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+            >
+              Todos
+            </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -283,28 +367,31 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Lista de agendamentos */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-8 min-h-[900px]">
           <AnimatePresence mode="wait">
             {filteredAppointments.length > 0 ? (
-              <motion.div 
-                className="space-y-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {filteredAppointments.map((appointment) => (
-                  <AppointmentCardNew
-                    key={appointment.id}
-                    appointment={appointment}
-                    onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                    onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                    filterMode={filterMode}
-                    revenueDisplayMode={revenueDisplayMode}
-                    appointments={appointments}
-                  />
-                ))}
-              </motion.div>
+              <>
+                <motion.div 
+                  className="space-y-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {paginatedAppointments.map((appointment) => (
+                    <AppointmentCardNew
+                      key={appointment.id}
+                      appointment={appointment}
+                      onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                      onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                      filterMode={filterMode}
+                      revenueDisplayMode={revenueDisplayMode}
+                      appointments={appointments}
+                    />
+                  ))}
+                </motion.div>
+                <PaginationControls />
+              </>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
