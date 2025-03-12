@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Tooltip } from 'react-tooltip';
 import {
@@ -97,7 +97,7 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (!showDeleteConfirm) {
       setShowDeleteConfirm(true);
@@ -105,7 +105,114 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
     }
     onDelete();
     setShowDeleteConfirm(false);
-  };
+  }, [showDeleteConfirm, onDelete]);
+
+  // Memoizar o conteúdo do dropdown para evitar re-renderizações
+  const dropdownContent = useMemo(() => (
+    <motion.div
+      variants={contentVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      transition={{ duration: 0.2 }}
+      className="border-t border-gray-700/50 bg-[#1E2334]/80 backdrop-blur-sm"
+    >
+      {/* Detalhes do Agendamento */}
+      <div className="p-5 space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
+            <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
+              <FaCut className="w-5 h-5 text-[#F0B35B]" />
+            </div>
+            <div>
+              <span className="block text-xs text-gray-400 font-medium">Serviço</span>
+              <span className="text-sm text-white">{appointment.service}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
+            <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
+              <FaCalendar className="w-5 h-5 text-[#F0B35B]" />
+            </div>
+            <div>
+              <span className="block text-xs text-gray-400 font-medium">Data</span>
+              <span className="text-sm text-white">{formatDate(appointment.date)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
+            <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
+              <FaClock className="w-5 h-5 text-[#F0B35B]" />
+            </div>
+            <div>
+              <span className="block text-xs text-gray-400 font-medium">Horário</span>
+              <span className="text-sm text-white">{appointment.time}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
+            <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
+              <FaMoneyBill className="w-5 h-5 text-[#F0B35B]" />
+            </div>
+            <div>
+              <span className="block text-xs text-gray-400 font-medium">Valor</span>
+              <span className="text-sm text-white font-semibold">R$ {appointment.price.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Ações */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
+          <motion.button
+            data-tooltip-id="delete-tooltip"
+            data-tooltip-content={showDeleteConfirm ? "Clique novamente para confirmar" : "Excluir agendamento"}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 ${
+              showDeleteConfirm 
+                ? 'bg-red-500/30 text-red-300 animate-pulse'
+                : 'bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300'
+            }`}
+            onClick={handleDelete}
+            onMouseLeave={() => setTimeout(() => setShowDeleteConfirm(false), 2000)}
+          >
+            <FaTrash className="w-4 h-4" />
+            <span className="font-medium">
+              {showDeleteConfirm ? 'Confirmar exclusão?' : 'Excluir Agendamento'}
+            </span>
+          </motion.button>
+
+          <motion.button
+            data-tooltip-id="status-tooltip"
+            data-tooltip-content={
+              appointment.status === 'completed' 
+                ? 'Marcar como pendente'
+                : 'Marcar como concluído'
+            }
+            whileHover={{ scale: prefersReducedMotion ? 1 : 1.02 }}
+            whileTap={{ scale: prefersReducedMotion ? 0.98 : 0.98 }}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-colors duration-300 ${
+              appointment.status === 'completed'
+                ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-300'
+                : 'bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus();
+            }}
+          >
+            <FaCheck className="w-4 h-4" />
+            <span className="font-medium">
+              {appointment.status === 'completed' ? 'Marcar como Pendente' : 'Marcar como Concluído'}
+            </span>
+          </motion.button>
+        </div>
+        
+        <Tooltip id="delete-tooltip" className="z-50" />
+        <Tooltip id="status-tooltip" className="z-50" />
+      </div>
+    </motion.div>
+  ), [appointment, handleDelete, onToggleStatus]);
 
   return (
     <motion.div
@@ -168,120 +275,18 @@ const AppointmentCardNew: React.FC<Props> = ({ appointment, onDelete, onToggleSt
       </motion.div>
 
       <AnimatePresence mode="sync">
-        {isOpen && (
-          <motion.div
-            variants={contentVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            transition={{ duration: 0.2 }}
-            className="border-t border-gray-700/50 bg-[#1E2334]/80 backdrop-blur-sm"
-          >
-            {/* Detalhes do Agendamento */}
-            <div className="p-5 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
-                  <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
-                    <FaCut className="w-5 h-5 text-[#F0B35B]" />
-                  </div>
-                  <div>
-                    <span className="block text-xs text-gray-400 font-medium">Serviço</span>
-                    <span className="text-sm text-white">{appointment.service}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
-                  <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
-                    <FaCalendar className="w-5 h-5 text-[#F0B35B]" />
-                  </div>
-                  <div>
-                    <span className="block text-xs text-gray-400 font-medium">Data</span>
-                    <span className="text-sm text-white">{formatDate(appointment.date)}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
-                  <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
-                    <FaClock className="w-5 h-5 text-[#F0B35B]" />
-                  </div>
-                  <div>
-                    <span className="block text-xs text-gray-400 font-medium">Horário</span>
-                    <span className="text-sm text-white">{appointment.time}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3 bg-[#252B3B]/50 p-3.5 rounded-xl group hover:bg-[#252B3B]/70 transition-all duration-200">
-                  <div className="p-2.5 rounded-lg bg-[#F0B35B]/10 group-hover:bg-[#F0B35B]/20 transition-colors">
-                    <FaMoneyBill className="w-5 h-5 text-[#F0B35B]" />
-                  </div>
-                  <div>
-                    <span className="block text-xs text-gray-400 font-medium">Valor</span>
-                    <span className="text-sm text-white font-semibold">R$ {appointment.price.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ações */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
-                <motion.button
-                  data-tooltip-id="delete-tooltip"
-                  data-tooltip-content={showDeleteConfirm ? "Clique novamente para confirmar" : "Excluir agendamento"}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 ${
-                    showDeleteConfirm 
-                      ? 'bg-red-500/30 text-red-300 animate-pulse'
-                      : 'bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300'
-                  }`}
-                  onClick={handleDelete}
-                  onMouseLeave={() => setTimeout(() => setShowDeleteConfirm(false), 2000)}
-                >
-                  <FaTrash className="w-4 h-4" />
-                  <span className="font-medium">
-                    {showDeleteConfirm ? 'Confirmar exclusão?' : 'Excluir Agendamento'}
-                  </span>
-                </motion.button>
-
-                <motion.button
-                  data-tooltip-id="status-tooltip"
-                  data-tooltip-content={
-                    appointment.status === 'completed' 
-                      ? 'Marcar como pendente'
-                      : 'Marcar como concluído'
-                  }
-                  whileHover={{ scale: prefersReducedMotion ? 1 : 1.02 }}
-                  whileTap={{ scale: prefersReducedMotion ? 0.98 : 0.98 }}
-                  className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-colors duration-300 ${
-                    appointment.status === 'completed'
-                      ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 hover:text-yellow-300'
-                      : 'bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:text-green-300'
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleStatus();
-                  }}
-                >
-                  <FaCheck className="w-4 h-4" />
-                  <span className="font-medium">
-                    {appointment.status === 'completed' ? 'Marcar como Pendente' : 'Marcar como Concluído'}
-                  </span>
-                </motion.button>
-              </div>
-              
-              <Tooltip id="delete-tooltip" className="z-50" />
-              <Tooltip id="status-tooltip" className="z-50" />
-            </div>
-          </motion.div>
-        )}
+        {isOpen && dropdownContent}
       </AnimatePresence>
     </motion.div>
   );
 };
 
-// Otimizar memo com comparação personalizada
-export default React.memo(AppointmentCardNew, (prevProps, nextProps) => {
+// Melhorar a comparação do memo para evitar re-renderizações desnecessárias
+export default memo(AppointmentCardNew, (prevProps, nextProps) => {
   return (
     prevProps.appointment.id === nextProps.appointment.id &&
-    prevProps.appointment.status === nextProps.appointment.status
+    prevProps.appointment.status === nextProps.appointment.status &&
+    prevProps.filterMode === nextProps.filterMode &&
+    prevProps.revenueDisplayMode === nextProps.revenueDisplayMode
   );
 });
