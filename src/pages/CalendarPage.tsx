@@ -219,18 +219,14 @@ const CalendarPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/dashboard')}
-              className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300 flex items-center justify-center"
+              className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-2 font-medium border border-[#F0B35B]/30 shadow-lg"
               title="Voltar para o Dashboard"
             >
               <ArrowLeft className="w-5 h-5" />
+              <span>Voltar ao Dashboard</span>
             </motion.button>
             <div className="relative"></div>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
-            >
-              <Settings className="w-6 h-6 text-black" />
-            </button>
+            {/* Botão de configurações foi escondido conforme solicitado */}
             {isDropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
                 <div className="py-1" role="menu">
