@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,78 +7,41 @@ import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
 import Notifications, { useNotifications } from '../components/Notifications';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Appointment {
   id: string;
-  date: string;
-  status: 'completed' | 'pending' | 'confirmed';
   clientName: string;
   service: string;
+  date: string;
   time: string;
-  price: number;
+  status: 'pending' | 'confirmed' | 'completed';
+  barberId: string;
   barberName: string;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+  viewed?: boolean;
 }
-
-type RevenueDisplayMode = 'day' | 'week' | 'month';
-type FilterMode = 'today' | 'tomorrow' | 'all';
-type AppointmentAction = 'complete' | 'delete' | 'toggle';
-
-const API_URL = (import.meta as any).env.VITE_API_URL;
 
 const DashboardPage: React.FC = () => {
   const { logout, getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  const [isChartExpanded, setIsChartExpanded] = useState<boolean>(true);
-  const [revenueDisplayMode, setRevenueDisplayMode] = useState<RevenueDisplayMode>('month');
-  const [filterMode, setFilterMode] = useState<FilterMode>('all');
-  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isChartExpanded, setIsChartExpanded] = useState(true);
+  const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
+  const [filterMode, setFilterMode] = useState('all');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Modifique a função de consulta para extrair os dados corretamente
-  const { data: appointmentsResponse = { success: true, data: [] }, isLoading } = useQuery<{ success: boolean, data: Appointment[] }>({
-    queryKey: ['appointments'],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/appointments`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          }
-        });
+  // Usando o hook de notificações
+  const { loadAppointments } = useNotifications();
 
-        if (!response.ok) {
-          throw new Error('Falha ao carregar agendamentos');
-        }
-
-        const data = await response.json();
-        console.log('Dados carregados:', data);
-        return data;
-      } catch (error) {
-        console.error('Erro ao carregar agendamentos:', error);
-        throw error;
-      }
-    },
-    staleTime: 1000 * 60 * 5,
-    refetchInterval: 1000 * 60 * 5,
-  });
-
-  // Extraia os appointments do response
-  const appointments = appointmentsResponse.data || [];
-
-  // Modifique o useMemo para usar o array correto
+  // Otimizar filtragem de agendamentos usando useMemo
   const filteredAppointments = useMemo(() => {
-    console.log('Appointments recebidos:', appointments);
-
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      .toISOString()
-      .split('T')[0];
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-      .toISOString()
-      .split('T')[0];
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
 
     return appointments.filter(app => {
       if (filterMode === 'today') return app.date === today;
@@ -87,99 +50,126 @@ const DashboardPage: React.FC = () => {
     });
   }, [appointments, filterMode]);
 
-  // Rola para o topo ao montar o componente
+  // Efeito para rolar para o topo da página quando o componente for renderizado
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, []); // Executar apenas uma vez na montagem do componente
 
-  // Atualiza o cache dos agendamentos de forma otimista após ações
-  const handleAppointmentAction = useCallback(
-    async (
-      appointmentId: string,
-      action: AppointmentAction,
-      currentStatus?: string
-    ) => {
-      if (!appointmentId) return;
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const fetchData = async () => {
+      if (!isSubscribed) return;
+
       try {
-        if (action === 'delete') {
-          const response = await fetch(`${API_URL}/api/appointments/${appointmentId}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: 'Bearer ' + localStorage.getItem('token'),
-            },
-            mode: 'cors',
-          });
-          if (response.ok) {
-            queryClient.setQueryData<Appointment[]>(['appointments'], oldAppointments =>
-              oldAppointments ? oldAppointments.filter(app => app.id !== appointmentId) : []
-            );
+        // Verificar se temos informações do usuário para filtrar os dados
+        const currentUser = getCurrentUser();
+
+        console.log('Iniciando carregamento de agendamentos no DashboardPage...');
+        console.log('Usuário atual:', currentUser);
+
+        // Fazer apenas uma requisição e usar o cache
+        const formattedAppointments = await loadAppointments(true);
+        console.log('Agendamentos recebidos no DashboardPage:', formattedAppointments);
+
+        if (formattedAppointments && Array.isArray(formattedAppointments)) {
+          console.log('Número de agendamentos:', formattedAppointments.length);
+          if (formattedAppointments.length > 0) {
+            console.log('Exemplo do primeiro agendamento:', formattedAppointments[0]);
           }
+          setAppointments(formattedAppointments);
         } else {
-          const newStatus =
-            action === 'complete'
-              ? 'completed'
-              : currentStatus === 'completed'
-                ? 'pending'
-                : 'completed';
-          const response = await fetch(`${API_URL}/api/appointments/${appointmentId}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Accept: 'application/json',
-              Authorization: 'Bearer ' + localStorage.getItem('token'),
-            },
-            mode: 'cors',
-            body: JSON.stringify({ status: newStatus }),
-          });
-          if (response.ok) {
-            queryClient.setQueryData<Appointment[]>(['appointments'], oldAppointments =>
-              oldAppointments
-                ? oldAppointments.map(app =>
-                  app.id === appointmentId ? { ...app, status: newStatus } : app
-                )
-                : []
-            );
-          }
+          console.error('Dados de agendamentos inválidos:', formattedAppointments);
+          // Definir um array vazio para evitar erros
+          setAppointments([]);
         }
       } catch (error) {
-        console.error(`Erro na ação ${action}:`, error);
+        console.error('Error fetching dashboard data:', error);
+        // Definir um array vazio para evitar erros
+        setAppointments([]);
       }
-    },
-    [queryClient]
-  );
+    };
+
+    // Fazer apenas uma requisição ao montar o componente
+    fetchData();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []); // Removendo dependências para evitar requisições duplicadas
+
+
+  // Efeito para verificar se os agendamentos foram carregados corretamente
+  useEffect(() => {
+    console.log('Estado atual de appointments:', appointments);
+  }, [appointments]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('Token não encontrado');
-      navigate('/login');
+    if (revenueDisplayMode === 'day') {
+      setFilterMode('today');
+    } else if (revenueDisplayMode === 'week') {
+      setFilterMode('all');
+    } else if (revenueDisplayMode === 'month') {
+      setFilterMode('all');
     }
-  }, [navigate]);
+  }, [revenueDisplayMode]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0D121E] pt-16 flex items-center justify-center">
-        <div className="text-white">Carregando...</div>
-      </div>
-    );
+  const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
+    if (!appointmentId) return;
+    try {
+      if (action === 'delete') {
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          mode: 'cors'
+        });
+        if (response.ok) {
+          setAppointments(prev => prev.filter(app => app.id !== appointmentId));
+        }
+      } else {
+        const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          mode: 'cors',
+          body: JSON.stringify({ status: newStatus })
+        });
+        if (response.ok) {
+          setAppointments(prev =>
+            prev.map(app =>
+              app.id === appointmentId ? { ...app, status: newStatus } : app
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error(`Erro na ação ${action}:`, error);
+    }
   }
 
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
+
       <div className="absolute inset-0 opacity-5">
-        <div
-          className="h-full w-full"
-          style={{
-            backgroundImage:
-              'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }}
-        ></div>
+        <div className="h-full w-full" style={{
+          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}></div>
       </div>
+
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
@@ -189,18 +179,17 @@ const DashboardPage: React.FC = () => {
             </div>
             <div className="relative">
               <button
-                onClick={() => setIsDropdownOpen(prev => !prev)}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
               >
                 <Settings className="w-6 h-6 text-black" />
               </button>
               {isDropdownOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+                  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" 
                     onClick={() => setIsDropdownOpen(false)}
                   />
-                  <div className="fixed sm:absolute top-[20%] sm:top-full left-[50%] sm:left-auto right-auto sm:right-0 transform-gpu -translate-x-1/2 sm:translate-x-0 mt-0 sm:mt-4 w-[90vw] sm:w-[350px] md:w-[400px] max-h-[70vh] xs:max-h-[75vh] sm:max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1A1F2E] ring-1 ring-[#F0B35B]/20 z-50 animate-fade-in-up">
+                  <div className="fixed sm:absolute top-[20%] sm:top-full left-[50%] sm:left-auto right-auto sm:right-0 transform-gpu -translate-x-1/2 sm:translate-x-0 -translate-y-0 sm:-translate-y-0 mt-0 sm:mt-4 w-[90vw] sm:w-[350px] md:w-[400px] max-h-[70vh] xs:max-h-[75vh] sm:max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1A1F2E] ring-1 ring-[#F0B35B]/20 z-50 animate-fade-in-up">
                     <div className="sticky top-0 flex justify-between items-center p-3 sm:p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
                       <h3 className="text-lg sm:text-xl font-semibold text-white">Configurações</h3>
                       <button
@@ -241,18 +230,24 @@ const DashboardPage: React.FC = () => {
             </div>
           </div>
         </div>
-        {/* Estatísticas e Gráficos */}
-        <div className="mb-6"><Stats
-          appointments={appointments}
-          revenueDisplayMode={revenueDisplayMode}
-          setRevenueDisplayMode={setRevenueDisplayMode}
-        />
+
+        {/* Componentes de estatísticas e gráficos */}
+        <div className="mb-6">
+          <Stats
+            appointments={appointments}
+            revenueDisplayMode={revenueDisplayMode}
+            setRevenueDisplayMode={setRevenueDisplayMode}
+          />
+        </div>
+
+        <div className="mb-6">
           <Grafico
             appointments={appointments}
             isChartExpanded={isChartExpanded}
             setIsChartExpanded={setIsChartExpanded}
-          />             
-          </div>
+          />
+        </div>
+
         {/* Filtros de agendamentos */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-2">
@@ -262,14 +257,8 @@ const DashboardPage: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setFilterMode('today');
-                setRevenueDisplayMode('day'); // Garantir que ambos os estados são atualizados
-              }}
-              className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today'
-                  ? 'bg-[#F0B35B] text-black'
-                  : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
-                }`}
+              onClick={() => setFilterMode('today')}
+              className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
               Hoje
             </motion.button>
@@ -277,10 +266,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setFilterMode('tomorrow')}
-              className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow'
-                  ? 'bg-[#F0B35B] text-black'
-                  : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
-                }`}
+              className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
               Amanhã
             </motion.button>
@@ -296,25 +282,23 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Lista de Agendamentos */}
+        {/* Lista de agendamentos */}
         <div className="space-y-4 mb-8">
           <AnimatePresence mode="wait">
             {filteredAppointments.length > 0 ? (
-              <motion.div
+              <motion.div 
                 className="space-y-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {filteredAppointments.map(appointment => (
+                {filteredAppointments.map((appointment) => (
                   <AppointmentCardNew
                     key={appointment.id}
                     appointment={appointment}
                     onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                    onToggleStatus={() =>
-                      handleAppointmentAction(appointment.id, 'toggle', appointment.status)
-                    }
+                    onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
                     filterMode={filterMode}
                     revenueDisplayMode={revenueDisplayMode}
                     appointments={appointments}
@@ -342,6 +326,7 @@ const DashboardPage: React.FC = () => {
       </main>
     </div>
   );
+
 };
 
-export default memo(DashboardPage);
+export default DashboardPage;
