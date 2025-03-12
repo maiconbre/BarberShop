@@ -247,85 +247,26 @@ const CalendarPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Card de Filtros e Valores Reformulado */}
-        <div className="bg-[#1A1F2E] p-4 rounded-lg mb-6 shadow-lg border border-[#F0B35B]/10">
-          <div className="flex flex-col gap-4">
-            {/* Linha Superior - Valor Total e Total de Agendamentos */}
-            <div className="flex flex-col sm:flex-row justify-between items-stretch gap-3">
-              <div className="flex-1 bg-[#252B3B] p-3 rounded-lg">
-                <div className="text-gray-400 text-xs mb-1">Total de agendamentos</div>
-                <div className="text-white text-lg font-medium">{filteredAppointments.length}</div>
-              </div>
-              <div className="flex-1 bg-[#252B3B] p-3 rounded-lg">
-                <div className="text-gray-400 text-xs mb-1">Valor total do período</div>
-                <div className="text-[#F0B35B] text-lg font-bold">
-                  R$ {totalValue.toFixed(2)}
-                </div>
-              </div>
-            </div>
-
-            {/* Linha Inferior - Botões de Filtro */}
-            <div className="flex flex-wrap gap-3 items-center">
-              <button
-                onClick={() => {
-                  setIsRangeFilterActive(!isRangeFilterActive);
-                  setStartDate(null);
-                  setEndDate(null);
-                }}
-                className={`flex-1 min-w-[160px] px-4 py-2.5 rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                  isRangeFilterActive 
-                    ? 'bg-[#F0B35B] text-black shadow-lg' 
-                    : 'bg-[#252B3B] text-white hover:bg-[#2A3040]'
-                }`}
-              >
-                <span className="flex items-center justify-center gap-2">
-                  {isRangeFilterActive ? '✓ Filtro Ativo' : 'Filtrar por Período'}
-                </span>
-              </button>
-
-              <button
-                onClick={resetFilters}
-                className="flex-1 min-w-[160px] px-4 py-2.5 rounded-lg bg-[#252B3B] text-white hover:bg-[#2A3040] transition-all duration-300 transform hover:scale-105"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  Resetar Filtros
-                </span>
-              </button>
-
-              {/* Indicador de Período Selecionado */}
-              {isRangeFilterActive && (startDate || endDate) && (
-                <div className="w-full sm:w-auto flex-1 bg-[#252B3B] px-4 py-2.5 rounded-lg">
-                  <div className="text-[#F0B35B] text-sm font-medium text-center">
-                    {!endDate && startDate && (
-                      <>Início: {new Date(startDate).toLocaleDateString('pt-BR')}</>
-                    )}
-                    {startDate && endDate && (
-                      <>
-                        {new Date(startDate).toLocaleDateString('pt-BR')} 
-                        <span className="mx-2">→</span>
-                        {new Date(endDate).toLocaleDateString('pt-BR')}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Calendário com estilo melhorado */}
-        <div className="bg-[#1A1F2E] p-4 rounded-lg mb-6 shadow-lg border border-[#F0B35B]/10">
-          <CalendarView
-            appointments={appointments}
-            selectedDate={selectedDate}
-            onDateSelect={handleDateSelection}
-            startDate={startDate}
-            endDate={endDate}
-          />
-        </div>
+        {/* Calendário unificado com filtros e estatísticas */}
+        <CalendarView
+          appointments={appointments}
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelection}
+          startDate={startDate}
+          endDate={endDate}
+          currentUser={currentUser}
+          isRangeFilterActive={isRangeFilterActive}
+          onToggleRangeFilter={() => {
+            setIsRangeFilterActive(!isRangeFilterActive);
+            setStartDate(null);
+            setEndDate(null);
+          }}
+          onResetFilters={resetFilters}
+          totalValue={totalValue}
+        />
 
         {/* Lista de Agendamentos */}
-        <div className="space-y-4">
+        <div className="my-4">
           <AnimatePresence>
             {filteredAppointments.length > 0 ? (
               filteredAppointments.map((appointment) => (
@@ -335,6 +276,7 @@ const CalendarPage: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.2 }}
+                  className="mb-2"
                 >
                   <AppointmentCardNew
                     appointment={appointment}
