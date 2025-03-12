@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, ArrowLeft } from 'lucide-react';
+import { Settings, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import CalendarView from '../components/CalendarView';
@@ -30,12 +30,16 @@ const CalendarPage: React.FC = () => {
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const appointmentsPerPage = 8;
 
   const resetFilters = () => {
     setIsRangeFilterActive(false);
     setStartDate(null);
     setEndDate(null);
     setSelectedDate(new Date().toISOString().split('T')[0]);
+    setCurrentPage(1); // Reset to first page when filters are reset
   };
 
   // Função para carregar agendamentos do backend
@@ -98,12 +102,14 @@ const CalendarPage: React.FC = () => {
   const handleDateSelection = (date: string) => {
     if (!isRangeFilterActive) {
       setSelectedDate(date);
+      setCurrentPage(1); // Reset to first page when date changes
       return;
     }
 
     if (!startDate || (startDate && endDate)) {
       setStartDate(date);
       setEndDate(null);
+      setCurrentPage(1); // Reset to first page when date range changes
     } else {
       if (new Date(date) < new Date(startDate)) {
         setEndDate(startDate);
@@ -111,6 +117,7 @@ const CalendarPage: React.FC = () => {
       } else {
         setEndDate(date);
       }
+      setCurrentPage(1); // Reset to first page when date range is completed
     }
   };
 
@@ -135,6 +142,15 @@ const CalendarPage: React.FC = () => {
   });
 
   const totalValue = calculateTotalValue(filteredAppointments);
+
+  // Pagination logic
+  const indexOfLastAppointment = currentPage * appointmentsPerPage;
+  const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
+  const currentAppointments = filteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const totalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
+
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   // Gerencia ações de completar, deletar ou alternar status dos agendamentos
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
@@ -260,6 +276,7 @@ const CalendarPage: React.FC = () => {
             setIsRangeFilterActive(!isRangeFilterActive);
             setStartDate(null);
             setEndDate(null);
+            setCurrentPage(1); // Reset to first page when filter is toggled
           }}
           onResetFilters={resetFilters}
           totalValue={totalValue}
@@ -268,8 +285,8 @@ const CalendarPage: React.FC = () => {
         {/* Lista de Agendamentos */}
         <div className="my-4">
           <AnimatePresence>
-            {filteredAppointments.length > 0 ? (
-              filteredAppointments.map((appointment) => (
+            {currentAppointments.length > 0 ? (
+              currentAppointments.map((appointment) => (
                 <motion.div
                   key={appointment.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -302,6 +319,73 @@ const CalendarPage: React.FC = () => {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Pagination Controls */}
+        {filteredAppointments.length > appointmentsPerPage && (
+          <div className="flex justify-center mt-6 mb-4">
+            <div className="flex items-center space-x-2">
+              {/* Previous Page Button */}
+              {currentPage > 1 && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage - 1)}
+                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </motion.button>
+              )}
+              
+              {/* First Page */}
+              {currentPage > 1 && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage - 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  {currentPage - 1}
+                </motion.button>
+              )}
+              
+              {/* Current Page */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+              >
+                {currentPage}
+              </motion.button>
+              
+              {/* Separator */}
+              <span className="text-gray-400">.</span>
+              
+              {/* Next Page */}
+              {currentPage < totalPages && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  {currentPage + 1}
+                </motion.button>
+              )}
+              
+              {/* Next Page Button */}
+              {currentPage < totalPages && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage + 1)}
+                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </motion.button>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

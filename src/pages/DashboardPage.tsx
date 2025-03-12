@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar } from 'lucide-react';
+import { Settings, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -54,12 +54,24 @@ const DashboardPage: React.FC = () => {
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const appointmentsPerPage = 8;
 
   // Usando o hook de notificações
   const { loadAppointments } = useNotifications();
 
   // Usando o hook personalizado para filtrar agendamentos
   const filteredAppointments = useFilteredAppointments(appointments, filterMode);
+  
+  // Pagination logic
+  const indexOfLastAppointment = currentPage * appointmentsPerPage;
+  const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
+  const currentAppointments = filteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const totalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
+
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   // Efeito para rolar para o topo da página quando o componente for renderizado
   useEffect(() => {
@@ -126,6 +138,7 @@ const DashboardPage: React.FC = () => {
     } else if (revenueDisplayMode === 'month') {
       setFilterMode('all');
     }
+    setCurrentPage(1); // Reset to first page when revenue display mode changes
   }, [revenueDisplayMode]);
 
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
@@ -298,7 +311,7 @@ const DashboardPage: React.FC = () => {
           <AnimatePresence>
             {filteredAppointments.length > 0 ? (
               <>
-                {filteredAppointments.map((appointment) => (
+                {currentAppointments.map((appointment) => (
                   <AppointmentCardNew
                     key={appointment.id}
                     appointment={appointment}
@@ -328,6 +341,70 @@ const DashboardPage: React.FC = () => {
             )}
           </AnimatePresence>
         </div>
+        
+        {/* Pagination Controls */}
+        {filteredAppointments.length > appointmentsPerPage && (
+          <div className="flex justify-center mt-6 mb-4">
+            <div className="flex items-center space-x-2">
+              {/* Previous Page Button */}
+              {currentPage > 1 && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage - 1)}
+                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </motion.button>
+              )}
+              
+              {/* First Page */}
+              {currentPage > 1 && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage - 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  {currentPage - 1}
+                </motion.button>
+              )}
+              
+              {/* Current Page */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+              >
+                {currentPage}
+              </motion.button>
+              
+              {/* Next Page */}
+              {currentPage < totalPages && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  {currentPage + 1}
+                </motion.button>
+              )}
+              
+              {/* Next Page Button */}
+              {currentPage < totalPages && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage + 1)}
+                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </motion.button>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
