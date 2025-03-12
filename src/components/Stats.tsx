@@ -27,7 +27,7 @@ const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?:
       const timePassed = Date.now() - startTime;
       const progress = Math.min(timePassed / (duration * 1000), 1);
       const currentCount = Math.floor(progress * end);
-      
+
       if (progress === 1 || currentCount === end) {
         clearInterval(timer);
         setCount(end);
@@ -47,7 +47,7 @@ const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?:
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
   const navigate = useNavigate();
   const [isTransitioning, setIsTransitioning] = useState(false);
-  
+
   const totalAppointments = appointments.length;
   const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
   const completedAppointments = appointments.filter(app => app.status === 'completed').length;
@@ -62,7 +62,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
-    
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     thirtyDaysAgo.setHours(0, 0, 0, 0);
@@ -89,25 +89,25 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
   };
 
   // Usando useMemo para evitar recálculos desnecessários
-  const currentFilteredAppointments = useMemo(() => getFilteredAppointmentsByDate(), 
+  const currentFilteredAppointments = useMemo(() => getFilteredAppointmentsByDate(),
     [appointments, revenueDisplayMode]);
-    
-  const filteredPendingAppointments = useMemo(() => 
-    currentFilteredAppointments.filter(app => app.status === 'pending').length, 
+
+  const filteredPendingAppointments = useMemo(() =>
+    currentFilteredAppointments.filter(app => app.status === 'pending').length,
     [currentFilteredAppointments]);
-    
-  const filteredCompletedAppointments = useMemo(() => 
-    currentFilteredAppointments.filter(app => app.status === 'completed').length, 
+
+  const filteredCompletedAppointments = useMemo(() =>
+    currentFilteredAppointments.filter(app => app.status === 'completed').length,
     [currentFilteredAppointments]);
-    
-  const filteredPendingRevenue = useMemo(() => 
+
+  const filteredPendingRevenue = useMemo(() =>
     currentFilteredAppointments.filter(app => app.status === 'pending')
-      .reduce((sum, app) => sum + app.price, 0), 
+      .reduce((sum, app) => sum + app.price, 0),
     [currentFilteredAppointments]);
-    
-  const filteredCompletedRevenue = useMemo(() => 
+
+  const filteredCompletedRevenue = useMemo(() =>
     currentFilteredAppointments.filter(app => app.status === 'completed')
-      .reduce((sum, app) => sum + app.price, 0), 
+      .reduce((sum, app) => sum + app.price, 0),
     [currentFilteredAppointments]);
 
   // Cálculo de estatísticas detalhadas usando useMemo
@@ -117,7 +117,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
-    
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -126,12 +126,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
       const appDate = new Date(app.date);
       return appDate >= startOfWeek && appDate <= endOfWeek;
     }).reduce((sum, app) => sum + app.price, 0);
-    
+
     const receitaMes = appointments.filter(app => {
       const appDate = new Date(app.date);
       return appDate >= thirtyDaysAgo;
     }).reduce((sum, app) => sum + app.price, 0);
-    
+
     const ticketMedio = totalAppointments > 0 ? totalRevenue / totalAppointments : 0;
     const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
 
@@ -140,7 +140,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
       const appDate = new Date(app.date);
       return appDate >= startOfWeek && appDate <= endOfWeek;
     }).length;
-    
+
     const clientesMes = appointments.filter(app => {
       const appDate = new Date(app.date);
       return appDate >= thirtyDaysAgo;
@@ -158,14 +158,14 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     // Reset do estado após a transição
     setTimeout(() => setIsTransitioning(false), 50);
   };
-  
+
   // Dados do gráfico memoizados para evitar recriação a cada renderização
   const pieChartData = useMemo(() => {
     const pending = filteredPendingAppointments || 0;
     const completed = filteredCompletedAppointments || 0;
     const pendingRev = filteredPendingRevenue || 0;
     const completedRev = filteredCompletedRevenue || 0;
-    
+
     // Sempre retornar um array com dois elementos para manter consistência
     return [
       { name: 'Pendentes', value: pending, revenue: pendingRev },
@@ -175,39 +175,47 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
   return (
     <div className="mb-6 sm:mb-8 sm:px-0">
-      <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 w-full">
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-center gap-2">
-            <button 
-              onClick={() => handleModeChange('month')}
-              className={`px-4 py-2 rounded-md transition-all duration-300 ${revenueDisplayMode === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-            >
-              Mensal
-            </button>
-            <button 
-              onClick={() => handleModeChange('week')}
-              className={`px-4 py-2 rounded-md transition-all duration-300 ${revenueDisplayMode === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-            >
-              Semana
-            </button>
-            <button 
-              onClick={() => handleModeChange('day')}
-              className={`px-4 py-2 rounded-md transition-all duration-300 ${revenueDisplayMode === 'day' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-            >
-              Hoje
-            </button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/calendar')}
-              className="p-2 rounded-md bg-[#252B3B] text-white hover:bg-[#F0B35B]/20 transition-all duration-300 flex items-center justify-center"
-              title="Ver calendário"
-            >
-              <Calendar className="w-5 h-5" />
-            </motion.button>
+      <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 w-full relative">
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center flex-wrap gap-2 sm:gap-3 sm:pr-0">
+            <div className="flex flex-1 justify-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/calendar')}
+                className="fixed right-4 top-20 z-30 px-3 sm:px-6 py-2 sm:py-3 rounded-lg bg-[#F0B35B] text-black font-medium shadow-lg hover:bg-[#F0B35B]/90 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 border-2 border-[#F0B35B]/50 min-w-[40px] sm:min-w-[160px]"
+                title="Ver calendário"
+              >
+                <Calendar className="w-6 h-6 sm:w-6 sm:h-6" />
+                <span className="hidden sm:inline font-bold">Calendário</span>
+                <span className="absolute top-1 right-1 flex h-3 w-3 sm:h-3 sm:w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F0B35B] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-[#F0B35B]"></span>
+                </span>
+              </motion.button>
+              <button
+                onClick={() => handleModeChange('month')}
+                className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
+              >
+                Mensal 
+              </button>
+              <button
+                onClick={() => handleModeChange('week')}
+                className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
+              >
+                Semana
+              </button>
+              <button
+                onClick={() => handleModeChange('day')}
+                className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'day' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
+              >
+                Hoje
+              </button>
+            </div>
+
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-col lg:flex-row gap-4 items-center sm:items-start">
             <motion.div className="flex-1 w-full">
               <AnimatePresence mode="wait">
                 {revenueDisplayMode === 'month' ? (
@@ -266,80 +274,80 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              <div className="mt-4 pt-4 border-t border-gray-700/30">
-                <div className="grid grid-cols-2 gap-4">
-                  <p className="text-sm text-gray-400">
-                    Ticket Médio: <span className="text-white font-semibold block mt-1">R$ <CountUp end={ticketMedio} /></span>
-                  </p>
-                  <p className="text-sm text-gray-400 text-right">
-                    Taxa de Conclusão: <span className="text-white font-semibold block mt-1"><CountUp end={taxaConclusao} />%</span>
-                  </p>
-                </div>
-              </div>
             </motion.div>
 
-            <div className="flex flex-col w-full lg:w-auto">
-              <p className="text-gray-400 text-sm mb-2">Status dos Agendamentos {revenueDisplayMode === 'day' ? 'de Hoje' : revenueDisplayMode === 'week' ? 'da Semana' : 'do Mês'}</p>
-              
-              <div className="flex flex-row items-center gap-3">
-                <div className="h-[140px] w-[140px] sm:h-[160px] sm:w-[160px] relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        key={`pie-${revenueDisplayMode}-${isTransitioning}`}
-                        data={pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={30}
-                        outerRadius={50}
-                        paddingAngle={8}
-                        dataKey="value"
-                        startAngle={90}
-                        endAngle={450}
-                        animationBegin={0}
-                        animationDuration={1000}
-                        animationEasing="ease-in-out"
-                        minAngle={0}
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}-${revenueDisplayMode}`}
-                            fill={index === 0 ? '#F59E0B' : '#4CAF50'}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value, name, props) => [
-                          `R$ ${props.payload.revenue.toFixed(2)}`, 
-                          `${name} (${value})`
-                        ]}
-                        contentStyle={{ 
-                          backgroundColor: '#1A1F2E', 
-                          borderColor: '#374151',
-                          borderRadius: '0.375rem',
-                          color: '#F3F4F6'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+            {/* Gráfico de Pizza */}
+            <div className="w-full lg:w-auto flex flex-row items-center justify-center gap-4">
+              <div className="w-[140px] h-[140px]">  {/* Increased from 120px to 140px */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={60} 
+                      innerRadius={35} 
+                      fill="#8884d8"
+                      dataKey="value"
+                      stroke="rgba(255,255,255,0.1)"
+                      strokeWidth={1}
+                    >
+                      <Cell key="pending" fill="#FFD700" />
+                      <Cell key="completed" fill="#4CAF50" />
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: any, name: string, props: any) => {
+                        const data = props.payload;
+                        return [`${value} agendamentos - R$ ${data.revenue.toFixed(2)}`, name];
+                      }}
+                      contentStyle={{
+                        backgroundColor: 'rgba(26,31,46,0.95)',
+                        border: '1px solid rgba(240,179,91,0.5)',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        color: '#fff',
+                        fontSize: '12px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-col justify-center gap-2">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-[#FFD700]"></div>
+                  <span className="text-xs text-gray-300">Pendentes ({filteredPendingAppointments})</span>
                 </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
+                  <span className="text-xs text-gray-300">Concluídos ({filteredCompletedAppointments})</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#F59E0B]"></div>
-                    <p className="text-sm text-gray-300">
-                      Pendentes: <span className="font-semibold">{filteredPendingAppointments}</span>
-                      <span className="block text-xs text-gray-400">R$ {filteredPendingRevenue.toFixed(2)}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#4CAF50]"></div>
-                    <p className="text-sm text-gray-300">
-                      Concluídos: <span className="font-semibold">{filteredCompletedAppointments}</span>
-                      <span className="block text-xs text-gray-400">R$ {filteredCompletedRevenue.toFixed(2)}</span>
-                    </p>
-                  </div>
+          {/* Estatísticas adicionais */}
+          <div className="flex flex-row gap-4 mt-4">
+            <div className="flex-1 bg-[#1A1F2E]/50 p-1 rounded-lg text-center ">  {/* Reduced padding from p-3 to p-2 */}
+              <p className="text-gray-400 text-xs my-2">Ticket Médio</p>  {/* Reduced margin from mb-1 to mb-0.5 */}
+              <h5 className="text-lg font-semibold flex items-center justify-center text-white">R$ {ticketMedio.toFixed(2)}</h5>  {/* Reduced font from text-xl to text-lg */}
+            </div>
+            <div className="flex-1 bg-[#1A1F2E]/50 p-2 rounded-lg">  {/* Reduced padding from p-3 to p-2 */}
+              <p className="text-gray-400 text-xs mb-0.5">Taxa de Conclusão</p>  {/* Reduced margin from mb-1 to mb-0.5 */}
+              <div className="flex flex-col gap-1">
+                <h5 className="text-lg font-semibold text-white">{taxaConclusao.toFixed(1)}%</h5>
+                <div className="w-full h-2 bg-[#1A1F2E] rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full rounded-full" 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(taxaConclusao, 100)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    style={{
+                      background: `linear-gradient(90deg, 
+                        ${taxaConclusao < 30 ? '#FF4D4D' : taxaConclusao < 70 ? '#FFD700' : '#4CAF50'} 0%, 
+                        ${taxaConclusao < 30 ? '#FF8C00' : taxaConclusao < 70 ? '#4CAF50' : '#00FF7F'} 100%)`
+                    }}
+                  />
                 </div>
               </div>
             </div>
