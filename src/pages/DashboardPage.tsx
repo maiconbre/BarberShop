@@ -367,7 +367,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Lista de agendamentos */}
-        <div className="space-y-4 mb-8 min-h-[900px]">
+        <div className="space-y-4 mb-8 min-h-[850px]">
           <AnimatePresence mode="wait">
             {filteredAppointments.length > 0 ? (
               <>
