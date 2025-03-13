@@ -1,4 +1,3 @@
-//// filepath: /c:/Users/Maicon/Documents/GitHub/BarberGR/src/App.tsx
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -14,6 +13,7 @@ import DashboardPage from './pages/DashboardPage';
 import CalendarPage from './pages/CalendarPage';
 import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
+import VendaPage2 from './pages/VendaPage2';
 
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -85,6 +85,7 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
+            <Route path="/vendapage2" element={<VendaPage2 />} />
           </Routes>
         </motion.div>
       </AnimatePresence>

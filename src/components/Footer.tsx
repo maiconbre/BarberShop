@@ -1,8 +1,9 @@
 import { Instagram, Facebook, Twitter, Youtube } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const Footer = () => {
+  const navigate = useNavigate();
   const socialLinks = [
     { icon: <Instagram size={20} />, label: 'Instagram' },
     { icon: <Facebook size={20} />, label: 'Facebook' },
@@ -66,20 +67,27 @@ const Footer = () => {
 
           {/* Copyright */}
           <div className="flex flex-col items-center md:items-end gap-2">
-            
             <Link
               to="/login"
               className="text-[#F0B35B] text-sm transition-colors"
             >
               Área do Barbeiro
             </Link>
+            <motion.button
+              onClick={() => navigate('/vendapage2')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="text-[#F0B35B] text-sm hover:bg-[#F0B35B]/10 px-3 py-1 rounded-md transition-colors"
+            >
+              Página de Venda
+            </motion.button>
           </div>
         </div>
 
         {/* Divider */}
         <div className="border-t border-[#252B3B]/50 mt-4 pt-4 text-center">
           <p className="text-gray-500 text-sm">
-          Nexus®  All rights reserved © {new Date().getFullYear()}
+          Target Web®  All rights reserved © {new Date().getFullYear()}
           </p>
         </div>
       </div>
