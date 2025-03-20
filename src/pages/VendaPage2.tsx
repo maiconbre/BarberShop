@@ -54,7 +54,7 @@ const VendaPage2: React.FC = () => {
   const { hours, minutes, seconds } = useCountdown(PROMO_END_TIME);
   // Referência para o vídeo em dispositivos móveis
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  
+
   // Adicionar useEffect para autoplay do vídeo
   useEffect(() => {
     if (videoRef.current) {
@@ -134,14 +134,14 @@ const VendaPage2: React.FC = () => {
                 <span className="text-[#F0B35B] ml-1">{SLOTS_LEFT} vagas com desconto!</span>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-1 sm:gap-2 text-white">
                 <div className="bg-[#252B3B] px-2 py-1 rounded text-xs sm:text-sm font-mono">
                   {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
                 </div>
               </div>
-              
+
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
@@ -178,36 +178,36 @@ const VendaPage2: React.FC = () => {
         <section className="relative min-h-[85vh] flex items-center pt-16"> {/* Reduzido de pt-20 para pt-16 */}
           <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-                <motion.div
+              <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
                 className="max-w-2xl flex flex-col gap-12 z-10 relative"
-                ></motion.div>
-                  <motion.div>
+              ></motion.div>
+              <motion.div>
                 {/* Enhanced tag with better visual hierarchy */}
                 <div className="space-y-6">
-                <motion.div
-                  className="inline-flex items-center gap-4 px-6 py-2.5 bg-[#F0B35B]/10 text-[#F0B35B] rounded-full border border-[#F0B35B]/20 w-fit backdrop-blur-sm shadow-lg hover:shadow-[#F0B35B]/20 transition-all duration-300"
-                  whileHover={{ scale: 1.02, backgroundColor: "rgba(240,179,91,0.15)" }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  <span className="animate-pulse">🏆</span>
-                  <span className="text-sm font-medium">Software #1 do RJ para Barbearias</span>
-                </motion.div>
+                  <motion.div
+                    className="inline-flex items-center gap-4 px-6 py-2.5 bg-[#F0B35B]/10 text-[#F0B35B] rounded-full border border-[#F0B35B]/20 w-fit backdrop-blur-sm shadow-lg hover:shadow-[#F0B35B]/20 transition-all duration-300"
+                    whileHover={{ scale: 1.02, backgroundColor: "rgba(240,179,91,0.15)" }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    <span className="animate-pulse">🏆</span>
+                    <span className="text-sm font-medium">Software #1 do RJ para Barbearias</span>
+                  </motion.div>
 
-                {/* Enhanced headline with better typography and gradient */}
-                
+                  {/* Enhanced headline with better typography and gradient */}
+
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
-                  <span className="block text-white/90">Eleve sua barbearia para o</span>
-                  <span className="bg-gradient-to-r from-[#F0B35B] to-[#D4943D] bg-clip-text text-transparent font-extrabold">
-                  Próximo Nível
-                  </span>
+                    <span className="block text-white/90">Eleve sua barbearia para o</span>
+                    <span className="bg-gradient-to-r from-[#F0B35B] to-[#D4943D] bg-clip-text text-transparent font-extrabold">
+                      Próximo Nível
+                    </span>
                   </h1>
-                  
+
                   {/* Added subtitle for better context */}
                   <p className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-xl">
-                  Automatize agendamentos, fidelize clientes e aumente seu faturamento com nosso sistema completo
+                    Automatize agendamentos, fidelize clientes e aumente seu faturamento com nosso sistema completo
                   </p>
                 </div>
 
@@ -253,14 +253,14 @@ const VendaPage2: React.FC = () => {
                 className="relative hidden lg:block"
               >
                 <div className="relative w-full aspect-video bg-[#1A1F2E] rounded-lg overflow-hidden border border-[#F0B35B]/20">
-                  <img 
-                    src="./img/demofoto.png" 
+                  <img
+                    src="./img/demofoto.png"
                     alt="Preview do Sistema"
                     className="absolute inset-0 w-full h-full object-cover object-center"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-transparent to-transparent opacity-90"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    
+
                   </div>
                 </div>
               </motion.div>
@@ -297,7 +297,7 @@ const VendaPage2: React.FC = () => {
                       preload="metadata"
                     />
                   </motion.div>
-                  
+
                 </div>
               </div>
             </div>
@@ -367,8 +367,8 @@ const VendaPage2: React.FC = () => {
                         className="text-center"
                       >
                         <div className="mb-6 flex justify-center">
-                          {React.createElement(demoSteps[currentDemoStep].icon, { 
-                            className: "w-24 h-24 text-[#F0B35B]" 
+                          {React.createElement(demoSteps[currentDemoStep].icon, {
+                            className: "w-24 h-24 text-[#F0B35B]"
                           })}
                         </div>
                         <h3 className="text-xl font-bold mb-4">{demoSteps[currentDemoStep].title}</h3>
