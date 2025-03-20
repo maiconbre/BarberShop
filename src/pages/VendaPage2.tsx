@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -45,7 +45,7 @@ const ctaVariants = {
 
 // Configuração da promoção relâmpago
 const PROMO_END_TIME = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
-const SLOTS_LEFT = 6;
+const SLOTS_LEFT = 3;
 
 const VendaPage2: React.FC = () => {
   const navigate = useNavigate();
@@ -55,6 +55,14 @@ const VendaPage2: React.FC = () => {
   // Referência para o vídeo em dispositivos móveis
   const videoRef = React.useRef<HTMLVideoElement>(null);
   
+  // Adicionar useEffect para autoplay do vídeo
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(error => {
+        console.log("Autoplay foi prevenido:", error);
+      });
+    }
+  }, []);
 
   // Animações
   const fadeInUp = {
@@ -115,31 +123,33 @@ const VendaPage2: React.FC = () => {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className={`fixed bottom-0 left-0 right-0 ${commonAnimations.headerGradient} backdrop-blur-md z-50 p-3 sm:p-4 border-t border-[#F0B35B]/10`}
+        className="fixed bottom-0 left-0 right-0 bg-[#1A1F2E]/95 backdrop-blur-md z-50 border-t border-[#F0B35B]/10 transform translate-y-0 hover:translate-y-0 transition-transform duration-300"
       >
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-center sm:text-left">
-            <span className="text-[#F0B35B] animate-pulse">⚡</span>
-            <div className="text-xs sm:text-sm">
-              <span className="font-bold text-white">Promoção:</span>
-              <span className="text-[#F0B35B]"> {SLOTS_LEFT} vagas com desconto!</span>
+        <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[#F0B35B] animate-pulse">⚡</span>
+              <div className="text-xs sm:text-sm">
+                <span className="font-bold text-white">Promoção:</span>
+                <span className="text-[#F0B35B] ml-1">{SLOTS_LEFT} vagas com desconto!</span>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col xs:flex-row items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
-            <div className="flex items-center gap-1 sm:gap-2 text-white">
-              <div className="bg-[#252B3B] px-2 sm:px-3 py-1 rounded-lg font-mono text-xs sm:text-sm">{hours.toString().padStart(2, '0')}</div>
-              <span>:</span>
-              <div className="bg-[#252B3B] px-2 sm:px-3 py-1 rounded-lg font-mono text-xs sm:text-sm">{minutes.toString().padStart(2, '0')}</div>
-              <span>:</span>
-              <div className="bg-[#252B3B] px-2 sm:px-3 py-1 rounded-lg font-mono text-xs sm:text-sm">{seconds.toString().padStart(2, '0')}</div>
+            
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-1 sm:gap-2 text-white">
+                <div className="bg-[#252B3B] px-2 py-1 rounded text-xs sm:text-sm font-mono">
+                  {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
+                </div>
+              </div>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-4 py-1.5 bg-[#F0B35B] text-black rounded font-medium text-xs sm:text-sm whitespace-nowrap"
+              >
+                Aproveitar Agora
+              </motion.button>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-[#F0B35B] text-black rounded-lg font-bold text-xs sm:text-sm w-full xs:w-auto"
-            >
-              Aproveitar
-            </motion.button>
           </div>
         </div>
       </motion.div>
@@ -165,32 +175,48 @@ const VendaPage2: React.FC = () => {
         </motion.header>
 
         {/* Hero Section Simplificada */}
-        <section className="relative min-h-[90vh] flex items-center pt-20">
+        <section className="relative min-h-[85vh] flex items-center pt-16"> {/* Reduzido de pt-20 para pt-16 */}
           <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <motion.div
+                <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="max-w-2xl"
-              >
-                {/* Tag mais sutil */}
+                className="max-w-2xl flex flex-col gap-12 z-10 relative"
+                ></motion.div>
+                  <motion.div>
+                {/* Enhanced tag with better visual hierarchy */}
+                <div className="space-y-6">
                 <motion.div
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full mb-6 border border-[#F0B35B]/10"
-                  whileHover={{ scale: 1.02 }}
+                  className="inline-flex items-center gap-4 px-6 py-2.5 bg-[#F0B35B]/10 text-[#F0B35B] rounded-full border border-[#F0B35B]/20 w-fit backdrop-blur-sm shadow-lg hover:shadow-[#F0B35B]/20 transition-all duration-300"
+                  whileHover={{ scale: 1.02, backgroundColor: "rgba(240,179,91,0.15)" }}
                   transition={{ type: "spring", stiffness: 400 }}
                 >
-                  Software #1 do RJ para Barbearias
+                  <span className="animate-pulse">🏆</span>
+                  <span className="text-sm font-medium">Software #1 do RJ para Barbearias</span>
                 </motion.div>
 
-                {/* Headline mais limpa */}
-                <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                  Leve sua Barbearia e seu Negócio para o <br/>
-                  <span className={`bg-clip-text text-transparent ${commonAnimations.buttonGradient}`}> Próximo Nível </span>
-                </h1>
+                {/* Enhanced headline with better typography and gradient */}
+                
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
+                  <span className="block text-white/90">Eleve sua barbearia para o</span>
+                  <span className="bg-gradient-to-r from-[#F0B35B] to-[#D4943D] bg-clip-text text-transparent font-extrabold">
+                  Próximo Nível
+                  </span>
+                  </h1>
+                  
+                  {/* Added subtitle for better context */}
+                  <p className="text-lg md:text-xl text-gray-400 leading-relaxed max-w-xl">
+                  Automatize agendamentos, fidelize clientes e aumente seu faturamento com nosso sistema completo
+                  </p>
+                </div>
 
-                {/* Social proof mais elegante */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                {/* Added decorative elements */}
+                <div className="absolute -z-10 top-0 right-0 w-72 h-72 bg-[#F0B35B]/5 rounded-full blur-3xl"></div>
+                <div className="absolute -z-10 bottom-0 left-0 w-72 h-72 bg-[#F0B35B]/10 rounded-full blur-3xl"></div>
+
+                {/* Social proof com margin removido */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {Object.entries(socialProof.stats).map(([key, value]) => (
                     <motion.div
                       key={key}
@@ -208,11 +234,11 @@ const VendaPage2: React.FC = () => {
                   ))}
                 </div>
 
-                {/* CTA mais chamativo */}
+                {/* CTA margin removido */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`${commonAnimations.buttonGradient} px-8 py-4 rounded-lg font-bold text-black shadow-lg ${commonAnimations.glowEffect} transition-all duration-300`}
+                  className={`${commonAnimations.buttonGradient} px-8 py-4 rounded-lg font-bold text-black shadow-lg ${commonAnimations.glowEffect} transition-all duration-300 w-fit`}
                 >
                   "Garanta Seu Desconto Agora - 50% OFF!"
                   <span className="text-xs block mt-2">{ctaVariants.primary.urgency}</span>
@@ -265,12 +291,13 @@ const VendaPage2: React.FC = () => {
                       className="w-full rounded-lg shadow-2xl border border-[#F0B35B]/20"
                       controls
                       playsInline
+                      autoPlay
+                      muted
+                      loop
                       preload="metadata"
                     />
                   </motion.div>
-                  <div className="mt-4 text-center text-sm text-gray-400">
-                    <p>Toque para assistir a demonstração</p>
-                  </div>
+                  
                 </div>
               </div>
             </div>
@@ -637,7 +664,7 @@ const VendaPage2: React.FC = () => {
         </section>
 
         {/* Footer - Melhorado para mobile */}
-        <footer className="bg-[#0D121E] py-10 pb-32 sm:pb-40 w-full relative">  {/* Ajustado padding para compensar o componente fixo */}
+        <footer className="bg-[#0D121E] py-10 pb-24 sm:pb-28 w-full relative">  {/* Reduzido padding bottom */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               <div className="text-center sm:text-left">
