@@ -1,51 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
-  Clock, Calendar, PhoneCall, CheckCircle, ArrowRight,
-  Users, BarChart, Smartphone, DollarSign, X, 
+  Clock, Calendar, CheckCircle, ArrowRight,
+  Users, BarChart, Smartphone, DollarSign, X,
 } from 'lucide-react';
 import { Helmet } from 'react-helmet';
 import { useCountdown } from '../hooks/useCountdown';
 
-// Screenshots do sistema
-const systemScreenshots = {
-  dashboard: './img/print1.png',
-  calendar: './img/print2.png',
+// Configuração do vídeo para mobile
+const videoConfig = {
+  src: './video/Demo oficial.mp4',
+  poster: './img/demofoto.png'
 };
 
-const testimonials = [
-  {
-    id: 1,
-    name: "João Silva",
-    role: "Proprietário - Barbearia Vintage",
-    image: "./img/testimonial1.jpg",
-    text: "Após implementar o BarberShop, aumentei meu faturamento em 40%. A organização que o sistema trouxe é impressionante!",
-    rating: 5
-  },
-  {
-    id: 2,
-    name: "Pedro Santos",
-    role: "Barbeiro Master - BarberKing",
-    image: "./img/testimonial2.jpg",
-    text: "Economizo 2 horas por dia desde que abandonei a agenda de papel. Os clientes adoram a facilidade de agendamento.",
-    rating: 5
-  },
-  {
-    id: 3,
-    name: "Carlos Oliveira",
-    role: "CEO - Barbearia Premium",
-    image: "./img/testimonial3.jpg",
-    text: "O melhor investimento que fiz para minha barbearia. O suporte é excelente e o sistema é muito intuitivo.",
-    rating: 5
-  }
-];
 
 // Dados de prova social
 const socialProof = {
   stats: {
-    clients: "50+",
-    appointments: "5.000+",
+    clients: "10+",
+    appointments: "1.000+",
     satisfaction: "99%",
     timesSaved: "3h/dia"
   },
@@ -77,13 +51,10 @@ const VendaPage2: React.FC = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
   const [currentDemoStep, setCurrentDemoStep] = useState(0);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const [activeScreenshot, setActiveScreenshot] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
   const { hours, minutes, seconds } = useCountdown(PROMO_END_TIME);
-  const [currentPrint, setCurrentPrint] = useState(0);
-  const prints = ['print1.png', 'print2.png', 'print3.png'];
+  // Referência para o vídeo em dispositivos móveis
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  
 
   // Animações
   const fadeInUp = {
@@ -92,74 +63,30 @@ const VendaPage2: React.FC = () => {
     exit: { opacity: 0, y: -20 }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
 
-  // Mock de demonstração do sistema
-  const systemScreens = [
-    {
-      title: "Agenda Inteligente",
-      image: "./img/print2.png", // Adicionar screenshots reais do sistema
-      description: "Visualize e gerencie todos os agendamentos em uma interface intuitiva"
-    },
-    // ... adicionar mais telas
-  ];
-
-  // Simulação de Social Proof
-  const testimonials = [
-    {
-      name: "Carlos Silva",
-      role: "Proprietário - Barbearia Vintage",
-      image: "/testimonials/carlos.jpg",
-      text: "Aumentei em 40% meus agendamentos após começar a usar o sistema."
-    },
-    {
-      name: "Rafael Santos",
-      role: "Barbeiro - BarberKing",
-      image: "/testimonials/rafael.jpg",
-      text: "Economizo 2 horas por dia desde que abandonei a agenda de papel."
-    },
-    // Adicione mais depoimentos
-  ];
 
   // Demonstração interativa do sistema
   const demoSteps = [
     {
       title: "Agenda Inteligente",
       description: "Visualize todos os agendamentos em um calendário intuitivo",
-      image: "./img/print1.png",
+      icon: Calendar,
       features: ["Visão diária/semanal/mensal", "Filtros avançados", "Notificações automáticas"]
     },
     {
       title: "Gestão de Clientes",
       description: "Mantenha um histórico completo de cada cliente",
-      image: "./img/print2.png",
+      icon: Users,
       features: ["Perfil detalhado", "Histórico de serviços", "Preferências salvas"]
+    },
+    {
+      title: "Relatórios e Análises",
+      description: "Acompanhe o desempenho do seu negócio com dados em tempo real",
+      icon: BarChart,
+      features: ["Faturamento diário/mensal", "Serviços mais populares", "Horários de pico"]
     }
   ];
 
-  // Atualiza testimonial automaticamente
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Timer para criar urgência
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Função para redirecionar ao login
   const handleDemoClick = () => {
@@ -182,56 +109,54 @@ const VendaPage2: React.FC = () => {
         <meta name="keywords" content="barbearia, agendamento, gestão de barbearia, sistema para barbearia, agenda online" />
         <meta property="og:title" content="BarberShop - Transforme sua Barbearia" />
         <meta property="og:description" content="Sistema completo para gestão de barbearias" />
-        <meta property="og:image" content={systemScreenshots.dashboard} />
-        <link rel="preload" as="image" href={systemScreenshots.dashboard} />
       </Helmet>
 
-      {/* Promoção Flutuante mais elegante */}
+      {/* Promoção Flutuante mais elegante e responsiva */}
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className={`fixed bottom-0 left-0 right-0 ${commonAnimations.headerGradient} backdrop-blur-md z-50 p-4 border-t border-[#F0B35B]/10`}
+        className={`fixed bottom-0 left-0 right-0 ${commonAnimations.headerGradient} backdrop-blur-md z-50 p-3 sm:p-4 border-t border-[#F0B35B]/10`}
       >
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-center sm:text-left">
             <span className="text-[#F0B35B] animate-pulse">⚡</span>
-            <div className="text-sm">
-              <span className="font-bold text-white">Promoção Relâmpago:</span>
-              <span className="text-[#F0B35B]"> Próximos {SLOTS_LEFT} clientes não pagam implementação!</span>
+            <div className="text-xs sm:text-sm">
+              <span className="font-bold text-white">Promoção:</span>
+              <span className="text-[#F0B35B]"> {SLOTS_LEFT} vagas com desconto!</span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-white">
-              <div className="bg-[#252B3B] px-3 py-1 rounded-lg font-mono">{hours.toString().padStart(2, '0')}</div>
+          <div className="flex flex-col xs:flex-row items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
+            <div className="flex items-center gap-1 sm:gap-2 text-white">
+              <div className="bg-[#252B3B] px-2 sm:px-3 py-1 rounded-lg font-mono text-xs sm:text-sm">{hours.toString().padStart(2, '0')}</div>
               <span>:</span>
-              <div className="bg-[#252B3B] px-3 py-1 rounded-lg font-mono">{minutes.toString().padStart(2, '0')}</div>
+              <div className="bg-[#252B3B] px-2 sm:px-3 py-1 rounded-lg font-mono text-xs sm:text-sm">{minutes.toString().padStart(2, '0')}</div>
               <span>:</span>
-              <div className="bg-[#252B3B] px-3 py-1 rounded-lg font-mono">{seconds.toString().padStart(2, '0')}</div>
+              <div className="bg-[#252B3B] px-2 sm:px-3 py-1 rounded-lg font-mono text-xs sm:text-sm">{seconds.toString().padStart(2, '0')}</div>
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-[#F0B35B] text-black rounded-lg font-bold text-sm"
+              className="px-4 py-2 bg-[#F0B35B] text-black rounded-lg font-bold text-xs sm:text-sm w-full xs:w-auto"
             >
-              Aproveitar Agora
+              Aproveitar
             </motion.button>
           </div>
         </div>
       </motion.div>
 
-      <div className={`min-h-screen ${commonAnimations.headerGradient} text-white overflow-x-hidden`}>
-        {/* Header mais limpo */}
+      <div className={`min-h-screen ${commonAnimations.headerGradient} text-white overflow-x-hidden w-full relative`}>
+        {/* Header mais limpo e responsivo */}
         <motion.header
           initial={{ y: -100 }}
           animate={{ y: 0 }}
-          className="fixed top-0 w-full bg-[#1A1F2E]/80 backdrop-blur-md z-50 border-b border-[#F0B35B]/10"
+          className="fixed top-0 w-full bg-[#1A1F2E]/90 backdrop-blur-md z-50 border-b border-[#F0B35B]/10"
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-[#F0B35B]">BarberShop</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-[#F0B35B]">BarberShop</h1>
               <button
                 onClick={handleDemoClick}
-                className="px-4 py-2 rounded-lg border-2 border-[#F0B35B] text-[#F0B35B] font-medium hover:bg-[#F0B35B]/10 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border-2 border-[#F0B35B] text-[#F0B35B] text-sm sm:text-base font-medium hover:bg-[#F0B35B]/10 transition-colors"
               >
                 Ver Demo
               </button>
@@ -241,16 +166,16 @@ const VendaPage2: React.FC = () => {
 
         {/* Hero Section Simplificada */}
         <section className="relative min-h-[90vh] flex items-center pt-20">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
                 className="max-w-2xl"
               >
                 {/* Tag mais sutil */}
-                <motion.div 
+                <motion.div
                   className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full mb-6 border border-[#F0B35B]/10"
                   whileHover={{ scale: 1.02 }}
                   transition={{ type: "spring", stiffness: 400 }}
@@ -260,8 +185,8 @@ const VendaPage2: React.FC = () => {
 
                 {/* Headline mais limpa */}
                 <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                  Aumente seu faturamento em até 
-                  <span className={`bg-clip-text text-transparent ${commonAnimations.buttonGradient}`}> 40% </span>
+                  Leve sua Barbearia e seu Negócio para o <br/>
+                  <span className={`bg-clip-text text-transparent ${commonAnimations.buttonGradient}`}> Próximo Nível </span>
                 </h1>
 
                 {/* Social proof mais elegante */}
@@ -289,51 +214,37 @@ const VendaPage2: React.FC = () => {
                   whileTap={{ scale: 0.98 }}
                   className={`${commonAnimations.buttonGradient} px-8 py-4 rounded-lg font-bold text-black shadow-lg ${commonAnimations.glowEffect} transition-all duration-300`}
                 >
-                  {ctaVariants.primary.text}
+                  "Garanta Seu Desconto Agora - 50% OFF!"
+                  <span className="text-xs block mt-2">{ctaVariants.primary.urgency}</span>
                 </motion.button>
               </motion.div>
 
-              {/* Preview com efeito de glassmorphism */}
-              <motion.div 
+              {/* Preview com efeito de glassmorphism - apenas desktop */}
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="relative hidden lg:block"
               >
                 <div className="relative w-full aspect-video bg-[#1A1F2E] rounded-lg overflow-hidden border border-[#F0B35B]/20">
-                  {/* Adicionar preview do sistema aqui */}
-                  <img src="/screenshots/preview.png" alt="Sistema Preview" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] to-transparent"></div>
-                </div>
-                
-                {/* Indicadores de Funcionalidades */}
-                <div className="absolute inset-0">
-                  {[
-                    { top: "20%", left: "10%", text: "Agenda Visual" },
-                    { top: "40%", right: "10%", text: "Relatórios" },
-                    { bottom: "20%", left: "20%", text: "Cliente VIP" }
-                  ].map((indicator, i) => (
-                    <div
-                      key={i}
-                      className="absolute"
-                      style={{ top: indicator.top, left: indicator.left, right: indicator.right }}
-                    >
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="w-3 h-3 bg-[#F0B35B] rounded-full"
-                      />
-                    </div>
-                  ))}
+                  <img 
+                    src="./img/demofoto.png" 
+                    alt="Preview do Sistema"
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-transparent to-transparent opacity-90"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    
+                  </div>
                 </div>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Screenshots Carousel Section */}
-        <section className="py-12 md:py-20">
-          <div className="max-w-7xl mx-auto px-4">
+        {/* Vídeo Demo Section - Visível apenas em dispositivos móveis */}
+        <section className="py-12 md:py-20 block md:hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
             <div className="text-center mb-8">
               <h2 className="text-2xl md:text-3xl font-bold mb-4">Veja o Sistema em Ação</h2>
               <p className="text-gray-400">Interface intuitiva e fácil de usar</p>
@@ -341,33 +252,26 @@ const VendaPage2: React.FC = () => {
 
             <div className="relative">
               <div className="overflow-hidden rounded-xl">
-                <motion.div
-                  className="flex transition-transform duration-500"
-                  style={{ transform: `translateX(-${currentPrint * 100}%)` }}
-                >
-                  {prints.map((print, index) => (
-                    <div key={index} className="min-w-full p-2">
-                      <img
-                        src={`./img/${print}`}
-                        alt={`Screenshot ${index + 1}`}
-                        className="w-full rounded-lg shadow-2xl border border-[#F0B35B]/20"
-                      />
-                    </div>
-                  ))}
-                </motion.div>
-              </div>
-
-              {/* Controles do Carrossel */}
-              <div className="flex justify-center gap-2 mt-4">
-                {prints.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentPrint(index)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      currentPrint === index ? 'w-4 bg-[#F0B35B]' : 'bg-gray-600'
-                    }`}
-                  />
-                ))}
+                <div className="p-2">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <video
+                      ref={videoRef}
+                      src={videoConfig.src}
+                      poster={videoConfig.poster}
+                      className="w-full rounded-lg shadow-2xl border border-[#F0B35B]/20"
+                      controls
+                      playsInline
+                      preload="metadata"
+                    />
+                  </motion.div>
+                  <div className="mt-4 text-center text-sm text-gray-400">
+                    <p>Toque para assistir a demonstração</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -407,11 +311,10 @@ const VendaPage2: React.FC = () => {
                         <motion.button
                           key={index}
                           onClick={() => setCurrentDemoStep(index)}
-                          className={`w-full text-left p-4 rounded-lg transition-all ${
-                            currentDemoStep === index
-                              ? 'bg-[#F0B35B] text-black'
-                              : 'bg-[#252B3B] text-white hover:bg-[#2A3040]'
-                          }`}
+                          className={`w-full text-left p-4 rounded-lg transition-all ${currentDemoStep === index
+                            ? 'bg-[#F0B35B] text-black'
+                            : 'bg-[#252B3B] text-white hover:bg-[#2A3040]'
+                            }`}
                         >
                           <h4 className="font-bold mb-2">{step.title}</h4>
                           <p className="text-sm opacity-80">{step.description}</p>
@@ -427,17 +330,33 @@ const VendaPage2: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Preview da Demo */}
-                    <div className="bg-[#252B3B] rounded-lg p-4">
-                      <motion.img
+                    {/* Preview da Demo com ícones */}
+                    <div className="bg-[#252B3B] rounded-lg p-6 flex items-center justify-center">
+                      <motion.div
                         key={currentDemoStep}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }}
-                        src={demoSteps[currentDemoStep].image}
-                        alt={demoSteps[currentDemoStep].title}
-                        className="w-full rounded-lg shadow-lg"
-                      />
+                        className="text-center"
+                      >
+                        <div className="mb-6 flex justify-center">
+                          {React.createElement(demoSteps[currentDemoStep].icon, { 
+                            className: "w-24 h-24 text-[#F0B35B]" 
+                          })}
+                        </div>
+                        <h3 className="text-xl font-bold mb-4">{demoSteps[currentDemoStep].title}</h3>
+                        <p className="text-gray-400 mb-6">{demoSteps[currentDemoStep].description}</p>
+                        <div className="bg-[#1A1F2E] p-4 rounded-lg">
+                          <ul className="space-y-3">
+                            {demoSteps[currentDemoStep].features.map((feature, idx) => (
+                              <li key={idx} className="flex items-center">
+                                <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
+                                <span>{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </motion.div>
                     </div>
                   </div>
                 </div>
@@ -522,7 +441,7 @@ const VendaPage2: React.FC = () => {
               viewport={{ once: true }}
               className="text-center mt-16"
             >
-              <button className="px-8 py-4 bg-[#F0B35B] text-black rounded-lg font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+              <button className="px-8 py-4 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] hover:from-[#D4943D] hover:to-[#F0B35B] text-black rounded-lg font-bold text-lg transform hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-[0_10px_20px_rgba(240,179,91,0.3)]">
                 Começar Agora Mesmo
               </button>
             </motion.div>
@@ -553,7 +472,7 @@ const VendaPage2: React.FC = () => {
                     <X className="w-6 h-6" />
                   </button>
                 </div>
-                
+
                 {/* Adicionar conteúdo da demo aqui */}
                 <div className="aspect-video bg-[#252B3B] rounded-lg mb-6">
                   {/* Adicionar vídeo ou screenshots interativos */}
@@ -586,7 +505,7 @@ const VendaPage2: React.FC = () => {
         {/* Seção de preços atualizada */}
         <section className="py-20" id="pricing">
           <div className="max-w-7xl mx-auto px-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -655,9 +574,9 @@ const VendaPage2: React.FC = () => {
               <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
                 Transforme Sua Barbearia Hoje
               </h2>
-              
+
               <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                Junte-se às +{socialProof.stats.clients} barbearias que já estão crescendo com nosso sistema
+                Junte-se às {socialProof.stats.clients} barbearias que já estão crescendo com nosso sistema
               </p>
 
               <motion.div
@@ -693,6 +612,7 @@ const VendaPage2: React.FC = () => {
                 >
                   Ver demonstração
                 </motion.a>
+
               </motion.div>
 
               {/* Contador Regressivo */}
@@ -716,36 +636,38 @@ const VendaPage2: React.FC = () => {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="bg-[#0D121E] py-12">
+        {/* Footer - Melhorado para mobile */}
+        <footer className="bg-[#0D121E] py-10 pb-32 sm:pb-40 w-full relative">  {/* Ajustado padding para compensar o componente fixo */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-[#F0B35B] font-bold text-lg mb-4">BarberShop</h3>
-                <p className="text-gray-400">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+              <div className="text-center sm:text-left">
+                <h3 className="text-[#F0B35B] font-bold text-lg mb-3">BarberShop</h3>
+                <p className="text-gray-400 text-sm">
                   Sistema completo para gestão de barbearias
                 </p>
               </div>
-              <div>
-                <h4 className="font-bold mb-4">Contato</h4>
-                <div className="space-y-2 text-gray-400">
-                  <div className="flex items-center">
-                    <PhoneCall className="w-5 h-5 mr-2" />
-                    <span>(11) 9999-9999</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Smartphone className="w-5 h-5 mr-2" />
+              <div className="text-center sm:text-left">
+                <h4 className="font-bold mb-3">Contato</h4>
+                <div className="space-y-2 text-gray-400 text-sm">
+                  <div className="flex items-center justify-center sm:justify-start">
+                    <Smartphone className="w-4 h-4 mr-2" />
                     <span>WhatsApp</span>
                   </div>
+                  <div className="flex items-center justify-center sm:justify-start">
+                    <span>(11) 9999-9999</span>
+                  </div>
                 </div>
               </div>
-              <div>
-                <h4 className="font-bold mb-4">Formas de Pagamento</h4>
-                <div className="flex items-center space-x-4">
-                  <DollarSign className="w-8 h-8 text-[#F0B35B]" />
-                  {/* Adicionar mais ícones de pagamento conforme necessário */}
+              <div className="text-center sm:text-left">
+                <h4 className="font-bold mb-3">Formas de Pagamento</h4>
+                <div className="flex items-center justify-center sm:justify-start space-x-4">
+                  <DollarSign className="w-6 h-6 text-[#F0B35B]" />
+                  <div className="text-xs text-gray-400">Cartão de crédito, Pix, Boleto</div>
                 </div>
               </div>
+            </div>
+            <div className="mt-8 pt-6 border-t border-gray-800 text-center text-xs text-gray-500">
+              © {new Date().getFullYear()} BarberShop. Todos os direitos reservados.
             </div>
           </div>
         </footer>
@@ -754,17 +676,5 @@ const VendaPage2: React.FC = () => {
   );
 };
 
-// Função auxiliar para calcular tempo restante
-const calculateTimeLeft = () => {
-  const now = new Date();
-  const midnight = new Date();
-  midnight.setHours(23, 59, 59);
-  const diff = midnight.getTime() - now.getTime();
-  
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  
-  return `${hours}h ${minutes}m`;
-};
 
 export default VendaPage2;

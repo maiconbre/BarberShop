@@ -28,7 +28,7 @@ const AppContent = () => {
   };
   return (
     <div className="min-h-screen bg-[#0D121E] text-white">
-      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && (
+      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && (
         <Navbar 
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}

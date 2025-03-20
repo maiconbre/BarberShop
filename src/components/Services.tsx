@@ -20,18 +20,6 @@ const services = [
     price: 'R$ 70,00',
     image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     description: 'Acabamento preciso com navalha para um visual impecável'
-  },
-  {
-    name: 'Reflexo',
-    price: 'R$ 80,00',
-    image: 'https://i.pinimg.com/736x/91/0f/c9/910fc9828671f2a76e51ac56242f61d8.jpg',
-    description: 'Mechas e reflexos personalizados para um visual renovado'
-  },
-  {
-    name: 'Nevou',
-    price: 'R$ 90,00',
-    image: 'https://i.pinimg.com/736x/26/27/d4/2627d4170cf5a1fe8e18b17f5f81647a.jpg',
-    description: 'Descoloração completa para um visual platinado e moderno'
   }
 ];
 

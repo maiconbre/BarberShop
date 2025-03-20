@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import CalendarView from '../components/CalendarView';
@@ -21,12 +21,11 @@ interface Appointment {
 }
 
 const CalendarPage: React.FC = () => {
-  const { logout, getCurrentUser } = useAuth();
+  const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
@@ -225,39 +224,8 @@ const CalendarPage: React.FC = () => {
               <ArrowLeft className="w-5 h-5" />
               <span>Voltar ao Dashboard</span>
             </motion.button>
-            <div className="relative"></div>
-            {/* Botão de configurações foi escondido conforme solicitado */}
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1A1F2E] ring-1 ring-black ring-opacity-5 z-50">
-                <div className="py-1" role="menu">
-                  {currentUser?.role === 'admin' && (
-                    <button
-                      onClick={() => navigate('/register')}
-                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
-                      role="menuitem"
-                    >
-                      Gerenciar Barbeiros
-                    </button>
-                  )}
-                  <button
-                    onClick={() => navigate('/trocar-senha')}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
-                    role="menuitem"
-                  >
-                    Trocar Senha
-                  </button>
-                  <button
-                    onClick={logout}
-                    className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#F0B35B] hover:text-white bg"
-                    role="menuitem"
-                  >
-                    Sair
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
+      </div>
 
         {/* Calendário unificado com filtros e estatísticas */}
         <CalendarView
