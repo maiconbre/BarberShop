@@ -21,6 +21,7 @@ interface Props {
   appointment: Appointment;
   onDelete: () => void;
   onToggleStatus: () => void;
+  onView?: () => void;
   filterMode: string;
   revenueDisplayMode: string;
   appointments: Appointment[];
@@ -135,10 +136,21 @@ const formatDateTime = (date: string, time: string) => {
   }).replace(',', '') + ` às ${time}`;
 };
 
-const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) => {
+const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus, onView }: Props) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const status = statusStyles[appointment.status];
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Evitar que o clique no card dispare quando clicar nos botões
+    if (e.target instanceof HTMLElement && 
+        (e.target.closest('button') || e.target.tagName === 'BUTTON' || e.target.closest('svg'))) {
+      return;
+    }
+    if (onView) {
+      onView();
+    }
+  };
 
   return (
     <>
@@ -146,8 +158,9 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus }: Props) 
         layout
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
+        onClick={handleCardClick}
         className={`relative bg-[#1A1F2E] rounded-xl border border-white/5 overflow-hidden
-                   border-l-4 ${statusStyles[appointment.status].border} hover:shadow-lg transition-shadow`}
+                   border-l-4 ${statusStyles[appointment.status].border} hover:shadow-lg transition-shadow cursor-pointer`}
       >
         <div className="p-3 sm:p-4">
           {/* Cabeçalho do Card */}

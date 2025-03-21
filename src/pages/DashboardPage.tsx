@@ -7,6 +7,7 @@ import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
 import Notifications, { useNotifications } from '../components/Notifications';
+import AppointmentViewModal from '../components/AppointmentViewModal';
 
 interface Appointment {
   id: string;
@@ -54,6 +55,9 @@ const DashboardPage: React.FC = () => {
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Modal state
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const appointmentsPerPage = 8;
@@ -129,6 +133,24 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     console.log('Estado atual de appointments:', appointments);
   }, [appointments]);
+  
+  // Efeito para escutar eventos de abertura de modal vindos das notificações
+  useEffect(() => {
+    const handleOpenAppointmentModal = (event: CustomEvent) => {
+      const { appointmentId } = event.detail;
+      if (appointmentId) {
+        handleAppointmentAction(appointmentId, 'view');
+      }
+    };
+    
+    // Adicionar o listener de evento
+    window.addEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
+    
+    // Remover o listener quando o componente for desmontado
+    return () => {
+      window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
+    };
+  }, [appointments]); // Dependência de appointments para garantir que temos os dados mais recentes
 
   useEffect(() => {
     if (revenueDisplayMode === 'day') {
@@ -141,9 +163,26 @@ const DashboardPage: React.FC = () => {
     setCurrentPage(1); // Reset to first page when revenue display mode changes
   }, [revenueDisplayMode]);
 
-  const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle', currentStatus?: string) => {
+  const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
     if (!appointmentId) return;
     try {
+      if (action === 'view') {
+        // Encontrar o agendamento pelo ID
+        const appointment = appointments.find(app => app.id === appointmentId);
+        if (appointment) {
+          setSelectedAppointment(appointment);
+          setIsViewModalOpen(true);
+          
+          // Marcar como visualizado se estiver no localStorage
+          const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
+          if (!viewedAppointmentIds.includes(appointmentId)) {
+            viewedAppointmentIds.push(appointmentId);
+            localStorage.setItem('viewedAppointments', JSON.stringify(viewedAppointmentIds));
+          }
+        }
+        return;
+      }
+      
       if (action === 'delete') {
         const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'DELETE',
@@ -156,6 +195,11 @@ const DashboardPage: React.FC = () => {
         });
         if (response.ok) {
           setAppointments(prev => prev.filter(app => app.id !== appointmentId));
+          // Fechar o modal se o agendamento excluído for o que está sendo visualizado
+          if (selectedAppointment?.id === appointmentId) {
+            setIsViewModalOpen(false);
+            setSelectedAppointment(null);
+          }
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
@@ -170,11 +214,15 @@ const DashboardPage: React.FC = () => {
           body: JSON.stringify({ status: newStatus })
         });
         if (response.ok) {
-          setAppointments(prev =>
-            prev.map(app =>
-              app.id === appointmentId ? { ...app, status: newStatus } : app
-            )
+          const updatedAppointments = appointments.map(app =>
+            app.id === appointmentId ? { ...app, status: newStatus } : app
           );
+          setAppointments(updatedAppointments as Appointment[]);
+          
+          // Atualizar o agendamento selecionado se estiver sendo visualizado
+          if (selectedAppointment?.id === appointmentId) {
+            setSelectedAppointment({ ...selectedAppointment, status: newStatus });
+          }
         }
       }
     } catch (error) {
@@ -326,6 +374,7 @@ const DashboardPage: React.FC = () => {
                     appointment={appointment}
                     onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
                     onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                    onView={() => handleAppointmentAction(appointment.id, 'view')}
                     filterMode={filterMode}
                     revenueDisplayMode={revenueDisplayMode}
                     appointments={appointments}
@@ -415,6 +464,15 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Modal de visualização de agendamento */}
+      <AppointmentViewModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        appointment={selectedAppointment}
+        onDelete={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'delete')}
+        onToggleStatus={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status)}
+      />
     </div>
   );
 
