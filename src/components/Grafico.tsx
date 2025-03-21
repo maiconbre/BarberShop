@@ -3,12 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaChevronDown } from 'react-icons/fa';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-interface ChartData {
-  date: string;
-  pending: number;
-  completed: number;
-  fullDate: string;
-}
+
 
 interface GraficoProps {
   appointments: any[];
