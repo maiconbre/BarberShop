@@ -54,8 +54,6 @@ const VendaPage2: React.FC = () => {
   const { hours, minutes, seconds } = useCountdown(PROMO_END_TIME);
   // Referência para o vídeo em dispositivos móveis
   const videoRef = React.useRef<HTMLVideoElement>(null);
-
-  // Adicionar useEffect para autoplay do vídeo
   
 
   // Animações
