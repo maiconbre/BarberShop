@@ -14,6 +14,7 @@ import CalendarPage from './pages/CalendarPage';
 import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
 import VendaPage2 from './pages/VendaPage2';
+import CommentManagementPage from './pages/CommentManagementPage';
 
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,6 +87,11 @@ const AppContent = () => {
               }
             />
             <Route path="/vendapage2" element={<VendaPage2 />} />
+            <Route path="/gerenciar-comentarios" element={
+              <ProtectedRoute>
+                <CommentManagementPage />
+              </ProtectedRoute>
+            } />
           </Routes>
         </motion.div>
       </AnimatePresence>

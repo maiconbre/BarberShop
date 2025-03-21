@@ -222,7 +222,7 @@ const CalendarPage: React.FC = () => {
               title="Voltar para o Dashboard"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span>Voltar ao Dashboard</span>
+              <span>Voltar</span>
             </motion.button>
         </div>
       </div>

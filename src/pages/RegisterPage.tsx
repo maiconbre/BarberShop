@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Trash2, Edit } from 'lucide-react';
+import { Loader2, Trash2, Edit, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 import EditConfirmationModal from '../components/EditConfirmationModal';
 
 interface DeleteConfirmationModalProps {
@@ -456,7 +457,22 @@ const RegisterPage: React.FC = () => {
         onConfirm={handleConfirmUpdate}
       />
 
-      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto relative z-10 pt-10 mt-8">
+      {/* Header com navegação */}
+      <div className="flex justify-between items-center mb-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 mt-2 relative z-10">
+        <h1 className="text-2xl font-semibold text-white">Cadastro de Barbeiros</h1>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate('/dashboard')}
+          className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-1.5 text-sm font-medium border border-[#F0B35B]/30 shadow-lg"
+          title="Voltar para o Dashboard"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Voltar</span>
+        </motion.button>
+      </div>
+      
+      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto relative z-10">
         <div className="w-full md:flex-1">
           <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
             <div>
@@ -593,13 +609,17 @@ const RegisterPage: React.FC = () => {
                     Cancelar edição
                   </button>
                 )}
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   type="button"
                   onClick={() => navigate('/dashboard')}
-                  className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm"
+                  className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-2 font-medium border border-[#F0B35B]/30 shadow-lg"
+                  title="Voltar para o Dashboard"
                 >
-                  Voltar para o Dashboard
-                </button>
+                  <ArrowLeft className="w-5 h-5" />
+                  <span>Voltar</span>
+                </motion.button>
               </div>
             </form>
           </div>

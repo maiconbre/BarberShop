@@ -50,7 +50,7 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isChartExpanded, setIsChartExpanded] = useState(true);
+  const [isChartExpanded, setIsChartExpanded] = useState(false);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -225,13 +225,22 @@ const DashboardPage: React.FC = () => {
                     </div>
                     <div className="divide-y divide-gray-700/30" role="menu">
                       {currentUser?.role === 'admin' && (
-                        <button
-                          onClick={() => navigate('/register')}
-                          className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                          role="menuitem"
-                        >
-                          <span>Gerenciar Barbeiros</span>
-                        </button>
+                        <>
+                          <button
+                            onClick={() => navigate('/register')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Barbeiros</span>
+                          </button>
+                          <button
+                            onClick={() => navigate('/gerenciar-comentarios')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Comentários</span>
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => navigate('/trocar-senha')}
