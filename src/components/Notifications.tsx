@@ -259,6 +259,10 @@ export const useNotifications = () => {
 
         // Fechar o dropdown de notificações
         setIsNotificationDropdownOpen(false);
+        
+        // Emitir um evento personalizado para abrir o modal no DashboardPage
+        const event = new CustomEvent('openAppointmentModal', { detail: { appointmentId } });
+        window.dispatchEvent(event);
       }
     } catch (error) {
       console.error(`Erro na ação ${action}:`, error);
