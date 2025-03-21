@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCheck,
   FaTrash,
   FaTimes
 } from 'react-icons/fa';
+import ConfirmationModal from './ConfirmationModal';
 
 interface Appointment {
   id: string;
@@ -93,6 +94,10 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
   onDelete, 
   onToggleStatus 
 }) => {
+  // Estados para os modais de confirmação
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  
   if (!isOpen || !appointment) return null;
   
   const status = statusStyles[appointment.status];
@@ -156,7 +161,7 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onToggleStatus();
+                        setStatusModalOpen(true);
                       }}
                       className={`p-2 rounded-lg ${status.text} ${status.bg} transition-colors hover:bg-opacity-20`}
                     >
@@ -165,7 +170,7 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDelete();
+                        setDeleteModalOpen(true);
                       }}
                       className="p-2 rounded-lg text-red-400 bg-red-400/10 transition-colors hover:bg-red-400/20"
                     >
@@ -176,10 +181,39 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
               </div>
             </motion.div>
           </motion.div>
+          
+          {/* Modal de confirmação para exclusão */}
+          <ConfirmationModal
+            isOpen={deleteModalOpen}
+            onClose={() => setDeleteModalOpen(false)}
+            onConfirm={() => {
+              setDeleteModalOpen(false);
+              onDelete();
+            }}
+            title="Excluir Agendamento"
+            message={`Tem certeza que deseja excluir o agendamento de ${appointment.clientName}? Esta ação não pode ser desfeita.`}
+            confirmButtonText="Excluir"
+            confirmButtonClass="px-4 py-2 text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition-colors"
+          />
+          
+          {/* Modal de confirmação para alteração de status */}
+          <ConfirmationModal
+            isOpen={statusModalOpen}
+            onClose={() => setStatusModalOpen(false)}
+            onConfirm={() => {
+              setStatusModalOpen(false);
+              onToggleStatus();
+            }}
+            title={appointment.status === 'completed' ? "Reverter Status" : "Alterar Status"}
+            message={appointment.status === 'completed' ? 
+              `Tem certeza que deseja reverter o status do agendamento de ${appointment.clientName} para não concluído?` : 
+              `Tem certeza que deseja marcar o agendamento de ${appointment.clientName} como concluído?`}
+            confirmButtonText={appointment.status === 'completed' ? "Reverter" : "Concluir"}
+            confirmButtonClass={`px-4 py-2 text-sm ${status.bg} ${status.text} hover:bg-opacity-20 rounded-lg transition-colors`}
+          />
         </motion.div>
       )}
     </AnimatePresence>
   );
 };
-
 export default AppointmentViewModal;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, Check, X, ChevronLeft, ChevronRight, Loader2, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface Comment {
   id: string;
@@ -22,6 +23,11 @@ const CommentManagementPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  
+  // Estados para os modais de confirmação
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | 'delete' | null>(null);
+  const [commentToAction, setCommentToAction] = useState<string | null>(null);
   
   const commentsPerPage = 10;
 
@@ -77,6 +83,13 @@ const CommentManagementPage: React.FC = () => {
     setCurrentPage(1); // Reset para a primeira página ao mudar de tab
   }, [activeTab]);
 
+  // Função para iniciar o processo de confirmação
+  const initiateCommentAction = (commentId: string, action: 'approve' | 'reject' | 'delete') => {
+    setCommentToAction(commentId);
+    setConfirmAction(action);
+    setConfirmModalOpen(true);
+  };
+
   // Função para lidar com ações nos comentários (aprovar, rejeitar, excluir)
   const handleCommentAction = async (commentId: string, action: 'approve' | 'reject' | 'delete') => {
     if (!commentId) return;
@@ -84,6 +97,7 @@ const CommentManagementPage: React.FC = () => {
     setActionLoading(commentId);
     setActionSuccess(null);
     setActionError(null);
+    setConfirmModalOpen(false);
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -279,7 +293,7 @@ const CommentManagementPage: React.FC = () => {
                   {activeTab === 'pending' && (
                     <>
                       <button
-                        onClick={() => handleCommentAction(comment.id, 'approve')}
+                        onClick={() => initiateCommentAction(comment.id, 'approve')}
                         disabled={actionLoading === comment.id}
                         className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
@@ -296,9 +310,9 @@ const CommentManagementPage: React.FC = () => {
                         )}
                       </button>
                       <button
-                        onClick={() => handleCommentAction(comment.id, 'reject')}
+                        onClick={() => initiateCommentAction(comment.id, 'reject')}
                         disabled={actionLoading === comment.id}
-                        className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-lg bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
                         {actionLoading === comment.id ? (
                           <>
@@ -317,7 +331,7 @@ const CommentManagementPage: React.FC = () => {
                   
                   {activeTab === 'rejected' && (
                     <button
-                      onClick={() => handleCommentAction(comment.id, 'approve')}
+                      onClick={() => initiateCommentAction(comment.id, 'approve')}
                       disabled={actionLoading === comment.id}
                       className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
@@ -334,10 +348,30 @@ const CommentManagementPage: React.FC = () => {
                       )}
                     </button>
                   )}
+                  
+                  {activeTab === 'approved' && (
+                    <button
+                      onClick={() => initiateCommentAction(comment.id, 'reject')}
+                      disabled={actionLoading === comment.id}
+                      className="px-3 py-1.5 rounded-lg bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      {actionLoading === comment.id ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Rejeitando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-3 h-3" />
+                          <span>Rejeitar</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleCommentAction(comment.id, 'delete')}
+                    onClick={() => initiateCommentAction(comment.id, 'delete')}
                     disabled={actionLoading === comment.id}
-                    className="px-3 py-1.5 rounded-lg bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
                     {actionLoading === comment.id ? (
                       <>
@@ -383,6 +417,27 @@ const CommentManagementPage: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Modal de confirmação para ações */}
+        <ConfirmationModal
+          isOpen={confirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          onConfirm={() => {
+            if (commentToAction && confirmAction) {
+              handleCommentAction(commentToAction, confirmAction);
+            }
+          }}
+          title={confirmAction === 'approve' ? 'Aprovar Comentário' : 
+                confirmAction === 'reject' ? 'Rejeitar Comentário' : 'Excluir Comentário'}
+          message={confirmAction === 'approve' ? 'Tem certeza que deseja aprovar este comentário? Ele será exibido publicamente no site.' : 
+                  confirmAction === 'reject' ? 'Tem certeza que deseja rejeitar este comentário? Ele não será exibido no site.' : 
+                  'Tem certeza que deseja excluir este comentário? Esta ação não pode ser desfeita.'}
+          confirmButtonText={confirmAction === 'approve' ? 'Aprovar' : 
+                           confirmAction === 'reject' ? 'Rejeitar' : 'Excluir'}
+          confirmButtonClass={confirmAction === 'approve' ? 'px-4 py-2 text-sm bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg transition-colors' : 
+                             confirmAction === 'reject' ? 'px-4 py-2 text-sm bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 rounded-lg transition-colors' : 
+                             'px-4 py-2 text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition-colors'}
+        />
       </main>
     </div>
   );
