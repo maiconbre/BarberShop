@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -54,7 +54,15 @@ const VendaPage2: React.FC = () => {
   const { hours, minutes, seconds } = useCountdown(PROMO_END_TIME);
   // Referência para o vídeo em dispositivos móveis
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  
+
+  // Atualizar useEffect para garantir autoplay
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(error => {
+        console.log("Autoplay foi prevenido:", error);
+      });
+    }
+  }, []);
 
   // Animações
   const fadeInUp = {
@@ -99,6 +107,7 @@ const VendaPage2: React.FC = () => {
     cardGradient: "bg-gradient-to-br from-[#252B3B] to-[#1A1F2E]",
     glowEffect: "hover:shadow-[0_0_15px_rgba(240,179,91,0.3)]",
     buttonGradient: "bg-gradient-to-r from-[#F0B35B] to-[#D4943D]",
+    buttonShine: "animate-shine relative overflow-hidden before:absolute before:inset-0 before:inset-0 before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent",
   };
 
   return (
@@ -136,9 +145,20 @@ const VendaPage2: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-4 py-2 bg-[#F0B35B] text-black rounded-lg font-bold text-xs sm:text-sm w-full xs:w-auto"
+              className="
+                relative overflow-hidden
+                px-4 py-2 bg-[#F0B35B] text-black rounded-lg
+                font-bold text-xs sm:text-sm w-full xs:w-auto
+                transition-all duration-500
+                shadow-[0_0_15px_rgba(240,179,91,0.3)]
+                border border-[#F0B35B]
+                before:absolute before:inset-0
+                before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                before:via-white/40 before:to-[#F0B35B]/0
+                before:-skew-x-45 before:animate-shine
+              "
             >
-              Aproveitar
+              <span className="relative z-10">Aproveitar</span>
             </motion.button>
           </div>
         </div>
@@ -156,27 +176,38 @@ const VendaPage2: React.FC = () => {
               <h1 className="text-xl sm:text-2xl font-bold text-[#F0B35B]">BarberShop</h1>
               <button
                 onClick={handleDemoClick}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border-2 border-[#F0B35B] text-[#F0B35B] text-sm sm:text-base font-medium hover:bg-[#F0B35B]/10 transition-colors"
+                className="
+                  relative overflow-hidden
+                  px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg
+                  border-2 border-[#F0B35B] text-[#F0B35B]
+                  text-sm sm:text-base font-medium
+                  transition-all duration-500
+                  hover:bg-[#F0B35B]/10
+                  before:absolute before:inset-0
+                  before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                  before:via-white/20 before:to-[#F0B35B]/0
+                  before:-skew-x-45 before:animate-shine
+                "
               >
-                Ver Demo
+                <span className="relative z-10">Ver Demo</span>
               </button>
             </div>
           </div>
         </motion.header>
 
         {/* Hero Section Simplificada */}
-        <section className="relative min-h-[90vh] flex items-center pt-20">
+        <section className="relative min-h-[80vh] flex items-center pt-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="max-w-2xl"
+                className="max-w-2xl mx-auto text-center lg:text-left" // Centralizado em mobile
               >
                 {/* Tag mais sutil */}
                 <motion.div
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full mb-6 border border-[#F0B35B]/10"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full mb-6 border border-[#F0B35B]/10 mx-auto lg:mx-0"
                   whileHover={{ scale: 1.02 }}
                   transition={{ type: "spring", stiffness: 400 }}
                 >
@@ -185,7 +216,7 @@ const VendaPage2: React.FC = () => {
 
                 {/* Headline mais limpa */}
                 <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                  Leve sua Barbearia e seu Negócio para o <br/>
+                  Leve sua Barbearia e seu Negócio para o <br className="hidden sm:block" />
                   <span className={`bg-clip-text text-transparent ${commonAnimations.buttonGradient}`}> Próximo Nível </span>
                 </h1>
 
@@ -208,14 +239,27 @@ const VendaPage2: React.FC = () => {
                   ))}
                 </div>
 
-                {/* CTA mais chamativo */}
+                {/* CTA mais chamativo com efeito de brilho */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`${commonAnimations.buttonGradient} px-8 py-4 rounded-lg font-bold text-black shadow-lg ${commonAnimations.glowEffect} transition-all duration-300`}
+                  className="
+                    relative overflow-hidden
+                    px-8 py-4 bg-[#F0B35B] text-black rounded-lg
+                    text-lg font-bold
+                    transition-all duration-700
+                    scale-100 shadow-[0_0_25px_rgba(240,179,91,0.4)]
+                    border-2 border-[#F0B35B]
+                    before:absolute before:inset-0
+                    before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                    before:via-white/40 before:to-[#F0B35B]/0
+                    before:-skew-x-45 before:animate-shine
+                  "
                 >
-                  "Garanta Seu Desconto Agora - 50% OFF!"
-                  <span className="text-xs block mt-2">{ctaVariants.primary.urgency}</span>
+                  <span className="relative z-10 inline-flex flex-col items-center justify-center w-full">
+                    Garanta Seu Desconto Agora - 50% OFF!
+                    <span className="text-xs mt-2">{ctaVariants.primary.urgency}</span>
+                  </span>
                 </motion.button>
               </motion.div>
 
@@ -227,14 +271,14 @@ const VendaPage2: React.FC = () => {
                 className="relative hidden lg:block"
               >
                 <div className="relative w-full aspect-video bg-[#1A1F2E] rounded-lg overflow-hidden border border-[#F0B35B]/20">
-                  <img 
-                    src="./img/demofoto.png" 
+                  <img
+                    src="./img/demofoto.png"
                     alt="Preview do Sistema"
                     className="absolute inset-0 w-full h-full object-cover object-center"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-transparent to-transparent opacity-90"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    
+
                   </div>
                 </div>
               </motion.div>
@@ -243,36 +287,32 @@ const VendaPage2: React.FC = () => {
         </section>
 
         {/* Vídeo Demo Section - Visível apenas em dispositivos móveis */}
-        <section className="py-12 md:py-20 block md:hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 xl:px-16">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Veja o Sistema em Ação</h2>
-              <p className="text-gray-400">Interface intuitiva e fácil de usar</p>
+        <section className="py-8 md:py-20 block md:hidden">
+          <div className="max-w-md mx-auto px-4"> {/* Reduzido max-width */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-2">Veja o Sistema em Ação</h2>
+              <p className="text-gray-400 text-sm">Interface intuitiva e fácil de usar</p>
             </div>
 
-            <div className="relative">
-              <div className="overflow-hidden rounded-xl">
-                <div className="p-2">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <video
-                      ref={videoRef}
-                      src={videoConfig.src}
-                      poster={videoConfig.poster}
-                      className="w-full rounded-lg shadow-2xl border border-[#F0B35B]/20"
-                      controls
-                      playsInline
-                      preload="metadata"
-                    />
-                  </motion.div>
-                  <div className="mt-4 text-center text-sm text-gray-400">
-                    <p>Toque para assistir a demonstração</p>
-                  </div>
-                </div>
-              </div>
+            <div className="relative rounded-xl overflow-hidden">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <video
+                  ref={videoRef}
+                  src={videoConfig.src}
+                  poster={videoConfig.poster}
+                  className="w-full rounded-lg shadow-lg border border-[#F0B35B]/20"
+                  playsInline
+                  autoPlay
+                  muted
+                  loop
+                  controls={false}
+                  preload="metadata"
+                />
+              </motion.div>
             </div>
           </div>
         </section>
@@ -340,8 +380,8 @@ const VendaPage2: React.FC = () => {
                         className="text-center"
                       >
                         <div className="mb-6 flex justify-center">
-                          {React.createElement(demoSteps[currentDemoStep].icon, { 
-                            className: "w-24 h-24 text-[#F0B35B]" 
+                          {React.createElement(demoSteps[currentDemoStep].icon, {
+                            className: "w-24 h-24 text-[#F0B35B]"
                           })}
                         </div>
                         <h3 className="text-xl font-bold mb-4">{demoSteps[currentDemoStep].title}</h3>
@@ -365,18 +405,18 @@ const VendaPage2: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Como Funciona Section Aprimorada */}
-        <section className="py-20 bg-[#1A1F2E]">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+        
+        <section className="py-16 md:py-20 bg-[#1A1F2E]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="text-center mb-12"
             >
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Como Funciona</h2>
-              <p className="text-gray-400 max-w-2xl mx-auto">
-                Um sistema completo pensado para facilitar sua gestão em apenas 3 passos simples
+              <h2 className="text-3xl sm:text-4xl font-bold mb-3">Como Funciona</h2>
+              <p className="text-gray-400 max-w-2xl mx-auto px-4">
+                Um sistema completo pensado para facilitar sua gestão
               </p>
             </motion.div>
 
@@ -441,14 +481,28 @@ const VendaPage2: React.FC = () => {
               viewport={{ once: true }}
               className="text-center mt-16"
             >
-              <button className="px-8 py-4 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] hover:from-[#D4943D] hover:to-[#F0B35B] text-black rounded-lg font-bold text-lg transform hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-[0_10px_20px_rgba(240,179,91,0.3)]">
-                Começar Agora Mesmo
+              <button className="
+                relative overflow-hidden
+                px-8 py-4 bg-[#F0B35B] text-black rounded-lg
+                font-bold text-lg
+                transition-all duration-500
+                transform hover:scale-105
+                shadow-[0_0_25px_rgba(240,179,91,0.4)]
+                border-2 border-[#F0B35B]
+                before:absolute before:inset-0
+                before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                before:via-white/40 before:to-[#F0B35B]/0
+                before:-skew-x-45 before:animate-shine
+              ">
+                <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+                  Começar Agora Mesmo
+                </span>
               </button>
             </motion.div>
           </div>
         </section>
 
-        {/* Modal de Demonstração */}
+        {/* Segunda demonstração */}
         <AnimatePresence>
           {showDemo && (
             <motion.div
@@ -482,7 +536,6 @@ const VendaPage2: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Benefícios */}
         <section className="py-20 bg-[#1A1F2E]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div {...fadeInUp} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -556,14 +609,12 @@ const VendaPage2: React.FC = () => {
             </div>
           </div>
         </section>
-
         {/* CTA Final Aprimorado */}
         <section className="relative py-24 bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[#F0B35B]/5 animate-pulse"></div>
             <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
           </div>
-
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
@@ -597,13 +648,23 @@ const VendaPage2: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="group relative px-8 py-4 bg-[#F0B35B] text-black rounded-xl font-bold text-lg shadow-2xl hover:shadow-[#F0B35B]/20 transition-all duration-300"
+                  className="
+                    relative overflow-hidden
+                    px-8 py-4 bg-[#F0B35B] text-black rounded-xl
+                    font-bold text-lg
+                    transition-all duration-500
+                    shadow-[0_0_25px_rgba(240,179,91,0.4)]
+                    border-2 border-[#F0B35B]
+                    before:absolute before:inset-0
+                    before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                    before:via-white/40 before:to-[#F0B35B]/0
+                    before:-skew-x-45 before:animate-shine
+                  "
                 >
                   <span className="relative z-10 flex items-center gap-2">
                     Começar Agora
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </motion.button>
 
                 <motion.a
@@ -675,6 +736,7 @@ const VendaPage2: React.FC = () => {
     </>
   );
 };
+
 
 
 export default VendaPage2;

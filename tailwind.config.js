@@ -53,7 +53,8 @@ export default {
         'bounce-slow': 'bounce 3s infinite',
         'scroll-down': 'scrollDown 1.5s ease-in-out infinite',
         'shine': 'shine 1.5s ease-in-out infinite',
-        'fadeIn': 'fadeIn 0.5s ease-out'
+        'fadeIn': 'fadeIn 0.5s ease-out',
+        'shine': 'shimmer 2s infinite'
       },
       keyframes: {
         slideUp: {
@@ -75,6 +76,10 @@ export default {
         shine: {
           '0%': { transform: 'translateX(-100%) skewX(-45deg)' },
           '100%': { transform: 'translateX(200%) skewX(-45deg)' }
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' }
         }
       }
     },
