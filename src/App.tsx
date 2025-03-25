@@ -10,7 +10,7 @@ import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import CalendarPage from './pages/CalendarPage';
+// CalendarPage removido pois sua funcionalidade foi migrada para o Dashboard
 import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
 import VendaPage2 from './pages/VendaPage2';
@@ -62,14 +62,7 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <CalendarPage />
-                </ProtectedRoute>
-              }
-            />
+            {/* Rota do calendário removida - funcionalidade migrada para o Dashboard */}
             <Route
               path="/trocar-senha"
               element={

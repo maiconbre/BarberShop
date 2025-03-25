@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, Calendar, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
 import Notifications, { useNotifications } from '../components/Notifications';
 import AppointmentViewModal from '../components/AppointmentViewModal';
+import CalendarView from '../components/CalendarView';
 
 interface Appointment {
   id: string;
@@ -61,18 +62,52 @@ const DashboardPage: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const appointmentsPerPage = 8;
+  // View mode state (painel ou agenda)
+  const [activeView, setActiveView] = useState<'painel' | 'agenda'>('painel');
+  // Calendar view states
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
 
   // Usando o hook de notificações
   const { loadAppointments } = useNotifications();
 
   // Usando o hook personalizado para filtrar agendamentos
   const filteredAppointments = useFilteredAppointments(appointments, filterMode);
-  
+
   // Pagination logic
   const indexOfLastAppointment = currentPage * appointmentsPerPage;
   const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
   const currentAppointments = filteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
   const totalPages = Math.ceil(filteredAppointments.length / appointmentsPerPage);
+
+  // Lógica para filtrar agendamentos na visualização de agenda
+  const calendarFilteredAppointments = appointments.filter(app => {
+    if (!isRangeFilterActive || !startDate) {
+      return app.date === selectedDate;
+    }
+
+    if (startDate && endDate) {
+      const appDate = new Date(app.date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return appDate >= start && appDate <= end;
+    }
+
+    return app.date === startDate;
+  });
+
+  // Calcular valor total para a visualização de agenda
+  const calculateTotalValue = (apps: Appointment[]) => {
+    return apps.reduce((total, app) => total + (app.price || 0), 0);
+  };
+
+  const totalValue = calculateTotalValue(calendarFilteredAppointments);
+
+  // Pagination logic para visualização de agenda
+  const calendarCurrentAppointments = calendarFilteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const calendarTotalPages = Math.ceil(calendarFilteredAppointments.length / appointmentsPerPage);
 
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
@@ -133,7 +168,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     console.log('Estado atual de appointments:', appointments);
   }, [appointments]);
-  
+
   // Efeito para escutar eventos de abertura de modal vindos das notificações
   useEffect(() => {
     const handleOpenAppointmentModal = (event: CustomEvent) => {
@@ -142,10 +177,10 @@ const DashboardPage: React.FC = () => {
         handleAppointmentAction(appointmentId, 'view');
       }
     };
-    
+
     // Adicionar o listener de evento
     window.addEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
-    
+
     // Remover o listener quando o componente for desmontado
     return () => {
       window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
@@ -163,6 +198,38 @@ const DashboardPage: React.FC = () => {
     setCurrentPage(1); // Reset to first page when revenue display mode changes
   }, [revenueDisplayMode]);
 
+  // Função para lidar com a seleção de data na visualização de agenda
+  const handleDateSelection = (date: string) => {
+    if (!isRangeFilterActive) {
+      setSelectedDate(date);
+      setCurrentPage(1); // Reset to first page when date changes
+      return;
+    }
+
+    if (!startDate || (startDate && endDate)) {
+      setStartDate(date);
+      setEndDate(null);
+      setCurrentPage(1); // Reset to first page when date range changes
+    } else {
+      if (new Date(date) < new Date(startDate)) {
+        setEndDate(startDate);
+        setStartDate(date);
+      } else {
+        setEndDate(date);
+      }
+      setCurrentPage(1); // Reset to first page when date range is completed
+    }
+  };
+
+  // Função para resetar filtros na visualização de agenda
+  const resetFilters = () => {
+    setIsRangeFilterActive(false);
+    setStartDate(null);
+    setEndDate(null);
+    setSelectedDate(new Date().toISOString().split('T')[0]);
+    setCurrentPage(1); // Reset to first page when filters are reset
+  };
+
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
     if (!appointmentId) return;
     try {
@@ -172,7 +239,7 @@ const DashboardPage: React.FC = () => {
         if (appointment) {
           setSelectedAppointment(appointment);
           setIsViewModalOpen(true);
-          
+
           // Marcar como visualizado se estiver no localStorage
           const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
           if (!viewedAppointmentIds.includes(appointmentId)) {
@@ -182,7 +249,7 @@ const DashboardPage: React.FC = () => {
         }
         return;
       }
-      
+
       if (action === 'delete') {
         const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'DELETE',
@@ -218,7 +285,7 @@ const DashboardPage: React.FC = () => {
             app.id === appointmentId ? { ...app, status: newStatus } : app
           );
           setAppointments(updatedAppointments as Appointment[]);
-          
+
           // Atualizar o agendamento selecionado se estiver sendo visualizado
           if (selectedAppointment?.id === appointmentId) {
             setSelectedAppointment({ ...selectedAppointment, status: newStatus });
@@ -244,7 +311,26 @@ const DashboardPage: React.FC = () => {
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-white">Painel de Controle</h1>
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveView('painel')}
+              className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span>Painel</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveView('agenda')}
+              className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+            >
+              <Calendar className="w-5 h-5" />
+              <span>Agenda</span>
+            </motion.button>
+          </div>
           <div className="flex items-center gap-4">
             <div className="relative">
               <Notifications />
@@ -258,7 +344,7 @@ const DashboardPage: React.FC = () => {
               </button>
               {isDropdownOpen && (
                 <>
-                  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" 
+                  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
                     onClick={() => setIsDropdownOpen(false)}
                   />
                   <div className="fixed sm:absolute top-[20%] sm:top-full left-[50%] sm:left-auto right-auto sm:right-0 transform-gpu -translate-x-1/2 sm:translate-x-0 -translate-y-0 sm:-translate-y-0 mt-0 sm:mt-4 w-[90vw] sm:w-[350px] md:w-[400px] max-h-[70vh] xs:max-h-[75vh] sm:max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1A1F2E] ring-1 ring-[#F0B35B]/20 z-50 animate-fade-in-up">
@@ -312,170 +398,304 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Componentes de estatísticas e gráficos */}
-        <div className="mb-6">
-          <Stats
-            appointments={appointments}
-            revenueDisplayMode={revenueDisplayMode}
-            setRevenueDisplayMode={setRevenueDisplayMode}
-          />
-        </div>
-
-        <div className="mb-6">
-          <Grafico
-            appointments={appointments}
-            isChartExpanded={isChartExpanded}
-            setIsChartExpanded={setIsChartExpanded}
-          />
-        </div>
-
-        {/* Filtros de agendamentos */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-gray-400">Total: {filteredAppointments.length}</span>
-          </div>
-          <div className="flex flex-row items-center justify-start gap-2">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setFilterMode('today')}
-              className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+        {/* Renderização condicional baseada na visualização ativa */}
+        <AnimatePresence mode="wait">
+          {activeView === 'painel' ? (
+            <motion.div
+              key="painel-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              Hoje
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setFilterMode('tomorrow')}
-              className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
-            >
-              Amanhã
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/calendar')}
-              className="p-2 rounded-md bg-[#252B3B] text-white hover:bg-[#F0B35B]/20 transition-all duration-300 flex items-center justify-center"
-              title="Ver calendário"
-            >
-              <Calendar className="w-5 h-5" />
-            </motion.button>
-          </div>
-        </div>
+              {/* Componentes de estatísticas e gráficos */}
+              <div className="mb-6">
+                <Stats
+                  appointments={appointments}
+                  revenueDisplayMode={revenueDisplayMode}
+                  setRevenueDisplayMode={setRevenueDisplayMode}
+                />
+              </div>
 
-        {/* Lista de agendamentos */}
-        <div className="space-y-4 mb-8">
-          <AnimatePresence>
-            {filteredAppointments.length > 0 ? (
-              <>
-                {currentAppointments.map((appointment) => (
-                  <AppointmentCardNew
-                    key={appointment.id}
-                    appointment={appointment}
-                    onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                    onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                    onView={() => handleAppointmentAction(appointment.id, 'view')}
-                    filterMode={filterMode}
-                    revenueDisplayMode={revenueDisplayMode}
-                    appointments={appointments}
-                  />
-                ))}
-              </>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="bg-[#1A1F2E] p-6 rounded-lg text-center"
-              >
-                <p className="text-gray-400">
-                  {filterMode === 'today'
-                    ? 'Nenhum agendamento para hoje'
-                    : filterMode === 'tomorrow'
-                      ? 'Nenhum agendamento para amanhã'
-                      : 'Nenhum agendamento encontrado'}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        
-        {/* Pagination Controls */}
-        {filteredAppointments.length > appointmentsPerPage && (
-          <div className="flex justify-center mt-6 mb-4">
-            <div className="flex items-center space-x-2">
-              {/* Previous Page Button */}
-              {currentPage > 1 && (
+              <div className="mb-6">
+                <Grafico
+                  appointments={appointments}
+                  isChartExpanded={isChartExpanded}
+                  setIsChartExpanded={setIsChartExpanded}
+                />
+              </div>
+
+              {/* Filtros de agendamentos */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-400">Total: {filteredAppointments.length}</span>
+                </div>
+                <div className="flex flex-row items-center justify-start gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setFilterMode('today')}
+                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+                  >
+                    Hoje
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setFilterMode('tomorrow')}
+                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+                  >
+                    Amanhã
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* Lista de agendamentos */}
+              <div className="space-y-4 mb-8">
+                <AnimatePresence>
+                  {filteredAppointments.length > 0 ? (
+                    <>
+                      {currentAppointments.map((appointment) => (
+                        <AppointmentCardNew
+                          key={appointment.id}
+                          appointment={appointment}
+                          onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                          onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                          onView={() => handleAppointmentAction(appointment.id, 'view')}
+                          filterMode={filterMode}
+                          revenueDisplayMode={revenueDisplayMode}
+                          appointments={appointments}
+                        />
+                      ))}
+                    </>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="bg-[#1A1F2E] p-6 rounded-lg text-center"
+                    >
+                      <p className="text-gray-400">
+                        {filterMode === 'today'
+                          ? 'Nenhum agendamento para hoje'
+                          : filterMode === 'tomorrow'
+                            ? 'Nenhum agendamento para amanhã'
+                            : 'Nenhum agendamento encontrado'}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="agenda-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Calendário unificado com filtros e estatísticas */}
+              <CalendarView
+                appointments={appointments}
+                selectedDate={selectedDate}
+                onDateSelect={handleDateSelection}
+                startDate={startDate}
+                endDate={endDate}
+                currentUser={currentUser}
+                isRangeFilterActive={isRangeFilterActive}
+                onToggleRangeFilter={() => {
+                  setIsRangeFilterActive(!isRangeFilterActive);
+                  setStartDate(null);
+                  setEndDate(null);
+                  setCurrentPage(1); // Reset to first page when filter is toggled
+                }}
+                onResetFilters={resetFilters}
+                totalValue={totalValue}
+              />
+
+              {/* Lista de Agendamentos */}
+              <div className="my-4">
+                <AnimatePresence>
+                  {calendarCurrentAppointments.length > 0 ? (
+                    calendarCurrentAppointments.map((appointment) => (
+                      <motion.div
+                        key={appointment.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                        className="mb-2"
+                      >
+                        <AppointmentCardNew
+                          appointment={appointment}
+                          onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                          onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                          onView={() => handleAppointmentAction(appointment.id, 'view')}
+                          filterMode="all"
+                          revenueDisplayMode="total"
+                          appointments={appointments}
+                        />
+                      </motion.div>
+                    ))
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="bg-[#1A1F2E] p-6 rounded-lg text-center border border-[#F0B35B]/10"
+                    >
+                      <p className="text-gray-400">
+                        Nenhum agendamento encontrado para este período
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Pagination Controls - Renderização condicional baseada na visualização ativa */}
+        {activeView === 'painel' ? (
+          filteredAppointments.length > appointmentsPerPage && (
+            <div className="flex justify-center mt-6 mb-4">
+              <div className="flex items-center space-x-2">
+                {/* Previous Page Button */}
+                {currentPage > 1 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage - 1)}
+                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </motion.button>
+                )}
+
+                {/* First Page */}
+                {currentPage > 1 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage - 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    {currentPage - 1}
+                  </motion.button>
+                )}
+
+                {/* Current Page */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage - 1)}
-                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  {currentPage}
                 </motion.button>
-              )}
-              
-              {/* First Page */}
-              {currentPage > 1 && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage - 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                >
-                  {currentPage - 1}
-                </motion.button>
-              )}
-              
-              {/* Current Page */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
-              >
-                {currentPage}
-              </motion.button>
-              
-              {/* Next Page */}
-              {currentPage < totalPages && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                >
-                  {currentPage + 1}
-                </motion.button>
-              )}
-              
-              {/* Next Page Button */}
-              {currentPage < totalPages && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage + 1)}
-                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </motion.button>
-              )}
+
+                {/* Next Page */}
+                {currentPage < totalPages && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage + 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    {currentPage + 1}
+                  </motion.button>
+                )}
+
+                {/* Next Page Button */}
+                {currentPage < totalPages && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage + 1)}
+                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </motion.button>
+                )}
+              </div>
             </div>
-          </div>
+          )
+        ) : (
+          calendarFilteredAppointments.length > appointmentsPerPage && (
+            <div className="flex justify-center mt-6 mb-4">
+              <div className="flex items-center space-x-2">
+                {/* Previous Page Button */}
+                {currentPage > 1 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage - 1)}
+                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </motion.button>
+                )}
+
+                {/* First Page */}
+                {currentPage > 1 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage - 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    {currentPage - 1}
+                  </motion.button>
+                )}
+
+                {/* Current Page */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+                >
+                  {currentPage}
+                </motion.button>
+
+                {/* Next Page */}
+                {currentPage < calendarTotalPages && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage + 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    {currentPage + 1}
+                  </motion.button>
+                )}
+
+                {/* Next Page Button */}
+                {currentPage < calendarTotalPages && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => paginate(currentPage + 1)}
+                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </motion.button>
+                )}
+              </div>
+            </div>
+          )
         )}
       </main>
-
-      {/* Modal de visualização de agendamento */}
-      <AppointmentViewModal
-        isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
-        appointment={selectedAppointment}
-        onDelete={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'delete')}
-        onToggleStatus={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status)}
-      />
+      
+        <AppointmentViewModal
+          isOpen={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          appointment={selectedAppointment}
+          onDelete={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'delete')}
+          onToggleStatus={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status)}
+        />
     </div>
+    
   );
-
 };
 
 export default DashboardPage;

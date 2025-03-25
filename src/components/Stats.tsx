@@ -179,20 +179,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center flex-wrap gap-2 sm:gap-3 sm:pr-0">
             <div className="flex flex-1 justify-center gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/calendar')}
-                className="fixed right-4 top-20 z-30 px-3 sm:px-6 py-2 sm:py-3 rounded-lg bg-[#F0B35B] text-black font-medium shadow-lg hover:bg-[#F0B35B]/90 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 border-2 border-[#F0B35B]/50 min-w-[40px] sm:min-w-[160px]"
-                title="Ver calendário"
-              >
-                <Calendar className="w-6 h-6 sm:w-6 sm:h-6" />
-                <span className="hidden sm:inline font-bold">Calendário</span>
-                <span className="absolute top-1 right-1 flex h-3 w-3 sm:h-3 sm:w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F0B35B] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-[#F0B35B]"></span>
-                </span>
-              </motion.button>
+             
               <button
                 onClick={() => handleModeChange('month')}
                 className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
