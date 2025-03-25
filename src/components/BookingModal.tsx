@@ -344,7 +344,7 @@ Aguardo a confirmação.`;
                     required
                     className="w-full pl-10 pr-4 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-sm placeholder-gray-500"
                     value={formData.name}
-                    placeholder="Digite seu nome completo"
+                    placeholder="Digite seu nome"
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
