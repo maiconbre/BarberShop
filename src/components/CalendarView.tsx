@@ -295,8 +295,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       <div className="grid grid-cols-7 gap-1">
         {generateCalendarGrid()}
       </div>
-
-     
+      
+      <div className="mt-4 mb-4 text-center bg-[#252B3B] p-3 rounded-lg shadow-md border border-[#F0B35B]/20">
+        <p className="text-[#F0B35B] text-base font-medium">
+          {filteredAppointments.length} {filteredAppointments.length === 1 ? 'agendamento' : 'agendamentos'} para o dia {new Date(selectedDate).toLocaleDateString('pt-BR')}
+        </p>
+      </div>
     </div>
   );
 };
