@@ -571,14 +571,14 @@ Aguardo a confirmação.`;
                 {/* Seção do QR Code e Detalhes */}
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-4">
                   {/* QR Code */}
-                  <div className="w-40 sm:w-44 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
+                  <div className="w-36 sm:w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
                     {formData.barber ? (
                       <>
                         <div className="text-xs text-gray-500 mb-1 font-medium">PIX para pagamento</div>
                         <img
                           src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
                           alt={`QR Code de ${formData.barber}`}
-                          className="w-32 h-32 sm:w-36 sm:h-36 object-contain hover:scale-105 transition-transform duration-200"
+                          className="w-28 h-28 sm:w-32 sm:h-32 object-contain hover:scale-105 transition-transform duration-200"
                         />
                         <div className="mt-2 flex items-center text-xs">
                           <span className="text-gray-700 font-bold text-xs truncate max-w-[80px] sm:max-w-full">
