@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle, ArrowRight } from 'lucide-react';
+import { X, MessageCircle, ArrowRight, User, Scissors, Calendar as CalendarIcon, Clock, DollarSign, CheckCircle } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
 
@@ -17,7 +17,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [error, setError] = useState('');
-  const [isCalendarLoaded, setIsCalendarLoaded] = useState(false);
 
   // Estado para armazenar os dados do formulário (incluindo os checkboxes "barba" e "sobrancelha")
   const [formData, setFormData] = useState({
@@ -47,26 +46,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Efeito para prevenir zoom em dispositivos móveis quando o teclado é aberto
   useEffect(() => {
     if (isOpen) {
-      // Função para prevenir zoom quando um input recebe foco
-      const preventZoom = (e: Event) => {
-        e.preventDefault();
-        document.body.style.height = window.innerHeight + 'px';
-      };
-
       // Adiciona listeners para eventos de foco em inputs e selects
-      document.addEventListener('focus', preventZoom, true);
-
-      // Função para restaurar o comportamento normal quando o input perde o foco
-      const restoreZoom = () => {
-        document.body.style.height = '';
-      };
-
-      document.addEventListener('blur', restoreZoom, true);
+      document.addEventListener('focus', handleInputFocus, true);
 
       // Cleanup function
       return () => {
-        document.removeEventListener('focus', preventZoom, true);
-        document.removeEventListener('blur', restoreZoom, true);
+        document.removeEventListener('focus', handleInputFocus, true);
+        document.documentElement.style.fontSize = '';
         document.body.style.height = '';
       };
     }
@@ -110,7 +96,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   useEffect(() => {
     if (preloadedAppointments && preloadedAppointments.length > 0) {
       setCachedAppointments(preloadedAppointments);
-      setIsCalendarLoaded(true);
     }
   }, [preloadedAppointments]);
   
@@ -135,7 +120,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         throw new Error('Erro na resposta da API');
       }
       setCachedAppointments(jsonData.data);
-      setIsCalendarLoaded(true);
     } catch (err) {
       console.error('Erro ao carregar agendamentos:', err);
     }
@@ -299,11 +283,13 @@ Aguardo a confirmação.`;
   };
 
   // Função para prevenir zoom ao clicar em inputs
-  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement> | Event) => {
     // Previne o comportamento padrão que pode causar zoom
     e.preventDefault();
     // Ajusta o tamanho da fonte para evitar que o navegador faça zoom
     document.documentElement.style.fontSize = '16px';
+    // Ajusta a altura do body para prevenir zoom em dispositivos móveis
+    document.body.style.height = window.innerHeight + 'px';
   };
 
   // Não renderiza nada se o modal estiver fechado
@@ -567,117 +553,119 @@ Aguardo a confirmação.`;
             </form>
           ) : step === 3 ? (
             <div className="text-center transform transition-all duration-500 animate-fadeIn pt-0 mt-0">
-              <div className="text-center mb-6">
-                <div className="inline-block mb-2">
+              <div className="text-center mb-3 sm:mb-6">
+                <div className="inline-block mb-1 sm:mb-2">
                   <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
-                    <div className="h-px w-5 bg-[#F0B35B]"></div>
+                    <div className="h-px w-4 bg-[#F0B35B]"></div>
                     <span className="uppercase text-xs font-semibold tracking-wider">Resumo</span>
-                    <div className="h-px w-5 bg-[#F0B35B]"></div>
+                    <div className="h-px w-4 bg-[#F0B35B]"></div>
                   </div>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white text-center">
+                <h2 className="text-lg sm:text-xl font-bold text-white text-center flex items-center justify-center gap-2">
+                  <CheckCircle size={20} className="text-green-400" />
                   Agendamento <span className="text-[#F0B35B] relative overflow-hidden"><span className="relative z-10">Confirmado</span></span>
                 </h2>
               </div>
               
-              <div className="bg-[#0D121E] p-4 rounded-lg mb-4 shadow-lg border border-[#F0B35B]/10">
-                <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                  <div className="w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center">
+              <div className="bg-[#0D121E] p-3 sm:p-5 rounded-lg mb-4 shadow-lg border border-[#F0B35B]/10">
+                {/* Seção do QR Code e Detalhes */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-4">
+                  {/* QR Code */}
+                  <div className="w-40 sm:w-44 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
                     {formData.barber ? (
                       <>
+                        <div className="text-xs text-gray-500 mb-1 font-medium">PIX para pagamento</div>
                         <img
                           src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
                           alt={`QR Code de ${formData.barber}`}
-                          className="w-32 h-32 object-contain hover:scale-105 transition-transform duration-200"
+                          className="w-32 h-32 sm:w-36 sm:h-36 object-contain hover:scale-105 transition-transform duration-200"
                         />
-                        <div className="mt-1 flex items-center text-xs">
-                          <span className="text-gray-700 font-bold">
+                        <div className="mt-2 flex items-center text-xs">
+                          <span className="text-gray-700 font-bold text-xs truncate max-w-[80px] sm:max-w-full">
                             {getBarberPix()}
                           </span>
                           <button
                             onClick={handleCopyPix}
-                            className="ml-2 text-xs bg-green-400 text-black px-1.5 py-0.5 rounded hover:shadow-md hover:scale-105 transition-all duration-200"
+                            className="ml-1 text-xs bg-green-400 text-black px-2 py-0.5 rounded hover:shadow-md hover:scale-105 transition-all duration-200 font-medium"
                           >
                             Copiar
                           </button>
                         </div>
                       </>
                     ) : (
-                      <span>Sem QR</span>
+                      <div className="text-gray-700 text-xs">QR Code não disponível</div>
                     )}
                   </div>
-                  <div>
-                    <p className="text-gray-300 text-sm sm:text-base font-medium">
-                      Pague antecipado e garanta a sua vaga.
-                    </p>
-                    <p className="text-gray-300 mt-2 text-sm sm:text-base">
-                      Valor <strong>R$ {getServicePrice[formData.service] +
-                        (formData.barba ? getServicePrice["barba"] : 0) +
-                        (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</strong>
-                    </p>
+                  
+                  {/* Detalhes do Agendamento */}
+                  <div className="flex-1 text-left bg-[#1A1F2E] p-3 sm:p-4 rounded-lg border border-[#F0B35B]/5 shadow-inner">
+                    <h3 className="text-base sm:text-lg font-semibold text-white mx-6 mb-3 flex items-center">
+                      Detalhes do Agendamento
+                    </h3>
+                    <ul className="space-y-2.5 text-sm">
+                      <li className="flex items-center">
+                        <span className="text-gray-400 w-20 flex-shrink-0">Cliente:</span>
+                        <span className="ml-1 text-white font-medium">{formData.name}</span>
+                      </li>
+                      <li className="flex items-center">
+                        <span className="text-gray-400 w-20 flex-shrink-0">Barbeiro:</span>
+                        <span className="ml-1 text-white font-medium">{formData.barber}</span>
+                      </li>
+                      <li className="flex items-center">
+                        <span className="text-gray-400 w-20 flex-shrink-0">Serviço:</span>
+                        <span className="ml-1 text-white font-medium">{formData.service}</span>
+                      </li>
+                      {extrasText.length > 0 && (
+                        <li className="flex items-start">
+                          <span className="text-gray-400 w-20 flex-shrink-0">Extras:</span>
+                          <span className="ml-1 text-white font-medium">{extrasText.join(", ")}</span>
+                        </li>
+                      )}
+                      <li className="flex items-center">
+                        <CalendarIcon size={16} className="text-[#F0B35B] mr-2 flex-shrink-0" />
+                        <span className="text-gray-400 w-20 flex-shrink-0">Data:</span>
+                        <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">
+                          {formData.date ? format(new Date(formData.date), 'dd/MM/yyyy') : ''}
+                        </span>
+                      </li>
+                      <li className="flex items-center">
+                        <Clock size={16} className="text-[#F0B35B] mr-2 flex-shrink-0" />
+                        <span className="text-gray-400 w-20 flex-shrink-0">Horário:</span>
+                        <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">{formData.time}</span>
+                      </li>
+                      <li className="flex items-center mt-3 pt-3 border-t border-white/10">
+                        <span className="text-gray-400 w-20 flex-shrink-0">Valor Total:</span>
+                        <span className="ml-1 text-green-400 font-bold text-lg">
+                          R$ {(getServicePrice[formData.service] +
+                            (formData.barba ? getServicePrice["barba"] : 0) +
+                            (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)).toFixed(2)}
+                        </span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
-
-                <div className="space-y-3 mb-4">
-                <a
-                  href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative overflow-hidden group flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all duration-300 hover:scale-105 w-full text-sm font-medium"
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    <MessageCircle size={18} />
-                    Enviar para o Barbeiro
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 via-white/30 to-green-600/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
-                </a>
                 
-              </div>
-
-                <div className="text-left space-y-2 bg-[#1A1F2E] p-4 rounded-lg text-xs sm:text-sm border border-[#F0B35B]/10">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <p className="text-gray-400 text-xs">Nome</p>
-                      <p className="text-white font-medium">{formData.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Barbeiro</p>
-                      <p className="text-white font-medium">{formData.barber}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Corte</p>
-                      <p className="text-white font-medium">{formData.service}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Extras</p>
-                      <p className="text-white font-medium">{extrasText.length ? extrasText.join(", ") : "Nenhum"}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Data</p>
-                      <p className="text-white font-medium">
-                        {formData.date
-                          ? format(new Date(formData.date.replace(/-/g, '/')), 'dd/MM/yyyy')
-                          : format(new Date(), 'dd/MM/yyyy')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Horário</p>
-                      <p className="text-white font-medium">{formData.time}</p>
-                    </div>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-[#F0B35B]/10">
-                    <p className="text-gray-400 text-xs">Valor Total</p>
-                    <p className="text-[#F0B35B] font-bold text-base">R$ {getServicePrice[formData.service] +
-                      (formData.barba ? getServicePrice["barba"] : 0) +
-                      (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</p>
-                  </div>
+                {/* Botões de Ação */}
+                <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-3 border-t border-white/10">
+                  <a
+                    href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative overflow-hidden group flex-1 flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-3 px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-sm border border-green-500/20 hover:border-green-500/40"
+                  >
+                    <MessageCircle size={18} />
+                    <span>Confirmar via WhatsApp</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-white/10 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine"></div>
+                  </a>
+                  
                 </div>
               </div>
 
               <button
                 onClick={onClose}
-                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-sm border-2 border-[#F0B35B]/70"
+                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-sm border-2 border-[#F0B35B]/70 flex items-center justify-center gap-2"
               >
+                <CheckCircle size={18} />
                 <span className="relative z-10">Concluir</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
               </button>
