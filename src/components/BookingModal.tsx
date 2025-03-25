@@ -552,8 +552,8 @@ Aguardo a confirmação.`;
               </button>
             </form>
           ) : step === 3 ? (
-            <div className="text-center transform transition-all duration-500 animate-fadeIn pt-0 mt-0">
-              <div className="text-center mb-3 sm:mb-6">
+            <div className="text-center transform transition-all duration-500 animate-fadeIn pt-0 mt-0 scale-[0.98] sm:scale-100">
+              <div className="text-center mb-2 sm:mb-6">
                 <div className="inline-block mb-1 sm:mb-2">
                   <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
                     <div className="h-px w-4 bg-[#F0B35B]"></div>
@@ -561,27 +561,27 @@ Aguardo a confirmação.`;
                     <div className="h-px w-4 bg-[#F0B35B]"></div>
                   </div>
                 </div>
-                <h2 className="text-lg sm:text-xl font-bold text-white text-center flex items-center justify-center gap-2">
-                  <CheckCircle size={20} className="text-green-400" />
+                <h2 className="text-base sm:text-xl font-bold text-white text-center flex items-center justify-center gap-2">
+                  <CheckCircle size={18} className="text-green-400" />
                   Agendamento <span className="text-[#F0B35B] relative overflow-hidden"><span className="relative z-10">Confirmado</span></span>
                 </h2>
               </div>
               
-              <div className="bg-[#0D121E] p-3 sm:p-5 rounded-lg mb-4 shadow-lg border border-[#F0B35B]/10">
+              <div className="bg-[#0D121E] p-2 sm:p-5 rounded-lg mb-3 sm:mb-4 shadow-lg border border-[#F0B35B]/10">
                 {/* Seção do QR Code e Detalhes */}
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-4">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6 mb-3 sm:mb-4">
                   {/* QR Code */}
-                  <div className="w-36 sm:w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
+                  <div className="w-32 sm:w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
                     {formData.barber ? (
                       <>
                         <div className="text-xs text-gray-500 mb-1 font-medium">PIX para pagamento</div>
                         <img
                           src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
                           alt={`QR Code de ${formData.barber}`}
-                          className="w-28 h-28 sm:w-32 sm:h-32 object-contain hover:scale-105 transition-transform duration-200"
+                          className="w-24 h-24 sm:w-32 sm:h-32 object-contain hover:scale-105 transition-transform duration-200"
                         />
-                        <div className="mt-2 flex items-center text-xs">
-                          <span className="text-gray-700 font-bold text-xs truncate max-w-[80px] sm:max-w-full">
+                        <div className="mt-1 sm:mt-2 flex items-center text-xs">
+                          <span className="text-gray-700 font-bold text-xs truncate max-w-[70px] sm:max-w-full">
                             {getBarberPix()}
                           </span>
                           <button
@@ -598,44 +598,44 @@ Aguardo a confirmação.`;
                   </div>
                   
                   {/* Detalhes do Agendamento */}
-                  <div className="flex-1 text-left bg-[#1A1F2E] p-3 sm:p-4 rounded-lg border border-[#F0B35B]/5 shadow-inner">
-                    <h3 className="text-base sm:text-lg font-semibold text-white mx-6 mb-3 flex items-center">
+                  <div className="flex-1 text-left bg-[#1A1F2E] p-2 sm:p-4 rounded-lg border border-[#F0B35B]/5 shadow-inner">
+                    <h3 className="text-sm sm:text-lg font-semibold text-white mx-4 sm:mx-6 mb-2 sm:mb-3 flex items-center">
                       Detalhes do Agendamento
                     </h3>
-                    <ul className="space-y-2.5 text-sm">
+                    <ul className="space-y-2 sm:space-y-2.5 text-xs sm:text-sm">
                       <li className="flex items-center">
-                        <span className="text-gray-400 w-20 flex-shrink-0">Cliente:</span>
+                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Cliente:</span>
                         <span className="ml-1 text-white font-medium">{formData.name}</span>
                       </li>
                       <li className="flex items-center">
-                        <span className="text-gray-400 w-20 flex-shrink-0">Barbeiro:</span>
+                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Barbeiro:</span>
                         <span className="ml-1 text-white font-medium">{formData.barber}</span>
                       </li>
                       <li className="flex items-center">
-                        <span className="text-gray-400 w-20 flex-shrink-0">Serviço:</span>
+                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Serviço:</span>
                         <span className="ml-1 text-white font-medium">{formData.service}</span>
                       </li>
                       {extrasText.length > 0 && (
                         <li className="flex items-start">
-                          <span className="text-gray-400 w-20 flex-shrink-0">Extras:</span>
+                          <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Extras:</span>
                           <span className="ml-1 text-white font-medium">{extrasText.join(", ")}</span>
                         </li>
                       )}
                       <li className="flex items-center">
-                        <CalendarIcon size={16} className="text-[#F0B35B] mr-2 flex-shrink-0" />
-                        <span className="text-gray-400 w-20 flex-shrink-0">Data:</span>
+                        <CalendarIcon size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
+                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Data:</span>
                         <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">
                           {formData.date ? format(new Date(formData.date), 'dd/MM/yyyy') : ''}
                         </span>
                       </li>
                       <li className="flex items-center">
-                        <Clock size={16} className="text-[#F0B35B] mr-2 flex-shrink-0" />
-                        <span className="text-gray-400 w-20 flex-shrink-0">Horário:</span>
+                        <Clock size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
+                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Horário:</span>
                         <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">{formData.time}</span>
                       </li>
-                      <li className="flex items-center mt-3 pt-3 border-t border-white/10">
-                        <span className="text-gray-400 w-20 flex-shrink-0">Valor Total:</span>
-                        <span className="ml-1 text-green-400 font-bold text-lg">
+                      <li className="flex items-center mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-white/10">
+                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Valor Total:</span>
+                        <span className="ml-1 text-green-400 font-bold text-base sm:text-lg">
                           R$ {(getServicePrice[formData.service] +
                             (formData.barba ? getServicePrice["barba"] : 0) +
                             (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)).toFixed(2)}
@@ -646,14 +646,14 @@ Aguardo a confirmação.`;
                 </div>
                 
                 {/* Botões de Ação */}
-                <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-3 border-t border-white/10">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-white/10">
                   <a
                     href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="relative overflow-hidden group flex-1 flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-3 px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-sm border border-green-500/20 hover:border-green-500/40"
+                    className="relative overflow-hidden group flex-1 flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-xs sm:text-sm border border-green-500/20 hover:border-green-500/40"
                   >
-                    <MessageCircle size={18} />
+                    <MessageCircle size={16} />
                     <span>Confirmar via WhatsApp</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-white/10 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine"></div>
                   </a>

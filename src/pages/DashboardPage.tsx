@@ -316,7 +316,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('painel')}
-              className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
               <LayoutDashboard className="w-5 h-5" />
               <span>Painel</span>
@@ -325,7 +325,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('agenda')}
-              className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
               <Calendar className="w-5 h-5" />
               <span>Agenda</span>
@@ -663,7 +663,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage + 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     {currentPage + 1}
                   </motion.button>
@@ -675,7 +675,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage + 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="p-2 rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </motion.button>
