@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useContext } from 'react';
 import { Loader2, Scissors, Clock, MapPin } from 'lucide-react';
 // @ts-ignore
 import { LazyLoadImage } from 'react-lazy-load-image-component';
@@ -6,9 +6,10 @@ import 'react-lazy-load-image-component/src/effects/blur.css';
 
 interface HeroProps {
   setIsModalOpen: (isOpen: boolean) => void;
+  preloadAppointments?: () => Promise<void>;
 }
 
-const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
+const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
   const [bgLoaded, setBgLoaded] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [activeFeature, setActiveFeature] = useState(0);
@@ -23,13 +24,19 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
     { icon: <MapPin className="w-6 h-6" />, text: "Localização privilegiada" }
   ];
 
-  // Efeito para carregar a animação inicial
+  // Efeito para carregar a animação inicial e pré-carregar os horários
   useEffect(() => {
     const timer = setTimeout(() => {
       setBgLoaded(true);
     }, 100);
+    
+    // Pré-carregar os horários dos barbeiros quando o Hero for renderizado
+    if (preloadAppointments) {
+      preloadAppointments();
+    }
+    
     return () => clearTimeout(timer);
-  }, []);
+  }, [preloadAppointments]);
 
   // Efeito para rotacionar os features automaticamente com animação lateral
   useEffect(() => {
@@ -87,17 +94,26 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen }) => {
 
       {/* Imagem de fundo com efeito parallax */}
       <div ref={parallaxRef} className="absolute inset-0 w-full h-full overflow-hidden">
-        <LazyLoadImage
-          src="/img/fotohero.avif"
-          alt="Barbearia GR - Ambiente profissional e moderno"
-          effect="blur"
-          afterLoad={handleImageLoad}
-          className="w-full h-full object-cover scale-110"
-          wrapperClassName="w-full h-full"
-          style={{
-            filter: 'brightness(0.25)'
-          }}
-        />
+        <picture>
+          {/* Formato AVIF para navegadores que suportam */}
+          <source srcSet="/img/fotohero-optimized.avif" type="image/avif" />
+          {/* Formato WebP para navegadores que suportam */}
+          <source srcSet="/img/fotohero.webp" type="image/webp" />
+          {/* Fallback para o formato original */}
+          <LazyLoadImage
+            src="/img/fotohero.avif"
+            alt="Barbearia GR - Ambiente profissional e moderno"
+            effect="blur"
+            afterLoad={handleImageLoad}
+            className="w-full h-full object-cover scale-110"
+            wrapperClassName="w-full h-full"
+            style={{
+              filter: 'brightness(0.25)'
+            }}
+            loading="eager"
+            placeholderSrc="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
+          />
+        </picture>
         {isImageLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#0D121E]">
             <Loader2 className="w-12 h-12 text-[#F0B35B] animate-spin" />

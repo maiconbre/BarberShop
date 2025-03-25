@@ -11,7 +11,7 @@ import { useCountdown } from '../hooks/useCountdown';
 // Configuração do vídeo para mobile
 const videoConfig = {
   src: './video/Demo oficial.mp4',
-  poster: './img/demofoto.png'
+  poster: './img/demofoto.webp'
 };
 
 
@@ -196,7 +196,7 @@ const VendaPage2: React.FC = () => {
         </motion.header>
 
         {/* Hero Section Simplificada */}
-        <section className="relative min-h-[80vh] flex items-center pt-12">
+        <section className="relative min-h-[80vh] flex items-center pt-16">
           <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <motion.div
@@ -555,7 +555,7 @@ const VendaPage2: React.FC = () => {
           </div>
         </section>
 
-        {/* Seção de preços atualizada */}
+        {/* Seção de planos atualizada */}
         <section className="py-20" id="pricing">
           <div className="max-w-7xl mx-auto px-4">
             <motion.div
@@ -565,47 +565,112 @@ const VendaPage2: React.FC = () => {
               className="text-center mb-12"
             >
               <h2 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                Promoção Exclusiva
+                Escolha o Plano Ideal para Você
               </h2>
               <p className="text-gray-400">Aproveite nossa oferta especial por tempo limitado</p>
             </motion.div>
 
-            <div className="flex flex-wrap justify-center gap-8 max-w-5xl mx-auto">
-              {/* Card de Implementação */}
+            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+              {/* Card Plano Mensal */}
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border border-[#F0B35B]/10 w-full sm:w-[calc(50%-1rem)] max-w-[400px] ${commonAnimations.glowEffect}`}
+                className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border border-[#F0B35B]/10 w-full sm:w-[calc(33%-1rem)] max-w-[350px] ${commonAnimations.glowEffect}`}
               >
                 <div className={`absolute -top-3 -right-3 ${commonAnimations.buttonGradient} text-black text-xs px-3 py-1 rounded-full`}>
                   {hours}h {minutes}m restantes
                 </div>
                 <div className="relative">
-                  <h3 className="text-lg font-bold mb-2 text-gray-400">Implementação</h3>
-                  <div className="text-gray-500 line-through text-sm mb-1">R$ 499,00</div>
-                  <div className="text-2xl font-bold text-red-500 line-through mb-4">GRÁTIS</div>
-                  <div className="absolute top-0 right-0 rotate-12 text-red-500 border-2 border-red-500 px-2 py-1 text-sm font-bold rounded">
-                    Promoção
-                  </div>
+                  <h3 className="text-xl font-bold mb-2 text-white">Plano Mensal</h3>
+                  <div className="text-gray-500 line-through text-sm mb-1">R$ 69,90</div>
+                  <div className="text-4xl font-bold text-[#F0B35B] mb-6">R$ 54,90</div>
+                  <div className="text-sm text-gray-400 mb-4">Cobrado mensalmente</div>
+                  <ul className="space-y-3 mb-6">
+                    {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos'].map((item, index) => (
+                      <li key={index} className="flex items-center">
+                        <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full py-3 bg-[#252B3B] text-[#F0B35B] rounded-lg font-bold border border-[#F0B35B]/30 hover:bg-[#F0B35B]/10 transition-all duration-300"
+                  >
+                    Assinar Agora
+                  </motion.button>
                 </div>
               </motion.div>
 
-              {/* Card de Mensalidade em Destaque */}
-              <div className="relative bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-8 rounded-lg border-2 border-[#F0B35B] shadow-xl transform hover:scale-105 transition-all duration-300 w-full sm:w-[calc(50%-1rem)] max-w-[400px]">
+              {/* Card Plano Semestral em Destaque */}
+              <div className="relative bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-8 rounded-lg border-2 border-[#F0B35B] shadow-xl transform hover:scale-105 transition-all duration-300 w-full sm:w-[calc(33%-1rem)] max-w-[350px] z-10">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-[#F0B35B] text-black text-sm px-4 py-1 rounded-full font-bold">
-                  Somente Hoje
+                  Mais Popular
                 </div>
-                <h3 className="text-xl font-bold mb-2">Mensalidade</h3>
-                <div className="text-gray-400 line-through mb-1">R$ 59,99</div>
-                <div className="text-4xl font-bold text-[#F0B35B] mb-6">R$ 34,90</div>
-                <ul className="space-y-4">
-                  {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos'].map((item, index) => (
+                <h3 className="text-xl font-bold mb-2">Plano Semestral</h3>
+                <div className="text-4xl font-bold text-[#F0B35B] mb-2">R$ 48,32</div>
+                <div className="text-xs text-[#F0B35B]">Total R$ 289,90</div>
+                <div className="text-sm text-[#F0B35B] mb-6">Economia de 31%</div>
+                <ul className="space-y-3 mb-6">
+                  {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Acesso a recursos premium'].map((item, index) => (
                     <li key={index} className="flex items-center">
                       <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="
+                    relative overflow-hidden w-full
+                    py-3 bg-[#F0B35B] text-black rounded-lg
+                    font-bold
+                    transition-all duration-500
+                    shadow-[0_0_15px_rgba(240,179,91,0.3)]
+                    before:absolute before:inset-0
+                    before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                    before:via-white/40 before:to-[#F0B35B]/0
+                    before:-skew-x-45 before:animate-shine
+                  "
+                >
+                  <span className="relative z-10">Assinar Agora</span>
+                </motion.button>
               </div>
+
+              {/* Card Plano Anual */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border border-[#F0B35B]/10 w-full sm:w-[calc(33%-1rem)] max-w-[350px] ${commonAnimations.glowEffect}`}
+              >
+                <div className="relative">
+                  <h3 className="text-xl font-bold mb-2 text-white">Plano Anual</h3>
+                  <div className="text-4xl font-bold text-[#F0B35B] mb-2">R$ 45,75</div>
+                  <div className="text-xs text-[#F0B35B]">Total de R$ 549 </div>
+                  <div className="text-sm text-[#F0B35B] mb-6">Economia de 35%</div>
+                  <ul className="space-y-3 mb-6">
+                    {['Atualizações', 'Suporte 24/7 prioritário', 'Backups diários', 'Sem limite de agendamentos', 'Acesso a recursos premium', 'Consultoria personalizada'].map((item, index) => (
+                      <li key={index} className="flex items-center">
+                        <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-full py-3 bg-[#252B3B] text-[#F0B35B] rounded-lg font-bold border border-[#F0B35B]/30 hover:bg-[#F0B35B]/10 transition-all duration-300"
+                  >
+                    Assinar Agora
+                  </motion.button>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Informação adicional */}
+            <div className="text-center mt-8 text-gray-400 text-sm">
+              <p>Todos os planos incluem implementação gratuita e suporte técnico</p>
+              <p className="mt-2">Garantia de 7 dias ou seu dinheiro de volta</p>
             </div>
           </div>
         </section>
