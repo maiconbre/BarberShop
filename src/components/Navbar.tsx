@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Scissors, User, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface NavbarProps {
   isModalOpen: boolean;
@@ -100,41 +101,87 @@ const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       </div>
-      {/* Mobile menu com transição */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden transition-all duration-500 ease-out">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-[#0D121E]/95 backdrop-blur-sm">
-            <button
-              onClick={() => {
-                scrollToSection('about');
-                setIsMobileMenuOpen(false);
-              }}
-              className="block text-white/90 hover:text-[#F0B35B] py-2 px-3 transition-colors transition-transform duration-300 hover:scale-105"
-            >
-              Sobre
-            </button>
-            <button
-              onClick={() => {
-                scrollToSection('services');
-                setIsMobileMenuOpen(false);
-              }}
-              className="block text-white/90 hover:text-[#F0B35B] py-2 px-3 transition-colors transition-transform duration-300 hover:scale-105"
-            >
-              Serviços
-            </button>
-            <button
-              onClick={() => {
-                setIsModalOpen(true);
-                setIsMobileMenuOpen(false);
-              }}
-              className="relative overflow-hidden group w-full text-left bg-[#F0B35B] text-black px-3 py-2 rounded-md transition-all duration-300 hover:scale-105 border-2 border-[#F0B35B]/70 hover:shadow-[0_0_15px_rgba(240,179,91,0.4)]"
-            >
-              <span className="relative z-10">Agendar horário</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Backdrop animado com blur - separado do menu para não afetar a interatividade */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMobileMenuOpen(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Conteúdo do menu mobile - com z-index maior que o backdrop para garantir que seja clicável */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="md:hidden transition-all duration-500 ease-out relative z-50"
+          >
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-[#0D121E]/95 backdrop-blur-lg border-b border-[#F0B35B]/10">
+              <button
+                onClick={() => {
+                  scrollToSection('about');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
+              >
+                <motion.span
+                  whileHover={{ x: 5 }}
+                  className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                >
+                  <User className="flex-shrink-0" size={20} />
+                  Sobre
+                </motion.span>
+              </button>
+
+              <button
+                onClick={() => {
+                  scrollToSection('services');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
+              >
+                <motion.span
+                  whileHover={{ x: 5 }}
+                  className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                >
+                  <Scissors size={20} className="flex-shrink-0" />
+                  Serviços
+                </motion.span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="relative overflow-hidden group w-full text-left px-4 py-3 rounded-lg bg-[#F0B35B]/20 border border-[#F0B35B]/30 hover:border-[#F0B35B]/50 transition-all"
+              >
+                <motion.span
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-3 text-[#F0B35B] text-lg font-semibold"
+                >
+                  <Calendar size={20} className="flex-shrink-0" />
+                  Agendar Horário
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine" />
+                </motion.span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle } from 'lucide-react';
+import { X, MessageCircle, ArrowRight } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
 
@@ -8,14 +8,16 @@ interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialService?: string;
+  preloadedAppointments?: any[];
 }
 
-const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '' }) => {
-  // Estado para controlar as etapas do agendamento (1: formulário, 2: confirmação)
+const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '', preloadedAppointments = [] }) => {
+  // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [error, setError] = useState('');
+  const [isCalendarLoaded, setIsCalendarLoaded] = useState(false);
 
   // Estado para armazenar os dados do formulário (incluindo os checkboxes "barba" e "sobrancelha")
   const [formData, setFormData] = useState({
@@ -28,6 +30,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     barba: false,
     sobrancelha: false,
   });
+  
+  // Estado para armazenar os horários pré-carregados
+  const [cachedAppointments, setCachedAppointments] = useState(preloadedAppointments || []);
   
   // Atualiza o serviço quando o initialService mudar
   useEffect(() => {
@@ -100,21 +105,85 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     fetchBarbers();
   }, []);
+  
+  // Efeito para atualizar os horários pré-carregados quando as props mudarem
+  useEffect(() => {
+    if (preloadedAppointments && preloadedAppointments.length > 0) {
+      setCachedAppointments(preloadedAppointments);
+      setIsCalendarLoaded(true);
+    }
+  }, [preloadedAppointments]);
+  
+  // Função para carregar os horários disponíveis caso não tenham sido pré-carregados
+  const loadAppointments = async () => {
+    if (cachedAppointments.length > 0) return;
+    
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': localStorage.getItem('token') ? 'Bearer ' + localStorage.getItem('token') : ''
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const jsonData = await response.json();
+      if (!jsonData.success) {
+        throw new Error('Erro na resposta da API');
+      }
+      setCachedAppointments(jsonData.data);
+      setIsCalendarLoaded(true);
+    } catch (err) {
+      console.error('Erro ao carregar agendamentos:', err);
+    }
+  };
+  
+  // Efeito para carregar os horários quando o modal for aberto e não houver pré-carregados
+  useEffect(() => {
+    if (isOpen && cachedAppointments.length === 0) {
+      loadAppointments();
+    }
+  }, [isOpen, cachedAppointments.length]);
+  // Função para avançar para a próxima etapa
+  const handleNextStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validação para a etapa 1 (nome e serviço)
+    if (step === 1) {
+      if (!formData.name.trim()) {
+        setError('Por favor, informe seu nome');
+        return;
+      }
+      if (!formData.service) {
+        setError('Por favor, selecione um Corte');
+        return;
+      }
+      setError('');
+      setStep(2);
+      return;
+    }
+    
+    // Validação para a etapa 2 (barbeiro e data/hora)
+    if (step === 2) {
+      if (!formData.barber) {
+        setError('Por favor, selecione um barbeiro');
+        return;
+      }
+      if (!formData.time || !formData.date) {
+        setError('Por favor, selecione uma data e horário');
+        return;
+      }
+      setError('');
+      handleSubmit(e);
+    }
+  };
+  
   // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.time || !formData.date) {
-      setError('Por favor, selecione uma data e horário');
-      return;
-    }
-    if (!formData.barber) {
-      setError('Por favor, selecione um barbeiro');
-      return;
-    }
-    if (!formData.service) {
-      setError('Por favor, selecione um Corte');
-      return;
-    }
     setIsLoading(true);
     setError('');
 
@@ -171,7 +240,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       setShowSuccessMessage(true);
       setTimeout(() => {
         setShowSuccessMessage(false);
-        setStep(2);
+        setStep(3); // Avança para o passo 3 (resumo do agendamento)
       }, 1500);
 
     } catch (err) {
@@ -254,18 +323,21 @@ Aguardo a confirmação.`;
         >
           <X size={18} className="transform hover:rotate-90 transition-transform duration-300" />
         </button>
-        <div className="p-4 sm:p-6">
-          <div className="text-center mb-6">
-            <div className="inline-block mb-2">
+        <div className="p-4 ">
+          <div className="text-center mb-4">{step !== 3 && (
+            <div className="inline-block ">
               <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
                 <div className="h-px w-5 bg-[#F0B35B]"></div>
-                <span className="uppercase text-xs font-semibold tracking-wider">Agende seu horário</span>
+                
+                <span className="uppercase text-xs font-semibold tracking-wider">{step === 1 ? 'Escolha seu serviço' : 'Escolha seu barbeiro'}</span>
                 <div className="h-px w-5 bg-[#F0B35B]"></div>
-              </div>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">
-              Transforme seu <span className="text-[#F0B35B] relative overflow-hidden "><span className="relative z-10">Visual</span></span>
-            </h2>
+              </div> 
+            </div>)}
+            {step !== 3 && (
+              <h2 className="text-xl sm:text-2xl font-bold text-white text-center">
+                {step === 1 ? 'Transforme seu ' : 'Agende seu '}<span className="text-[#F0B35B] relative overflow-hidden "><span className="relative z-10">{step === 1 ? 'Visual' : 'Horário'}</span></span>
+              </h2>
+            )}
           </div>
 
           {showSuccessMessage && (
@@ -277,7 +349,7 @@ Aguardo a confirmação.`;
           )}
 
           {step === 1 ? (
-            <form onSubmit={handleSubmit} className="space-y-4 relative">
+            <form onSubmit={handleNextStep} className="space-y-4 relative">
               <div className="group relative">
                 <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Nome</label>
                 <div className="relative">
@@ -304,45 +376,6 @@ Aguardo a confirmação.`;
                         d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
                         clipRule="evenodd"
                       />
-                    </svg>
-                  </div>
-                  <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
-                </div>
-              </div>
-
-              <div className="group relative">
-                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Barbeiro</label>
-                <div className="relative">
-                  <select
-                    required
-                    className="w-full appearance-none pl-10 pr-10 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm border border-transparent hover:border-[#F0B35B]/30"
-                    value={formData.barberId}
-                    onChange={(e) => {
-                      const selectedBarber = barbers.find(b => b.id === e.target.value);
-                      setFormData({
-                        ...formData,
-                        barberId: e.target.value,
-                        barber: selectedBarber?.name || ''
-                      });
-                    }}
-                    onFocus={handleInputFocus}
-                    style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none' }}
-                  >
-                    <option value="">Selecione um barbeiro</option>
-                    {barbers.map((barber) => (
-                      <option key={barber.id} value={barber.id}>
-                        {barber.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-                    </svg>
-                  </div>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70 pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
@@ -437,6 +470,64 @@ Aguardo a confirmação.`;
                 </div>
               </div>
 
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="relative overflow-hidden group
+                 w-full bg-[#F0B35B] text-black py-3 rounded-lg
+                  font-semibold transition-all duration-300 
+                  transform hover:scale-105 
+                  hover:shadow-[0_0_25px_rgba(240,179,91,0.5)] 
+                  active:scale-95 disabled:opacity-75 
+                  disabled:cursor-not-allowed border-2 border-[#F0B35B]/70"
+              >
+                <span className="relative z-10 flex items-center justify-center">
+                  Próximo Passo <ArrowRight className="ml-2 h-4 w-4" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
+              </button>
+            </form>
+          ) : step === 2 ? (
+            <form onSubmit={handleNextStep} className="space-y-4 relative">
+              <div className="group relative">
+                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Barbeiro</label>
+                <div className="relative">
+                  <select
+                    required
+                    className="w-full appearance-none pl-10 pr-10 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-colors text-sm border border-transparent hover:border-[#F0B35B]/30"
+                    value={formData.barberId}
+                    onChange={(e) => {
+                      const selectedBarber = barbers.find(b => b.id === e.target.value);
+                      setFormData({
+                        ...formData,
+                        barberId: e.target.value,
+                        barber: selectedBarber?.name || ''
+                      });
+                    }}
+                    onFocus={handleInputFocus}
+                    style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none' }}
+                  >
+                    <option value="">Selecione um barbeiro</option>
+                    {barbers.map((barber) => (
+                      <option key={barber.id} value={barber.id}>
+                        {barber.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                    </svg>
+                  </div>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70 pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
+                </div>
+              </div>
+              
               <Calendar
                 selectedBarber={formData.barber}
                 onTimeSelect={(date, time) => {
@@ -446,8 +537,9 @@ Aguardo a confirmação.`;
                     time: time
                   });
                 }}
+                preloadedAppointments={cachedAppointments}
               />
-
+              
               <button
                 type="submit"
                 disabled={isLoading}
@@ -473,10 +565,23 @@ Aguardo a confirmação.`;
                 <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
               </button>
             </form>
-          ) : (
-            <div className="text-center transform transition-all duration-500 animate-fadeIn">
-              <div className="bg-[#0D121E] p-2 sm:p-4 rounded-lg mb-3 sm:mb-4 shadow-lg">
-                <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
+          ) : step === 3 ? (
+            <div className="text-center transform transition-all duration-500 animate-fadeIn pt-0 mt-0">
+              <div className="text-center mb-6">
+                <div className="inline-block mb-2">
+                  <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
+                    <div className="h-px w-5 bg-[#F0B35B]"></div>
+                    <span className="uppercase text-xs font-semibold tracking-wider">Resumo</span>
+                    <div className="h-px w-5 bg-[#F0B35B]"></div>
+                  </div>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white text-center">
+                  Agendamento <span className="text-[#F0B35B] relative overflow-hidden"><span className="relative z-10">Confirmado</span></span>
+                </h2>
+              </div>
+              
+              <div className="bg-[#0D121E] p-4 rounded-lg mb-4 shadow-lg border border-[#F0B35B]/10">
+                <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
                   <div className="w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center">
                     {formData.barber ? (
                       <>
@@ -513,46 +618,71 @@ Aguardo a confirmação.`;
                   </div>
                 </div>
 
+                <div className="space-y-3 mb-4">
                 <a
                   href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative overflow-hidden group flex items-center justify-center gap-1 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all duration-300 hover:scale-105 mb-3 text-sm"
+                  className="relative overflow-hidden group flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all duration-300 hover:scale-105 w-full text-sm font-medium"
                 >
-                  <span className="relative z-10 flex items-center gap-1">
-                    <MessageCircle size={16} />
-                    Confirmar vaga
+                  <span className="relative z-10 flex items-center gap-2">
+                    <MessageCircle size={18} />
+                    Enviar para o Barbeiro
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-green-600/0 via-white/30 to-green-600/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
                 </a>
+                
+              </div>
 
-                <div className="text-left space-y-1 bg-[#1A1F2E] p-3 rounded-lg text-xs sm:text-sm">
-                  <p><strong>Nome:</strong> {formData.name}</p>
-                  <p><strong>Barbeiro:</strong> {formData.barber}</p>
-                  <p><strong>Corte:</strong> {formData.service}</p>
-                  <p><strong>Extras:</strong> {extrasText.length ? extrasText.join(", ") : "Nenhum"}</p>
-                  <p><strong>Valor:</strong> R$ {getServicePrice[formData.service] +
-                    (formData.barba ? getServicePrice["barba"] : 0) +
-                    (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</p>
-                  <p>
-                    <strong>Data:</strong>{' '}
-                    {formData.date
-                      ? format(new Date(formData.date.replace(/-/g, '/')), 'dd/MM/yyyy')
-                      : format(new Date(), 'dd/MM/yyyy')}
-                  </p>
-                  <p><strong>Horário:</strong> {formData.time}</p>
+                <div className="text-left space-y-2 bg-[#1A1F2E] p-4 rounded-lg text-xs sm:text-sm border border-[#F0B35B]/10">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-gray-400 text-xs">Nome</p>
+                      <p className="text-white font-medium">{formData.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-xs">Barbeiro</p>
+                      <p className="text-white font-medium">{formData.barber}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-xs">Corte</p>
+                      <p className="text-white font-medium">{formData.service}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-xs">Extras</p>
+                      <p className="text-white font-medium">{extrasText.length ? extrasText.join(", ") : "Nenhum"}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-xs">Data</p>
+                      <p className="text-white font-medium">
+                        {formData.date
+                          ? format(new Date(formData.date.replace(/-/g, '/')), 'dd/MM/yyyy')
+                          : format(new Date(), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-xs">Horário</p>
+                      <p className="text-white font-medium">{formData.time}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-[#F0B35B]/10">
+                    <p className="text-gray-400 text-xs">Valor Total</p>
+                    <p className="text-[#F0B35B] font-bold text-base">R$ {getServicePrice[formData.service] +
+                      (formData.barba ? getServicePrice["barba"] : 0) +
+                      (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)}</p>
+                  </div>
                 </div>
               </div>
 
               <button
                 onClick={onClose}
-                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-2 rounded-md font-semibold hover:bg-[#F0B35B] hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-sm border-2 border-[#F0B35B]/70"
+                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-sm border-2 border-[#F0B35B]/70"
               >
-                <span className="relative z-10">Fechar</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 group-hover:animate-shine"></div>
+                <span className="relative z-10">Concluir</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

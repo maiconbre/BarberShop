@@ -2,48 +2,79 @@ import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader
 import { useState, useEffect, FormEvent, useRef } from 'react';
 
 const About = () => {
-  const [isVisible, setIsVisible] = useState(false);
+  // Estados para visibilidade de cada seção
+  const [headerVisible, setHeaderVisible] = useState(false);
+  const [leftColVisible, setLeftColVisible] = useState(false);
+  const [rightColVisible, setRightColVisible] = useState(false);
+  const [featuresVisible, setFeaturesVisible] = useState(false);
+  const [hoursVisible, setHoursVisible] = useState(false);
+  const [locationVisible, setLocationVisible] = useState(false);
+  const [reviewsVisible, setReviewsVisible] = useState(false);
+  const [commentFormVisible, setCommentFormVisible] = useState(false);
+  
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
-
   // Estados para os comentários aprovados
   const [approvedComments, setApprovedComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentsError, setCommentsError] = useState('');
-
   // Estados para paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const commentsPerPage = 5;
-  // Referência para o elemento da seção
+  
+  // Referências para cada seção
   const sectionRef = useRef<HTMLDivElement>(null);
-
-  // Efeito para detectar quando o componente entra na viewport
+  const headerRef = useRef<HTMLDivElement>(null);
+  const leftColRef = useRef<HTMLDivElement>(null);
+  const rightColRef = useRef<HTMLDivElement>(null);
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const hoursRef = useRef<HTMLDivElement>(null);
+  const locationRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const commentFormRef = useRef<HTMLDivElement>(null);
+  // Efeito para detectar quando cada seção entra na viewport
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
+    // Função para criar um observer para cada elemento
+    const createObserver = (ref: React.RefObject<HTMLDivElement>, setVisible: React.Dispatch<React.SetStateAction<boolean>>) => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.disconnect();
+          }
+        },
+        {
+          threshold: 0.1, // Quando pelo menos 5% do componente estiver visível
+          rootMargin: '0px'
         }
-      },
-      {
-        threshold: 0.1, // Quando pelo menos 10% do componente estiver visível
-        rootMargin: '0px'
+      );
+
+      if (ref.current) {
+        observer.observe(ref.current);
       }
-    );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
+      return observer;
+    };
 
+    // Criar observers para cada seção
+    const observers = [
+      createObserver(headerRef, setHeaderVisible),
+      createObserver(leftColRef, setLeftColVisible),
+      createObserver(rightColRef, setRightColVisible),
+      createObserver(featuresRef, setFeaturesVisible),
+      createObserver(hoursRef, setHoursVisible),
+      createObserver(locationRef, setLocationVisible),
+      createObserver(reviewsRef, setReviewsVisible),
+      createObserver(commentFormRef, setCommentFormVisible)
+    ];
+
+    // Cleanup function
     return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
-      }
+      observers.forEach(observer => observer.disconnect());
     };
   }, []);
 
@@ -106,7 +137,7 @@ const About = () => {
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div ref={headerRef} className={`text-center mb-16 transition-all duration-1000 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="inline-block mb-3">
             <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
               <div className="h-px w-8 bg-[#F0B35B]"></div>
@@ -123,14 +154,14 @@ const About = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className={`transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
+          <div ref={leftColRef} className={`transition-all duration-1000 delay-300 ${leftColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
             <p className="text-gray-300 mb-8 text-lg leading-relaxed">
               Oferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
               qualificados cuidam do seu visual. Nossa missão é proporcionar uma experiência única de cuidado pessoal,
               combinando técnicas tradicionais com tendências contemporâneas.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+            <div ref={featuresRef} className={`grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 transition-all duration-700 ${featuresVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               {features.map((feature, index) => (
                 <div
                   key={index}
@@ -147,7 +178,7 @@ const About = () => {
               ))}
             </div>
 
-            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/20 shadow-lg mb-6">
+            <div ref={hoursRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/20 shadow-lg mb-6 transition-all duration-700 ${hoursVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="text-[#F0B35B]" />
                 <h3 className="text-xl font-semibold">Horário de Funcionamento</h3>
@@ -168,7 +199,7 @@ const About = () => {
               </ul>
             </div>
 
-            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mb-6">
+            <div ref={locationRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mb-6 transition-all duration-700 ${locationVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <MapPin className="text-[#F0B35B]" /> Localização
               </h2>
@@ -188,7 +219,7 @@ const About = () => {
             </div>
           </div>
 
-          <div className={`space-y-6 transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+          <div ref={rightColRef} className={`space-y-6 transition-all duration-1000 delay-300 ${rightColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
             <div className="relative group overflow-hidden rounded-lg shadow-xl">
               <img
                 src="https://images.unsplash.com/photo-1572663459735-75425e957ab9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -202,7 +233,7 @@ const About = () => {
               </div>
             </div>
 
-            <div className="bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10">
+            <div ref={reviewsRef} className={`bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10 transition-all duration-700 ${reviewsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Star className="text-[#F0B35B] w-4 h-4" /> Avaliações
               </h3>
@@ -278,7 +309,7 @@ const About = () => {
             </div>
 
             {/* Seção de Comentários */}
-            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mt-6">
+            <div ref={commentFormRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mt-6 transition-all duration-700 ${commentFormVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Star className="text-[#F0B35B] w-4 h-4" /> Deixe seu comentário
               </h3>

@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 interface CalendarProps {
   selectedBarber: string;
   onTimeSelect?: (date: Date, time: string) => void;
+  preloadedAppointments?: Appointment[];
 }
 
 interface Appointment {
@@ -23,7 +24,7 @@ const timeSlots = [
   '16:00', '17:00', '18:00', '19:00', '20:00'
 ];
 
-const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => {
+const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect, preloadedAppointments = [] }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [appointmentsCache, setAppointmentsCache] = useState<Appointment[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -87,11 +88,19 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect }) => 
   // Dispara a busca quando o barbeiro for selecionado e atualiza a cada 30 segundos
   useEffect(() => {
     if (selectedBarber) {
-      fetchAppointments();
+      // Se temos agendamentos pré-carregados, usamos eles
+      if (preloadedAppointments && preloadedAppointments.length > 0) {
+        setAppointmentsCache(preloadedAppointments);
+      } else {
+        // Caso contrário, buscamos novos agendamentos
+        fetchAppointments();
+      }
+      
+      // Configurar intervalo para atualização periódica
       const interval = setInterval(fetchAppointments, 30000);
       return () => clearInterval(interval);
     }
-  }, [selectedBarber, fetchAppointments]);
+  }, [selectedBarber, fetchAppointments, preloadedAppointments]);
 
   // Computa os horários reservados (bookedSlots) com base na data, barbeiro e cache
   const computedBookedSlots = useMemo(() => {
