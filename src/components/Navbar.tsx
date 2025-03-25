@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Scissors, User, Calendar } from 'lucide-react';
+import { Menu, X, Scissors, User, Calendar, Home } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -20,6 +20,8 @@ const Navbar: React.FC<NavbarProps> = ({
 
   // Estado para animar o navbar ao carregar
   const [navLoaded, setNavLoaded] = useState(false);
+  // Referência para o temporizador de inatividade
+  const inactivityTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -27,6 +29,48 @@ const Navbar: React.FC<NavbarProps> = ({
     }, 100); // Delay para iniciar a animação
     return () => clearTimeout(timer);
   }, []);
+  
+  // Efeito para fechar o menu após período de inatividade
+  useEffect(() => {
+    // Se o menu estiver aberto, inicie o temporizador
+    if (isMobileMenuOpen) {
+      // Limpa qualquer temporizador existente
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      
+      // Define um novo temporizador (5 segundos de inatividade)
+      inactivityTimerRef.current = setTimeout(() => {
+        setIsMobileMenuOpen(false);
+      }, 5000);
+    }
+    
+    // Limpa o temporizador quando o componente é desmontado ou o menu é fechado
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+    };
+  }, [isMobileMenuOpen, setIsMobileMenuOpen]);
+
+  // Efeito para fechar o menu ao rolar a página
+  useEffect(() => {
+    // Função para fechar o menu quando o usuário rolar a página
+    const handleScroll = () => {
+      if (isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    
+    // Adiciona o event listener para o evento de scroll
+    window.addEventListener('scroll', handleScroll);
+    
+    // Remove o event listener quando o componente for desmontado
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isMobileMenuOpen, setIsMobileMenuOpen]);
 
   const scrollToSection = (sectionId: string) => {
     if (location.pathname !== '/') {
@@ -102,33 +146,48 @@ const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
       {/* Backdrop animado com blur - separado do menu para não afetar a interatividade */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMobileMenuOpen(false);
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Conteúdo do menu mobile - com z-index maior que o backdrop para garantir que seja clicável */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className="md:hidden transition-all duration-500 ease-out relative z-50"
-          >
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-[#0D121E]/95 backdrop-blur-lg border-b border-[#F0B35B]/10">
+          <>
+            {/* Backdrop que fica fora do dropdown */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              onClick={(e) => {
+                e.stopPropagation(); // Impede propagação do evento
+                setIsMobileMenuOpen(false);
+              }}
+            />
+            
+            {/* Conteúdo do menu mobile - com z-index maior que o backdrop para garantir que seja clicável */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              className="md:hidden relative z-50"
+            >
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-[#0D121E] border-b border-[#F0B35B]/10">
+              <button
+                onClick={() => {
+                  // Navegar para o topo da página (seção Hero)
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
+              >
+                <motion.span
+                  whileHover={{ x: 5 }}
+                  className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                >
+                  <Home className="flex-shrink-0" size={20} />
+                  Home
+                </motion.span>
+              </button>
+              
               <button
                 onClick={() => {
                   scrollToSection('about');
@@ -180,6 +239,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </nav>
