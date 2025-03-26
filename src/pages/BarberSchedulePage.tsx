@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { ArrowLeft, Save } from 'lucide-react';
 import BarberScheduleManager from '../components/BarberScheduleManager';
@@ -38,7 +37,7 @@ const BarberSchedulePage: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/barbers`, {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -65,10 +64,16 @@ const BarberSchedulePage: React.FC = () => {
 
   const handleBarberSelection = (barberList: User[]) => {
     if (currentUser?.role === 'barber') {
+      // Barbeiros só podem ver seus próprios horários
       setSelectedBarber(currentUser.id);
     } else if (barberList.length > 0) {
+      // Admins podem ver todos os horários, começando pelo primeiro barbeiro
       setSelectedBarber(barberList[0].id);
     }
+  };
+  
+  const handleBarberSelect = (barberId: string) => {
+    setSelectedBarber(barberId);
   };
 
   useEffect(() => {
@@ -140,6 +145,8 @@ const BarberSchedulePage: React.FC = () => {
             key={selectedBarber}
             barberId={selectedBarber}
             barberName={barbers.find(b => b.id === selectedBarber)?.name || ''}
+            barbers={currentUser?.role === 'admin' ? barbers : []}
+            onBarberSelect={handleBarberSelect}
             ref={scheduleManagerRef}
           />
         )}

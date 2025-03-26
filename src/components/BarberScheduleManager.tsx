@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { format, addDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Clock, Loader2, AlertCircle, CheckCircle2, Scissors, Users } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 // Configuration constants
 const SCHEDULE_CONFIG = {
@@ -17,6 +18,12 @@ const SCHEDULE_CONFIG = {
 interface BarberScheduleManagerProps {
   barberId: string;
   barberName: string;
+  barbers?: {
+    id: string;
+    name: string;
+    role: string;
+  }[];
+  onBarberSelect?: (barberId: string) => void;
 }
 
 interface TimeSlot {
@@ -36,7 +43,10 @@ interface Appointment {
 }
 
 const BarberScheduleManager = forwardRef<{ save: () => Promise<void> }, BarberScheduleManagerProps>(
-  ({ barberId, barberName }, ref) => {
+  ({ barberId, barberName, barbers = [], onBarberSelect }, ref) => {
+    const { getCurrentUser } = useAuth();
+    const currentUser = getCurrentUser();
+    const isAdmin = currentUser?.role === 'admin';
     const [schedule, setSchedule] = useState<DaySchedule[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -215,6 +225,36 @@ const BarberScheduleManager = forwardRef<{ save: () => Promise<void> }, BarberSc
             <Clock className="mr-2 text-[#F0B35B]" />
             Gerenciar Horários - {barberName}
           </h2>
+          
+          {/* Botões de seleção de barbeiros (apenas para administradores) */}
+          {isAdmin && barbers.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center mb-3">
+                <Users className="mr-2 text-[#F0B35B]" size={18} />
+                <h3 className="text-white text-lg font-medium">Selecione um barbeiro:</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {barbers.map(barber => (
+                  <button
+                    key={barber.id}
+                    onClick={() => onBarberSelect && onBarberSelect(barber.id)}
+                    className={`
+                      flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                      ${barberId === barber.id
+                        ? 'bg-[#F0B35B] text-black'
+                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] border border-[#F0B35B]/30'}
+                    `}
+                  >
+                    <Scissors className="mr-2" size={16} />
+                    {barber.name}
+                  </button>
+                ))}
+              </div>
+              <p className="text-gray-400 text-xs mt-2">
+                Como administrador, você pode gerenciar os horários de todos os barbeiros.
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-500/20 text-red-300 p-3 rounded-lg mb-4 flex items-center">
