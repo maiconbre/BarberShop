@@ -344,7 +344,7 @@ Aguardo a confirmação.`;
                     required
                     className="w-full pl-10 pr-4 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-sm placeholder-gray-500"
                     value={formData.name}
-                    placeholder="Digite seu nome completo"
+                    placeholder="Digite seu nome"
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
@@ -369,7 +369,7 @@ Aguardo a confirmação.`;
               </div>
 
               <div className="group relative">
-                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Corte</label>
+                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Serviço</label>
                 <div className="relative">
                   <select
                     required
@@ -381,7 +381,7 @@ Aguardo a confirmação.`;
                     onFocus={handleInputFocus}
                     style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none' }}
                   >
-                    <option value="">Selecione um Corte</option>
+                    <option value="">Selecione um Serviço</option>
                     {services.map((service) => (
                       <option key={service} value={service}>
                         {service}
@@ -552,8 +552,8 @@ Aguardo a confirmação.`;
               </button>
             </form>
           ) : step === 3 ? (
-            <div className="text-center transform transition-all duration-500 animate-fadeIn pt-0 mt-0 scale-[0.98] sm:scale-100">
-              <div className="text-center mb-2 sm:mb-6">
+            <div className="text-center transform transition-all duration-500 animate-fadeIn pt-0 mt-0 scale-100">
+              <div className="text-center mb-2 sm:mb-4">
                 <div className="inline-block mb-1 sm:mb-2">
                   <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
                     <div className="h-px w-4 bg-[#F0B35B]"></div>
@@ -562,80 +562,82 @@ Aguardo a confirmação.`;
                   </div>
                 </div>
                 <h2 className="text-base sm:text-xl font-bold text-white text-center flex items-center justify-center gap-2">
-                  <CheckCircle size={18} className="text-green-400" />
+                  <CheckCircle size={16} className="text-green-400" />
                   Agendamento <span className="text-[#F0B35B] relative overflow-hidden"><span className="relative z-10">Confirmado</span></span>
                 </h2>
               </div>
               
-              <div className="bg-[#0D121E] p-2 sm:p-5 rounded-lg mb-3 sm:mb-4 shadow-lg border border-[#F0B35B]/10">
+              <div className="bg-[#0D121E] p-3 sm:p-5 rounded-lg mb-3 sm:mb-4 shadow-lg border border-[#F0B35B]/10 max-h-[60vh] sm:max-h-none overflow-auto hide-scrollbar">
                 {/* Seção do QR Code e Detalhes */}
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6 mb-3 sm:mb-4">
-                  {/* QR Code */}
-                  <div className="w-32 sm:w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
+                <div className="flex flex-col w-full items-stretch gap-4 mb-4">
+                  {/* QR Code - Ajustado para ser mais responsivo e manter proporções */}
+                  <div className="flex-shrink-0 w-full max-w-[180px] sm:max-w-[200px] md:max-w-[220px] mx-auto bg-white p-2 sm:p-3 rounded-lg flex flex-col items-center justify-center shadow-md self-center">
                     {formData.barber ? (
                       <>
-                        <div className="text-xs text-gray-500 mb-1 font-medium">PIX para pagamento</div>
-                        <img
-                          src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
-                          alt={`QR Code de ${formData.barber}`}
-                          className="w-24 h-24 sm:w-32 sm:h-32 object-contain hover:scale-105 transition-transform duration-200"
-                        />
-                        <div className="mt-1 sm:mt-2 flex items-center text-xs">
-                          <span className="text-gray-700 font-bold text-xs truncate max-w-[70px] sm:max-w-full">
+                        <div className="text-xs sm:text-sm text-gray-500 mb-2 font-medium">PIX para pagamento</div>
+                        <div className="w-full flex justify-center">
+                          <img
+                            src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
+                            alt={`QR Code de ${formData.barber}`}
+                            className="w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 object-contain hover:scale-105 transition-transform duration-200"
+                          />
+                        </div>
+                        <div className="mt-3 w-full flex items-center justify-between text-xs sm:text-sm">
+                          <span className="text-gray-700 font-bold truncate max-w-[60%]">
                             {getBarberPix()}
                           </span>
                           <button
                             onClick={handleCopyPix}
-                            className="ml-1 text-xs bg-green-400 text-black px-2 py-0.5 rounded hover:shadow-md hover:scale-105 transition-all duration-200 font-medium"
+                            className="ml-2 bg-green-400 text-black px-2 py-1 rounded hover:shadow-md hover:scale-105 transition-all duration-200 font-medium whitespace-nowrap"
                           >
                             Copiar
                           </button>
                         </div>
                       </>
                     ) : (
-                      <div className="text-gray-700 text-xs">QR Code não disponível</div>
+                      <div className="text-gray-700 text-xs sm:text-sm">QR Code não disponível</div>
                     )}
                   </div>
                   
-                  {/* Detalhes do Agendamento */}
-                  <div className="flex-1 text-left bg-[#1A1F2E] p-2 sm:p-4 rounded-lg border border-[#F0B35B]/5 shadow-inner">
-                    <h3 className="text-sm sm:text-lg font-semibold text-white mx-4 sm:mx-6 mb-2 sm:mb-3 flex items-center">
+                  {/* Detalhes do Agendamento - Ajustado para ocupar espaço disponível */}
+                  <div className="flex-grow text-left bg-[#1A1F2E] p-3 sm:p-4 rounded-lg border border-[#F0B35B]/5 shadow-inner">
+                    <h3 className="text-sm sm:text-lg font-semibold text-white mb-3 flex items-center">
                       Detalhes do Agendamento
                     </h3>
-                    <ul className="space-y-2 sm:space-y-2.5 text-xs sm:text-sm">
+                    <ul className="space-y-2 text-xs sm:text-sm">
                       <li className="flex items-center">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Cliente:</span>
-                        <span className="ml-1 text-white font-medium">{formData.name}</span>
+                        <span className="text-gray-400 w-20 flex-shrink-0">Cliente:</span>
+                        <span className="ml-1 text-white font-medium truncate">{formData.name}</span>
                       </li>
                       <li className="flex items-center">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Barbeiro:</span>
+                        <span className="text-gray-400 w-20 flex-shrink-0">Barbeiro:</span>
                         <span className="ml-1 text-white font-medium">{formData.barber}</span>
                       </li>
                       <li className="flex items-center">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Serviço:</span>
+                        <span className="text-gray-400 w-20 flex-shrink-0">Serviço:</span>
                         <span className="ml-1 text-white font-medium">{formData.service}</span>
                       </li>
                       {extrasText.length > 0 && (
                         <li className="flex items-start">
-                          <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Extras:</span>
+                          <span className="text-gray-400 w-20 flex-shrink-0">Extras:</span>
                           <span className="ml-1 text-white font-medium">{extrasText.join(", ")}</span>
                         </li>
                       )}
                       <li className="flex items-center">
-                        <CalendarIcon size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Data:</span>
+                        <CalendarIcon size={12} className="text-[#F0B35B] mr-2 flex-shrink-0" />
+                        <span className="text-gray-400 w-20 flex-shrink-0">Data:</span>
                         <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">
                           {formData.date ? format(new Date(formData.date), 'dd/MM/yyyy') : ''}
                         </span>
                       </li>
                       <li className="flex items-center">
-                        <Clock size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Horário:</span>
+                        <Clock size={12} className="text-[#F0B35B] mr-2 flex-shrink-0" />
+                        <span className="text-gray-400 w-20 flex-shrink-0">Horário:</span>
                         <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">{formData.time}</span>
                       </li>
-                      <li className="flex items-center mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-white/10">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Valor Total:</span>
-                        <span className="ml-1 text-green-400 font-bold text-base sm:text-lg">
+                      <li className="flex items-center mt-3 pt-3 border-t border-white/10">
+                        <span className="text-gray-400 w-20 flex-shrink-0">Valor Total:</span>
+                        <span className="ml-1 text-green-400 font-bold text-sm sm:text-lg">
                           R$ {(getServicePrice[formData.service] +
                             (formData.barba ? getServicePrice["barba"] : 0) +
                             (formData.sobrancelha ? getServicePrice["sobrancelha"] : 0)).toFixed(2)}
@@ -646,14 +648,14 @@ Aguardo a confirmação.`;
                 </div>
                 
                 {/* Botões de Ação */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-white/10">
+                <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-3 border-t border-white/10">
                   <a
                     href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="relative overflow-hidden group flex-1 flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-xs sm:text-sm border border-green-500/20 hover:border-green-500/40"
+                    className="relative overflow-hidden group flex-1 flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-2.5 px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-xs sm:text-sm border border-green-500/20 hover:border-green-500/40"
                   >
-                    <MessageCircle size={16} />
+                    <MessageCircle size={14} className="flex-shrink-0" />
                     <span>Confirmar via WhatsApp</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-white/10 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine"></div>
                   </a>
@@ -663,9 +665,9 @@ Aguardo a confirmação.`;
 
               <button
                 onClick={onClose}
-                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-sm border-2 border-[#F0B35B]/70 flex items-center justify-center gap-2"
+                className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-2 sm:py-3 rounded-lg font-semibold hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-xs sm:text-sm border-2 border-[#F0B35B]/70 flex items-center justify-center gap-1 sm:gap-2 mt-2 sm:mt-3"
               >
-                <CheckCircle size={18} />
+                <CheckCircle size={16} />
                 <span className="relative z-10">Concluir</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
               </button>
