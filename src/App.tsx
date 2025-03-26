@@ -15,6 +15,7 @@ import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
 import VendaPage2 from './pages/VendaPage2';
 import CommentManagementPage from './pages/CommentManagementPage';
+import BarberSchedulePage from './pages/BarberSchedulePage';
 
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,6 +84,11 @@ const AppContent = () => {
             <Route path="/gerenciar-comentarios" element={
               <ProtectedRoute>
                 <CommentManagementPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/gerenciar-horarios" element={
+              <ProtectedRoute>
+                <BarberSchedulePage />
               </ProtectedRoute>
             } />
           </Routes>

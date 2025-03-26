@@ -138,8 +138,13 @@ export const useNotifications = () => {
     try {
       setIsLoading(true);
       
-      // Obter o ID do barbeiro do armazenamento local (se disponível)
-      const currentUser = getCurrentUser();
+      // Obter o ID do barbeiro do armazenamento local diretamente
+      // Evitando usar getCurrentUser() que pode causar re-renderizações
+      let currentUser = null;
+      const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (userStr) {
+        currentUser = JSON.parse(userStr);
+      }
       
       // Configurar headers básicos sem necessidade de token
       const headers: HeadersInit = {
@@ -219,7 +224,7 @@ export const useNotifications = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [getCurrentUser]); // Removidas dependências que causavam loops
+  }, []); // Removida a dependência de getCurrentUser para evitar loops infinitos
 
   const handleCommentAction = async (commentId: string, action: 'approve' | 'reject') => {
     if (!commentId) return;
@@ -277,10 +282,20 @@ export const useNotifications = () => {
       if (!isSubscribed) return;
 
       try {
-        // Carregar comentários pendentes para todos os usuários
-        await loadPendingComments();
-        // Carregar agendamentos com forceRefresh=false para usar o cache quando possível
-        await loadAppointments(false);
+        // Verificar se já temos dados em cache antes de fazer novas requisições
+        const cachedData = localStorage.getItem('appointmentsCache');
+        const cacheTimestamp = localStorage.getItem('appointmentsCacheTimestamp');
+        const currentTime = Date.now();
+        const cacheExpiry = 10 * 60 * 1000; // 10 minutos
+        
+        // Só fazer requisições se não tivermos cache ou se o cache estiver expirado
+        if (!cachedData || !cacheTimestamp || (currentTime - parseInt(cacheTimestamp)) >= cacheExpiry) {
+          console.log('Buscando novos dados de notificações...');
+          // Carregar comentários pendentes para todos os usuários
+          await loadPendingComments();
+          // Carregar agendamentos com forceRefresh=true apenas quando necessário
+          await loadAppointments(true);
+        }
       } catch (error) {
         console.error('Erro ao buscar dados de notificações:', error);
         setHasError(true);
@@ -292,13 +307,13 @@ export const useNotifications = () => {
 
     // Configurar um intervalo mais longo para atualização periódica
     // Usando uma referência para poder limpar corretamente
-    interval = setInterval(fetchData, 5 * 60 * 1000); // 5 minutos
+    interval = setInterval(fetchData, 10 * 60 * 1000); // 10 minutos
 
     return () => {
       isSubscribed = false;
       if (interval) clearInterval(interval);
     };
-  }, []); // Removidas dependências que causavam loops
+  }, []); // Sem dependências para evitar loops
 
 
   const toggleNotificationDropdown = () => {

@@ -127,15 +127,28 @@ const DashboardPage: React.FC = () => {
       if (!isSubscribed) return;
 
       try {
+        // Verificar se temos dados em cache antes de fazer novas requisições
+        const cachedData = localStorage.getItem('appointmentsCache');
+        const cacheTimestamp = localStorage.getItem('appointmentsCacheTimestamp');
+        const currentTime = Date.now();
+        const cacheExpiry = 10 * 60 * 1000; // 10 minutos
+        
         // Verificar se temos informações do usuário para filtrar os dados
         const currentUser = getCurrentUser();
-
-        console.log('Iniciando carregamento de agendamentos no DashboardPage...');
         console.log('Usuário atual:', currentUser);
-
-        // Fazer apenas uma requisição e usar o cache
-        const formattedAppointments = await loadAppointments(true);
-        console.log('Agendamentos recebidos no DashboardPage:', formattedAppointments);
+        
+        let formattedAppointments;
+        
+        // Usar cache se disponível e não expirado
+        if (cachedData && cacheTimestamp && (currentTime - parseInt(cacheTimestamp)) < cacheExpiry) {
+          console.log('Usando dados em cache no DashboardPage');
+          formattedAppointments = JSON.parse(cachedData);
+        } else {
+          console.log('Iniciando carregamento de agendamentos no DashboardPage...');
+          // Fazer apenas uma requisição e usar o cache
+          formattedAppointments = await loadAppointments(false);
+          console.log('Agendamentos recebidos no DashboardPage:', formattedAppointments);
+        }
 
         if (formattedAppointments && Array.isArray(formattedAppointments)) {
           console.log('Número de agendamentos:', formattedAppointments.length);
@@ -161,7 +174,7 @@ const DashboardPage: React.FC = () => {
     return () => {
       isSubscribed = false;
     };
-  }, []); // Removendo dependências para evitar requisições duplicadas
+  }, []); // Sem dependências para evitar requisições duplicadas
 
 
   // Efeito para verificar se os agendamentos foram carregados corretamente
@@ -374,7 +387,23 @@ const DashboardPage: React.FC = () => {
                           >
                             <span>Gerenciar Comentários</span>
                           </button>
+                          <button
+                            onClick={() => navigate('/gerenciar-horarios')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Horários</span>
+                          </button>
                         </>
+                      )}
+                      {currentUser?.role === 'barber' && (
+                        <button
+                          onClick={() => navigate('/gerenciar-horarios')}
+                          className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                          role="menuitem"
+                        >
+                          <span>Gerenciar Horários</span>
+                        </button>
                       )}
                       <button
                         onClick={() => navigate('/trocar-senha')}
