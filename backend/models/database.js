@@ -1,22 +1,28 @@
 const { Sequelize } = require('sequelize');
+require('dotenv').config();
 
-const sequelize = new Sequelize('postgresql://barbershop_lrs5_user:6VIUsrvKvRe4Z6hAB6j9QXpPRhoAIxKD@dpg-cuudkean91rc73ct53g0-a.oregon-postgres.render.com/barbershop_lrs5', {
+// Criar instância do Sequelize com configuração otimizada para Supabase
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
+  dialectModule: require('pg'),
   dialectOptions: {
     ssl: {
       require: true,
       rejectUnauthorized: false
     }
+  },
+  pool: {
+    max: 2,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  },
+  logging: false,
+  retry: {
+    max: 3
   }
 });
 
-// Testar a conexão
-sequelize.authenticate()
-  .then(() => {
-    console.log('Conexão com o banco de dados estabelecida com sucesso.');
-  })
-  .catch(err => {
-    console.error('Não foi possível conectar ao banco de dados:', err);
-  });
 
+// Exportar apenas a instância
 module.exports = sequelize;

@@ -50,66 +50,31 @@ app.use('/api/comments', commentRoutes);
 // Rotas de configuração de horários dos barbeiros
 app.use('/api/barber-schedules', barberScheduleRoutes);
 
-
-// Nova rota para listar barbeiros
-app.get('/api/barbers', async (req, res) => {
-  try {
-    const barbers = await Barber.findAll();
-    res.json({
-      success: true,
-      data: barbers
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-// Nova rota para atualizar barbeiros
-
-app.patch('/api/barbers/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const barber = await Barber.findByPk(id);
-    if (!barber) {
-      return res.status(404).json({
-        success: false,
-        message: 'Barbeiro não encontrado'
-      });
-    }
-    const updatedBarber = await barber.update(req.body);
-    res.json({
-      success: true,
-      data: updatedBarber
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-}
-);
-
-
-// Rota para criar agendamentos
+// Simplificar as rotas de appointments
 app.post('/api/appointments', protect, async (req, res) => {
   try {
-    const appointment = await Appointment.create({
-      id: Date.now().toString(),
-      ...req.body
-    });
+    const appointments = Array.isArray(req.body) ? req.body : [req.body];
+    
+    // Garantir que cada appointment tenha um ID único
+    const createdAppointments = await Promise.all(
+      appointments.map(appointment => 
+        Appointment.create({
+          id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          ...appointment,
+          status: appointment.clientName === 'BLOCKED' ? 'confirmed' : 'pending'
+        })
+      )
+    );
     
     res.status(201).json({
       success: true,
-      data: appointment
+      data: createdAppointments
     });
   } catch (error) {
+    console.error('Erro ao criar agendamentos:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Erro ao criar agendamentos'
     });
   }
 });
@@ -164,60 +129,47 @@ app.delete('/api/appointments/:id', protect, async (req, res) => {
   }
 });
 
-// Rota para listar agendamentos
-app.get('/api/appointments', protect, async (req, res) => {
+// Simplificar a rota GET de appointments
+app.get('/api/appointments', async (req, res) => {
   try {
-    let appointments;
-    
-    // Se for admin, retorna todos os agendamentos
-    // Se for barbeiro, retorna apenas os agendamentos dele
-    if (req.user.role === 'admin') {
-      appointments = await Appointment.findAll();
-    } else {
-      appointments = await Appointment.findAll({
-        where: { barberId: req.user.id }
-      });
-    }
-    
+    const appointments = await Appointment.findAll();
     res.json({
       success: true,
       data: appointments
     });
   } catch (error) {
+    console.error('Erro ao buscar agendamentos:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: 'Erro ao buscar agendamentos'
     });
   }
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Inicialização do banco de dados
-const initDatabase = async () => {
+// Modificar a ordem de inicialização
+const startServer = async () => {
   try {
-    // Sincronizar o banco de dados sem forçar a recriação das tabelas
+    // Tentar conectar ao banco
+    await sequelize.authenticate();
+    console.log('✅ Banco de dados conectado');
+
+    // Sincronizar modelos
     await sequelize.sync({ force: false });
-    console.log('Banco de dados sincronizado');
-    
+    console.log('✅ Modelos sincronizados');
 
-    // Seed initial users
-    const usersCount = await User.count();
-    if (usersCount === 0) {
-      await authController.seedUsers();
-    } else {
-      console.log(`Já existem ${usersCount} usuários no banco de dados.`);
-    }
-
+    // Iniciar servidor
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`✅ Servidor rodando na porta ${PORT}`);
     });
   } catch (error) {
-    console.error('Erro ao inicializar o banco de dados:', error);
+    console.error('❌ Erro fatal:', error.message);
+    process.exit(1);
   }
 };
 
-initDatabase();
+startServer();
 
 // Importar o middleware de rate limiting personalizado
 const { createRateLimiter } = require('./middleware/rateLimitMiddleware');

@@ -127,28 +127,15 @@ const DashboardPage: React.FC = () => {
       if (!isSubscribed) return;
 
       try {
-        // Verificar se temos dados em cache antes de fazer novas requisições
-        const cachedData = localStorage.getItem('appointmentsCache');
-        const cacheTimestamp = localStorage.getItem('appointmentsCacheTimestamp');
-        const currentTime = Date.now();
-        const cacheExpiry = 10 * 60 * 1000; // 10 minutos
-        
         // Verificar se temos informações do usuário para filtrar os dados
         const currentUser = getCurrentUser();
+
+        console.log('Iniciando carregamento de agendamentos no DashboardPage...');
         console.log('Usuário atual:', currentUser);
-        
-        let formattedAppointments;
-        
-        // Usar cache se disponível e não expirado
-        if (cachedData && cacheTimestamp && (currentTime - parseInt(cacheTimestamp)) < cacheExpiry) {
-          console.log('Usando dados em cache no DashboardPage');
-          formattedAppointments = JSON.parse(cachedData);
-        } else {
-          console.log('Iniciando carregamento de agendamentos no DashboardPage...');
-          // Fazer apenas uma requisição e usar o cache
-          formattedAppointments = await loadAppointments(false);
-          console.log('Agendamentos recebidos no DashboardPage:', formattedAppointments);
-        }
+
+        // Fazer apenas uma requisição e usar o cache
+        const formattedAppointments = await loadAppointments(true);
+        console.log('Agendamentos recebidos no DashboardPage:', formattedAppointments);
 
         if (formattedAppointments && Array.isArray(formattedAppointments)) {
           console.log('Número de agendamentos:', formattedAppointments.length);
@@ -174,7 +161,7 @@ const DashboardPage: React.FC = () => {
     return () => {
       isSubscribed = false;
     };
-  }, []); // Sem dependências para evitar requisições duplicadas
+  }, []); // Removendo dependências para evitar requisições duplicadas
 
 
   // Efeito para verificar se os agendamentos foram carregados corretamente
@@ -329,7 +316,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('painel')}
-              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text.white hover:bg-[#252B3B]'}`}
             >
               <LayoutDashboard className="w-5 h-5" />
               <span>Painel</span>
@@ -338,7 +325,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('agenda')}
-              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text.black font-medium' : 'bg-[#1A1F2E] text.white hover:bg-[#252B3B]'}`}
             >
               <Calendar className="w-5 h-5" />
               <span>Agenda</span>
@@ -353,19 +340,19 @@ const DashboardPage: React.FC = () => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
               >
-                <Settings className="w-6 h-6 text-black" />
+                <Settings className="w-6 h-6 text.black" />
               </button>
               {isDropdownOpen && (
                 <>
-                  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+                  <div className="fixed inset-0 bg.black/70 backdrop-blur-sm z-40"
                     onClick={() => setIsDropdownOpen(false)}
                   />
                   <div className="fixed sm:absolute top-[20%] sm:top-full left-[50%] sm:left-auto right-auto sm:right-0 transform-gpu -translate-x-1/2 sm:translate-x-0 -translate-y-0 sm:-translate-y-0 mt-0 sm:mt-4 w-[90vw] sm:w-[350px] md:w-[400px] max-h-[70vh] xs:max-h-[75vh] sm:max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1A1F2E] ring-1 ring-[#F0B35B]/20 z-50 animate-fade-in-up">
                     <div className="sticky top-0 flex justify-between items-center p-3 sm:p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
-                      <h3 className="text-lg sm:text-xl font-semibold text-white">Configurações</h3>
+                      <h3 className="text-lg sm:text-xl font-semibold text.white">Configurações</h3>
                       <button
                         onClick={() => setIsDropdownOpen(false)}
-                        className="text-gray-400 hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-gray-700/30 rounded-lg"
+                        className="text.gray-400 hover:text.white transition-colors p-1.5 sm:p-2 hover:bg.gray-700/30 rounded-lg"
                       >
                         ✕
                       </button>
@@ -375,21 +362,21 @@ const DashboardPage: React.FC = () => {
                         <>
                           <button
                             onClick={() => navigate('/register')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text.white hover:bg-[#252B3B] transition-colors"
                             role="menuitem"
                           >
                             <span>Gerenciar Barbeiros</span>
                           </button>
                           <button
                             onClick={() => navigate('/gerenciar-comentarios')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text.white hover:bg-[#252B3B] transition-colors"
                             role="menuitem"
                           >
                             <span>Gerenciar Comentários</span>
                           </button>
                           <button
                             onClick={() => navigate('/gerenciar-horarios')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text.white hover:bg-[#252B3B] transition-colors"
                             role="menuitem"
                           >
                             <span>Gerenciar Horários</span>
@@ -399,7 +386,7 @@ const DashboardPage: React.FC = () => {
                       {currentUser?.role === 'barber' && (
                         <button
                           onClick={() => navigate('/gerenciar-horarios')}
-                          className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                          className="flex w-full items-center text-left px-4 py-3 text-sm text.white hover:bg-[#252B3B] transition-colors"
                           role="menuitem"
                         >
                           <span>Gerenciar Horários</span>
@@ -407,14 +394,14 @@ const DashboardPage: React.FC = () => {
                       )}
                       <button
                         onClick={() => navigate('/trocar-senha')}
-                        className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                        className="flex w-full items-center text-left px-4 py-3 text-sm text.white hover:bg-[#252B3B] transition-colors"
                         role="menuitem"
                       >
                         <span>Trocar Senha</span>
                       </button>
                       <button
                         onClick={logout}
-                        className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                        className="flex w-full items-center text-left px-4 py-3 text-sm text.white hover:bg-[#252B3B] transition-colors"
                         role="menuitem"
                       >
                         <span>Sair</span>
@@ -457,14 +444,14 @@ const DashboardPage: React.FC = () => {
               {/* Filtros de agendamentos */}
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-400">Total: {filteredAppointments.length}</span>
+                  <span className="text-xs text.gray-400">Total: {filteredAppointments.length}</span>
                 </div>
                 <div className="flex flex-row items-center justify-start gap-2">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setFilterMode('today')}
-                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today' ? 'bg-[#F0B35B] text.black' : 'bg-[#1A1F2E] text.white hover:bg-[#252B3B]'}`}
                   >
                     Hoje
                   </motion.button>
@@ -472,7 +459,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setFilterMode('tomorrow')}
-                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow' ? 'bg-[#F0B35B] text.black' : 'bg-[#1A1F2E] text.white hover:bg-[#252B3B]'}`}
                   >
                     Amanhã
                   </motion.button>
@@ -502,9 +489,9 @@ const DashboardPage: React.FC = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="bg-[#1A1F2E] p-6 rounded-lg text-center"
+                      className="bg-[#1A1F2E] p-6 rounded-lg text.center"
                     >
-                      <p className="text-gray-400">
+                      <p className="text.gray-400">
                         {filterMode === 'today'
                           ? 'Nenhum agendamento para hoje'
                           : filterMode === 'tomorrow'
@@ -572,9 +559,9 @@ const DashboardPage: React.FC = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="bg-[#1A1F2E] p-6 rounded-lg text-center border border-[#F0B35B]/10"
+                      className="bg-[#1A1F2E] p-6 rounded-lg text.center border border-[#F0B35B]/10"
                     >
-                      <p className="text-gray-400">
+                      <p className="text.gray-400">
                         Nenhum agendamento encontrado para este período
                       </p>
                     </motion.div>
@@ -596,7 +583,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage - 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="p-2 rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </motion.button>
@@ -608,7 +595,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage - 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     {currentPage - 1}
                   </motion.button>
@@ -618,7 +605,7 @@ const DashboardPage: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text.black font-medium transition-colors duration-300"
                 >
                   {currentPage}
                 </motion.button>
@@ -629,7 +616,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage + 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     {currentPage + 1}
                   </motion.button>
@@ -641,7 +628,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage + 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="p-2 rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </motion.button>
@@ -659,7 +646,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage - 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="p-2 rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </motion.button>
@@ -671,7 +658,7 @@ const DashboardPage: React.FC = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => paginate(currentPage - 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
                   >
                     {currentPage - 1}
                   </motion.button>
@@ -681,7 +668,7 @@ const DashboardPage: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text.black font-medium transition-colors duration-300"
                 >
                   {currentPage}
                 </motion.button>

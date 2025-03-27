@@ -272,7 +272,7 @@ const VendaPage2: React.FC = () => {
               >
                 <div className="relative w-full aspect-video bg-[#1A1F2E] rounded-lg overflow-hidden border border-[#F0B35B]/20">
                   <img
-                    src="./img/demofoto.png"
+                    src="./img/demofoto.webp"
                     alt="Preview do Sistema"
                     className="absolute inset-0 w-full h-full object-cover object-center"
                   />

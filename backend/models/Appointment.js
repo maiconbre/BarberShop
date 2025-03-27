@@ -36,8 +36,9 @@ const Appointment = sequelize.define('Appointment', {
   },
   price: {
     type: DataTypes.FLOAT,
-    allowNull: false
+    allowNull: false,
+    defaultValue: 0
   }
 });
 
-module.exports = Appointment;  // Exportação correta
+module.exports = Appointment;

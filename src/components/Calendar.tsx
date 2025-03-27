@@ -17,7 +17,17 @@ interface Appointment {
   barberName: string;
 }
 
+interface TimeSlot {
+  time: string;
+  isAvailable: boolean;
+}
 
+interface BarberSchedule {
+  id: number;
+  barberId: string;
+  date: string;
+  timeSlots: TimeSlot[];
+}
 
 const timeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
@@ -30,6 +40,8 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect, prelo
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [barberSchedule, setBarberSchedule] = useState<BarberSchedule[]>([]);
+  const [unavailableSlots, setUnavailableSlots] = useState<{[date: string]: string[]}>({});
 
   // Dias disponíveis (15 dias a partir de hoje) computados uma única vez
   const availableDates = useMemo(() => {
@@ -85,6 +97,45 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect, prelo
     }
   }, []);
 
+  // Função para buscar os horários indisponíveis do barbeiro
+  const fetchBarberSchedule = useCallback(async () => {
+    if (!selectedBarber) return;
+    
+    try {
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barber-schedules/${selectedBarber}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': localStorage.getItem('token') ? 'Bearer ' + localStorage.getItem('token') : ''
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const jsonData = await response.json();
+      if (!jsonData.success) {
+        throw new Error('Erro na resposta da API');
+      }
+      
+      setBarberSchedule(jsonData.data);
+      
+      // Processar os horários indisponíveis
+      const unavailable: {[date: string]: string[]} = {};
+      jsonData.data.forEach((schedule: BarberSchedule) => {
+        unavailable[schedule.date] = schedule.timeSlots
+          .filter(slot => !slot.isAvailable)
+          .map(slot => slot.time);
+      });
+      
+      setUnavailableSlots(unavailable);
+    } catch (err) {
+      console.error('Erro ao buscar horários indisponíveis do barbeiro:', err);
+    }
+  }, [selectedBarber]);
+
   // Dispara a busca quando o barbeiro for selecionado e atualiza a cada 30 segundos
   useEffect(() => {
     if (selectedBarber) {
@@ -96,28 +147,43 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect, prelo
         fetchAppointments();
       }
       
+      // Buscar horários indisponíveis do barbeiro
+      fetchBarberSchedule();
+      
       // Configurar intervalo para atualização periódica
-      const interval = setInterval(fetchAppointments, 30000);
-      return () => clearInterval(interval);
+      const appointmentsInterval = setInterval(fetchAppointments, 30000);
+      const scheduleInterval = setInterval(fetchBarberSchedule, 30000);
+      
+      return () => {
+        clearInterval(appointmentsInterval);
+        clearInterval(scheduleInterval);
+      };
     }
-  }, [selectedBarber, fetchAppointments, preloadedAppointments]);
+  }, [selectedBarber, fetchAppointments, fetchBarberSchedule, preloadedAppointments]);
 
-  // Computa os horários reservados (bookedSlots) com base na data, barbeiro e cache
+  // Computa os horários reservados (bookedSlots) com base na data, barbeiro, cache e horários indisponíveis
   const computedBookedSlots = useMemo(() => {
     if (selectedDate && selectedBarber) {
       const dateInBrasilia = adjustToBrasilia(selectedDate);
       const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
+      
+      // Filtrar agendamentos existentes
       const filteredAppointments = appointmentsCache.filter(
         appointment =>
           appointment.date === formattedDate && appointment.barberName === selectedBarber
       );
+      
+      // Obter horários indisponíveis para esta data
+      const unavailableTimes = unavailableSlots[formattedDate] || [];
+      
       return timeSlots.map(time => ({
         time,
-        isBooked: filteredAppointments.some(appointment => appointment.time === time)
+        isBooked: filteredAppointments.some(appointment => appointment.time === time) || 
+                 unavailableTimes.includes(time)
       }));
     }
     return [];
-  }, [selectedDate, selectedBarber, appointmentsCache, adjustToBrasilia]);
+  }, [selectedDate, selectedBarber, appointmentsCache, adjustToBrasilia, unavailableSlots]);
 
   const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -176,6 +242,12 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect, prelo
               const slot = computedBookedSlots.find(slot => slot.time === time);
               const isBooked = slot ? slot.isBooked : false;
               const isSelected = selectedTime === time;
+              
+              // Verificar se o horário está indisponível por escolha do barbeiro
+              const dateInBrasilia = selectedDate ? adjustToBrasilia(selectedDate) : null;
+              const formattedDate = dateInBrasilia ? format(dateInBrasilia, 'yyyy-MM-dd') : '';
+              const isUnavailableByBarber = unavailableSlots[formattedDate]?.includes(time) || false;
+              
               return (
                 <button
                   type="button"
@@ -185,13 +257,16 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect, prelo
                   className={`
                     py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden
                     ${isBooked
-                      ? 'bg-red-500/20 text-red-300 cursor-not-allowed'
+                      ? isUnavailableByBarber 
+                        ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed' 
+                        : 'bg-red-500/20 text-red-300 cursor-not-allowed'
                       : isSelected
                         ? 'bg-[#F0B35B] text-black transform scale-105'
                         : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105'}
                   `}
                 >
                   <span className="relative z-10">{time}</span>
+                  {isUnavailableByBarber && <span className="block text-xs mt-1">(Indisponível)</span>}
                   <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:animate-shine"></div>
                 </button>
               );

@@ -4,7 +4,6 @@ import { ptBR } from 'date-fns/locale';
 import { Clock, Loader2, AlertCircle, CheckCircle2, Scissors, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-// Configuration constants
 const SCHEDULE_CONFIG = {
   DEFAULT_TIME_SLOTS: [
     '09:00', '10:00', '11:00', '14:00', '15:00',
@@ -14,7 +13,6 @@ const SCHEDULE_CONFIG = {
   SUCCESS_MESSAGE_DURATION: 2000
 };
 
-// Type definitions
 interface BarberScheduleManagerProps {
   barberId: string;
   barberName: string;
@@ -26,328 +24,239 @@ interface BarberScheduleManagerProps {
   onBarberSelect?: (barberId: string) => void;
 }
 
-interface TimeSlot {
-  time: string;
-  isAvailable: boolean;
-}
-
-interface DaySchedule {
-  date: string;
-  timeSlots: TimeSlot[];
-}
-
-interface Appointment {
-  date: string;
-  time: string;
-  barberId: string;
-}
-
 const BarberScheduleManager = forwardRef<{ save: () => Promise<void> }, BarberScheduleManagerProps>(
   ({ barberId, barberName, barbers = [], onBarberSelect }, ref) => {
     const { getCurrentUser } = useAuth();
     const currentUser = getCurrentUser();
     const isAdmin = currentUser?.role === 'admin';
-    const [schedule, setSchedule] = useState<DaySchedule[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+    const [selectedTimeSlots, setSelectedTimeSlots] = useState<Set<string>>(new Set());
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [blockedSlots, setBlockedSlots] = useState<Set<string>>(new Set());
 
-    // Generate available dates with proper timezone handling
+    // Gerar datas disponíveis
     const availableDates = useMemo(() => {
       const today = new Date();
-      const brasiliaOffset = -3 * 60;
-      const localOffset = today.getTimezoneOffset();
-      const offsetDiff = localOffset + brasiliaOffset;
-      today.setMinutes(today.getMinutes() + offsetDiff);
       today.setHours(0, 0, 0, 0);
-      
-      return Array.from({ length: SCHEDULE_CONFIG.AVAILABLE_DAYS }, (_, i) => {
-        const date = addDays(new Date(today), i);
-        date.setHours(0, 0, 0, 0);
-        return date;
-      });
+      return Array.from({ length: SCHEDULE_CONFIG.AVAILABLE_DAYS }, (_, i) => 
+        addDays(today, i)
+      );
     }, []);
 
-    // Fetch appointments with improved error handling
-    const fetchAppointments = useCallback(async (): Promise<Appointment[]> => {
-      try {
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+    // Carregar slots bloqueados ao iniciar
+    useEffect(() => {
+      const loadBlockedSlots = async () => {
+        try {
+          const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          const data = await response.json();
+          if (data.success) {
+            const blocked = new Set<string>(
+              data.data
+                .filter((app: any) => app.barberId === barberId)
+                .map((app: any) => `${app.date}-${app.time}`)
+            );
+            setBlockedSlots(blocked);
           }
-        });
-        
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data = await response.json();
-        return data.success 
-          ? data.data.filter((app: Appointment) => app.barberId === barberId)
-          : [];
-      } catch (err) {
-        console.error('Error fetching appointments:', err);
-        setError('Unable to load appointments. Please try again.');
-        return [];
+        } catch (err) {
+          console.error('Erro ao carregar horários bloqueados:', err);
+        }
+      };
+
+      if (barberId) {
+        loadBlockedSlots();
       }
     }, [barberId]);
 
-    // Fetch barber schedule
-    const fetchBarberSchedule = useCallback(async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barber-schedules/${barberId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-        const data = await response.json();
-        if (data.success) {
-          // If barber has schedule, use it
-          if (data.data && data.data.length > 0) {
-            setSchedule(data.data);
-          } else {
-            // Otherwise, initialize with default schedule
-            initializeDefaultSchedule();
-          }
+    // Toggle seleção de horário
+    const toggleTimeSlot = useCallback((date: string, time: string) => {
+      const slotKey = `${date}-${time}`;
+      setSelectedTimeSlots(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(slotKey)) {
+          newSet.delete(slotKey);
         } else {
-          throw new Error(data.message || 'Error fetching barber schedule');
+          newSet.add(slotKey);
         }
-
-        // Fetch appointments to mark booked slots
-        const appointmentsData = await fetchAppointments();
-        setAppointments(appointmentsData);
-      } catch (err) {
-        console.error('Error fetching barber schedule:', err);
-        setError('Unable to load schedule. Please try again.');
-        // Initialize with default schedule on error
-        initializeDefaultSchedule();
-      } finally {
-        setIsLoading(false);
-      }
-    }, [barberId, fetchAppointments]);
-
-    // Initialize default schedule for all available dates
-    const initializeDefaultSchedule = useCallback(() => {
-      const newSchedule: DaySchedule[] = availableDates.map(date => ({
-        date: format(date, 'yyyy-MM-dd'),
-        timeSlots: SCHEDULE_CONFIG.DEFAULT_TIME_SLOTS.map(time => ({
-          time,
-          isAvailable: true
-        }))
-      }));
-      setSchedule(newSchedule);
-    }, [availableDates]);
-
-    // Toggle time slot availability
-    const toggleTimeSlotAvailability = useCallback((date: string, time: string) => {
-      setSchedule(prevSchedule => {
-        return prevSchedule.map(day => {
-          if (day.date === date) {
-            return {
-              ...day,
-              timeSlots: day.timeSlots.map(slot => {
-                if (slot.time === time) {
-                  return { ...slot, isAvailable: !slot.isAvailable };
-                }
-                return slot;
-              })
-            };
-          }
-          return day;
-        });
+        return newSet;
       });
     }, []);
 
-    // Save barber schedule
-    const saveBarberSchedule = useCallback(async (): Promise<void> => {
+    // Salvar horários bloqueados como agendamentos
+    const saveBarberSchedule = useCallback(async () => {
+      setIsLoading(true);
+      setError(null);
+
       try {
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barber-schedules/${barberId}`, {
+        const appointments = Array.from(selectedTimeSlots).map(slot => {
+          const [date, time] = slot.split('-');
+          return {
+            barberId,
+            barberName,
+            date,
+            time,
+            clientName: 'BLOCKED',
+            serviceName: 'BLOCKED',
+            status: 'confirmed',
+            price: 0
+          };
+        });
+
+        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
-          body: JSON.stringify({ schedule })
+          body: JSON.stringify(appointments)
         });
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) throw new Error('Erro ao salvar horários');
 
         const data = await response.json();
-        if (!data.success) {
-          throw new Error(data.message || 'Error saving barber schedule');
+        if (data.success) {
+          setSaveSuccess(true);
+          setBlockedSlots(prev => new Set([...prev, ...selectedTimeSlots]));
+          setSelectedTimeSlots(new Set());
+          setTimeout(() => setSaveSuccess(false), SCHEDULE_CONFIG.SUCCESS_MESSAGE_DURATION);
         }
-
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), SCHEDULE_CONFIG.SUCCESS_MESSAGE_DURATION);
       } catch (err) {
-        console.error('Error saving barber schedule:', err);
-        setError('Unable to save schedule. Please try again.');
-        throw err; // Re-throw to be caught by the parent component
+        console.error('Erro ao salvar horários:', err);
+        setError('Não foi possível salvar os horários');
+      } finally {
+        setIsLoading(false);
       }
-    }, [barberId, schedule]);
+    }, [barberId, barberName, selectedTimeSlots]);
 
-    // Expose save method to parent component
     useImperativeHandle(ref, () => ({
       save: saveBarberSchedule
     }), [saveBarberSchedule]);
 
-    // Check if a time slot is booked
-    const isTimeSlotBooked = useCallback((date: string, time: string): boolean => {
-      return appointments.some(app => app.date === date && app.time === time);
-    }, [appointments]);
-
-    // Load data on component mount
-    useEffect(() => {
-      // Só busca dados quando o barberId for válido
-      if (barberId) {
-        fetchBarberSchedule();
-      }
-    }, [fetchBarberSchedule, barberId]);
-
-    // Handle date selection
-    const handleDateSelect = useCallback((date: string) => {
-      setSelectedDate(date);
-    }, []);
-
     return (
-      <div id="barber-schedule-manager" className="space-y-6">
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-4 sm:p-6 shadow-lg border border-[#F0B35B]/10">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-            <Clock className="mr-2 text-[#F0B35B]" />
-            Gerenciar Horários - {barberName}
-          </h2>
-          
-          {/* Botões de seleção de barbeiros (apenas para administradores) */}
-          {isAdmin && barbers.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center mb-3">
-                <Users className="mr-2 text-[#F0B35B]" size={18} />
-                <h3 className="text-white text-lg font-medium">Selecione um barbeiro:</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {barbers.map(barber => (
+      <div className="space-y-6 bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-4 sm:p-6 shadow-lg border border-[#F0B35B]/10">
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+          <Clock className="mr-2 text-[#F0B35B]" />
+          Gerenciar Horários - {barberName}
+        </h2>
+
+        {/* Seleção de barbeiro para admins */}
+        {isAdmin && barbers.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-white text-lg font-medium mb-3 flex items-center">
+              <Users className="mr-2 text-[#F0B35B]" />
+              Selecionar Barbeiro:
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {barbers.map((barber) => (
+                <button
+                  key={barber.id}
+                  onClick={() => onBarberSelect?.(barber.id)}
+                  className={`
+                    py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200
+                    ${barber.id === barberId 
+                      ? 'bg-[#F0B35B] text-black' 
+                      : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'}
+                  `}
+                >
+                  <Scissors className="w-4 h-4 mx-auto mb-1" />
+                  {barber.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mensagens de feedback */}
+        {error && (
+          <div className="p-4 bg-red-500/20 text-red-300 rounded-lg flex items-center">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            {error}
+          </div>
+        )}
+
+        {saveSuccess && (
+          <div className="p-4 bg-green-500/20 text-green-300 rounded-lg flex items-center">
+            <CheckCircle2 className="w-5 h-5 mr-2" />
+            Horários salvos com sucesso!
+          </div>
+        )}
+
+        {/* Seleção de data */}
+        <div className="mb-6">
+          <h3 className="text-white text-lg font-medium mb-3">Selecione uma data:</h3>
+          <div className="flex overflow-x-auto pb-2 hide-scrollbar">
+            <div className="flex space-x-2">
+              {availableDates.map(date => {
+                const formattedDate = format(date, 'yyyy-MM-dd');
+                return (
                   <button
-                    key={barber.id}
-                    onClick={() => onBarberSelect && onBarberSelect(barber.id)}
+                    key={formattedDate}
+                    onClick={() => setSelectedDate(formattedDate)}
                     className={`
-                      flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                      ${barberId === barber.id
-                        ? 'bg-[#F0B35B] text-black'
-                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] border border-[#F0B35B]/30'}
+                      flex flex-col items-center justify-center p-3 rounded-lg min-w-[80px]
+                      transition-all duration-200 transform hover:scale-105
+                      ${selectedDate === formattedDate 
+                        ? 'bg-[#F0B35B] text-black' 
+                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}
                     `}
                   >
-                    <Scissors className="mr-2" size={16} />
-                    {barber.name}
+                    <span className="text-xs opacity-75">
+                      {format(date, 'EEE', { locale: ptBR })}
+                    </span>
+                    <span className="text-lg font-bold">
+                      {format(date, 'd')}
+                    </span>
                   </button>
-                ))}
-              </div>
-              <p className="text-gray-400 text-xs mt-2">
-                Como administrador, você pode gerenciar os horários de todos os barbeiros.
-              </p>
+                );
+              })}
             </div>
-          )}
-
-          {error && (
-            <div className="bg-red-500/20 text-red-300 p-3 rounded-lg mb-4 flex items-center">
-              <AlertCircle className="mr-2 h-5 w-5" />
-              {error}
-            </div>
-          )}
-
-          {saveSuccess && (
-            <div className="bg-green-500/20 text-green-300 p-3 rounded-lg mb-4 flex items-center">
-              <CheckCircle2 className="mr-2 h-5 w-5" />
-              Horários salvos com sucesso!
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-[#F0B35B]" />
-            </div>
-          ) : (
-            <>
-              {/* Calendar View */}
-              <div className="mb-6">
-                <h3 className="text-white text-lg font-medium mb-3">Selecione uma data:</h3>
-                <div className="flex overflow-x-auto pb-2 hide-scrollbar">
-                  <div className="flex space-x-2">
-                    {availableDates.map(date => {
-                      const formattedDate = format(date, 'yyyy-MM-dd');
-                      const isSelected = selectedDate === formattedDate;
-                      return (
-                        <button
-                          key={formattedDate}
-                          onClick={() => handleDateSelect(formattedDate)}
-                          className={`
-                            flex flex-col items-center justify-center p-3 rounded-lg min-w-[80px]
-                            transition-all duration-200 transform hover:scale-105
-                            ${isSelected
-                              ? 'bg-[#F0B35B] text-black'
-                              : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}
-                          `}
-                        >
-                          <span className="text-xs opacity-75">
-                            {format(date, 'EEE', { locale: ptBR })}
-                          </span>
-                          <span className="text-lg font-bold">
-                            {format(date, 'd')}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Time Slots */}
-              {selectedDate && (
-                <div className="mt-6">
-                  <h3 className="text-white text-lg font-medium mb-3">
-                    Horários para {format(parseISO(selectedDate), 'dd/MM/yyyy')}:
-                  </h3>
-                  <p className="text-gray-400 text-sm mb-3">
-                    Clique nos horários para marcar como disponível ou indisponível.
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {schedule
-                      .find(day => day.date === selectedDate)?.timeSlots
-                      .map(slot => {
-                        const isBooked = isTimeSlotBooked(selectedDate, slot.time);
-                        return (
-                          <button
-                            key={slot.time}
-                            onClick={() => !isBooked && toggleTimeSlotAvailability(selectedDate, slot.time)}
-                            disabled={isBooked}
-                            className={`
-                              py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200
-                              ${isBooked
-                                ? 'bg-red-500/20 text-red-300 cursor-not-allowed'
-                                : slot.isAvailable
-                                  ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
-                                  : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'}
-                            `}
-                          >
-                            <span>{slot.time}</span>
-                            {isBooked && <span className="block text-xs mt-1">(Reservado)</span>}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+          </div>
         </div>
+
+        {/* Grade de horários */}
+        {selectedDate && (
+          <div className="mt-6">
+            <h3 className="text-white text-lg font-medium mb-3">
+              Horários para {format(parseISO(selectedDate), 'dd/MM/yyyy')}:
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {SCHEDULE_CONFIG.DEFAULT_TIME_SLOTS.map(time => {
+                const slotKey = `${selectedDate}-${time}`;
+                const isBlocked = blockedSlots.has(slotKey);
+                const isSelected = selectedTimeSlots.has(slotKey);
+
+                return (
+                  <button
+                    key={time}
+                    onClick={() => !isBlocked && toggleTimeSlot(selectedDate, time)}
+                    disabled={isBlocked}
+                    className={`
+                      py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200
+                      ${isBlocked || isSelected
+                        ? 'bg-red-500/20 text-red-300 cursor-not-allowed hover:bg-red-500/30' 
+                        : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'}
+                    `}
+                  >
+                    {time}
+                    {isBlocked && <span className="block text-xs mt-1">(Bloqueado)</span>}
+                    {isSelected && <span className="block text-xs mt-1">(Selecionado)</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-[#F0B35B]" />
+          </div>
+        )}
       </div>
     );
   }
