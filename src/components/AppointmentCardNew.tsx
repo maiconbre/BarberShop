@@ -188,15 +188,21 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus, onView }:
               </span>
             </div>
             
-            <div className="flex gap-3 mr-2">
+            <div className="flex gap-3 mr-2" onClick={(e) => e.stopPropagation()}>
               <button
-                onClick={() => setShowCompleteModal(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCompleteModal(true);
+                }}
                 className={`p-1.5 rounded-lg ${status.text} ${status.bg} transition-colors`}
               >
                 {appointment.status === 'completed' ? <FaTimes size={16} /> : <FaCheck size={16} />}
               </button>
               <button
-                onClick={() => setShowDeleteModal(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteModal(true);
+                }}
                 className="p-1.5 rounded-lg text-red-400 bg-red-400/10 transition-colors"
               >
                 <FaTrash size={16} />

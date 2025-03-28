@@ -609,17 +609,6 @@ const RegisterPage: React.FC = () => {
                     Cancelar edição
                   </button>
                 )}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-2 font-medium border border-[#F0B35B]/30 shadow-lg"
-                  title="Voltar para o Dashboard"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                  <span>Voltar</span>
-                </motion.button>
               </div>
             </form>
           </div>

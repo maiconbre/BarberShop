@@ -9,6 +9,7 @@ import Grafico from '../components/Grafico';
 import Notifications, { useNotifications } from '../components/Notifications';
 import AppointmentViewModal from '../components/AppointmentViewModal';
 import CalendarView from '../components/CalendarView';
+import CacheService from '../services/CacheService';
 
 interface Appointment {
   id: string;
@@ -122,47 +123,48 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     let isSubscribed = true;
+    let retryTimeout: NodeJS.Timeout | null = null;
 
-    const fetchData = async () => {
+    const fetchData = async (retryCount = 0) => {
       if (!isSubscribed) return;
 
       try {
-        // Verificar se temos informações do usuário para filtrar os dados
-        const currentUser = getCurrentUser();
+        // Verificar se o usuário está online antes de fazer requisições
+        if (!navigator.onLine) {
+          console.log('Dispositivo offline, usando dados em cache');
+          return;
+        }
 
-        console.log('Iniciando carregamento de agendamentos no DashboardPage...');
-        console.log('Usuário atual:', currentUser);
-
-        // Fazer apenas uma requisição e usar o cache
-        const formattedAppointments = await loadAppointments(true);
-        console.log('Agendamentos recebidos no DashboardPage:', formattedAppointments);
-
-        if (formattedAppointments && Array.isArray(formattedAppointments)) {
-          console.log('Número de agendamentos:', formattedAppointments.length);
-          if (formattedAppointments.length > 0) {
-            console.log('Exemplo do primeiro agendamento:', formattedAppointments[0]);
-          }
+        const formattedAppointments = await loadAppointments(false);
+        if (isSubscribed && Array.isArray(formattedAppointments)) {
           setAppointments(formattedAppointments);
+        }
+      } catch (error: any) {
+        console.error('Error fetching dashboard data:', error);
+        
+        // Se for erro 429, implementar retry com backoff exponencial
+        if (error.response?.status === 429 || (typeof error === 'object' && error.message?.includes('429'))) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Máximo de 1 minuto
+          console.warn(`Erro 429, tentando novamente em ${delay/1000}s`);
+          
+          if (retryCount < 5) { // Máximo de 5 tentativas
+            retryTimeout = setTimeout(() => fetchData(retryCount + 1), delay);
+          }
         } else {
-          console.error('Dados de agendamentos inválidos:', formattedAppointments);
-          // Definir um array vazio para evitar erros
           setAppointments([]);
         }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Definir um array vazio para evitar erros
-        setAppointments([]);
       }
     };
 
-    // Fazer apenas uma requisição ao montar o componente
-    fetchData();
+    // Adicionar um pequeno atraso antes da primeira requisição
+    const initialFetchTimeout = setTimeout(() => fetchData(), 500);
 
     return () => {
       isSubscribed = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      clearTimeout(initialFetchTimeout);
     };
-  }, []); // Removendo dependências para evitar requisições duplicadas
-
+  }, [loadAppointments]);
 
   // Efeito para verificar se os agendamentos foram carregados corretamente
   useEffect(() => {

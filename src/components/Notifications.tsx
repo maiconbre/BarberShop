@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, MessageCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import CacheService from '../services/CacheService';
 
 interface Appointment {
   id: string;
@@ -35,10 +36,8 @@ export const useNotifications = () => {
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  // Usar o hook useAuth para obter o usuário atual de forma consistente
   const { getCurrentUser } = useAuth();
   
-  // Verificar se há dados em cache no localStorage para inicialização
   useEffect(() => {
     try {
       const cachedData = localStorage.getItem('appointmentsCache');
@@ -49,7 +48,6 @@ export const useNotifications = () => {
         setCachedAppointments(parsedData);
         setLastFetchTime(parseInt(cacheTimestamp));
         
-        // Filtrar agendamentos não visualizados para notificações
         const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
         const newApps = parsedData.filter((app: Appointment) => !viewedAppointmentIds.includes(app.id));
         setNewAppointments(newApps);
@@ -60,18 +58,15 @@ export const useNotifications = () => {
   }, []);
 
   const loadPendingComments = useCallback(async () => {
-    // Verificar se já está carregando para evitar requisições simultâneas
     if (isLoading) return;
     
     try {
       setIsLoading(true);
-      // Configurar headers básicos sem necessidade de token
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
       
-      // Adicionar token apenas se estiver disponível (para operações que possam precisar)
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -102,124 +97,59 @@ export const useNotifications = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []); // Removida dependência de isLoading para evitar re-renderizações desnecessárias
+  }, []);
 
   const loadAppointments = useCallback(async (forceRefresh = false) => {
-    // Verificar se temos dados em cache e se não passou muito tempo desde a última requisição
-    const currentTime = Date.now();
-    const cacheExpiry = 10 * 60 * 1000; // 10 minutos
-    
-    // Usar cache se disponível e não expirado, a menos que forceRefresh seja true
-    const cachedData = localStorage.getItem('appointmentsCache');
-    const cacheTimestamp = localStorage.getItem('appointmentsCacheTimestamp');
-    
-    if (!forceRefresh && 
-        cachedData && 
-        cacheTimestamp && 
-        (currentTime - parseInt(cacheTimestamp)) < cacheExpiry) {
-      // Usar dados do localStorage diretamente para evitar dependência de estado
-      const parsedData = JSON.parse(cachedData);
-      return parsedData;
-    }
-    
-    // Evitar requisições simultâneas
-    if (isLoading) {
-      // Tentar usar o estado atual se disponível
-      if (cachedAppointments.length > 0) {
-        return cachedAppointments;
-      }
-      // Ou tentar usar o cache do localStorage
-      if (cachedData) {
-        return JSON.parse(cachedData);
-      }
-      return [];
-    }
-    
     try {
       setIsLoading(true);
-      
-      // Obter o ID do barbeiro do armazenamento local (se disponível)
       const currentUser = getCurrentUser();
       
-      // Configurar headers básicos sem necessidade de token
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      
-      // Adicionar token apenas se estiver disponível
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      return await CacheService.fetchWithCache('appointments', async () => {
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
+        };
 
-      const response = await fetch(
-        `${(import.meta as any).env.VITE_API_URL}/api/appointments`,
-        {
-          method: 'GET',
-          headers,
-          mode: 'cors'
-        }
-      );
-      
-      // Verificar se a resposta foi bem-sucedida
-      if (!response.ok) {
-        console.error(`Erro na requisição: ${response.status}`);
-        return cachedAppointments.length > 0 ? cachedAppointments : [];
-      }
-      
-      const result = await response.json();
+        const response = await fetch(
+          `${(import.meta as any).env.VITE_API_URL}/api/appointments`,
+          { method: 'GET', headers, mode: 'cors' }
+        );
 
-      if (result?.success) {
-        // Recuperar IDs de agendamentos já visualizados do localStorage
+        if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
+        
+        const result = await response.json();
+        if (!result?.success) throw new Error('Dados inválidos');
+
         const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
+        let formattedAppointments = result.data.map((app: any) => ({
+          ...app,
+          service: app.serviceName,
+          viewed: viewedAppointmentIds.includes(app.id)
+        }));
 
-        let formattedAppointments = result.data
-          .map((app: any) => ({
-            ...app,
-            service: app.serviceName,
-            viewed: viewedAppointmentIds.includes(app.id)
-          }));
-
-        // Filtrar por barbeiro se não for admin
         if (currentUser?.role !== 'admin') {
           formattedAppointments = formattedAppointments.filter(
             (app: Appointment) => app.barberId === currentUser?.id
           );
         }
 
-        // Ordenar por data e hora
         formattedAppointments.sort((a: Appointment, b: Appointment) => {
-          const dateA = new Date(`${a.date} ${a.time}`);
-          const dateB = new Date(`${b.date} ${b.time}`);
-          return dateA.getTime() - dateB.getTime();
+          return new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime();
         });
 
-        // Filtrar agendamentos não visualizados para notificações
         const newApps = formattedAppointments.filter((app: Appointment) => !app.viewed);
         setNewAppointments(newApps);
         
-        // Atualizar o cache no localStorage para persistência
-        localStorage.setItem('appointmentsCache', JSON.stringify(formattedAppointments));
-        localStorage.setItem('appointmentsCacheTimestamp', currentTime.toString());
-        
-        // Atualizar o cache e o timestamp no estado
-        setCachedAppointments(formattedAppointments);
-        setLastFetchTime(currentTime);
-        setHasError(false);
-        
         return formattedAppointments;
-      } else {
-        return cachedAppointments.length > 0 ? cachedAppointments : [];
-      }
+      });
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
-      setHasError(true);
-      return cachedAppointments.length > 0 ? cachedAppointments : [];
+      return [];
     } finally {
       setIsLoading(false);
     }
-  }, [getCurrentUser]); // Removidas dependências que causavam loops
+  }, [getCurrentUser]);
 
   const handleCommentAction = async (commentId: string, action: 'approve' | 'reject') => {
     if (!commentId) return;
@@ -247,20 +177,16 @@ export const useNotifications = () => {
     if (!appointmentId) return;
     try {
       if (action === 'view') {
-        // Marcar agendamento como visualizado
         const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
         if (!viewedAppointmentIds.includes(appointmentId)) {
           viewedAppointmentIds.push(appointmentId);
           localStorage.setItem('viewedAppointments', JSON.stringify(viewedAppointmentIds));
 
-          // Atualizar estado local
           setNewAppointments(prev => prev.filter(app => app.id !== appointmentId));
         }
 
-        // Fechar o dropdown de notificações
         setIsNotificationDropdownOpen(false);
         
-        // Emitir um evento personalizado para abrir o modal no DashboardPage
         const event = new CustomEvent('openAppointmentModal', { detail: { appointmentId } });
         window.dispatchEvent(event);
       }
@@ -277,29 +203,35 @@ export const useNotifications = () => {
       if (!isSubscribed) return;
 
       try {
-        // Carregar comentários pendentes para todos os usuários
-        await loadPendingComments();
-        // Carregar agendamentos com forceRefresh=false para usar o cache quando possível
-        await loadAppointments(false);
+        // Verificar se o usuário está online antes de fazer requisições
+        if (!navigator.onLine) {
+          console.log('Dispositivo offline, adiando requisições de notificações');
+          return;
+        }
+
+        // Usar Promise.all para fazer as requisições em paralelo
+        await Promise.all([
+          loadPendingComments(),
+          loadAppointments(false)
+        ]);
       } catch (error) {
         console.error('Erro ao buscar dados de notificações:', error);
         setHasError(true);
       }
     };
 
-    // Fazer apenas uma requisição ao montar o componente
-    fetchData();
+    // Executar a primeira busca com um pequeno atraso para evitar sobrecarga na inicialização
+    const initialFetchTimeout = setTimeout(fetchData, 1000);
 
-    // Configurar um intervalo mais longo para atualização periódica
-    // Usando uma referência para poder limpar corretamente
-    interval = setInterval(fetchData, 5 * 60 * 1000); // 5 minutos
+    // Aumentar o intervalo para 15 minutos para reduzir a frequência de requisições
+    interval = setInterval(fetchData, 15 * 60 * 1000);
 
     return () => {
       isSubscribed = false;
+      clearTimeout(initialFetchTimeout);
       if (interval) clearInterval(interval);
     };
-  }, []); // Removidas dependências que causavam loops
-
+  }, []);
 
   const toggleNotificationDropdown = () => {
     setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
@@ -321,7 +253,6 @@ export const useNotifications = () => {
 const Notifications: React.FC = () => {
   const { pendingComments, newAppointments, isNotificationDropdownOpen, notificationTab, setNotificationTab, toggleNotificationDropdown, handleCommentAction, handleAppointmentAction } = useNotifications();
 
-  // Calcular o total de notificações não lidas
   const totalNotifications = pendingComments.length + newAppointments.length;
 
   return (
