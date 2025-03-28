@@ -142,7 +142,7 @@ export const useNotifications = () => {
         setNewAppointments(newApps);
         
         return formattedAppointments;
-      });
+      }, forceRefresh);
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       return [];
@@ -209,10 +209,17 @@ export const useNotifications = () => {
           return;
         }
 
+        // Verificar se o usuário está carregado antes de fazer requisições
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+          console.log('Usuário não carregado, adiando requisições de notificações');
+          return;
+        }
+
         // Usar Promise.all para fazer as requisições em paralelo
         await Promise.all([
           loadPendingComments(),
-          loadAppointments(false)
+          loadAppointments(true) // Forçar refresh para garantir filtragem correta
         ]);
       } catch (error) {
         console.error('Erro ao buscar dados de notificações:', error);
@@ -231,7 +238,7 @@ export const useNotifications = () => {
       clearTimeout(initialFetchTimeout);
       if (interval) clearInterval(interval);
     };
-  }, []);
+  }, [getCurrentUser, loadPendingComments, loadAppointments]);
 
   const toggleNotificationDropdown = () => {
     setIsNotificationDropdownOpen(!isNotificationDropdownOpen);

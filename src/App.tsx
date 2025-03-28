@@ -15,6 +15,7 @@ import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
 import VendaPage2 from './pages/VendaPage2';
 import CommentManagementPage from './pages/CommentManagementPage';
+import ServiceManagementPage from './pages/ServiceManagementPage';
 
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -85,6 +86,13 @@ const AppContent = () => {
                 <CommentManagementPage />
               </ProtectedRoute>
             } />
+            <Route path="/servicos" element={
+              <ProtectedRoute>
+                <ServiceManagementPage />
+              </ProtectedRoute>
+            } />
+
+      
           </Routes>
         </motion.div>
       </AnimatePresence>
