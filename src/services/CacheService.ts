@@ -1,4 +1,7 @@
 class CacheService {
+  setItem(arg0: string, data: any[]) {
+    throw new Error('Method not implemented.');
+  }
   private static instance: CacheService;
   private cache: Map<string, { data: any; timestamp: number }>;
   private pendingRequests: Map<string, Promise<any>>;
@@ -55,14 +58,14 @@ class CacheService {
     }
   }
 
-  async fetchWithCache<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+  async fetchWithCache<T>(key: string, fetchFn: () => Promise<T>, forceRefresh: boolean = false): Promise<T> {
     const cached = this.cache.get(key);
     const now = Date.now();
     const isOffline = !navigator.onLine;
     const cacheDuration = isOffline ? this.CACHE_DURATION_OFFLINE : this.CACHE_DURATION;
 
-    // Se já temos dados em cache válidos, retorne-os imediatamente
-    if (cached && now - cached.timestamp < cacheDuration) {
+    // Se já temos dados em cache válidos e não estamos forçando atualização, retorne-os imediatamente
+    if (!forceRefresh && cached && now - cached.timestamp < cacheDuration) {
       console.log(`Usando cache para ${key}, idade: ${Math.round((now - cached.timestamp) / 1000)}s`);
       return cached.data;
     }
@@ -116,6 +119,42 @@ class CacheService {
     // Armazenar a promessa para que outras chamadas possam reutilizá-la
     this.pendingRequests.set(key, fetchPromise);
     return fetchPromise;
+  }
+
+  static async getItem(key: string) {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (error) {
+      console.error('Erro ao recuperar dados do cache:', error);
+      return null;
+    }
+  }
+
+  static async setItem(key: string, data: any): Promise<void> {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error('Erro ao salvar no cache:', error);
+    }
+  }
+
+  async getLastUpdateTime(key: string): Promise<string | null> {
+    try {
+      const lastUpdate = localStorage.getItem(`${this.STORAGE_KEY_PREFIX}last_update_${key}`);
+      return lastUpdate;
+    } catch (error) {
+      console.error('Erro ao obter último horário de atualização:', error);
+      return null;
+    }
+  }
+
+  async setLastUpdateTime(key: string, timestamp: string): Promise<void> {
+    try {
+      localStorage.setItem(`${this.STORAGE_KEY_PREFIX}last_update_${key}`, timestamp);
+    } catch (error) {
+      console.error('Erro ao definir horário de atualização:', error);
+    }
   }
 
   async getCache<T>(key: string): Promise<T | null> {
@@ -246,5 +285,6 @@ class CacheService {
     }
   }
 }
+
 
 export default CacheService.getInstance();

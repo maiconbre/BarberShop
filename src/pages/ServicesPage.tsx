@@ -9,9 +9,17 @@ import { useState } from 'react';
 const ServicesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState('');
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   
   const handleOpenModal = (serviceName: string) => {
     setSelectedService(serviceName);
+    setSelectedServices([serviceName]);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenModalMultiple = (serviceNames: string[]) => {
+    setSelectedServices(serviceNames);
+    setSelectedService('');
     setIsModalOpen(true);
   };
 
@@ -36,13 +44,14 @@ const ServicesPage = () => {
           setIsMobileMenuOpen={() => {}}
         />
         <main className="flex-grow">
-          <Services onSchedule={handleOpenModal} />
+          <Services onSchedule={handleOpenModal} onScheduleMultiple={handleOpenModalMultiple} />
         </main>
         <Footer />
         <BookingModal 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
           initialService={selectedService}
+          initialServices={selectedServices}
         />
       </motion.div>
     </>

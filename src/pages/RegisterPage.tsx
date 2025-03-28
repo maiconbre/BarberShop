@@ -613,9 +613,6 @@ const RegisterPage: React.FC = () => {
             </form>
           </div>
         </div>
-
-
-
         <div className="w-full md:flex-1 order-first">
           <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
             <h2 className="text-center text-xl sm:text-2xl font-bold text-white">Barbeiros Cadastrados</h2>

@@ -10,6 +10,7 @@ interface ConfirmationModalProps {
   confirmButtonText?: string;
   cancelButtonText?: string;
   confirmButtonClass?: string;
+  isLoading?: boolean;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -20,7 +21,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmButtonText = "Confirmar",
   cancelButtonText = "Cancelar",
-  confirmButtonClass = ""
+  confirmButtonClass = "",
+  isLoading = false
 }) => {
   if (!isOpen) return null;
 
@@ -52,9 +54,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               </button>
               <button
                 onClick={onConfirm}
-                className={confirmButtonClass || "px-4 py-2 text-sm bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 rounded-lg transition-colors"}
+                disabled={isLoading}
+                className={`${confirmButtonClass || "px-4 py-2 text-sm bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 rounded-lg transition-colors"} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {confirmButtonText}
+                {isLoading ? 'Processando...' : confirmButtonText}
               </button>
             </div>
           </motion.div>

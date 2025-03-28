@@ -22,7 +22,7 @@ interface Props {
   onDelete: () => void;
   onToggleStatus: () => void;
   onView?: () => void;
-  filterMode: string;
+  filterMode?: string;
   revenueDisplayMode: string;
   appointments: Appointment[];
 }
@@ -141,6 +141,12 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus, onView }:
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const status = statusStyles[appointment.status];
 
+  // Adicionar animação para novos itens
+  const isNew = React.useRef(true);
+  React.useEffect(() => {
+    isNew.current = false;
+  }, []);
+
   const handleCardClick = (e: React.MouseEvent) => {
     // Evitar que o clique no card dispare quando clicar nos botões
     if (e.target instanceof HTMLElement && 
@@ -156,11 +162,15 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus, onView }:
     <>
       <motion.div
         layout
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={isNew.current ? { opacity: 0, y: 20 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ 
+          duration: 0.3,
+          ease: "easeOut"
+        }}
         onClick={handleCardClick}
         className={`relative bg-[#1A1F2E] rounded-xl border border-white/5 overflow-hidden
-                   border-l-4 ${statusStyles[appointment.status].border} hover:shadow-lg transition-shadow cursor-pointer`}
+                   border-l-4 ${statusStyles[appointment.status].border} hover:shadow-lg transition-all cursor-pointer`}
       >
         <div className="p-3 sm:p-4">
           {/* Cabeçalho do Card */}
@@ -241,8 +251,13 @@ const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus, onView }:
 });
 
 export default React.memo(AppointmentCard, (prevProps, nextProps) => {
+  const { appointment: prev } = prevProps;
+  const { appointment: next } = nextProps;
+  
   return (
-    prevProps.appointment.id === nextProps.appointment.id &&
-    prevProps.appointment.status === nextProps.appointment.status
+    prev.id === next.id &&
+    prev.status === next.status &&
+    prev.date === next.date &&
+    prev.time === next.time
   );
 });
