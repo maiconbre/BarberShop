@@ -72,43 +72,20 @@ const DashboardPage: React.FC = () => {
   const [endDate, setEndDate] = useState<string | null>(null);
   // Estado para controlar a animação do botão de atualização
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Estado para feedback visual
-  const [refreshFeedback, setRefreshFeedback] = useState<string>('');
-  const [showFeedback, setShowFeedback] = useState(false);
 
-  // Função para atualizar dados usando o hook useNotifications
+  // Função para atualizar dados usando CacheService
   const refreshData = async () => {
     setIsRefreshing(true);
     try {
-      // Forçar atualização dos dados do servidor ignorando o cache
-      const formattedAppointments = await loadAppointments(true);
-      const oldCount = appointments.length;
-      
-      if (Array.isArray(formattedAppointments)) {
-        setAppointments(formattedAppointments);
-        
-        // Feedback baseado na comparação
-        if (formattedAppointments.length > oldCount) {
-          setRefreshFeedback(`${formattedAppointments.length - oldCount} novos agendamentos`);
-        } else if (formattedAppointments.length < oldCount) {
-          setRefreshFeedback(`${oldCount - formattedAppointments.length} agendamentos removidos`);
-        } else {
-          setRefreshFeedback('Dados atualizados');
-        }
-        
-        setShowFeedback(true);
-        setTimeout(() => setShowFeedback(false), 3000); // Esconde após 3s
+      const newAppointments = await loadAppointments(true);
+      if (newAppointments && newAppointments.length > 0) {
+        setAppointments(prev => [...prev, ...newAppointments]);
+        await CacheService.setLastUpdateTime('appointments', new Date().toISOString());
       }
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
-      setRefreshFeedback('Erro ao atualizar');
-      setShowFeedback(true);
-      setTimeout(() => setShowFeedback(false), 3000);
     } finally {
-      // Garante animação suave
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 1000);
+      setIsRefreshing(false);
     }
   };
 
@@ -175,16 +152,8 @@ const DashboardPage: React.FC = () => {
           console.log('Dispositivo offline, usando dados em cache');
           return;
         }
-        
-        // Verificar se o usuário está carregado antes de fazer requisições
-        const currentUser = getCurrentUser();
-        if (!currentUser) {
-          console.log('Usuário não carregado, adiando requisições');
-          return;
-        }
 
-        // Forçar refresh para garantir que os dados sejam filtrados corretamente pelo papel do usuário
-        const formattedAppointments = await loadAppointments(true);
+        const formattedAppointments = await loadAppointments(false);
         if (isSubscribed && Array.isArray(formattedAppointments)) {
           setAppointments(formattedAppointments);
         }
@@ -213,7 +182,7 @@ const DashboardPage: React.FC = () => {
       if (retryTimeout) clearTimeout(retryTimeout);
       clearTimeout(initialFetchTimeout);
     };
-  }, [loadAppointments, getCurrentUser]);
+  }, [loadAppointments]);
 
   // Efeito para verificar se os agendamentos foram carregados corretamente
   useEffect(() => {
@@ -409,28 +378,31 @@ const DashboardPage: React.FC = () => {
                       </button>
                     </div>
                     <div className="divide-y divide-gray-700/30" role="menu">
-                      {/* Opções disponíveis para todos os barbeiros */}
-                      <button
-                        onClick={() => navigate('/register')}
-                        className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                        role="menuitem"
-                      >
-                        <span>Gerenciar Barbeiros</span>
-                      </button>
-                      <button
-                        onClick={() => navigate('/gerenciar-comentarios')}
-                        className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                        role="menuitem"
-                      >
-                        <span>Gerenciar Comentários</span>
-                      </button>
-                      <button
-                        onClick={() => navigate('/servicos')}
-                        className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                        role="menuitem"
-                      >
-                        <span>Gerenciar Serviços</span>
-                      </button>
+                      {currentUser?.role === 'admin' && (
+                        <>
+                          <button
+                            onClick={() => navigate('/register')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Barbeiros</span>
+                          </button>
+                          <button
+                            onClick={() => navigate('/gerenciar-comentarios')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Comentários</span>
+                          </button>
+                          <button
+                            onClick={() => navigate('/servicos')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Serviços</span>
+                          </button>
+                        </>
+                      )}
                       <button
                         onClick={() => navigate('/trocar-senha')}
                         className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
@@ -761,12 +733,6 @@ const DashboardPage: React.FC = () => {
           onDelete={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'delete')}
           onToggleStatus={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status)}
         />
-
-        {showFeedback && (
-          <div className="fixed bottom-4 right-4 bg-[#F0B35B] text-black px-4 py-2 rounded-lg shadow-lg animate-fade-in-up">
-            {refreshFeedback}
-          </div>
-        )}
     </div>
     
   );
