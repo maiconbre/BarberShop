@@ -8,18 +8,11 @@ import {
 import { Helmet } from 'react-helmet';
 import { useCountdown } from '../hooks/useCountdown';
 
-// Configuração do vídeo para mobile
-const videoConfig = {
-  src: './video/Demo oficial.mp4',
-  poster: './img/demofoto.webp'
-};
 
 
 // Dados de prova social
 const socialProof = {
   stats: {
-    clients: "10+",
-    appointments: "1.000+",
     satisfaction: "99%",
     timesSaved: "3h/dia"
   },
@@ -50,10 +43,24 @@ const SLOTS_LEFT = 3;
 const VendaPage2: React.FC = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
-  const [currentDemoStep, setCurrentDemoStep] = useState(0);
   const { hours, minutes, seconds } = useCountdown(PROMO_END_TIME);
   // Referência para o vídeo em dispositivos móveis
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  // Referência para a seção hero
+  const heroRef = React.useRef<HTMLDivElement>(null);
+  
+  // Efeito para garantir que a página sempre inicie no topo
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+    
+    // Foco na primeira seção
+    if (heroRef.current) {
+      heroRef.current.focus();
+    }
+  }, []);
 
   // Atualizar useEffect para garantir autoplay
   useEffect(() => {
@@ -63,6 +70,9 @@ const VendaPage2: React.FC = () => {
       });
     }
   }, []);
+  
+  // Estado para animações interativas
+  const [isHovered, setIsHovered] = useState(false);
 
   // Animações
   const fadeInUp = {
@@ -70,7 +80,6 @@ const VendaPage2: React.FC = () => {
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -20 }
   };
-
 
 
   // Demonstração interativa do sistema
@@ -96,10 +105,6 @@ const VendaPage2: React.FC = () => {
   ];
 
 
-  // Função para redirecionar ao login
-  const handleDemoClick = () => {
-    navigate('/login');
-  };
 
   // Definição de animações comuns
   const commonAnimations = {
@@ -175,7 +180,7 @@ const VendaPage2: React.FC = () => {
             <div className="flex justify-between items-center">
               <h1 className="text-xl sm:text-2xl font-bold text-[#F0B35B]">BarberShop</h1>
               <button
-                onClick={handleDemoClick}
+                onClick={() => setShowDemo(true)}
                 className="
                   relative overflow-hidden
                   px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg
@@ -189,133 +194,263 @@ const VendaPage2: React.FC = () => {
                   before:-skew-x-45 before:animate-shine
                 "
               >
-                <span className="relative z-10">Ver Demo</span>
+                <span className="relative z-10">Como funciona?</span>
               </button>
             </div>
           </div>
         </motion.header>
 
-        {/* Hero Section Simplificada */}
-        <section className="relative min-h-[80vh] flex items-center pt-16">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24">
+        {/* Hero Section Aprimorada */}
+        <section 
+          ref={heroRef}
+          className="relative min-h-[90vh] flex items-center pt-16 overflow-hidden"
+          tabIndex={-1}
+        >
+          {/* Elementos de fundo animados */}
+          <div className="absolute inset-0 z-0">
+            <div className="absolute top-20 left-10 w-64 h-64 bg-[#F0B35B]/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+            <div className="absolute bottom-20 right-10 w-72 h-72 bg-[#F0B35B]/10 rounded-full filter blur-3xl animate-pulse-slow animation-delay-2000"></div>
+            <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-[#F0B35B]/5 rounded-full filter blur-3xl animate-float"></div>
+            
+            {/* Linhas decorativas */}
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
+          </div>
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24 relative z-10">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.8, 
+                  type: "spring",
+                  stiffness: 50 
+                }}
                 className="max-w-2xl mx-auto text-center lg:text-left" // Centralizado em mobile
               >
-                {/* Tag mais sutil */}
+                {/* Tag com animação melhorada */}
                 <motion.div
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full mb-6 border border-[#F0B35B]/10 mx-auto lg:mx-0"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 400 }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  whileHover={{ scale: 1.05, backgroundColor: "rgba(240,179,91,0.15)" }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full mb-6 border border-[#F0B35B]/10 mx-auto lg:mx-0 cursor-pointer backdrop-blur-sm"
                 >
-                  Software #1 do RJ para Barbearias
+                  <span className="animate-pulse text-lg">⭐</span>
+                  <span>Software #1 do RJ para Barbearias</span>
                 </motion.div>
 
-                {/* Headline mais limpa */}
-                <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                  Leve sua Barbearia e seu Negócio para o <br className="hidden sm:block" />
-                  <span className={`bg-clip-text text-transparent ${commonAnimations.buttonGradient}`}> Próximo Nível </span>
-                </h1>
+                {/* Headline com animação de texto otimizado para mobile-first */}
+                <motion.h1 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.8 }}
+                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 sm:mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400"
+                >
+                  <span className="block mb-1 sm:mb-2">Leve sua Barbearia</span>
+                  <span className="relative">
+                    <span className={`relative inline-block bg-clip-text text-transparent ${commonAnimations.buttonGradient}`}>
+                      para o Próximo Nível
+                      <motion.span 
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{ delay: 1.2, duration: 0.8 }}
+                        className="absolute -bottom-1 sm:-bottom-2 left-0 h-[2px] sm:h-[3px] bg-gradient-to-r from-[#F0B35B]/0 via-[#F0B35B] to-[#F0B35B]/0"
+                      />
+                    </span>
+                  </span>
+                </motion.h1>
 
-                {/* Social proof mais elegante */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  {Object.entries(socialProof.stats).map(([key, value]) => (
+                {/* Subtítulo com fade-in */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7, duration: 0.8 }}
+                  className="text-gray-300 text-lg mb-8 max-w-xl mx-auto lg:mx-0"
+                >
+                  Sistema completo para gestão da sua barbearia com agendamento online, controle financeiro e fidelização de clientes.
+                </motion.p>
+
+                {/* Social proof com contador animado */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9, duration: 0.5 }}
+                  className="grid grid-cols-2 gap-6 mb-10"
+                >
+                  {Object.entries(socialProof.stats).map(([key, value], index) => (
                     <motion.div
                       key={key}
-                      whileHover={{ scale: 1.05 }}
-                      className={`text-center p-3 ${commonAnimations.cardGradient} rounded-lg border border-[#F0B35B]/5 ${commonAnimations.glowEffect}`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 1 + (index * 0.2) }}
+                      whileHover={{ 
+                        scale: 1.05, 
+                        boxShadow: "0 0 25px rgba(240,179,91,0.2)",
+                        y: -5
+                      }}
+                      className={`group text-center p-5 ${commonAnimations.cardGradient} rounded-xl border border-[#F0B35B]/10 transition-all duration-300 cursor-pointer relative overflow-hidden`}
                     >
-                      <div className="text-[#F0B35B] text-2xl font-bold">{value}</div>
-                      <div className="text-sm text-gray-400">
-                        {key === 'clients' && 'Barbearias'}
-                        {key === 'appointments' && 'Agendamentos'}
-                        {key === 'satisfaction' && 'Satisfação'}
+                      {/* Efeito de brilho no hover */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      
+                      <div className="text-[#F0B35B] text-3xl font-bold mb-1 relative z-10">{value}</div>
+                      <div className="text-sm text-gray-300 font-medium relative z-10">
+                        {key === 'satisfaction' && 'Satisfação dos Clientes'}
                         {key === 'timesSaved' && 'Tempo Economizado'}
                       </div>
                     </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
-                {/* CTA mais chamativo com efeito de brilho */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="
-                    relative overflow-hidden
-                    px-8 py-4 bg-[#F0B35B] text-black rounded-lg
-                    text-lg font-bold
-                    transition-all duration-700
-                    scale-100 shadow-[0_0_25px_rgba(240,179,91,0.4)]
-                    border-2 border-[#F0B35B]
-                    before:absolute before:inset-0
-                    before:bg-gradient-to-r before:from-[#F0B35B]/0 
-                    before:via-white/40 before:to-[#F0B35B]/0
-                    before:-skew-x-45 before:animate-shine
-                  "
+                {/* CTA com animações avançadas */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.3, duration: 0.5 }}
+                  className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
                 >
-                  <span className="relative z-10 inline-flex flex-col items-center justify-center w-full">
-                    Garanta Seu Desconto Agora - 50% OFF!
-                    <span className="text-xs mt-2">{ctaVariants.primary.urgency}</span>
-                  </span>
-                </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    className="
+                      relative overflow-hidden
+                      px-8 py-4 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-lg
+                      text-lg font-bold
+                      transition-all duration-500
+                      shadow-[0_0_25px_rgba(240,179,91,0.4)]
+                      border-2 border-[#F0B35B]
+                      before:absolute before:inset-0
+                      before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                      before:via-white/40 before:to-[#F0B35B]/0
+                      before:-skew-x-45 before:animate-shine
+                    "
+                  >
+                    {/* Efeito de brilho animado */}
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+                    
+                    <span className="relative z-10 inline-flex flex-col items-center justify-center w-full">
+                      <span className="flex items-center gap-2">
+                        Garanta 50% OFF
+                        <motion.span
+                          animate={isHovered ? { rotate: [0, 15, -15, 0] } : {}}
+                          transition={{ duration: 0.5, ease: "easeInOut" }}
+                        >
+                          🔥
+                        </motion.span>
+                      </span>
+                      <span className="text-xs mt-1 text-black/80">{ctaVariants.primary.urgency}</span>
+                    </span>
+                  </motion.button>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.03, backgroundColor: "rgba(240,179,91,0.15)" }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setShowDemo(true)}
+                    className="
+                      px-8 py-4 bg-transparent text-[#F0B35B] rounded-lg
+                      text-lg font-medium
+                      transition-all duration-300
+                      border-2 border-[#F0B35B]/30 hover:border-[#F0B35B]/60
+                      flex items-center justify-center gap-2
+                    "
+                  >
+                    <span>Como funciona?</span>
+                    <motion.span
+                      animate={{ x: [0, 5, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                    >
+                      <ArrowRight size={18} />
+                    </motion.span>
+                  </motion.button>
+                </motion.div>
               </motion.div>
 
-              {/* Preview com efeito de glassmorphism - apenas desktop */}
+              {/* Preview com efeitos 3D e interatividade */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
                 className="relative hidden lg:block"
               >
-                <div className="relative w-full aspect-video bg-[#1A1F2E] rounded-lg overflow-hidden border border-[#F0B35B]/20">
+                <motion.div 
+                  whileHover={{ scale: 1.02, rotate: -1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="relative w-full aspect-video bg-[#1A1F2E] rounded-xl overflow-hidden border border-[#F0B35B]/20 shadow-2xl transform perspective-1000"
+                >
+                  {/* Efeito de brilho nas bordas */}
+                  <div className="absolute inset-0 rounded-xl border border-[#F0B35B]/30 filter blur-[2px] z-0"></div>
+                  
+                  {/* Imagem principal */}
                   <img
                     src="./img/demofoto.png"
                     alt="Preview do Sistema"
-                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    className="absolute inset-0 w-full h-full object-cover object-center z-10"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-transparent to-transparent opacity-90"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-
+                  
+                  {/* Overlay gradiente */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-[#0D121E]/50 to-transparent opacity-70 z-20"></div>
+                  
+                  {/* Elementos flutuantes */}
+                  <div className="absolute inset-0 z-30 flex items-end p-6">
+                    <div className="w-full">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-[#F0B35B] flex items-center justify-center text-black font-bold text-sm">BO</div>
+                        <div>
+                          <div className="text-white font-medium">Barber Online</div>
+                          <div className="text-xs text-gray-300">Sistema de Gestão</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 mb-2">
+                        <motion.div 
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 2, delay: 0 }}
+                          className="px-3 py-1.5 bg-[#F0B35B]/20 rounded-md text-[#F0B35B] text-xs font-medium"
+                        >
+                          Agendamentos
+                        </motion.div>
+                        <motion.div 
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}
+                          className="px-3 py-1.5 bg-[#F0B35B]/10 rounded-md text-[#F0B35B] text-xs font-medium"
+                        >
+                          Relatórios
+                        </motion.div>
+                        <motion.div 
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 2, delay: 1 }}
+                          className="px-3 py-1.5 bg-[#F0B35B]/10 rounded-md text-[#F0B35B] text-xs font-medium"
+                        >
+                          Clientes
+                        </motion.div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
+                
+                {/* Elementos decorativos */}
+                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#F0B35B]/10 rounded-full filter blur-xl"></div>
+                <div className="absolute -top-6 -left-6 w-32 h-32 bg-[#F0B35B]/5 rounded-full filter blur-xl"></div>
               </motion.div>
             </div>
           </div>
+          
+          {/* Indicador de scroll */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2, duration: 1 }}
+            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
+          >
+            
+          </motion.div>
         </section>
 
-        {/* Vídeo Demo Section - Visível apenas em dispositivos móveis */}
-        <section className="py-8 md:py-20 block md:hidden">
-          <div className="max-w-md mx-auto px-4"> {/* Reduzido max-width */}
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">Veja o Sistema em Ação</h2>
-              <p className="text-gray-400 text-sm">Interface intuitiva e fácil de usar</p>
-            </div>
-
-            <div className="relative rounded-xl overflow-hidden">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <video
-                  ref={videoRef}
-                  src={videoConfig.src}
-                  poster={videoConfig.poster}
-                  className="w-full rounded-lg shadow-lg border border-[#F0B35B]/20"
-                  playsInline
-                  autoPlay
-                  muted
-                  loop
-                  controls={false}
-                  preload="metadata"
-                />
-              </motion.div>
-            </div>
-          </div>
-        </section>
+        {/* Removido a seção de vídeo demo para dispositivos móveis */}
 
         {/* Demonstração Interativa */}
         <AnimatePresence>
@@ -332,10 +467,10 @@ const VendaPage2: React.FC = () => {
                 exit={{ scale: 0.9, y: 50 }}
                 className="max-w-6xl mx-auto bg-[#1A1F2E] rounded-2xl overflow-hidden mt-20"
               >
-                {/* Conteúdo da Demo */}
+                {/* Conteúdo do Modal Simplificado */}
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-8">
-                    <h3 className="text-2xl font-bold">Veja como é simples usar</h3>
+                    <h3 className="text-2xl font-bold text-[#F0B35B]">Veja como é simples usar</h3>
                     <button
                       onClick={() => setShowDemo(false)}
                       className="p-2 hover:bg-[#252B3B] rounded-full transition-colors"
@@ -344,60 +479,45 @@ const VendaPage2: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-8">
-                    {/* Navegação da Demo */}
-                    <div className="space-y-6">
-                      {demoSteps.map((step, index) => (
-                        <motion.button
-                          key={index}
-                          onClick={() => setCurrentDemoStep(index)}
-                          className={`w-full text-left p-4 rounded-lg transition-all ${currentDemoStep === index
-                            ? 'bg-[#F0B35B] text-black'
-                            : 'bg-[#252B3B] text-white hover:bg-[#2A3040]'
-                            }`}
-                        >
-                          <h4 className="font-bold mb-2">{step.title}</h4>
-                          <p className="text-sm opacity-80">{step.description}</p>
-                          <div className="mt-2 space-y-1">
-                            {step.features.map((feature, i) => (
-                              <div key={i} className="flex items-center text-xs">
-                                <span className="mr-2">•</span>
-                                <span>{feature}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </motion.button>
-                      ))}
-                    </div>
-
-                    {/* Preview da Demo com ícones */}
-                    <div className="bg-[#252B3B] rounded-lg p-6 flex items-center justify-center">
+                  <div className="grid md:grid-cols-3 gap-8">
+                    {demoSteps.map((step, index) => (
                       <motion.div
-                        key={currentDemoStep}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-center"
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.2 }}
+                        className="bg-[#252B3B] rounded-lg p-6 hover:shadow-lg hover:shadow-[#F0B35B]/10 transition-all duration-300 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30"
                       >
                         <div className="mb-6 flex justify-center">
-                          {React.createElement(demoSteps[currentDemoStep].icon, {
-                            className: "w-24 h-24 text-[#F0B35B]"
+                          {React.createElement(step.icon, {
+                            className: "w-16 h-16 text-[#F0B35B]"
                           })}
                         </div>
-                        <h3 className="text-xl font-bold mb-4">{demoSteps[currentDemoStep].title}</h3>
-                        <p className="text-gray-400 mb-6">{demoSteps[currentDemoStep].description}</p>
+                        <h3 className="text-xl font-bold mb-4 text-center">{step.title}</h3>
+                        <p className="text-gray-400 mb-6 text-center text-sm">{step.description}</p>
                         <div className="bg-[#1A1F2E] p-4 rounded-lg">
                           <ul className="space-y-3">
-                            {demoSteps[currentDemoStep].features.map((feature, idx) => (
-                              <li key={idx} className="flex items-center">
-                                <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
+                            {step.features.map((feature, idx) => (
+                              <li key={idx} className="flex items-center text-sm">
+                                <CheckCircle className="w-4 h-4 text-[#F0B35B] mr-2 flex-shrink-0" />
                                 <span>{feature}</span>
                               </li>
                             ))}
                           </ul>
                         </div>
                       </motion.div>
-                    </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-10 flex justify-center">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowDemo(false)}
+                      className="px-8 py-3 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-lg font-bold"
+                    >
+                      Entendi, quero começar agora!
+                    </motion.button>
                   </div>
                 </div>
               </motion.div>
@@ -406,161 +526,86 @@ const VendaPage2: React.FC = () => {
         </AnimatePresence>
 
         
-        <section className="py-16 md:py-20 bg-[#1A1F2E]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
+        <section className="py-16 md:py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E] relative overflow-hidden">
+          {/* Elementos decorativos de fundo */}
+          <div className="absolute inset-0 z-0">
+            <div className="absolute top-20 right-10 w-64 h-64 bg-[#F0B35B]/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+            <div className="absolute bottom-20 left-10 w-72 h-72 bg-[#F0B35B]/10 rounded-full filter blur-3xl animate-pulse-slow animation-delay-2000"></div>
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
+          </div>
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            {/* Título da seção com animação */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
               className="text-center mb-12"
             >
-              <h2 className="text-3xl sm:text-4xl font-bold mb-3">Como Funciona</h2>
-              <p className="text-gray-400 max-w-2xl mx-auto px-4">
-                Um sistema completo pensado para facilitar sua gestão
-              </p>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400">Recursos <span className="text-[#F0B35B]">Poderosos</span></h2>
+              <p className="text-gray-300 max-w-2xl mx-auto">Tudo o que você precisa para transformar sua barbearia em um negócio de sucesso</p>
             </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-              {/* Linha conectora em desktop */}
-              <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0B35B]/0 via-[#F0B35B]/20 to-[#F0B35B]/0 transform -translate-y-1/2" />
-
+            
+            <motion.div 
+              {...fadeInUp} 
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
+            >
               {[
-                {
-                  step: "1",
-                  title: "Cadastre sua Barbearia",
-                  description: "Configure seus serviços, horários e profissionais em poucos minutos",
-                  icon: "✂️"
-                },
-                {
-                  step: "2",
-                  title: "Compartilhe seu Link",
-                  description: "Seus clientes poderão agendar 24h por dia através do link exclusivo",
-                  icon: "🔗"
-                },
-                {
-                  step: "3",
-                  title: "Gerencie tudo em um lugar",
-                  description: "Acompanhe agendamentos, relatórios e faturamento em tempo real",
-                  icon: "📱"
-                }
+                { icon: Clock, title: 'Economia de Tempo', desc: 'Reduza em até 70% o tempo gasto com agendamentos', delay: 0 },
+                { icon: Calendar, title: 'Agenda Inteligente', desc: 'Organize todos os agendamentos em um só lugar', delay: 0.1 },
+                { icon: Users, title: 'Gestão de Clientes', desc: 'Histórico completo e perfil de cada cliente', delay: 0.2 },
+                { icon: BarChart, title: 'Relatórios Detalhados', desc: 'Análise completa do seu negócio', delay: 0.3 }
               ].map((item, index) => (
-                <motion.div
+                <motion.div 
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.2 }}
-                  className="relative p-8 bg-[#252B3B] rounded-xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                  transition={{ delay: item.delay, duration: 0.5 }}
+                  whileHover={{ 
+                    scale: 1.03, 
+                    boxShadow: "0 0 25px rgba(240,179,91,0.2)",
+                    y: -5
+                  }}
+                  className="
+                    group p-6 sm:p-8 
+                    bg-gradient-to-br from-[#252B3B] to-[#1A1F2E] 
+                    rounded-xl border border-[#F0B35B]/10 
+                    transition-all duration-300 
+                    hover:border-[#F0B35B]/30
+                    relative overflow-hidden
+                  "
                 >
-                  {/* Número do passo com efeito de gradiente */}
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-br from-[#F0B35B] to-[#D4943D] rounded-full flex items-center justify-center text-black font-bold text-lg shadow-lg">
-                    {item.step}
+                  {/* Efeito de brilho no hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  
+                  <div className="
+                    w-16 h-16 rounded-full 
+                    bg-gradient-to-br from-[#F0B35B]/20 to-[#F0B35B]/5 
+                    flex items-center justify-center 
+                    mb-6 relative z-10
+                    group-hover:from-[#F0B35B]/30 group-hover:to-[#F0B35B]/10
+                    transition-all duration-300
+                  ">
+                    <item.icon className="w-8 h-8 text-[#F0B35B] group-hover:scale-110 transition-transform duration-300" />
                   </div>
-
-                  {/* Ícone */}
-                  <div className="text-4xl mb-4 mt-4">{item.icon}</div>
-
-                  {/* Conteúdo */}
-                  <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">
-                    {item.description}
-                  </p>
-
-                  {/* Indicador de próximo passo em mobile */}
-                  {index < 2 && (
-                    <div className="md:hidden w-px h-8 bg-gradient-to-b from-[#F0B35B]/20 to-transparent mx-auto mt-4" />
-                  )}
+                  
+                  <h3 className="text-xl font-bold mb-3 text-white group-hover:text-[#F0B35B] transition-colors duration-300 relative z-10">{item.title}</h3>
+                  <p className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300 relative z-10">{item.desc}</p>
                 </motion.div>
               ))}
-            </div>
-
-            {/* CTA abaixo dos passos */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mt-16"
-            >
-              <button className="
-                relative overflow-hidden
-                px-8 py-4 bg-[#F0B35B] text-black rounded-lg
-                font-bold text-lg
-                transition-all duration-500
-                transform hover:scale-105
-                shadow-[0_0_25px_rgba(240,179,91,0.4)]
-                border-2 border-[#F0B35B]
-                before:absolute before:inset-0
-                before:bg-gradient-to-r before:from-[#F0B35B]/0 
-                before:via-white/40 before:to-[#F0B35B]/0
-                before:-skew-x-45 before:animate-shine
-              ">
-                <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
-                  Começar Agora Mesmo
-                </span>
-              </button>
             </motion.div>
           </div>
         </section>
 
-        {/* Segunda demonstração */}
-        <AnimatePresence>
-          {showDemo && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                className="bg-[#1A1F2E] p-6 rounded-lg w-full max-w-4xl"
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-2xl font-bold">Demonstração do Sistema</h3>
-                  <button
-                    onClick={() => setShowDemo(false)}
-                    className="p-2 hover:bg-[#252B3B] rounded-full"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-
-                {/* Adicionar conteúdo da demo aqui */}
-                <div className="aspect-video bg-[#252B3B] rounded-lg mb-6">
-                  {/* Adicionar vídeo ou screenshots interativos */}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+       
         <section className="py-20 bg-[#1A1F2E]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div {...fadeInUp} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                { icon: Clock, title: 'Economia de Tempo', desc: 'Reduza em até 70% o tempo gasto com agendamentos' },
-                { icon: Calendar, title: 'Agenda Inteligente', desc: 'Organize todos os agendamentos em um só lugar' },
-                { icon: Users, title: 'Gestão de Clientes', desc: 'Histórico completo e perfil de cada cliente' },
-                { icon: BarChart, title: 'Relatórios Detalhados', desc: 'Análise completa do seu negócio' }
-              ].map((item, index) => (
-                <div key={index} className="p-6 bg-[#252B3B] rounded-lg">
-                  <item.icon className="w-12 h-12 text-[#F0B35B] mb-4" />
-                  <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                  <p className="text-gray-400">{item.desc}</p>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Seção de planos atualizada */}
-        <section className="py-20" id="pricing">
-          <div className="max-w-7xl mx-auto px-4">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               className="text-center mb-12"
             >
@@ -581,8 +626,7 @@ const VendaPage2: React.FC = () => {
                 </div>
                 <div className="relative">
                   <h3 className="text-xl font-bold mb-2 text-white">Plano Mensal</h3>
-                  <div className="text-gray-500 line-through text-sm mb-1">R$ 69,90</div>
-                  <div className="text-4xl font-bold text-[#F0B35B] mb-6">R$ 54,90</div>
+                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 43,90</div>
                   <div className="text-sm text-gray-400 mb-4">Cobrado mensalmente</div>
                   <ul className="space-y-3 mb-6">
                     {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos'].map((item, index) => (
@@ -608,11 +652,11 @@ const VendaPage2: React.FC = () => {
                   Mais Popular
                 </div>
                 <h3 className="text-xl font-bold mb-2">Plano Semestral</h3>
-                <div className="text-4xl font-bold text-[#F0B35B] mb-2">R$ 48,32</div>
-                <div className="text-xs text-[#F0B35B]">Total R$ 289,90</div>
-                <div className="text-sm text-[#F0B35B] mb-6">Economia de 31%</div>
+                <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 239,40</div>
+                <div className="text-lg text-[#F0B35B] mb-4 ">ou 6x de R$ 39,90</div>
+                <div className="text-sm text-[#F0B35B] mb-6">Apenas R$ 39,90/mês<br/> (Economia de 12%)</div>
                 <ul className="space-y-3 mb-6">
-                  {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Acesso a recursos premium'].map((item, index) => (
+                  {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Acesso a recursos premium'].map((item, index) => (
                     <li key={index} className="flex items-center">
                       <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
                       <span>{item}</span>
@@ -643,26 +687,31 @@ const VendaPage2: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
                 className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border border-[#F0B35B]/10 w-full sm:w-[calc(33%-1rem)] max-w-[350px] ${commonAnimations.glowEffect}`}
               >
+                <div className={`absolute -top-3 -right-3 ${commonAnimations.buttonGradient} text-black text-xs px-3 py-1 rounded-full`}>
+                  Melhor Valor
+                </div>
                 <div className="relative">
                   <h3 className="text-xl font-bold mb-2 text-white">Plano Anual</h3>
-                  <div className="text-4xl font-bold text-[#F0B35B] mb-2">R$ 45,75</div>
-                  <div className="text-xs text-[#F0B35B]">Total de R$ 549 </div>
-                  <div className="text-sm text-[#F0B35B] mb-6">Economia de 35%</div>
+                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 419,80</div>
+                  <div className="text-lg text-[#F0B35B] mb-4">ou 12x de R$ 34,90</div>
+                  <div className="text-sm text-[#F0B35B] mb-4">Apenas R$ 34,90/mês <br/>(economia de 25%)</div>
                   <ul className="space-y-3 mb-6">
-                    {['Atualizações', 'Suporte 24/7 prioritário', 'Backups diários', 'Sem limite de agendamentos', 'Acesso a recursos premium', 'Consultoria personalizada'].map((item, index) => (
+                    {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Economia garantida', 'Acesso a novos recursos'].map((item, index) => (
                       <li key={index} className="flex items-center">
                         <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
                         <span>{item}</span>
                       </li>
                     ))}
                   </ul>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full py-3 bg-[#252B3B] text-[#F0B35B] rounded-lg font-bold border border-[#F0B35B]/30 hover:bg-[#F0B35B]/10 transition-all duration-300"
-                  >
-                    Assinar Agora
-                  </motion.button>
+                  <button className="
+                    w-full py-3 bg-[#F0B35B]/10 text-[#F0B35B] rounded-lg
+                    font-medium
+                    transition-all duration-300
+                    hover:bg-[#F0B35B]/20
+                    border border-[#F0B35B]/30
+                  ">
+                    Escolher Plano
+                  </button>
                 </div>
               </motion.div>
             </div>
@@ -688,11 +737,11 @@ const VendaPage2: React.FC = () => {
               className="space-y-8"
             >
               <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
-                Transforme Sua Barbearia Hoje
+                Transforme sua Barbearia Hoje
               </h2>
 
               <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                Junte-se às {socialProof.stats.clients} barbearias que já estão crescendo com nosso sistema
+                Junte-se às barbearias que já estão crescendo com nosso sistema
               </p>
 
               <motion.div
