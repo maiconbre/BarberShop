@@ -1,28 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import {
-  Clock, Calendar, CheckCircle, ArrowRight, ArrowLeft,
+  Clock, Calendar, CheckCircle, ArrowRight,
   Users, BarChart, Smartphone, DollarSign, X,
-  Rocket, Timer, Key, Settings, Share2, ChevronRight
+  Rocket, Key, Settings, Share2
 } from 'lucide-react';
 import { Helmet } from 'react-helmet';
 import { useCountdown } from '../hooks/useCountdown';
 
-// Dados de prova social
-const socialProof = {
-  stats: {
-    satisfaction: "100%",
-    timesSaved: "3h/dia",
-    noAccount: "0 cadastros",
-    noApp: "0 apps"
-  },
-  partners: [
-    { name: "BarberPro", logo: "./img/partners/barberpro.png" },
-    { name: "TopCut", logo: "./img/partners/topcut.png" },
-    // Adicione mais parceiros
-  ]
-};
+// Configuração da promoção relâmpago
+const PROMO_END_TIME = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+const SLOTS_LEFT = 3;
 
 // CTAs otimizados com variantes de teste A/B
 const ctaVariants = {
@@ -37,77 +25,27 @@ const ctaVariants = {
   }
 };
 
-// Configuração da promoção relâmpago
-const PROMO_END_TIME = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
-const SLOTS_LEFT = 3;
-
-// Adicione os dados dos feature cards
-const featureCards = [
-  {
-    icon: "⭐",
-    title: "100% Satisfação",
-    description: "Clientes satisfeitos em todo RJ",
-    gradient: "from-yellow-500/20 to-orange-500/20",
-    borderColor: "border-yellow-500/20",
-    iconColor: "text-yellow-500"
-  },
-  {
-    icon: "⚡",
-    title: "+1000 Agendamentos",
-    description: "Por segundo sem travamentos",
-    gradient: "from-blue-500/20 to-cyan-500/20",
-    borderColor: "border-blue-500/20",
-    iconColor: "text-blue-500"
-  },
-  {
-    icon: "💎",
-    title: "Sistema Premium",
-    description: "Design exclusivo para sua marca",
-    gradient: "from-purple-500/20 to-pink-500/20",
-    borderColor: "border-purple-500/20",
-    iconColor: "text-purple-500"
-  },
-  {
-    icon: "🚀",
-    title: "Otimização Total",
-    description: "Economia de 3h por dia",
-    gradient: "from-green-500/20 to-emerald-500/20",
-    borderColor: "border-green-500/20",
-    iconColor: "text-green-500"
-  }
-];
-
 const VendaPage2: React.FC = () => {
-  const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
   const { hours, minutes, seconds } = useCountdown(PROMO_END_TIME);
-  // Referência para o vídeo em dispositivos móveis
-  const videoRef = React.useRef<HTMLVideoElement>(null);
   // Referência para a seção hero
   const heroRef = React.useRef<HTMLDivElement>(null);
-  
+
   // Efeito para garantir que a página sempre inicie no topo
   useEffect(() => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
-    
+
     // Foco na primeira seção
     if (heroRef.current) {
       heroRef.current.focus();
     }
   }, []);
 
-  // Atualizar useEffect para garantir autoplay
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(error => {
-        console.log("Autoplay foi prevenido:", error);
-      });
-    }
-  }, []);
-  
+
+
   // Efeito para resetar o passo quando o modal é fechado
   useEffect(() => {
     if (!showDemo) {
@@ -115,141 +53,43 @@ const VendaPage2: React.FC = () => {
       setCurrentStep(0);
     }
   }, [showDemo]);
-  
-  // Estado para animações interativas
-  const [isHovered, setIsHovered] = useState(false);
 
   // Estado para controlar o card atual
   const [currentStep, setCurrentStep] = useState(0);
-  
+
   // Função para abrir o modal de demonstração sempre no primeiro passo
   const openDemoModal = () => {
     setCurrentStep(0); // Garante que sempre inicie no primeiro passo
     setShowDemo(true);
   };
 
-  // Funções para próximo/anterior
-  const nextStep = () => {
+  // Referência para o carrossel
+  const carouselRef = React.useRef<HTMLDivElement>(null);
+  
+  // Função para navegação - próximo passo
+  const goToNextStep = () => {
     if (currentStep < demoSteps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
   };
 
-  const prevStep = () => {
+  // Função para navegação - passo anterior
+  const goToPrevStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
   };
-
-  // Gestos de touch para mobile com melhor sensibilidade
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartX, setDragStartX] = useState(0);
-  const [dragX, setDragX] = useState(0);
-  const carouselRef = React.useRef<HTMLDivElement>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.touches[0].clientX);
-    // Adicionar movimento em tempo real para feedback visual
-    const diff = e.touches[0].clientX - touchStart;
-    setDragX(diff);
-  };
-
-  const handleTouchEnd = () => {
-    setIsDragging(false);
-    if (touchStart - touchEnd > 50) {
-      // Swipe esquerda - sensibilidade aumentada
-      if (currentStep < demoSteps.length - 1) {
-        setCurrentStep(currentStep + 1);
-      }
-    }
-    if (touchStart - touchEnd < -50) {
-      // Swipe direita - sensibilidade aumentada
-      if (currentStep > 0) {
-        setCurrentStep(currentStep - 1);
-      }
-    }
-    // Resetar o dragX após o swipe
-    setDragX(0);
-  };
   
-  // Suporte para arrastar com mouse em desktop
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStartX(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setDragX(e.clientX - dragStartX);
-  };
-
-  const handleMouseUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    
-    // Determinar a direção do arrasto
-    if (dragX > 100) {
-      // Arrasto para direita
-      if (currentStep > 0) {
-        setCurrentStep(currentStep - 1);
-      }
-    } else if (dragX < -100) {
-      // Arrasto para esquerda
-      if (currentStep < demoSteps.length - 1) {
-        setCurrentStep(currentStep + 1);
-      }
+  // Função para ir diretamente para um passo específico
+  const goToStep = (step: number) => {
+    if (step >= 0 && step < demoSteps.length) {
+      setCurrentStep(step);
     }
-    
-    setDragX(0);
   };
-  
-  // Adicionar event listeners para mouse up global
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isDragging) {
-        handleMouseUp();
-      }
-    };
-    
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => {
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, [isDragging, dragX, currentStep]);
-  
-  // Estilo para esconder a barra de rolagem
-  React.useEffect(() => {
-    // Adicionar estilo para esconder a barra de rolagem
-    const style = document.createElement('style');
-    style.innerHTML = `
-      .hide-scrollbar {
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
-      }
-      .hide-scrollbar::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
 
-  // Animações
-  const fadeInUp = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 }
-  };
+  // Removido efeito não utilizado para esconder a barra de rolagem
+
+
 
   // Demonstração interativa do sistema
   const demoSteps = [
@@ -403,7 +243,7 @@ const VendaPage2: React.FC = () => {
         </motion.header>
 
         {/* Hero Section Aprimorada */}
-        <section 
+        <section
           ref={heroRef}
           className="relative min-h-[90vh] flex items-center pt-16 overflow-hidden"
           tabIndex={-1}
@@ -413,21 +253,21 @@ const VendaPage2: React.FC = () => {
             <div className="absolute top-20 left-10 w-64 h-64 bg-[#F0B35B]/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
             <div className="absolute bottom-20 right-10 w-72 h-72 bg-[#F0B35B]/10 rounded-full filter blur-3xl animate-pulse-slow animation-delay-2000"></div>
             <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-[#F0B35B]/5 rounded-full filter blur-3xl animate-float"></div>
-            
+
             {/* Linhas decorativas */}
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
             <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
           </div>
-          
+
           <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24 relative z-10">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.8, 
+                transition={{
+                  duration: 0.8,
                   type: "spring",
-                  stiffness: 50 
+                  stiffness: 50
                 }}
                 className="max-w-2xl mx-auto text-center lg:text-left" // Centralizado em mobile
               >
@@ -443,11 +283,11 @@ const VendaPage2: React.FC = () => {
                     <span className="animate-pulse text-lg">⭐</span>
                     <span>Software #1 do RJ para Barbearias</span>
                   </motion.div>
-                  
+
                 </div>
 
                 {/* Headline com animação de texto otimizado para mobile-first */}
-                <motion.h1 
+                <motion.h1
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5, duration: 0.8 }}
@@ -459,11 +299,11 @@ const VendaPage2: React.FC = () => {
                   <span className="relative">
                     <span className={`relative inline-block bg-clip-text text-transparent text-[1.2em] sm:text-[1em] ${commonAnimations.buttonGradient}`}>
                       O Próximo Nível
-                      <motion.span 
-                      initial={{ width: "0%" }}
-                      animate={{ width: "100%" }}
-                      transition={{ delay: 1.2, duration: 0.8 }}
-                      className="absolute -bottom-1 sm:-bottom-2 left-0 h-[2px] sm:h-[3px] bg-gradient-to-r from-[#F0B35B]/0 via-[#F0B35B] to-[#F0B35B]/0"
+                      <motion.span
+                        initial={{ width: "0%" }}
+                        animate={{ width: "100%" }}
+                        transition={{ delay: 1.2, duration: 0.8 }}
+                        className="absolute -bottom-1 sm:-bottom-2 left-0 h-[2px] sm:h-[3px] bg-gradient-to-r from-[#F0B35B]/0 via-[#F0B35B] to-[#F0B35B]/0"
                       />
                     </span>
                   </span>
@@ -479,7 +319,7 @@ const VendaPage2: React.FC = () => {
                   <p className="text-gray-300 text-lg max-w-xl mx-auto lg:mx-0 mb-6">
                     Sistema completo para gerenciar sua barbearia:
                   </p>
-                  
+
                   {/* Cards de benefícios */}
                   <div className="grid grid-cols-3 md:grid-cols-3 gap-3 sm:gap-4 max-w-xl mx-auto lg:mx-0">
                     {/* Card 1 */}
@@ -493,7 +333,7 @@ const VendaPage2: React.FC = () => {
                         <p className="text-gray-400 text-xs sm:text-sm">3h/dia na gestão</p>
                       </div>
                     </motion.div>
-                    
+
                     {/* Card 2 */}
                     <motion.div
                       whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(240,179,91,0.2)" }}
@@ -505,7 +345,7 @@ const VendaPage2: React.FC = () => {
                         <p className="text-gray-400 text-xs sm:text-sm">Clientes satisfeitos</p>
                       </div>
                     </motion.div>
-                    
+
                     {/* Card 3 */}
                     <motion.div
                       whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(240,179,91,0.2)" }}
@@ -522,40 +362,40 @@ const VendaPage2: React.FC = () => {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }} 
+                    transition={{ delay: 0.4, duration: 0.5 }}
                     className="flex flex-wrap justify-center lg:justify-start gap-3 mt-6"
                   >
                     {/* Feature badges com animações individuais */}
-                    <motion.div 
+                    <motion.div
                       whileHover={{ scale: 1.05, y: -3 }}
                       whileTap={{ scale: 0.95 }}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/10 to-green-500/20 text-green-400 rounded-full border border-green-500/20 backdrop-blur-sm text-xs shadow-sm hover:shadow-green-500/20 transition-all duration-300"
                     >
-                      <motion.span 
+                      <motion.span
                         animate={{ rotate: [0, 10, 0] }}
                         transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
                       >🌱</motion.span>
                       <span>Sem Cadastro</span>
                     </motion.div>
-                    
-                    <motion.div 
+
+                    <motion.div
                       whileHover={{ scale: 1.05, y: -3 }}
                       whileTap={{ scale: 0.95 }}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/10 to-blue-500/20 text-blue-400 rounded-full border border-blue-500/20 backdrop-blur-sm text-xs shadow-sm hover:shadow-blue-500/20 transition-all duration-300"
                     >
-                      <motion.span 
+                      <motion.span
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
                       >🔒</motion.span>
                       <span>Banco Exclusivo</span>
                     </motion.div>
-                    
-                    <motion.div 
+
+                    <motion.div
                       whileHover={{ scale: 1.05, y: -3 }}
                       whileTap={{ scale: 0.95 }}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/10 to-purple-500/20 text-purple-400 rounded-full border border-purple-500/20 backdrop-blur-sm text-xs shadow-sm hover:shadow-purple-500/20 transition-all duration-300"
                     >
-                      <motion.span 
+                      <motion.span
                         animate={{ y: [0, -3, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2.5 }}
                       >🎯</motion.span>
@@ -574,8 +414,6 @@ const VendaPage2: React.FC = () => {
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
                     className="
                       relative overflow-hidden
                       px-8 py-4 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-lg
@@ -591,13 +429,13 @@ const VendaPage2: React.FC = () => {
                   >
                     {/* Efeito de brilho animado */}
                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
-                    
+
                     <span className="relative z-10 inline-flex flex-col items-center justify-center w-full">
                       <span className="flex items-center gap-2">
                         Garanta 50% OFF
                         <motion.span
-                          animate={isHovered ? { rotate: [0, 15, -15, 0] } : {}}
-                          transition={{ duration: 0.5, ease: "easeInOut" }}
+                          animate={{ rotate: [0, 15, -15, 0] }}
+                          transition={{ duration: 0.5, ease: "easeInOut", repeat: Infinity, repeatDelay: 2 }}
                         >
                           🔥
                         </motion.span>
@@ -605,7 +443,7 @@ const VendaPage2: React.FC = () => {
                       <span className="text-xs mt-1 text-black/80">{ctaVariants.primary.urgency}</span>
                     </span>
                   </motion.button>
-                  
+
                   <motion.button
                     whileHover={{ scale: 1.03, backgroundColor: "rgba(240,179,91,0.15)" }}
                     whileTap={{ scale: 0.97 }}
@@ -636,24 +474,24 @@ const VendaPage2: React.FC = () => {
                 transition={{ duration: 0.8, delay: 0.5 }}
                 className="relative hidden lg:block"
               >
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.02, rotate: -1 }}
                   transition={{ type: "spring", stiffness: 300 }}
                   className="relative w-full aspect-video bg-[#1A1F2E] rounded-xl overflow-hidden border border-[#F0B35B]/20 shadow-2xl transform perspective-1000"
                 >
                   {/* Efeito de brilho nas bordas */}
                   <div className="absolute inset-0 rounded-xl border border-[#F0B35B]/30 filter blur-[2px] z-0"></div>
-                  
+
                   {/* Imagem principal */}
                   <img
                     src="./img/demofoto.png"
                     alt="Preview do Sistema"
                     className="absolute inset-0 w-full h-full object-cover object-center z-10"
                   />
-                  
+
                   {/* Overlay gradiente */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-[#0D121E]/50 to-transparent opacity-70 z-20"></div>
-                  
+
                   {/* Elementos flutuantes */}
                   <div className="absolute inset-0 z-30 flex items-end p-6">
                     <div className="w-full">
@@ -664,23 +502,23 @@ const VendaPage2: React.FC = () => {
                           <div className="text-xs text-gray-300">Sistema de Gestão</div>
                         </div>
                       </div>
-                      
+
                       <div className="flex gap-2 mb-2">
-                        <motion.div 
+                        <motion.div
                           animate={{ y: [0, -5, 0] }}
                           transition={{ repeat: Infinity, duration: 2, delay: 0 }}
                           className="px-3 py-1.5 bg-[#F0B35B]/20 rounded-md text-[#F0B35B] text-xs font-medium"
                         >
                           Agendamentos
                         </motion.div>
-                        <motion.div 
+                        <motion.div
                           animate={{ y: [0, -5, 0] }}
                           transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}
                           className="px-3 py-1.5 bg-[#F0B35B]/10 rounded-md text-[#F0B35B] text-xs font-medium"
                         >
                           Relatórios
                         </motion.div>
-                        <motion.div 
+                        <motion.div
                           animate={{ y: [0, -5, 0] }}
                           transition={{ repeat: Infinity, duration: 2, delay: 1 }}
                           className="px-3 py-1.5 bg-[#F0B35B]/10 rounded-md text-[#F0B35B] text-xs font-medium"
@@ -691,22 +529,22 @@ const VendaPage2: React.FC = () => {
                     </div>
                   </div>
                 </motion.div>
-                
+
                 {/* Elementos decorativos */}
                 <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-[#F0B35B]/10 rounded-full filter blur-xl"></div>
                 <div className="absolute -top-6 -left-6 w-32 h-32 bg-[#F0B35B]/5 rounded-full filter blur-xl"></div>
               </motion.div>
             </div>
           </div>
-          
+
           {/* Indicador de scroll */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 2, duration: 1 }}
             className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
           >
-            
+
           </motion.div>
 
         </section>
@@ -752,139 +590,226 @@ const VendaPage2: React.FC = () => {
                         {demoSteps.map((_, idx) => (
                           <div
                             key={idx}
-                            className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
-                              idx === currentStep 
-                                ? 'w-6 sm:w-8 bg-[#F0B35B]' 
-                                : idx < currentStep 
+                            className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${idx === currentStep
+                                ? 'w-6 sm:w-8 bg-[#F0B35B]'
+                                : idx < currentStep
                                   ? 'w-1.5 sm:w-2 bg-[#F0B35B]/50'
                                   : 'w-1.5 sm:w-2 bg-[#F0B35B]/20'
-                            }`}
+                              }`}
                           />
                         ))}
                       </div>
                     </div>
 
-                    {/* Content - Carrossel Interativo */}
+                    {/* Content - Carrossel Interativo com Navegação por Setas */}
                     <div
                       ref={carouselRef}
-                      onTouchStart={handleTouchStart}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleTouchEnd}
-                      onMouseDown={handleMouseDown}
-                      onMouseMove={handleMouseMove}
-                      onMouseUp={handleMouseUp}
-                      onMouseLeave={() => isDragging && handleMouseUp()}
                       className="relative px-0 sm:px-4 select-none"
                     >
-                      {/* Indicador de arraste para mobile */}
+                      {/* Setas de navegação grandes e visíveis */}
+                      <motion.button 
+                        onClick={goToPrevStep}
+                        initial={{ opacity: 0.6 }}
+                        animate={{ opacity: currentStep === 0 ? 0.3 : 0.8 }}
+                        whileHover={{ opacity: currentStep === 0 ? 0.3 : 1, scale: currentStep === 0 ? 1 : 1.1 }}
+                        whileTap={{ scale: currentStep === 0 ? 1 : 0.95 }}
+                        disabled={currentStep === 0}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#1A1F2E]/80 hover:bg-[#252B3B] rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                      </motion.button>
+                      
+                      <motion.button 
+                        onClick={goToNextStep}
+                        initial={{ opacity: 0.6 }}
+                        animate={{ opacity: currentStep === demoSteps.length - 1 ? 0.3 : 0.8 }}
+                        whileHover={{ opacity: currentStep === demoSteps.length - 1 ? 0.3 : 1, scale: currentStep === demoSteps.length - 1 ? 1 : 1.1 }}
+                        whileTap={{ scale: currentStep === demoSteps.length - 1 ? 1 : 0.95 }}
+                        disabled={currentStep === demoSteps.length - 1}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#1A1F2E]/80 hover:bg-[#252B3B] rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </motion.button>
+                      {/* Indicador de navegação com setas */}
                       <div className="flex justify-center mb-4">
-                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                          <motion.div 
-                            animate={{ x: [-5, 5, -5] }}
+                        <div className="flex items-center gap-2 text-xs text-gray-400 bg-[#1A1F2E]/70 px-3 py-1.5 rounded-full border border-[#F0B35B]/10">
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
                             transition={{ repeat: Infinity, duration: 1.5 }}
                             className="text-[#F0B35B]"
                           >
-                            ⟺
+                            ←
                           </motion.div>
-                          <span className="sm:text-sm">Deslize para navegar</span>
-                          <motion.div 
-                            animate={{ x: [5, -5, 5] }}
+                          <span className="sm:text-sm">Navegue com as setas</span>
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
                             transition={{ repeat: Infinity, duration: 1.5 }}
                             className="text-[#F0B35B]"
                           >
-                            ⟺
+                            →
                           </motion.div>
                         </div>
                       </div>
 
-                      {/* Carrossel de Cards */}
+                      {/* Carrossel de Cards com transição suave entre slides */}
                       <div className="overflow-hidden pb-4">
-                        <div 
-                          className="flex gap-4 sm:gap-6 transition-transform duration-300 touch-pan-x"
-                          style={{ 
-                            transform: `translateX(calc(-${currentStep * 100}% / ${demoSteps.length} ${isDragging ? `+ ${dragX}px` : ''}))`
+                        <div className="flex justify-center">
+                          <AnimatePresence mode="wait">
+                            {demoSteps.map((step, idx) => (
+                              currentStep === idx && (
+                                <motion.div
+                                  key={idx}
+                                  initial={{ opacity: 0, x: 50 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -50 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="w-full max-w-[500px] bg-[#252B3B] rounded-lg border border-[#F0B35B]/30 p-4 sm:p-6 shadow-[0_0_15px_rgba(240,179,91,0.15)]"
+                                >
+                                  {/* Icon and Title */}
+                                  <div className="flex flex-col items-center text-center mb-4 sm:mb-6">
+                                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                                      {React.createElement(step.icon, {
+                                        className: "w-7 h-7 sm:w-8 sm:h-8 text-white"
+                                      })}
+                                    </div>
+                                    <h4 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
+                                      {step.title}
+                                    </h4>
+                                    <p className="text-gray-400 text-sm sm:text-base max-w-xl">
+                                      {step.description}
+                                    </p>
+                                  </div>
+
+                                  {/* Features */}
+                                  <div className="bg-[#1A1F2E] rounded-lg p-3 sm:p-5">
+                                    <p className="text-gray-300 mb-3 sm:mb-4 text-center text-xs sm:text-sm">
+                                      {step.details}
+                                    </p>
+                                    <div className="grid grid-cols-1 gap-2 sm:gap-3 max-w-md mx-auto">
+                                      {step.features.map((feature, featureIdx) => (
+                                        <motion.div
+                                          key={featureIdx}
+                                          initial={{ opacity: 0, x: -10 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ delay: featureIdx * 0.1 }}
+                                          className="flex items-center gap-2 sm:gap-3 bg-[#252B3B]/50 p-2 sm:p-3 rounded-lg"
+                                        >
+                                          <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F0B35B] flex-shrink-0" />
+                                          <span className="text-gray-300 text-xs sm:text-sm">{feature}</span>
+                                        </motion.div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )
+                            ))}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+
+                      {/* Barra de Navegação Interativa Aprimorada */}
+                      <div className="mt-6 sm:mt-8 px-4">
+                        {/* Barra de progresso principal com altura aumentada para melhor interação */}
+                        <div className="relative h-3 bg-[#1A1F2E] rounded-full overflow-hidden cursor-pointer shadow-inner"
+                          onClick={(e) => {
+                            // Cálculo da posição relativa do clique na barra
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = e.clientX - rect.left;
+                            const percentage = x / rect.width;
+                            const newStep = Math.min(
+                              demoSteps.length - 1,
+                              Math.max(0, Math.round(percentage * (demoSteps.length - 1)))
+                            );
+                            setCurrentStep(newStep);
                           }}
                         >
-                          {demoSteps.map((step, idx) => (
-                            <motion.div
-                              key={idx}
-                              initial={{ opacity: 0.5, scale: 0.95 }}
-                              animate={{ 
-                                opacity: currentStep === idx ? 1 : 0.7,
-                                scale: currentStep === idx ? 1 : 0.95,
-                              }}
-                              transition={{ duration: 0.3 }}
-                              className={`flex-shrink-0 w-[85vw] sm:w-[450px] md:w-[500px] bg-[#252B3B] rounded-lg border ${currentStep === idx ? 'border-[#F0B35B]/30' : 'border-[#F0B35B]/10'} p-4 sm:p-6 transition-all duration-300 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} ${idx === currentStep ? 'shadow-[0_0_15px_rgba(240,179,91,0.15)]' : ''}`}
-                            >
-                              {/* Icon and Title */}
-                              <div className="flex flex-col items-center text-center mb-4 sm:mb-6">
-                                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mb-3 sm:mb-4`}>
-                                  {React.createElement(step.icon, {
-                                    className: "w-7 h-7 sm:w-8 sm:h-8 text-white"
-                                  })}
-                                </div>
-                                <h4 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
-                                  {step.title}
-                                </h4>
-                                <p className="text-gray-400 text-sm sm:text-base max-w-xl">
-                                  {step.description}
-                                </p>
-                              </div>
-
-                              {/* Features */}
-                              <div className="bg-[#1A1F2E] rounded-lg p-3 sm:p-5">
-                                <p className="text-gray-300 mb-3 sm:mb-4 text-center text-xs sm:text-sm">
-                                  {step.details}
-                                </p>
-                                <div className="grid grid-cols-1 gap-2 sm:gap-3 max-w-md mx-auto">
-                                  {step.features.map((feature, featureIdx) => (
-                                    <motion.div
-                                      key={featureIdx}
-                                      initial={{ opacity: 0, x: -10 }}
-                                      animate={{ opacity: 1, x: 0 }}
-                                      transition={{ delay: featureIdx * 0.1 }}
-                                      className="flex items-center gap-2 sm:gap-3 bg-[#252B3B]/50 p-2 sm:p-3 rounded-lg"
-                                    >
-                                      <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F0B35B] flex-shrink-0" />
-                                      <span className="text-gray-300 text-xs sm:text-sm">{feature}</span>
-                                    </motion.div>
-                                  ))}
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Barra de Progresso Interativa */}
-                      <div className="mt-6 sm:mt-8 px-4">
-                        <div className="relative h-2 bg-[#1A1F2E] rounded-full overflow-hidden">
-                          {/* Barra de progresso */}
-                          <motion.div 
+                          {/* Fundo da barra com gradiente suave */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#1A1F2E] via-[#1A1F2E]/80 to-[#1A1F2E] opacity-50"></div>
+                          
+                          {/* Barra de progresso com animação melhorada */}
+                          <motion.div
                             className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#F0B35B] to-[#D4943D] rounded-full"
                             style={{ width: `${(currentStep / (demoSteps.length - 1)) * 100}%` }}
                             initial={{ width: 0 }}
                             animate={{ width: `${(currentStep / (demoSteps.length - 1)) * 100}%` }}
-                            transition={{ duration: 0.3 }}
-                          />
+                            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1.0] }}
+                          >
+                            {/* Efeito de brilho na barra de progresso */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine"></div>
+                          </motion.div>
+
                           
-                          {/* Pontos clicáveis */}
-                          <div className="absolute top-0 left-0 w-full h-full flex justify-between px-1">
-                            {demoSteps.map((_, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => setCurrentStep(idx)}
-                                className={`w-4 h-4 rounded-full -mt-1 transition-all ${idx <= currentStep ? 'bg-[#F0B35B]' : 'bg-[#1A1F2E] border border-[#F0B35B]/30'}`}
-                                aria-label={`Ir para o passo ${idx + 1}`}
-                              />
-                            ))}
-                          </div>
+
+                          {/* Pontos clicáveis aprimorados */}
+                          
                         </div>
-                        
-                        {/* Indicadores de texto */}
-                        <div className="flex justify-between mt-2 px-1 text-xs text-gray-400">
-                          <span>Início</span>
-                          <span>Fim</span>
+
+                        {/* Miniaturas dos cards para navegação rápida com feedback visual melhorado */}
+                        <div className="mt-6 flex justify-between gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                          {demoSteps.map((step, idx) => (
+                            <motion.button
+                              key={idx}
+                              onClick={() => setCurrentStep(idx)}
+                              whileHover={{ y: -3, boxShadow: '0 8px 16px rgba(240,179,91,0.3)' }}
+                              whileTap={{ y: 0, scale: 0.95 }}
+                              animate={{
+                                opacity: Math.abs(currentStep - idx) <= 1 ? 1 : 0.6,
+                                y: currentStep === idx ? -3 : 0,
+                                boxShadow: currentStep === idx ? '0 6px 12px rgba(240,179,91,0.3)' : 'none'
+                              }}
+                              className={`relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden transition-all duration-300 ${currentStep === idx ? 'ring-2 ring-[#F0B35B]' : 'ring-1 ring-[#F0B35B]/20'}`}
+                            >
+                              <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${step.color}`}>
+                                {React.createElement(step.icon, {
+                                  className: "w-6 h-6 sm:w-8 sm:h-8 text-white"
+                                })}
+                              </div>
+                              
+                              {/* Indicador numérico do passo */}
+                              <div className="absolute top-1 right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#1A1F2E]/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-white border border-[#F0B35B]/30">
+                                {idx + 1}
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+
+                        {/* Indicadores de texto com animação e botões de navegação */}
+                        <div className="flex justify-between items-center mt-4 px-1">
+                          <motion.button
+                            onClick={() => currentStep > 0 && setCurrentStep(currentStep - 1)}
+                            whileHover={{ scale: 1.1, x: -2 }}
+                            whileTap={{ scale: 0.95 }}
+                            animate={{ opacity: currentStep === 0 ? 0.5 : 1 }}
+                            disabled={currentStep === 0}
+                            className="flex items-center gap-1 text-xs sm:text-sm text-[#F0B35B] disabled:text-gray-500 disabled:cursor-not-allowed"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 12H5M5 12L12 19M5 12L12 5" />
+                            </svg>
+                            <span>Anterior</span>
+                          </motion.button>
+                          
+                          <div className="text-xs sm:text-sm text-white font-medium">
+                            {currentStep + 1} de {demoSteps.length}
+                          </div>
+                          
+                          <motion.button
+                            onClick={() => currentStep < demoSteps.length - 1 && setCurrentStep(currentStep + 1)}
+                            whileHover={{ scale: 1.1, x: 2 }}
+                            whileTap={{ scale: 0.95 }}
+                            animate={{ opacity: currentStep === demoSteps.length - 1 ? 0.5 : 1 }}
+                            disabled={currentStep === demoSteps.length - 1}
+                            className="flex items-center gap-1 text-xs sm:text-sm text-[#F0B35B] disabled:text-gray-500 disabled:cursor-not-allowed"
+                          >
+                            <span>Próximo</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 12h14M14 5l7 7-7 7" />
+                            </svg>
+                          </motion.button>
                         </div>
                       </div>
                     </div>
@@ -899,7 +824,7 @@ const VendaPage2: React.FC = () => {
                       >
                         Começar Agora
                       </motion.button>
-                      
+
                     </div>
                   </div>
                 </div>
@@ -908,7 +833,7 @@ const VendaPage2: React.FC = () => {
           )}
         </AnimatePresence>
 
-        
+
         <section className="py-16 md:py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E] relative overflow-hidden">
           {/* Elementos decorativos de fundo */}
           <div className="absolute inset-0 z-0">
@@ -917,10 +842,10 @@ const VendaPage2: React.FC = () => {
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
             <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
           </div>
-          
+
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             {/* Título da seção com animação */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -930,9 +855,12 @@ const VendaPage2: React.FC = () => {
               <h2 className="text-3xl sm:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400">Recursos <span className="text-[#F0B35B]">Poderosos</span></h2>
               <p className="text-gray-300 max-w-2xl mx-auto">Tudo o que você precisa para transformar sua barbearia em um negócio de sucesso</p>
             </motion.div>
-            
-            <motion.div 
-              {...fadeInUp} 
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
               className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8"
             >
               {[
@@ -941,14 +869,14 @@ const VendaPage2: React.FC = () => {
                 { icon: Users, title: 'Gestão de Clientes', desc: 'Histórico completo e perfil de cada cliente', delay: 0.2 },
                 { icon: BarChart, title: 'Relatórios Detalhados', desc: 'Análise completa do seu negócio', delay: 0.3 }
               ].map((item, index) => (
-                <motion.div 
+                <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: item.delay, duration: 0.5 }}
-                  whileHover={{ 
-                    scale: 1.03, 
+                  whileHover={{
+                    scale: 1.03,
                     boxShadow: "0 0 25px rgba(240,179,91,0.2)",
                     y: -5
                   }}
@@ -963,7 +891,7 @@ const VendaPage2: React.FC = () => {
                 >
                   {/* Efeito de brilho no hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                  
+
                   <div className="
                     w-16 h-16 rounded-full 
                     bg-gradient-to-br from-[#F0B35B]/20 to-[#F0B35B]/5 
@@ -974,7 +902,7 @@ const VendaPage2: React.FC = () => {
                   ">
                     <item.icon className="w-8 h-8 text-[#F0B35B] group-hover:scale-110 transition-transform duration-300" />
                   </div>
-                  
+
                   <h3 className="text-xl font-bold mb-3 text-white group-hover:text-[#F0B35B] transition-colors duration-300 relative z-10">{item.title}</h3>
                   <p className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300 relative z-10">{item.desc}</p>
                 </motion.div>
@@ -983,7 +911,7 @@ const VendaPage2: React.FC = () => {
           </div>
         </section>
 
-       
+
         <section className="py-20 bg-[#1A1F2E]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
@@ -1037,7 +965,7 @@ const VendaPage2: React.FC = () => {
                 <h3 className="text-xl font-bold mb-2">Plano Semestral</h3>
                 <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 239,40</div>
                 <div className="text-lg text-[#F0B35B] mb-4 ">ou 6x de R$ 39,90</div>
-                <div className="text-sm text-[#F0B35B] mb-6">Apenas R$ 39,90/mês<br/> (Economia de 12%)</div>
+                <div className="text-sm text-[#F0B35B] mb-6">Apenas R$ 39,90/mês<br /> (Economia de 12%)</div>
                 <ul className="space-y-3 mb-6">
                   {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Acesso a recursos premium'].map((item, index) => (
                     <li key={index} className="flex items-center">
@@ -1077,7 +1005,7 @@ const VendaPage2: React.FC = () => {
                   <h3 className="text-xl font-bold mb-2 text-white">Plano Anual</h3>
                   <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 419,80</div>
                   <div className="text-lg text-[#F0B35B] mb-4">ou 12x de R$ 34,90</div>
-                  <div className="text-sm text-[#F0B35B] mb-4">Apenas R$ 34,90/mês <br/>(economia de 25%)</div>
+                  <div className="text-sm text-[#F0B35B] mb-4">Apenas R$ 34,90/mês <br />(economia de 25%)</div>
                   <ul className="space-y-3 mb-6">
                     {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Economia garantida', 'Acesso a novos recursos'].map((item, index) => (
                       <li key={index} className="flex items-center">
@@ -1110,7 +1038,6 @@ const VendaPage2: React.FC = () => {
         <section className="relative py-24 bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[#F0B35B]/5 animate-pulse"></div>
-            <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
           </div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
@@ -1201,14 +1128,14 @@ const VendaPage2: React.FC = () => {
                   Sistema completo para gestão de barbearias. Transforme seu negócio com nossa solução all-in-one.
                 </p>
                 <div className="flex items-center gap-4 pt-2">
-                  <motion.a 
+                  <motion.a
                     href="#"
                     whileHover={{ scale: 1.1 }}
                     className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black transition-all duration-300"
                   >
                     <span className="text-lg">🔥</span>
                   </motion.a>
-                  <motion.a 
+                  <motion.a
                     href="#"
                     whileHover={{ scale: 1.1 }}
                     className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black transition-all duration-300"
