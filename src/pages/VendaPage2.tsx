@@ -57,35 +57,35 @@ const VendaPage2: React.FC = () => {
 
   // Referência para o carrossel
   const carouselRef = React.useRef<HTMLDivElement>(null);
-  
+
   // Demonstração simplificada em 3 passos
   const demoSteps = [
     {
       id: 1,
-      title: "📝 Passo 1: Envie seus dados",
-      description: "Ativamos seu sistema rapidamente",
+      title: "📝  Envie seus dados",
+      description: "Ativação rápida e descomplicada",
       icon: Rocket,
-      details: "Preencha um formulário rápido com os dados da sua barbearia. Nossa equipe faz a configuração completa e, em até 24 horas (geralmente em apenas 6 horas), seu sistema estará pronto para uso. Sem complicação!",
+      details: "\n        Comece sua jornada de forma simples:\n\n        • Preencha um formulário rápido com os dados essenciais\n        • Nossa equipe configura tudo em até 6 horas\n        • Sistema pronto para uso em menos de 24h\n\n        Sem burocracias. Sem complicações.\n      ",
       features: [],
       color: "from-blue-500/20 to-blue-600/20",
       animate: { y: [0, -5, 0], transition: { duration: 2, repeat: Infinity } }
     },
     {
       id: 2,
-      title: "🔑 Passo 2: Personalize tudo",
-      description: "Acesse seu painel exclusivo",
+      title: "🔑  Personalize tudo",
+      description: "Seu painel exclusivo e personalizado",
       icon: Key,
-      details: "Assim que seu sistema estiver pronto, você receberá um link exclusivo e acesso ao painel administrativo. Lá, você pode configurar tudo do seu jeito: cadastrar serviços, definir horários de atendimento, adicionar seus barbeiros e ajustar todas as informações essenciais.",
+      details: "\n        Acesso total ao painel administrativo\n \n• Cadastre seus Barbeiros \n        • Configure serviços e preços\n        • Gerencie horários de atendimento\n        ",
       features: [],
       color: "from-green-500/20 to-green-600/20",
       animate: { scale: [1, 1.02, 1], transition: { duration: 2, repeat: Infinity } }
     },
     {
       id: 3,
-      title: "📲 Passo 3: Compartilhe",
-      description: "Comece a agendar clientes",
+      title: "📲  Compartilhe",
+      description: "Agendamentos online simplificados",
       icon: Share2,
-      details: "Com tudo configurado, agora é só divulgar seu link para os clientes! Eles poderão agendar horários online de forma simples e prática. E você acompanha tudo em tempo real, controlando sua agenda com poucos cliques.",
+      details: "\n       Automatize seus agendamentos\n\n        • Compartilhe seu link personalizado\n        • Clientes agendam em poucos cliques\n        • Acompanhamento em tempo real\n       ",
       features: [],
       color: "from-purple-500/20 to-purple-600/20",
       animate: { x: [-2, 2, -2], transition: { duration: 2, repeat: Infinity } }
@@ -540,7 +540,7 @@ const VendaPage2: React.FC = () => {
                 <div className="w-full h-full max-h-screen bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] overflow-hidden border-y sm:border border-[#F0B35B]/20">
                   <div className="p-4 sm:p-8 h-full flex flex-col max-h-full overflow-hidden">
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-6 sm:mb-8">
+                    <div className="flex justify-between items-center  sm:mb-8">
                       <div>
                         <h3 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
                           Como Funciona
@@ -564,10 +564,10 @@ const VendaPage2: React.FC = () => {
                           <div
                             key={idx}
                             className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${idx === currentStep
-                                ? 'w-6 sm:w-8 bg-[#F0B35B]'
-                                : idx < currentStep
-                                  ? 'w-1.5 sm:w-2 bg-[#F0B35B]/50'
-                                  : 'w-1.5 sm:w-2 bg-[#F0B35B]/20'
+                              ? 'w-6 sm:w-8 bg-[#F0B35B]'
+                              : idx < currentStep
+                                ? 'w-1.5 sm:w-2 bg-[#F0B35B]/50'
+                                : 'w-1.5 sm:w-2 bg-[#F0B35B]/20'
                               }`}
                           />
                         ))}
@@ -591,31 +591,49 @@ const VendaPage2: React.FC = () => {
                                   animate={{ opacity: 1, x: 0 }}
                                   exit={{ opacity: 0, x: -50 }}
                                   transition={{ duration: 0.3 }}
-                                  className="w-full max-w-[600px] bg-[#252B3B] rounded-lg border border-[#F0B35B]/30 p-4 sm:p-6 md:p-8 shadow-[0_0_25px_rgba(240,179,91,0.15)] overflow-y-auto max-h-[70vh] sm:max-h-[60vh]"
+                                  className="w-full max-w-[600px] bg-[#252B3B] rounded-lg border border-[#F0B35B]/30 p-3 sm:p-4 md:p-6 shadow-[0_0_25px_rgba(240,179,91,0.15)] overflow-y-auto max-h-[80vh] sm:max-h-[70vh]"
                                 >
                                   {/* Icon and Title - Layout aprimorado */}
-                                  <div className="flex flex-col items-center text-center mb-6 sm:mb-8">
-                                    <motion.div 
-                                      className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mb-4 sm:mb-5 shadow-lg`}
+                                  <div className="flex flex-col items-center text-center mb-3 sm:mb-4">
+                                    <motion.div
+                                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mb-3 sm:mb-4 shadow-lg`}
                                       animate={step.animate}
                                     >
                                       {React.createElement(step.icon, {
                                         className: "w-10 h-10 sm:w-12 sm:h-12 text-white"
                                       })}
                                     </motion.div>
-                                    <h4 className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">
+                                    <h4 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
                                       {step.title}
                                     </h4>
-                                    <p className="text-gray-300 text-base sm:text-lg max-w-xl">
+                                    <p className="text-gray-300 text-sm sm:text-base max-w-xl">
                                       {step.description}
                                     </p>
                                   </div>
 
-                                  {/* Features - Layout aprimorado */}
-                                  <div className="bg-[#1A1F2E] rounded-lg p-5 sm:p-7 shadow-inner">
-                                    <p className="text-gray-200 mb-5 sm:mb-6 text-center text-sm sm:text-base font-medium">
-                                      {step.details}
-                                    </p>
+                                  {/* Features - Layout aprimorado com grid responsivo */}
+                                  <div className="space-y-4 sm:space-y-6">
+                                    {/* Seção de detalhes em cards individuais */}
+                                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                                      {step.details.split('•').filter(Boolean).map((detail, index) => (
+                                        <motion.div
+                                          key={index}
+                                          initial={{ opacity: 0, y: 20 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ delay: index * 0.1 }}
+                                          className="bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300 shadow-lg hover:shadow-[#F0B35B]/10"
+                                        >
+                                          <div className="flex items-start gap-3">
+                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#F0B35B]/10 flex items-center justify-center text-[#F0B35B] font-medium">
+                                              {index + 1}
+                                            </div>
+                                            <p className="text-gray-300 text-sm sm:text-base leading-relaxed">{detail.trim()}</p>
+                                          </div>
+                                        </motion.div>
+                                      ))}
+                                    </div>
+
+                                    {/* Features em grid */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto">
                                       {step.features.map((feature, featureIdx) => (
                                         <motion.div
@@ -656,7 +674,7 @@ const VendaPage2: React.FC = () => {
                         >
                           {/* Fundo da barra com gradiente suave */}
                           <div className="absolute inset-0 bg-gradient-to-r from-[#1A1F2E] via-[#1A1F2E]/80 to-[#1A1F2E] opacity-50"></div>
-                          
+
                           {/* Barra de progresso com animação melhorada */}
                           <motion.div
                             className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#F0B35B] to-[#D4943D] rounded-full"
@@ -669,10 +687,10 @@ const VendaPage2: React.FC = () => {
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine"></div>
                           </motion.div>
 
-                          
+
 
                           {/* Pontos clicáveis aprimorados */}
-                          
+
                         </div>
 
                         {/* Miniaturas dos cards para navegação rápida com feedback visual melhorado */}
@@ -695,7 +713,7 @@ const VendaPage2: React.FC = () => {
                                   className: "w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white"
                                 })}
                               </div>
-                              
+
                               {/* Indicador numérico do passo */}
                               <div className="absolute top-1 right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 rounded-full bg-[#1A1F2E]/80 flex items-center justify-center text-[8px] sm:text-[10px] md:text-xs font-bold text-white border border-[#F0B35B]/30">
                                 {idx + 1}
@@ -719,11 +737,11 @@ const VendaPage2: React.FC = () => {
                             </svg>
                             <span>Anterior</span>
                           </motion.button>
-                          
+
                           <div className="text-xs sm:text-sm text-white font-medium">
                             {currentStep + 1} de {demoSteps.length}
                           </div>
-                          
+
                           <motion.button
                             onClick={() => currentStep < demoSteps.length - 1 && setCurrentStep(currentStep + 1)}
                             whileHover={{ scale: 1.1, x: 2 }}
@@ -898,10 +916,10 @@ const VendaPage2: React.FC = () => {
                 <h3 className="text-xl font-bold mb-2">Plano Semestral</h3>
                 <div className="text-5xl font-bold text-[#F0B35B] mb-1">R$ 39,90<span className="text-xl">/mês</span></div>
                 <div className="text-sm mt-2 text-gray-400 mb-4">de
-                    <span className="text-[#F0B35B] text-sm "> <span className="text-gray-400 text-xs line-through mr-2">R$ 300,00</span>por R$ 239,90</span>
-                    <span className="text-xs text-gray-400 ml-4 text-right">em 6 meses</span>
-                  </div>
-                
+                  <span className="text-[#F0B35B] text-sm "> <span className="text-gray-400 text-xs line-through mr-2">R$ 300,00</span>por R$ 239,90</span>
+                  <span className="text-xs text-gray-400 ml-4 text-right">em 6 meses</span>
+                </div>
+
                 <ul className="space-y-3 my-4">
                   {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Acesso a recursos premium'].map((item, index) => (
                     <li key={index} className="flex items-center">
@@ -941,10 +959,10 @@ const VendaPage2: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-bold text-white">Plano Anual</h3>
                   </div>
-                  
+
                   <div className="flex items-end">
                     <div className="text-5xl font-bold text-[#F0B35B]">R$ 34,90<span className="text-xl text-[#F0B35B]">/mês</span></div>
-                    
+
                   </div>
                   <div className="text-sm mt-2 text-gray-400 mb-4">de
                     <span className="text-[#F0B35B] text-sm "> <span className="text-gray-400 text-xs line-through mr-2">R$ 600,00</span>por R$ 419,90</span>
@@ -956,7 +974,7 @@ const VendaPage2: React.FC = () => {
                       <span className="text- xs">ECONOMIZE mais de R$ 180,00</span>
                     </div>
                   </div>
-                  
+
                   <ul className="space-y-3 mb-6">
                     {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Economia garantida', 'Acesso a novos recursos'].map((item, index) => (
                       <li key={index} className="flex items-center">
@@ -965,7 +983,7 @@ const VendaPage2: React.FC = () => {
                       </li>
                     ))}
                   </ul>
-                  
+
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
@@ -999,7 +1017,7 @@ const VendaPage2: React.FC = () => {
             <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow"></div>
             <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow animation-delay-1000"></div>
           </div>
-          
+
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
