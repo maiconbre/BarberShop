@@ -454,9 +454,15 @@ const VendaPage2: React.FC = () => {
                   {/* Efeito de brilho nas bordas */}
                   <div className="absolute inset-0 rounded-xl border border-[#F0B35B]/30 filter blur-[2px] z-0"></div>
 
-
                   {/* Overlay gradiente */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-[#0D121E]/50 to-transparent opacity-70 z-20"></div>
+
+                  {/* Substituir vídeo por imagem */}
+                  <img
+                    src="../img/demofoto.webp" // Substitua pelo caminho da sua imagem
+                    alt="Descrição da imagem"
+                    className="absolute inset-0 w-full h-full object-cover z-10"
+                  />
 
                   {/* Elementos flutuantes */}
                   <div className="absolute inset-0 z-30 flex items-end p-6">
