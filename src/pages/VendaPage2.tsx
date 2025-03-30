@@ -962,10 +962,13 @@ const VendaPage2: React.FC = () => {
           </div>
         </section>
         {/* CTA Final Aprimorado */}
-        <section className="relative py-24 bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[#F0B35B]/5 animate-pulse"></div>
+        <section className="relative py-24 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1A1F2E] via-[#0D121E] to-[#1A1F2E]">
+            <div className="absolute inset-0 bg-[url('/img/pattern.svg')] opacity-5"></div>
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow"></div>
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow animation-delay-1000"></div>
           </div>
+          
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 50 }}
@@ -973,16 +976,27 @@ const VendaPage2: React.FC = () => {
               viewport={{ once: true }}
               className="space-y-8"
             >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
-                Transforme sua Barbearia Hoje
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full border border-[#F0B35B]/10 backdrop-blur-sm mb-6">
+                <span className="animate-pulse text-lg">⚡</span>
+                <span>Oferta Especial por Tempo Limitado</span>
+              </div>
+
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+                <span className="block bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400 mb-2">
+                  Eleve sua Barbearia ao
+                </span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
+                  Próximo Nível
+                </span>
               </h2>
 
-              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                Junte-se às barbearias que já estão crescendo com nosso sistema
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Junte-se a centenas de barbearias que já estão revolucionando
+                <br />sua gestão e aumentando seus lucros
               </p>
 
               <motion.div
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                className="flex flex-col sm:flex-row gap-6 justify-center items-center max-w-3xl mx-auto"
                 variants={{
                   hidden: { opacity: 0 },
                   show: {
@@ -996,57 +1010,81 @@ const VendaPage2: React.FC = () => {
                 whileInView="show"
                 viewport={{ once: true }}
               >
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="
-                      relative overflow-hidden
-                      px-8 py-4 bg-[#F0B35B] text-black rounded-xl
-                      font-bold text-lg
-                      transition-all duration-500
-                      shadow-[0_0_25px_rgba(240,179,91,0.4)]
-                      border-2 border-[#F0B35B]
-                      before:absolute before:inset-0
-                      before:bg-gradient-to-r before:from-[#F0B35B]/0 
-                      before:via-white/40 before:to-[#F0B35B]/0
-                      before:-skew-x-45 before:animate-shine
-                    "
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="w-full sm:w-auto"
+                >
+                  <button className="
+                    relative overflow-hidden w-full sm:w-auto
+                    px-8 py-4 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-xl
+                    font-bold text-lg
+                    transition-all duration-500
+                    shadow-[0_0_25px_rgba(240,179,91,0.4)]
+                    border-2 border-[#F0B35B]
+                    hover:shadow-[0_0_35px_rgba(240,179,91,0.6)]
+                    group
+                  ">
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/40 to-white/0 -skew-x-45 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+                    <span className="relative z-10 flex items-center justify-center gap-3">
                       Começar Agora
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </span>
-                  </motion.button>
+                  </button>
+                </motion.div>
 
-                  {/* Contador movido para ao lado do botão */}
-                  <div className="flex items-center gap-2 bg-[#252B3B] px-4 py-2 rounded-lg">
+                <div className="flex items-center gap-4 bg-[#252B3B]/80 backdrop-blur-sm px-6 py-3 rounded-xl border border-[#F0B35B]/10">
+                  <div className="flex flex-col items-start">
                     <span className="text-sm text-gray-400">Oferta expira em:</span>
-                    <div className="font-mono text-[#F0B35B]">
+                    <div className="font-mono text-[#F0B35B] text-lg font-bold tracking-wider">
                       {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
                     </div>
                   </div>
+                  <div className="h-12 w-px bg-[#F0B35B]/10"></div>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm text-gray-400">Vagas restantes:</span>
+                    <div className="text-[#F0B35B] font-bold text-lg">{SLOTS_LEFT}</div>
+                  </div>
                 </div>
               </motion.div>
+
+              <div className="pt-12 flex flex-wrap justify-center gap-8 text-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <span className="text-gray-400">7 dias de garantia</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <span className="text-gray-400">Suporte 24/7</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <span className="text-gray-400">+1000 clientes ativos</span>
+                </div>
+              </div>
             </motion.div>
           </div>
         </section>
 
         {/* Footer Aprimorado */}
-        <footer className="bg-gradient-to-b from-[#0D121E] to-[#1A1F2E] pt-16 pb-24 sm:pb-16 w-full relative">
-          {/* Decoração de fundo */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B] to-transparent"></div>
-            <div className="absolute -top-10 right-0 w-72 h-72 bg-[#F0B35B]/5 rounded-full filter blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-3xl"></div>
+        <footer className="bg-gradient-to-b from-[#0D121E] to-[#1A1F2E] pt-24 pb-12 w-full relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow"></div>
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow animation-delay-1000"></div>
+            <div className="absolute inset-0 bg-[url('/img/pattern.svg')] opacity-[0.02]"></div>
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 relative">
-            {/* Grid Principal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
               {/* Coluna 1 - Sobre */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
                   <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
                     BarberShop
                   </span>
@@ -1054,37 +1092,40 @@ const VendaPage2: React.FC = () => {
                 <p className="text-gray-400 text-sm leading-relaxed">
                   Sistema completo para gestão de barbearias. Transforme seu negócio com nossa solução all-in-one.
                 </p>
-                <div className="flex items-center gap-4 pt-2">
-                  <motion.a
-                    href="#"
-                    whileHover={{ scale: 1.1 }}
-                    className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black transition-all duration-300"
-                  >
-                    <span className="text-lg">🔥</span>
-                  </motion.a>
-                  <motion.a
-                    href="#"
-                    whileHover={{ scale: 1.1 }}
-                    className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black transition-all duration-300"
-                  >
-                    <span className="text-lg">💈</span>
-                  </motion.a>
+                <div className="flex items-center gap-4">
+                  {['instagram', 'facebook', 'youtube'].map((social) => (
+                    <motion.a
+                      key={social}
+                      href={`#${social}`}
+                      whileHover={{ scale: 1.1, y: -2 }}
+                      className="w-10 h-10 rounded-xl bg-[#252B3B] flex items-center justify-center text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black transition-all duration-300"
+                    >
+                      <span className="text-lg">{social === 'instagram' ? '📸' : social === 'facebook' ? '👥' : '🎥'}</span>
+                    </motion.a>
+                  ))}
                 </div>
               </div>
 
               {/* Coluna 2 - Links Rápidos */}
               <div>
-                <h4 className="text-white font-semibold mb-4">Links Rápidos</h4>
-                <ul className="space-y-2">
-                  {['Funcionalidades', 'Preços', 'Suporte', 'Blog'].map((item) => (
-                    <li key={item}>
+                <h4 className="text-white font-semibold mb-6">Links Rápidos</h4>
+                <ul className="space-y-3">
+                  {[
+                    { text: 'Funcionalidades', icon: Settings },
+                    { text: 'Preços', icon: DollarSign },
+                    { text: 'Suporte', icon: Users },
+                    { text: 'Blog', icon: BarChart }
+                  ].map((item) => (
+                    <li key={item.text}>
                       <motion.a
                         href="#"
-                        className="text-gray-400 hover:text-[#F0B35B] transition-colors duration-300 text-sm flex items-center gap-2"
+                        className="text-gray-400 hover:text-[#F0B35B] transition-colors duration-300 text-sm flex items-center gap-3 group"
                         whileHover={{ x: 5 }}
                       >
-                        <ArrowRight className="w-3 h-3" />
-                        {item}
+                        <div className="w-8 h-8 rounded-lg bg-[#252B3B] flex items-center justify-center text-[#F0B35B] group-hover:bg-[#F0B35B] group-hover:text-black transition-all duration-300">
+                          <item.icon className="w-4 h-4" />
+                        </div>
+                        {item.text}
                       </motion.a>
                     </li>
                   ))}
@@ -1093,21 +1134,26 @@ const VendaPage2: React.FC = () => {
 
               {/* Coluna 3 - Contato */}
               <div>
-                <h4 className="text-white font-semibold mb-4">Contato</h4>
-                <ul className="space-y-3">
-                  <li className="flex items-center gap-3 text-gray-400 text-sm">
-                    <div className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                <h4 className="text-white font-semibold mb-6">Contato</h4>
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#252B3B] flex items-center justify-center text-[#F0B35B] mt-1">
                       <Smartphone className="w-4 h-4" />
                     </div>
-                    <span>(11) 9999-9999</span>
+                    <div>
+                      <p className="text-gray-400 text-sm">Atendimento</p>
+                      <p className="text-white text-sm font-medium">(11) 9999-9999</p>
+                      <p className="text-[#F0B35B] text-xs">Seg - Sex, 9h às 18h</p>
+                    </div>
                   </li>
-                  <li className="flex items-center gap-3 text-gray-400 text-sm">
-                    <div className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                  <li className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#252B3B] flex items-center justify-center text-[#F0B35B] mt-1">
                       <DollarSign className="w-4 h-4" />
                     </div>
-                    <div className="flex flex-col">
-                      <span>Formas de Pagamento</span>
-                      <span className="text-xs text-[#F0B35B]">Cartão, PIX, Boleto</span>
+                    <div>
+                      <p className="text-gray-400 text-sm">Formas de Pagamento</p>
+                      <p className="text-white text-sm font-medium">Cartão, PIX, Boleto</p>
+                      <p className="text-[#F0B35B] text-xs">Parcele em até 12x</p>
                     </div>
                   </li>
                 </ul>
@@ -1115,23 +1161,28 @@ const VendaPage2: React.FC = () => {
 
               {/* Coluna 4 - Newsletter */}
               <div>
-                <h4 className="text-white font-semibold mb-4">Fique por dentro</h4>
-                <p className="text-gray-400 text-sm mb-4">
-                  Receba dicas e novidades para sua barbearia
+                <h4 className="text-white font-semibold mb-6">Fique por dentro</h4>
+                <p className="text-gray-400 text-sm mb-6">
+                  Receba dicas exclusivas e novidades para sua barbearia
                 </p>
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    placeholder="Seu melhor e-mail"
-                    className="flex-1 px-3 py-2 rounded-lg bg-[#252B3B] border border-[#F0B35B]/20 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F0B35B]"
-                  />
+                <div className="space-y-3">
+                  <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="Seu melhor e-mail"
+                      className="w-full px-4 py-3 rounded-xl bg-[#252B3B] border border-[#F0B35B]/20 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F0B35B] transition-all duration-300"
+                    />
+                  </div>
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 bg-[#F0B35B] text-black rounded-lg text-sm font-medium hover:bg-[#D4943D] transition-colors duration-300"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-xl text-sm font-medium transition-all duration-300 hover:shadow-[0_0_20px_rgba(240,179,91,0.3)]"
                   >
-                    Enviar
+                    Inscrever-se
                   </motion.button>
+                  <p className="text-gray-500 text-xs text-center">
+                    Você pode cancelar a qualquer momento
+                  </p>
                 </div>
               </div>
             </div>
@@ -1140,25 +1191,21 @@ const VendaPage2: React.FC = () => {
             <div className="h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent mb-8"></div>
 
             {/* Bottom Bar */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-gray-400 text-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-6 py-6">
+              <div className="text-gray-400 text-sm text-center sm:text-left">
                 © {new Date().getFullYear()} BarberShop. Todos os direitos reservados.
               </div>
-              <div className="flex items-center gap-6">
-                <motion.a
-                  href="#"
-                  className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors duration-300"
-                  whileHover={{ y: -2 }}
-                >
-                  Termos de Uso
-                </motion.a>
-                <motion.a
-                  href="#"
-                  className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors duration-300"
-                  whileHover={{ y: -2 }}
-                >
-                  Privacidade
-                </motion.a>
+              <div className="flex items-center gap-8">
+                {['Termos de Uso', 'Privacidade', 'FAQ'].map((item) => (
+                  <motion.a
+                    key={item}
+                    href="#"
+                    className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors duration-300"
+                    whileHover={{ y: -2 }}
+                  >
+                    {item}
+                  </motion.a>
+                ))}
               </div>
             </div>
           </div>
