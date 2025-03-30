@@ -80,16 +80,7 @@ const VendaPage2: React.FC = () => {
     }
   };
   
-  // Função para ir diretamente para um passo específico
-  const goToStep = (step: number) => {
-    if (step >= 0 && step < demoSteps.length) {
-      setCurrentStep(step);
-    }
-  };
-
-  // Removido efeito não utilizado para esconder a barra de rolagem
-
-
+  
 
   // Demonstração interativa do sistema
   const demoSteps = [
@@ -100,9 +91,7 @@ const VendaPage2: React.FC = () => {
       icon: Rocket,
       details: "Nossa equipe inicia a implementação imediatamente após a confirmação",
       features: [
-        "Setup completo em até 24h",
-        "Normalmente pronto em 6h ou menos",
-        "Acompanhamento em tempo real do progresso",
+        "Setup completo em até 24h (Normalmente entregue em 6h ou menos)",
         "Suporte técnico durante todo processo"
       ],
       color: "from-blue-500/20 to-blue-600/20",
@@ -132,7 +121,6 @@ const VendaPage2: React.FC = () => {
       features: [
         "Cadastro de barbeiros e serviços",
         "Definição de horários de atendimento",
-        "Criação de promoções especiais",
         "Personalização completa do sistema"
       ],
       color: "from-yellow-500/20 to-yellow-600/20",
@@ -147,7 +135,6 @@ const VendaPage2: React.FC = () => {
       features: [
         "Link fácil de compartilhar",
         "Gestão de agendamentos em 1 clique",
-        "Gerenciamento Fácil",
         "Dashboard em tempo real"
       ],
       color: "from-purple-500/20 to-purple-600/20",
@@ -558,16 +545,17 @@ const VendaPage2: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/95 z-50 overflow-y-auto sm:overflow-hidden"
+              className="fixed inset-0 bg-black/95 z-50 overflow-hidden"
             >
               <motion.div
-                initial={{ scale: 0.9, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 50 }}
-                className="min-h-screen flex items-center justify-center"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="fixed inset-0 flex items-center justify-center"
               >
-                <div className="w-full sm:max-w-4xl bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] sm:rounded-2xl overflow-hidden border-y sm:border border-[#F0B35B]/20">
-                  <div className="p-4 sm:p-8">
+                <div className="w-full h-full max-h-screen bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] overflow-hidden border-y sm:border border-[#F0B35B]/20">
+                  <div className="p-4 sm:p-8 h-full flex flex-col max-h-full overflow-hidden">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6 sm:mb-8">
                       <div>
@@ -576,12 +564,14 @@ const VendaPage2: React.FC = () => {
                         </h3>
                         <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">Siga o passo a passo</p>
                       </div>
-                      <button
+                      <motion.button
                         onClick={() => setShowDemo(false)}
-                        className="p-2 hover:bg-[#252B3B] rounded-full transition-colors"
+                        whileHover={{ scale: 1.1, backgroundColor: "rgba(240,179,91,0.1)" }}
+                        whileTap={{ scale: 0.95 }}
+                        className="p-3 hover:bg-[#252B3B] rounded-full transition-colors border border-[#F0B35B]/20"
                       >
-                        <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                      </button>
+                        <X className="w-6 h-6 sm:w-7 sm:h-7" />
+                      </motion.button>
                     </div>
 
                     {/* Steps Indicator */}
@@ -604,9 +594,9 @@ const VendaPage2: React.FC = () => {
                     {/* Content - Carrossel Interativo com Navegação por Setas */}
                     <div
                       ref={carouselRef}
-                      className="relative px-0 sm:px-4 select-none"
+                      className="relative px-0 sm:px-4 select-none flex-1 overflow-hidden flex flex-col"
                     >
-                      {/* Setas de navegação grandes e visíveis */}
+                      {/* Setas de navegação grandes e mais sutis */}
                       <motion.button 
                         onClick={goToPrevStep}
                         initial={{ opacity: 0.6 }}
@@ -614,9 +604,9 @@ const VendaPage2: React.FC = () => {
                         whileHover={{ opacity: currentStep === 0 ? 0.3 : 1, scale: currentStep === 0 ? 1 : 1.1 }}
                         whileTap={{ scale: currentStep === 0 ? 1 : 0.95 }}
                         disabled={currentStep === 0}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#1A1F2E]/80 hover:bg-[#252B3B] rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-[#1A1F2E]/60 hover:bg-[#252B3B]/80 rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg backdrop-blur-sm"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M15 18l-6-6 6-6" />
                         </svg>
                       </motion.button>
@@ -628,36 +618,17 @@ const VendaPage2: React.FC = () => {
                         whileHover={{ opacity: currentStep === demoSteps.length - 1 ? 0.3 : 1, scale: currentStep === demoSteps.length - 1 ? 1 : 1.1 }}
                         whileTap={{ scale: currentStep === demoSteps.length - 1 ? 1 : 0.95 }}
                         disabled={currentStep === demoSteps.length - 1}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 z-40 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-[#1A1F2E]/80 hover:bg-[#252B3B] rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-[#1A1F2E]/60 hover:bg-[#252B3B]/80 rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg backdrop-blur-sm"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 18l6-6-6-6" />
                         </svg>
                       </motion.button>
-                      {/* Indicador de navegação com setas */}
-                      <div className="flex justify-center mb-4">
-                        <div className="flex items-center gap-2 text-xs text-gray-400 bg-[#1A1F2E]/70 px-3 py-1.5 rounded-full border border-[#F0B35B]/10">
-                          <motion.div
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                            className="text-[#F0B35B]"
-                          >
-                            ←
-                          </motion.div>
-                          <span className="sm:text-sm">Navegue com as setas</span>
-                          <motion.div
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                            className="text-[#F0B35B]"
-                          >
-                            →
-                          </motion.div>
-                        </div>
-                      </div>
+                      {/* Indicador de navegação com setas removido para uma experiência mais limpa */}
 
                       {/* Carrossel de Cards com transição suave entre slides */}
-                      <div className="overflow-hidden pb-4">
-                        <div className="flex justify-center">
+                      <div className="overflow-hidden pb-4 flex-1 flex items-center">
+                        <div className="flex justify-center w-full">
                           <AnimatePresence mode="wait">
                             {demoSteps.map((step, idx) => (
                               currentStep === idx && (
@@ -667,39 +638,42 @@ const VendaPage2: React.FC = () => {
                                   animate={{ opacity: 1, x: 0 }}
                                   exit={{ opacity: 0, x: -50 }}
                                   transition={{ duration: 0.3 }}
-                                  className="w-full max-w-[500px] bg-[#252B3B] rounded-lg border border-[#F0B35B]/30 p-4 sm:p-6 shadow-[0_0_15px_rgba(240,179,91,0.15)]"
+                                  className="w-full max-w-[600px] bg-[#252B3B] rounded-lg border border-[#F0B35B]/30 p-4 sm:p-6 md:p-8 shadow-[0_0_25px_rgba(240,179,91,0.15)] overflow-y-auto max-h-[70vh] sm:max-h-[60vh]"
                                 >
-                                  {/* Icon and Title */}
-                                  <div className="flex flex-col items-center text-center mb-4 sm:mb-6">
-                                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                                  {/* Icon and Title - Layout aprimorado */}
+                                  <div className="flex flex-col items-center text-center mb-6 sm:mb-8">
+                                    <motion.div 
+                                      className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mb-4 sm:mb-5 shadow-lg`}
+                                      animate={step.animate}
+                                    >
                                       {React.createElement(step.icon, {
-                                        className: "w-7 h-7 sm:w-8 sm:h-8 text-white"
+                                        className: "w-10 h-10 sm:w-12 sm:h-12 text-white"
                                       })}
-                                    </div>
-                                    <h4 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
+                                    </motion.div>
+                                    <h4 className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">
                                       {step.title}
                                     </h4>
-                                    <p className="text-gray-400 text-sm sm:text-base max-w-xl">
+                                    <p className="text-gray-300 text-base sm:text-lg max-w-xl">
                                       {step.description}
                                     </p>
                                   </div>
 
-                                  {/* Features */}
-                                  <div className="bg-[#1A1F2E] rounded-lg p-3 sm:p-5">
-                                    <p className="text-gray-300 mb-3 sm:mb-4 text-center text-xs sm:text-sm">
+                                  {/* Features - Layout aprimorado */}
+                                  <div className="bg-[#1A1F2E] rounded-lg p-5 sm:p-7 shadow-inner">
+                                    <p className="text-gray-200 mb-5 sm:mb-6 text-center text-sm sm:text-base font-medium">
                                       {step.details}
                                     </p>
-                                    <div className="grid grid-cols-1 gap-2 sm:gap-3 max-w-md mx-auto">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto">
                                       {step.features.map((feature, featureIdx) => (
                                         <motion.div
                                           key={featureIdx}
                                           initial={{ opacity: 0, x: -10 }}
                                           animate={{ opacity: 1, x: 0 }}
                                           transition={{ delay: featureIdx * 0.1 }}
-                                          className="flex items-center gap-2 sm:gap-3 bg-[#252B3B]/50 p-2 sm:p-3 rounded-lg"
+                                          className="flex items-center gap-3 sm:gap-4 bg-[#252B3B]/70 p-3 sm:p-4 rounded-lg hover:bg-[#252B3B] transition-colors duration-300 group"
                                         >
-                                          <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#F0B35B] flex-shrink-0" />
-                                          <span className="text-gray-300 text-xs sm:text-sm">{feature}</span>
+                                          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-[#F0B35B] flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
+                                          <span className="text-gray-200 text-sm sm:text-base group-hover:text-white transition-colors duration-300">{feature}</span>
                                         </motion.div>
                                       ))}
                                     </div>
@@ -712,7 +686,7 @@ const VendaPage2: React.FC = () => {
                       </div>
 
                       {/* Barra de Navegação Interativa Aprimorada */}
-                      <div className="mt-6 sm:mt-8 px-4">
+                      <div className="mt-4 sm:mt-6 px-4 flex-shrink-0">
                         {/* Barra de progresso principal com altura aumentada para melhor interação */}
                         <div className="relative h-3 bg-[#1A1F2E] rounded-full overflow-hidden cursor-pointer shadow-inner"
                           onClick={(e) => {
@@ -749,7 +723,7 @@ const VendaPage2: React.FC = () => {
                         </div>
 
                         {/* Miniaturas dos cards para navegação rápida com feedback visual melhorado */}
-                        <div className="mt-6 flex justify-between gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                        <div className="mt-4 sm:mt-6 flex justify-center sm:justify-between gap-2 overflow-x-auto pb-2 hide-scrollbar max-w-full">
                           {demoSteps.map((step, idx) => (
                             <motion.button
                               key={idx}
@@ -761,16 +735,16 @@ const VendaPage2: React.FC = () => {
                                 y: currentStep === idx ? -3 : 0,
                                 boxShadow: currentStep === idx ? '0 6px 12px rgba(240,179,91,0.3)' : 'none'
                               }}
-                              className={`relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden transition-all duration-300 ${currentStep === idx ? 'ring-2 ring-[#F0B35B]' : 'ring-1 ring-[#F0B35B]/20'}`}
+                              className={`relative flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg overflow-hidden transition-all duration-300 ${currentStep === idx ? 'ring-2 ring-[#F0B35B]' : 'ring-1 ring-[#F0B35B]/20'}`}
                             >
                               <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${step.color}`}>
                                 {React.createElement(step.icon, {
-                                  className: "w-6 h-6 sm:w-8 sm:h-8 text-white"
+                                  className: "w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white"
                                 })}
                               </div>
                               
                               {/* Indicador numérico do passo */}
-                              <div className="absolute top-1 right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#1A1F2E]/80 flex items-center justify-center text-[10px] sm:text-xs font-bold text-white border border-[#F0B35B]/30">
+                              <div className="absolute top-1 right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 rounded-full bg-[#1A1F2E]/80 flex items-center justify-center text-[8px] sm:text-[10px] md:text-xs font-bold text-white border border-[#F0B35B]/30">
                                 {idx + 1}
                               </div>
                             </motion.button>
@@ -778,7 +752,7 @@ const VendaPage2: React.FC = () => {
                         </div>
 
                         {/* Indicadores de texto com animação e botões de navegação */}
-                        <div className="flex justify-between items-center mt-4 px-1">
+                        <div className="flex justify-between items-center mt-3 sm:mt-4 px-1 flex-shrink-0">
                           <motion.button
                             onClick={() => currentStep > 0 && setCurrentStep(currentStep - 1)}
                             whileHover={{ scale: 1.1, x: -2 }}
@@ -815,16 +789,25 @@ const VendaPage2: React.FC = () => {
                     </div>
 
                     {/* Footer */}
-                    <div className="mt-6 sm:mt-8 text-center">
+                    <div className="mt-4 sm:mt-6 md:mt-8 text-center flex-shrink-0">
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setShowDemo(false)}
-                        className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-lg font-bold text-base sm:text-lg"
+                        className="
+                          relative overflow-hidden
+                          w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 
+                          bg-gradient-to-r from-[#F0B35B] to-[#D4943D] 
+                          text-black rounded-lg font-bold text-base sm:text-lg
+                          shadow-[0_0_15px_rgba(240,179,91,0.3)]
+                          before:absolute before:inset-0
+                          before:bg-gradient-to-r before:from-[#F0B35B]/0 
+                          before:via-white/40 before:to-[#F0B35B]/0
+                          before:-skew-x-45 before:animate-shine
+                        "
                       >
-                        Começar Agora
+                        <span className="relative z-10">Começar Agora</span>
                       </motion.button>
-
                     </div>
                   </div>
                 </div>
@@ -937,7 +920,7 @@ const VendaPage2: React.FC = () => {
                 </div>
                 <div className="relative">
                   <h3 className="text-xl font-bold mb-2 text-white">Plano Mensal</h3>
-                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 43,90</div>
+                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 49,90</div>
                   <div className="text-sm text-gray-400 mb-4">Cobrado mensalmente</div>
                   <ul className="space-y-3 mb-6">
                     {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos'].map((item, index) => (
@@ -963,9 +946,9 @@ const VendaPage2: React.FC = () => {
                   Mais Popular
                 </div>
                 <h3 className="text-xl font-bold mb-2">Plano Semestral</h3>
-                <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 239,40</div>
-                <div className="text-lg text-[#F0B35B] mb-4 ">ou 6x de R$ 39,90</div>
-                <div className="text-sm text-[#F0B35B] mb-6">Apenas R$ 39,90/mês<br /> (Economia de 12%)</div>
+                <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 39,90<span className="text-xl">/mês</span></div>
+                <div className="text-sm text-gray-400 mb-1">por 6 meses</div>
+                <div className="text-sm text-gray-300 mb-6">Valor total: <span className="text-[#F0B35B]">R$ 239,90</span></div>
                 <ul className="space-y-3 mb-6">
                   {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Acesso a recursos premium'].map((item, index) => (
                     <li key={index} className="flex items-center">
@@ -1003,9 +986,9 @@ const VendaPage2: React.FC = () => {
                 </div>
                 <div className="relative">
                   <h3 className="text-xl font-bold mb-2 text-white">Plano Anual</h3>
-                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 419,80</div>
-                  <div className="text-lg text-[#F0B35B] mb-4">ou 12x de R$ 34,90</div>
-                  <div className="text-sm text-[#F0B35B] mb-4">Apenas R$ 34,90/mês <br />(economia de 25%)</div>
+                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 34,90<span className="text-xl">/mês</span></div>
+                  <div className="text-sm text-gray-400 mb-1">por 12 meses</div>
+                  <div className="text-sm text-gray-300 mb-4">Valor total: <span className="text-[#F0B35B]">R$ 419,90</span></div>
                   <ul className="space-y-3 mb-6">
                     {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Economia garantida', 'Acesso a novos recursos'].map((item, index) => (
                       <li key={index} className="flex items-center">
