@@ -31,20 +31,12 @@ const VendaPage2: React.FC = () => {
   // Referência para a seção hero
   const heroRef = React.useRef<HTMLDivElement>(null);
 
-  // Efeito para garantir que a página sempre inicie no topo
+  // Efeito para focar na primeira seção
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-
-    // Foco na primeira seção
     if (heroRef.current) {
       heroRef.current.focus();
     }
   }, []);
-
-
 
   // Efeito para resetar o passo quando o modal é fechado
   useEffect(() => {
@@ -66,22 +58,6 @@ const VendaPage2: React.FC = () => {
   // Referência para o carrossel
   const carouselRef = React.useRef<HTMLDivElement>(null);
   
-  // Função para navegação - próximo passo
-  const goToNextStep = () => {
-    if (currentStep < demoSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  // Função para navegação - passo anterior
-  const goToPrevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-  
-  
-
   // Demonstração simplificada em 3 passos
   const demoSteps = [
     {
@@ -134,7 +110,7 @@ const VendaPage2: React.FC = () => {
         <meta property="og:title" content="BarberShop - Agendamento Sem Complicação" />
         <meta property="og:description" content="Agende em 30 segundos, sem cadastro e sem baixar nada" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://barbershop.com.br" />
+        <link rel="canonical" href="https://barber.targetweb.tech" />
       </Helmet>
 
       {/* Promoção Flutuante mais elegante e responsiva */}
@@ -887,7 +863,7 @@ const VendaPage2: React.FC = () => {
                 className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border border-[#F0B35B]/10 w-full sm:w-[calc(33%-1rem)] max-w-[350px] ${commonAnimations.glowEffect}`}
               >
                 <div className="relative">
-                  <h3 className="text-xl font-bold mb-2 text-white">Plano Mensal (1 mês)</h3>
+                  <h3 className="text-xl font-bold mb-2 text-white">Plano Mensal </h3>
                   <div className="text-5xl font-bold text-[#F0B35B] mb-1">R$ 49,90</div>
                   <div className="text-sm text-gray-400 mb-4">Acesso total por 1 mês </div>
                   <ul className="space-y-3 mb-6">
@@ -1130,7 +1106,7 @@ const VendaPage2: React.FC = () => {
           </div>
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 mb-10">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
               {/* Coluna 1 - Sobre */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -1235,9 +1211,6 @@ const VendaPage2: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {/* Separador */}
-            <div className="h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent mb-8"></div>
 
             {/* Bottom Bar */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-6 py-6">
