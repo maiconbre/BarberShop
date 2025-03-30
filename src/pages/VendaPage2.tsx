@@ -206,7 +206,7 @@ const VendaPage2: React.FC = () => {
         {/* Hero Section Aprimorada */}
         <section
           ref={heroRef}
-          className="relative min-h-[90vh] flex items-center pt-16 overflow-hidden"
+          className="relative min-h-[90vh] flex items-center pt-24 pb-16 overflow-hidden"
           tabIndex={-1}
         >
           {/* Elementos de fundo animados */}
@@ -221,7 +221,7 @@ const VendaPage2: React.FC = () => {
           </div>
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-24 relative z-10">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -230,10 +230,10 @@ const VendaPage2: React.FC = () => {
                   type: "spring",
                   stiffness: 50
                 }}
-                className="max-w-2xl mx-auto text-center lg:text-left" // Centralizado em mobile
+                className="max-w-2xl mx-auto text-center lg:text-left space-y-8" // Centralizado em mobile
               >
                 {/* Tag com animação melhorada */}
-                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6">
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -252,9 +252,9 @@ const VendaPage2: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5, duration: 0.8 }}
-                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 sm:mb-8"
+                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight"
                 >
-                  <span className="block mb-1 sm:mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400">
+                  <span className="block mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400">
                     Leve sua Barbearia para
                   </span>
                   <span className="relative">
@@ -275,47 +275,47 @@ const VendaPage2: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7, duration: 0.8 }}
-                  className="space-y-4 mb-4"
+                  className="space-y-8"
                 >
-                  <p className="text-gray-300 text-lg max-w-xl mx-auto lg:mx-0 mb-6">
+                  <p className="text-gray-300 text-lg max-w-xl mx-auto lg:mx-0">
                     Sistema completo para gerenciar sua barbearia:
                   </p>
 
                   {/* Cards de benefícios */}
-                  <div className="grid grid-cols-3 md:grid-cols-3 gap-3 sm:gap-4 max-w-xl mx-auto lg:mx-0">
+                  <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-3 max-w-lg mx-auto lg:mx-0">
                     {/* Card 1 */}
                     <motion.div
                       whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(240,179,91,0.2)" }}
-                      className={`${commonAnimations.cardGradient} rounded-xl p-3 sm:p-4 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300`}
+                      className={`${commonAnimations.cardGradient} rounded-lg p-2 sm:p-3 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300`}
                     >
                       <div className="text-center">
-                        <span className="text-xl sm:text-2xl mb-1 sm:mb-2 block">⏱️</span>
-                        <h3 className="text-white font-bold text-base sm:text-lg mb-0.5 sm:mb-1">Economize Tempo</h3>
-                        <p className="text-gray-400 text-xs sm:text-sm">3h/dia na gestão</p>
+                        <span className="text-lg sm:text-xl mb-1 block">⏱️</span>
+                        <h3 className="text-white font-bold text-sm sm:text-base mb-0.5">Economize Tempo</h3>
+                        <p className="text-gray-400 text-xs">3h/dia na gestão</p>
                       </div>
                     </motion.div>
 
                     {/* Card 2 */}
                     <motion.div
                       whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(240,179,91,0.2)" }}
-                      className={`${commonAnimations.cardGradient} rounded-xl p-3 sm:p-4 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300`}
+                      className={`${commonAnimations.cardGradient} rounded-lg p-2 sm:p-3 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300`}
                     >
                       <div className="text-center">
-                        <span className="text-xl sm:text-2xl mb-1 sm:mb-2 block">⭐</span>
-                        <h3 className="text-white font-bold text-base sm:text-lg mb-0.5 sm:mb-1">100% Satisfação</h3>
-                        <p className="text-gray-400 text-xs sm:text-sm">Clientes satisfeitos</p>
+                        <span className="text-lg sm:text-xl mb-1 block">⭐</span>
+                        <h3 className="text-white font-bold text-sm sm:text-base mb-0.5">100% Satisfação</h3>
+                        <p className="text-gray-400 text-xs">Clientes satisfeitos</p>
                       </div>
                     </motion.div>
 
                     {/* Card 3 */}
                     <motion.div
                       whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(240,179,91,0.2)" }}
-                      className={`${commonAnimations.cardGradient} rounded-xl p-3 sm:p-4 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300`}
+                      className={`${commonAnimations.cardGradient} rounded-lg p-2 sm:p-3 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300`}
                     >
                       <div className="text-center">
-                        <span className="text-xl sm:text-2xl mb-1 sm:mb-2 block">📱</span>
-                        <h3 className="text-white font-bold text-base sm:text-lg mb-0.5 sm:mb-1">Design Premium</h3>
-                        <p className="text-gray-400 text-xs sm:text-sm">Adaptável a qualquer tela</p>
+                        <span className="text-lg sm:text-xl mb-1 block">📱</span>
+                        <h3 className="text-white font-bold text-sm sm:text-base mb-0.5">Design Premium</h3>
+                        <p className="text-gray-400 text-xs">Adaptável a qualquer tela</p>
                       </div>
                     </motion.div>
                   </div>
