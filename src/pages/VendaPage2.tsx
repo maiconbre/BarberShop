@@ -17,7 +17,7 @@ const ctaVariants = {
   primary: {
     text: "Comece Agora com 50% OFF",
     subtext: "Oferta válida por tempo limitado",
-    urgency: "Apenas 3 vagas restantes neste valor!"
+    urgency: "Apenas 3 descontos restantes!"
   },
   secondary: {
     text: "Ver Demonstração",
@@ -141,32 +141,67 @@ const VendaPage2: React.FC = () => {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className={`fixed bottom-0 left-0 right-0 ${commonAnimations.headerGradient} backdrop-blur-md z-50 p-2 sm:p-3 border-t border-[#F0B35B]/10`}
+        className={`fixed bottom-0 left-0 right-0 ${commonAnimations.headerGradient} backdrop-blur-lg z-50 py-3 sm:py-4 border-t border-[#F0B35B]/20 shadow-[0_-4px_20px_rgba(0,0,0,0.2)]`}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[#F0B35B] animate-pulse">⚡</span>
-            <div className="text-xs">
-              <span className="text-[#F0B35B]">{SLOTS_LEFT} vagas restantes</span>
-            </div>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="flex items-center gap-2 bg-[#F0B35B]/10 px-4 py-1 rounded-full border border-[#F0B35B]/30"
+            >
+              <span className="text-[#F0B35B] text-lg">⚡</span>
+              <span className="text-[#F0B35B] font-medium">{SLOTS_LEFT} Descontos Restantes</span>
+            </motion.div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="text-xs text-gray-400">Expira em:</div>
-            <div className="flex items-center gap-1 text-white font-mono text-sm">
-              <span>{hours.toString().padStart(2, '0')}</span>:
-              <span>{minutes.toString().padStart(2, '0')}</span>:
-              <span>{seconds.toString().padStart(2, '0')}</span>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center sm:items-end">
+              <div className="text-sm text-gray-400 mb-1">Oferta expira em:</div>
+              <div className="flex items-center gap-2 text-white font-mono text-lg">
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  className="bg-[#252B3B] px-3 py-1 rounded-md border border-[#F0B35B]/20"
+                >
+                  <span>{hours.toString().padStart(2, '0')}</span>
+                </motion.div>
+                <span className="text-[#F0B35B]">:</span>
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  className="bg-[#252B3B] px-3 py-1 rounded-md border border-[#F0B35B]/20"
+                >
+                  <span>{minutes.toString().padStart(2, '0')}</span>
+                </motion.div>
+                <span className="text-[#F0B35B]">:</span>
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  className="bg-[#252B3B] px-3 py-1 rounded-md border border-[#F0B35B]/20"
+                >
+                  <span>{seconds.toString().padStart(2, '0')}</span>
+                </motion.div>
+              </div>
             </div>
             <motion.button
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(240,179,91,0.4)' }}
               whileTap={{ scale: 0.95 }}
               className="
-                px-4 py-1.5 bg-[#F0B35B] text-black rounded-lg
-                text-sm font-bold
+                relative overflow-hidden
+                px-6 py-1 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-lg
+                text-base font-bold
                 shadow-[0_0_15px_rgba(240,179,91,0.3)]
+                border-2 border-[#F0B35B]
+                group
               "
             >
-              Aproveitar
+              <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+              <span className="relative z-10 flex items-center gap-2">
+                Aproveitar Agora
+                <motion.span
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ repeat: Infinity, duration: 1 }}
+                >
+                  <ArrowRight size={18} />
+                </motion.span>
+              </span>
             </motion.button>
           </div>
         </div>
@@ -393,7 +428,7 @@ const VendaPage2: React.FC = () => {
 
                     <span className="relative z-10 inline-flex flex-col items-center justify-center w-full">
                       <span className="flex items-center gap-2">
-                        Garanta 50% OFF
+                        Garanta 30% OFF
                         <motion.span
                           animate={{ rotate: [0, 15, -15, 0] }}
                           transition={{ duration: 0.5, ease: "easeInOut", repeat: Infinity, repeatDelay: 2 }}
@@ -443,12 +478,6 @@ const VendaPage2: React.FC = () => {
                   {/* Efeito de brilho nas bordas */}
                   <div className="absolute inset-0 rounded-xl border border-[#F0B35B]/30 filter blur-[2px] z-0"></div>
 
-                  {/* Imagem principal */}
-                  <img
-                    src="./img/demofoto.png"
-                    alt="Preview do Sistema"
-                    className="absolute inset-0 w-full h-full object-cover object-center z-10"
-                  />
 
                   {/* Overlay gradiente */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0D121E] via-[#0D121E]/50 to-transparent opacity-70 z-20"></div>
@@ -509,8 +538,6 @@ const VendaPage2: React.FC = () => {
           </motion.div>
 
         </section>
-
-        {/* Removido a seção de vídeo demo para dispositivos móveis */}
 
         {/* Demonstração Interativa */}
         <AnimatePresence>
@@ -859,13 +886,10 @@ const VendaPage2: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
                 className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border border-[#F0B35B]/10 w-full sm:w-[calc(33%-1rem)] max-w-[350px] ${commonAnimations.glowEffect}`}
               >
-                <div className={`absolute -top-3 -right-3 ${commonAnimations.buttonGradient} text-black text-xs px-3 py-1 rounded-full`}>
-                  {hours}h {minutes}m restantes
-                </div>
                 <div className="relative">
-                  <h3 className="text-xl font-bold mb-2 text-white">Plano Mensal</h3>
-                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 49,90</div>
-                  <div className="text-sm text-gray-400 mb-4">Cobrado mensalmente</div>
+                  <h3 className="text-xl font-bold mb-2 text-white">Plano Mensal (1 mês)</h3>
+                  <div className="text-5xl font-bold text-[#F0B35B] mb-1">R$ 49,90</div>
+                  <div className="text-sm text-gray-400 mb-4">Acesso total por 1 mês </div>
                   <ul className="space-y-3 mb-6">
                     {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos'].map((item, index) => (
                       <li key={index} className="flex items-center">
@@ -890,10 +914,13 @@ const VendaPage2: React.FC = () => {
                   Mais Popular
                 </div>
                 <h3 className="text-xl font-bold mb-2">Plano Semestral</h3>
-                <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 39,90<span className="text-xl">/mês</span></div>
-                <div className="text-sm text-gray-400 mb-1">por 6 meses</div>
-                <div className="text-sm text-gray-300 mb-6">Valor total: <span className="text-[#F0B35B]">R$ 239,90</span></div>
-                <ul className="space-y-3 mb-6">
+                <div className="text-5xl font-bold text-[#F0B35B] mb-1">R$ 39,90<span className="text-xl">/mês</span></div>
+                <div className="text-sm mt-2 text-gray-400 mb-4">de
+                    <span className="text-[#F0B35B] text-sm "> <span className="text-gray-400 text-xs line-through mr-2">R$ 300,00</span>por R$ 239,90</span>
+                    <span className="text-xs text-gray-400 ml-4 text-right">em 6 meses</span>
+                  </div>
+                
+                <ul className="space-y-3 my-4">
                   {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Acesso a recursos premium'].map((item, index) => (
                     <li key={index} className="flex items-center">
                       <CheckCircle className="w-5 h-5 text-[#F0B35B] mr-2" />
@@ -920,19 +947,34 @@ const VendaPage2: React.FC = () => {
                 </motion.button>
               </div>
 
-              {/* Card Plano Anual */}
+              {/* Card Plano Anual - Promoção Imperdível */}
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border border-[#F0B35B]/10 w-full sm:w-[calc(33%-1rem)] max-w-[350px] ${commonAnimations.glowEffect}`}
+                className={`relative ${commonAnimations.cardGradient} p-8 rounded-lg border-2 border-[#F0B35B]/30 w-full sm:w-[calc(33%-1rem)] max-w-[350px] ${commonAnimations.glowEffect}`}
               >
-                <div className={`absolute -top-3 -right-3 ${commonAnimations.buttonGradient} text-black text-xs px-3 py-1 rounded-full`}>
-                  Melhor Valor
+                <div className="absolute -top-3 -right-3 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs px-3 py-1 rounded-full font-bold animate-pulse">
+                  ⚡ 30% OFF ⚡
                 </div>
                 <div className="relative">
-                  <h3 className="text-xl font-bold mb-2 text-white">Plano Anual</h3>
-                  <div className="text-4xl font-bold text-[#F0B35B] mb-1">R$ 34,90<span className="text-xl">/mês</span></div>
-                  <div className="text-sm text-gray-400 mb-1">por 12 meses</div>
-                  <div className="text-sm text-gray-300 mb-4">Valor total: <span className="text-[#F0B35B]">R$ 419,90</span></div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xl font-bold text-white">Plano Anual</h3>
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <div className="text-5xl font-bold text-[#F0B35B]">R$ 34,90<span className="text-xl text-[#F0B35B]">/mês</span></div>
+                    
+                  </div>
+                  <div className="text-sm mt-2 text-gray-400 mb-4">de
+                    <span className="text-[#F0B35B] text-sm "> <span className="text-gray-400 text-xs line-through mr-2">R$ 600,00</span>por R$ 419,90</span>
+                    <span className="text-xs text-gray-400 ml-4 text-right">em 12 meses</span>
+                  </div>
+                  <div className="bg-[#F0B35B]/10 p-1 rounded-lg mb-2 border border-[#F0B35B]/20">
+                    <div className="flex items-center text-[#F0B35B] mb-1">
+                      <Rocket className="w-4 h-4 mr-2" />
+                      <span className="text- xs">ECONOMIZE mais de R$ 180,00</span>
+                    </div>
+                  </div>
+                  
                   <ul className="space-y-3 mb-6">
                     {['Atualizações', 'Suporte 24/7', 'Backups diários', 'Sem limite de agendamentos', 'Relatórios avançados', 'Economia garantida', 'Acesso a novos recursos'].map((item, index) => (
                       <li key={index} className="flex items-center">
@@ -941,15 +983,22 @@ const VendaPage2: React.FC = () => {
                       </li>
                     ))}
                   </ul>
-                  <button className="
-                    w-full py-3 bg-[#F0B35B]/10 text-[#F0B35B] rounded-lg
-                    font-medium
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="
+                    w-full py-3 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-lg
+                    font-bold
                     transition-all duration-300
-                    hover:bg-[#F0B35B]/20
-                    border border-[#F0B35B]/30
+                    shadow-md hover:shadow-lg hover:shadow-[#F0B35B]/30
+                    border border-[#F0B35B]
                   ">
-                    Escolher Plano
-                  </button>
+                    <div className="flex items-center justify-center">
+                      <span>COMPRAR AGORA</span>
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </div>
+                  </motion.button>
                 </div>
               </motion.div>
             </div>
@@ -1011,7 +1060,7 @@ const VendaPage2: React.FC = () => {
                 viewport={{ once: true }}
               >
                 <motion.div
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.01 }}
                   className="w-full sm:w-auto"
                 >
                   <button className="
@@ -1072,35 +1121,35 @@ const VendaPage2: React.FC = () => {
         </section>
 
         {/* Footer Aprimorado */}
-        <footer className="bg-gradient-to-b from-[#0D121E] to-[#1A1F2E] pt-24 pb-12 w-full relative overflow-hidden">
+        <footer className="bg-gradient-to-b from-[#0D121E] to-[#1A1F2E] pt-16 pb-8 w-full relative overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow animation-delay-1000"></div>
+            <div className="absolute top-0 right-0 w-72 h-72 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow"></div>
+            <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow animation-delay-1000"></div>
             <div className="absolute inset-0 bg-[url('/img/pattern.svg')] opacity-[0.02]"></div>
           </div>
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 mb-10">
               {/* Coluna 1 - Sobre */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
                     BarberShop
                   </span>
                 </div>
                 <p className="text-gray-400 text-sm leading-relaxed">
                   Sistema completo para gestão de barbearias. Transforme seu negócio com nossa solução all-in-one.
                 </p>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   {['instagram', 'facebook', 'youtube'].map((social) => (
                     <motion.a
                       key={social}
                       href={`#${social}`}
                       whileHover={{ scale: 1.1, y: -2 }}
-                      className="w-10 h-10 rounded-xl bg-[#252B3B] flex items-center justify-center text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black transition-all duration-300"
+                      className="w-8 h-8 rounded-lg bg-[#252B3B] flex items-center justify-center text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black transition-all duration-300"
                     >
-                      <span className="text-lg">{social === 'instagram' ? '📸' : social === 'facebook' ? '👥' : '🎥'}</span>
+                      <span className="text-base">{social === 'instagram' ? '📸' : social === 'facebook' ? '👥' : '🎥'}</span>
                     </motion.a>
                   ))}
                 </div>
