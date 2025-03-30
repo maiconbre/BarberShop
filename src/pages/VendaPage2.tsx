@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Clock, Calendar, CheckCircle, ArrowRight,
+  Clock, Calendar, CheckCircle, ArrowRight, ArrowLeft,
   Users, BarChart, Smartphone, DollarSign, X,
   Rocket, Key, Settings, Share2
 } from 'lucide-react';
@@ -538,247 +538,130 @@ const VendaPage2: React.FC = () => {
                 className="fixed inset-0 flex items-center justify-center"
               >
                 <div className="w-full h-full max-h-screen bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] overflow-hidden border-y sm:border border-[#F0B35B]/20">
-                  <div className="p-4 sm:p-8 h-full flex flex-col max-h-full overflow-hidden">
-                    {/* Header */}
-                    <div className="flex justify-between items-center  sm:mb-8">
-                      <div>
-                        <h3 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
+                  <div className="p-3 sm:p-4 md:p-6 h-full flex flex-col max-h-[100vh]">
+                    {/* Header mais compacto em mobile */}
+                    <div className="flex justify-between items-start mb-4 sm:mb-6">
+                      <div className="flex-1">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
                           Como Funciona
                         </h3>
-                        <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">Siga o passo a passo</p>
+                        <p className="text-gray-400 text-xs sm:text-sm">Siga o passo a passo</p>
                       </div>
-                      <motion.button
+                      <button
                         onClick={() => setShowDemo(false)}
-                        whileHover={{ scale: 1.1, backgroundColor: "rgba(240,179,91,0.1)" }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-3 hover:bg-[#252B3B] rounded-full transition-colors border border-[#F0B35B]/20"
+                        className="p-2 hover:bg-[#252B3B] rounded-full transition-colors"
                       >
-                        <X className="w-6 h-6 sm:w-7 sm:h-7" />
-                      </motion.button>
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
 
-                    {/* Steps Indicator */}
-                    <div className="flex justify-center mb-6">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        {demoSteps.map((_, idx) => (
-                          <div
-                            key={idx}
-                            className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${idx === currentStep
-                              ? 'w-6 sm:w-8 bg-[#F0B35B]'
-                              : idx < currentStep
-                                ? 'w-1.5 sm:w-2 bg-[#F0B35B]/50'
-                                : 'w-1.5 sm:w-2 bg-[#F0B35B]/20'
-                              }`}
-                          />
+                    {/* Conteúdo Principal com Layout Fixo Sem Scroll */}
+                    <div className="bg-[#252B3B] rounded-lg border border-[#F0B35B]/20 p-3 sm:p-4 h-[calc(100vh-280px)] sm:h-[calc(100vh-300px)] flex flex-col">
+                      {/* Icon e Título */}
+                      <div className="flex flex-col items-center text-center mb-3">
+                        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br ${demoSteps[currentStep].color} flex items-center justify-center mb-2`}>
+                          {React.createElement(demoSteps[currentStep].icon, {
+                            className: "w-6 h-6 sm:w-7 sm:h-7 text-white"
+                          })}
+                        </div>
+                        <h4 className="text-base sm:text-lg font-bold text-white">
+                          {demoSteps[currentStep].title}
+                        </h4>
+                        <p className="text-gray-400 text-xs sm:text-sm">
+                          {demoSteps[currentStep].description}
+                        </p>
+                      </div>
+
+                      {/* Features em grid sem scroll */}
+                      <div className="flex-1 mt-4 grid grid-cols-1 gap-2">
+                        {demoSteps[currentStep].details.split('•').filter(Boolean).slice(0, 3).map((detail, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="bg-[#1A1F2E] p-3 rounded-lg"
+                          >
+                            <p className="text-gray-300 text-xs sm:text-sm">
+                              {detail.trim()}
+                            </p>
+                          </motion.div>
                         ))}
                       </div>
                     </div>
 
-                    {/* Content - Carrossel Interativo com Navegação por Setas */}
-                    <div
-                      ref={carouselRef}
-                      className="relative px-0 sm:px-4 select-none flex-1 overflow-hidden flex flex-col"
-                    >
-                      {/* Carrossel de Cards com transição suave entre slides */}
-                      <div className="overflow-hidden pb-4 flex-1 flex items-center">
-                        <div className="flex justify-center w-full">
-                          <AnimatePresence mode="wait">
-                            {demoSteps.map((step, idx) => (
-                              currentStep === idx && (
-                                <motion.div
-                                  key={idx}
-                                  initial={{ opacity: 0, x: 50 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  exit={{ opacity: 0, x: -50 }}
-                                  transition={{ duration: 0.3 }}
-                                  className="w-full max-w-[600px] bg-[#252B3B] rounded-lg border border-[#F0B35B]/30 p-3 sm:p-4 md:p-6 shadow-[0_0_25px_rgba(240,179,91,0.15)] overflow-y-auto max-h-[80vh] sm:max-h-[70vh]"
-                                >
-                                  {/* Icon and Title - Layout aprimorado */}
-                                  <div className="flex flex-col items-center text-center mb-3 sm:mb-4">
-                                    <motion.div
-                                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center mb-3 sm:mb-4 shadow-lg`}
-                                      animate={step.animate}
-                                    >
-                                      {React.createElement(step.icon, {
-                                        className: "w-10 h-10 sm:w-12 sm:h-12 text-white"
-                                      })}
-                                    </motion.div>
-                                    <h4 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
-                                      {step.title}
-                                    </h4>
-                                    <p className="text-gray-300 text-sm sm:text-base max-w-xl">
-                                      {step.description}
-                                    </p>
-                                  </div>
-
-                                  {/* Features - Layout aprimorado com grid responsivo */}
-                                  <div className="space-y-4 sm:space-y-6">
-                                    {/* Seção de detalhes em cards individuais */}
-                                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                                      {step.details.split('•').filter(Boolean).map((detail, index) => (
-                                        <motion.div
-                                          key={index}
-                                          initial={{ opacity: 0, y: 20 }}
-                                          animate={{ opacity: 1, y: 0 }}
-                                          transition={{ delay: index * 0.1 }}
-                                          className="bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300 shadow-lg hover:shadow-[#F0B35B]/10"
-                                        >
-                                          <div className="flex items-start gap-3">
-                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#F0B35B]/10 flex items-center justify-center text-[#F0B35B] font-medium">
-                                              {index + 1}
-                                            </div>
-                                            <p className="text-gray-300 text-sm sm:text-base leading-relaxed">{detail.trim()}</p>
-                                          </div>
-                                        </motion.div>
-                                      ))}
-                                    </div>
-
-                                    {/* Features em grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-2xl mx-auto">
-                                      {step.features.map((feature, featureIdx) => (
-                                        <motion.div
-                                          key={featureIdx}
-                                          initial={{ opacity: 0, x: -10 }}
-                                          animate={{ opacity: 1, x: 0 }}
-                                          transition={{ delay: featureIdx * 0.1 }}
-                                          className="flex items-center gap-3 sm:gap-4 bg-[#252B3B]/70 p-3 sm:p-4 rounded-lg hover:bg-[#252B3B] transition-colors duration-300 group"
-                                        >
-                                          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-[#F0B35B] flex-shrink-0 group-hover:scale-110 transition-transform duration-300" />
-                                          <span className="text-gray-200 text-sm sm:text-base group-hover:text-white transition-colors duration-300">{feature}</span>
-                                        </motion.div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )
-                            ))}
-                          </AnimatePresence>
-                        </div>
-                      </div>
-
-                      {/* Barra de Navegação Interativa Aprimorada */}
-                      <div className="mt-4 sm:mt-6 px-4 flex-shrink-0">
-                        {/* Barra de progresso principal com altura aumentada para melhor interação */}
-                        <div className="relative h-3 bg-[#1A1F2E] rounded-full overflow-hidden cursor-pointer shadow-inner"
-                          onClick={(e) => {
-                            // Cálculo da posição relativa do clique na barra
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const x = e.clientX - rect.left;
-                            const percentage = x / rect.width;
-                            const newStep = Math.min(
-                              demoSteps.length - 1,
-                              Math.max(0, Math.round(percentage * (demoSteps.length - 1)))
-                            );
-                            setCurrentStep(newStep);
-                          }}
+                    {/* Ícones de navegação */}
+                    <div className="mt-4 flex justify-center items-center gap-4">
+                      {demoSteps.map((step, idx) => (
+                        <motion.button
+                          key={idx}
+                          onClick={() => setCurrentStep(idx)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          className={`
+                            w-10 h-10 rounded-lg relative
+                            ${currentStep === idx 
+                              ? 'bg-[#F0B35B]/20 border-2 border-[#F0B35B]' 
+                              : 'bg-[#1A1F2E] border border-[#F0B35B]/30'
+                            }
+                            flex items-center justify-center
+                            transition-all duration-300
+                          `}
                         >
-                          {/* Fundo da barra com gradiente suave */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-[#1A1F2E] via-[#1A1F2E]/80 to-[#1A1F2E] opacity-50"></div>
-
-                          {/* Barra de progresso com animação melhorada */}
-                          <motion.div
-                            className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#F0B35B] to-[#D4943D] rounded-full"
-                            style={{ width: `${(currentStep / (demoSteps.length - 1)) * 100}%` }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(currentStep / (demoSteps.length - 1)) * 100}%` }}
-                            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1.0] }}
-                          >
-                            {/* Efeito de brilho na barra de progresso */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine"></div>
-                          </motion.div>
-
-
-
-                          {/* Pontos clicáveis aprimorados */}
-
-                        </div>
-
-                        {/* Miniaturas dos cards para navegação rápida com feedback visual melhorado */}
-                        <div className="mt-4 sm:mt-6 flex justify-center sm:justify-between gap-2 overflow-x-auto pb-2 hide-scrollbar max-w-full">
-                          {demoSteps.map((step, idx) => (
-                            <motion.button
-                              key={idx}
-                              onClick={() => setCurrentStep(idx)}
-                              whileHover={{ y: -3, boxShadow: '0 8px 16px rgba(240,179,91,0.3)' }}
-                              whileTap={{ y: 0, scale: 0.95 }}
-                              animate={{
-                                opacity: Math.abs(currentStep - idx) <= 1 ? 1 : 0.6,
-                                y: currentStep === idx ? -3 : 0,
-                                boxShadow: currentStep === idx ? '0 6px 12px rgba(240,179,91,0.3)' : 'none'
-                              }}
-                              className={`relative flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg overflow-hidden transition-all duration-300 ${currentStep === idx ? 'ring-2 ring-[#F0B35B]' : 'ring-1 ring-[#F0B35B]/20'}`}
-                            >
-                              <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${step.color}`}>
-                                {React.createElement(step.icon, {
-                                  className: "w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white"
-                                })}
-                              </div>
-
-                              {/* Indicador numérico do passo */}
-                              <div className="absolute top-1 right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 rounded-full bg-[#1A1F2E]/80 flex items-center justify-center text-[8px] sm:text-[10px] md:text-xs font-bold text-white border border-[#F0B35B]/30">
-                                {idx + 1}
-                              </div>
-                            </motion.button>
-                          ))}
-                        </div>
-
-                        {/* Indicadores de texto com animação e botões de navegação */}
-                        <div className="flex justify-between items-center mt-3 sm:mt-4 px-1 flex-shrink-0">
-                          <motion.button
-                            onClick={() => currentStep > 0 && setCurrentStep(currentStep - 1)}
-                            whileHover={{ scale: 1.1, x: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            animate={{ opacity: currentStep === 0 ? 0.5 : 1 }}
-                            disabled={currentStep === 0}
-                            className="flex items-center gap-1 text-xs sm:text-sm text-[#F0B35B] disabled:text-gray-500 disabled:cursor-not-allowed"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M19 12H5M5 12L12 19M5 12L12 5" />
-                            </svg>
-                            <span>Anterior</span>
-                          </motion.button>
-
-                          <div className="text-xs sm:text-sm text-white font-medium">
-                            {currentStep + 1} de {demoSteps.length}
-                          </div>
-
-                          <motion.button
-                            onClick={() => currentStep < demoSteps.length - 1 && setCurrentStep(currentStep + 1)}
-                            whileHover={{ scale: 1.1, x: 2 }}
-                            whileTap={{ scale: 0.95 }}
-                            animate={{ opacity: currentStep === demoSteps.length - 1 ? 0.5 : 1 }}
-                            disabled={currentStep === demoSteps.length - 1}
-                            className="flex items-center gap-1 text-xs sm:text-sm text-[#F0B35B] disabled:text-gray-500 disabled:cursor-not-allowed"
-                          >
-                            <span>Próximo</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M5 12h14M14 5l7 7-7 7" />
-                            </svg>
-                          </motion.button>
-                        </div>
-                      </div>
+                          <span className="text-[#F0B35B] font-semibold">{idx + 1}</span>
+                        </motion.button>
+                      ))}
                     </div>
 
-                    {/* Footer */}
-                    <div className="mt-4 sm:mt-6 md:mt-8 text-center flex-shrink-0">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowDemo(false)}
-                        className="
-                          relative overflow-hidden
-                          w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 
-                          bg-gradient-to-r from-[#F0B35B] to-[#D4943D] 
-                          text-black rounded-lg font-bold text-base sm:text-lg
-                          shadow-[0_0_15px_rgba(240,179,91,0.3)]
-                          before:absolute before:inset-0
-                          before:bg-gradient-to-r before:from-[#F0B35B]/0 
-                          before:via-white/40 before:to-[#F0B35B]/0
-                          before:-skew-x-45 before:animate-shine
-                        "
-                      >
-                        <span className="relative z-10">Começar Agora</span>
-                      </motion.button>
+                    {/* Footer Fixo */}
+                    <div className="mt-4 pt-3 border-t border-[#F0B35B]/10">
+                      {/* Progress Steps mais compactos */}
+                      <div className="flex justify-center mb-4">
+                        {demoSteps.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentStep(idx)}
+                            className={`h-1 rounded-full transition-all duration-300 mx-0.5 ${
+                              idx === currentStep 
+                                ? 'w-8 bg-[#F0B35B]' 
+                                : 'w-2 bg-[#F0B35B]/20'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Botões de Navegação */}
+                      <div className="flex justify-between items-center">
+                        <button
+                          onClick={() => currentStep > 0 && setCurrentStep(currentStep - 1)}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded text-sm ${
+                            currentStep === 0 
+                              ? 'text-gray-500 cursor-not-allowed' 
+                              : 'text-[#F0B35B] hover:bg-[#F0B35B]/10'
+                          }`}
+                          disabled={currentStep === 0}
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span className="hidden sm:inline">Anterior</span>
+                        </button>
+
+                        {currentStep === demoSteps.length - 1 ? (
+                          <button
+                            onClick={() => setShowDemo(false)}
+                            className="px-4 py-1.5 bg-[#F0B35B] text-black rounded text-sm font-medium"
+                          >
+                            Começar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setCurrentStep(current => current + 1)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-[#F0B35B] hover:bg-[#F0B35B]/10 rounded text-sm"
+                          >
+                            <span className="hidden sm:inline">Próximo</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
