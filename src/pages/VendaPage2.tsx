@@ -82,61 +82,35 @@ const VendaPage2: React.FC = () => {
   
   
 
-  // Demonstração interativa do sistema
+  // Demonstração simplificada em 3 passos
   const demoSteps = [
     {
       id: 1,
-      title: "Implementação Rápida",
-      description: "Sistema pronto e configurado em tempo recorde",
+      title: "📝 Passo 1: Envie seus dados",
+      description: "Ativamos seu sistema rapidamente",
       icon: Rocket,
-      details: "Nossa equipe inicia a implementação imediatamente após a confirmação",
-      features: [
-        "Setup completo em até 24h (Normalmente entregue em 6h ou menos)",
-        "Suporte técnico durante todo processo"
-      ],
+      details: "Preencha um formulário rápido com os dados da sua barbearia. Nossa equipe faz a configuração completa e, em até 24 horas (geralmente em apenas 6 horas), seu sistema estará pronto para uso. Sem complicação!",
+      features: [],
       color: "from-blue-500/20 to-blue-600/20",
       animate: { y: [0, -5, 0], transition: { duration: 2, repeat: Infinity } }
     },
     {
       id: 2,
-      title: "Receba Acesso Instantâneo",
-      description: "Credenciais enviadas automaticamente",
+      title: "🔑 Passo 2: Personalize tudo",
+      description: "Acesse seu painel exclusivo",
       icon: Key,
-      details: "Receba suas credenciais de acesso e link personalizado do seu sistema",
-      features: [
-        "Envio por email e WhatsApp",
-        "Link exclusivo da sua barbearia",
-        "Painel administrativo completo",
-        "Acesso imediato ao sistema"
-      ],
+      details: "Assim que seu sistema estiver pronto, você receberá um link exclusivo e acesso ao painel administrativo. Lá, você pode configurar tudo do seu jeito: cadastrar serviços, definir horários de atendimento, adicionar seus barbeiros e ajustar todas as informações essenciais.",
+      features: [],
       color: "from-green-500/20 to-green-600/20",
       animate: { scale: [1, 1.02, 1], transition: { duration: 2, repeat: Infinity } }
     },
     {
       id: 3,
-      title: "Configure Seu Sistema",
-      description: "Personalize toda sua barbearia",
-      icon: Settings,
-      details: "Configure todos os aspectos do seu negócio em uma interface intuitiva",
-      features: [
-        "Cadastro de barbeiros e serviços",
-        "Definição de horários de atendimento",
-        "Personalização completa do sistema"
-      ],
-      color: "from-yellow-500/20 to-yellow-600/20",
-      animate: { rotate: [-1, 1, -1], transition: { duration: 2, repeat: Infinity } }
-    },
-    {
-      id: 4,
-      title: "Comece a Usar",
-      description: "Compartilhe e gerencie",
+      title: "📲 Passo 3: Compartilhe",
+      description: "Comece a agendar clientes",
       icon: Share2,
-      details: "Compartilhe seu link personalizado e comece a receber agendamentos",
-      features: [
-        "Link fácil de compartilhar",
-        "Gestão de agendamentos em 1 clique",
-        "Dashboard em tempo real"
-      ],
+      details: "Com tudo configurado, agora é só divulgar seu link para os clientes! Eles poderão agendar horários online de forma simples e prática. E você acompanha tudo em tempo real, controlando sua agenda com poucos cliques.",
+      features: [],
       color: "from-purple-500/20 to-purple-600/20",
       animate: { x: [-2, 2, -2], transition: { duration: 2, repeat: Infinity } }
     }
@@ -596,36 +570,6 @@ const VendaPage2: React.FC = () => {
                       ref={carouselRef}
                       className="relative px-0 sm:px-4 select-none flex-1 overflow-hidden flex flex-col"
                     >
-                      {/* Setas de navegação grandes e mais sutis */}
-                      <motion.button 
-                        onClick={goToPrevStep}
-                        initial={{ opacity: 0.6 }}
-                        animate={{ opacity: currentStep === 0 ? 0.3 : 0.8 }}
-                        whileHover={{ opacity: currentStep === 0 ? 0.3 : 1, scale: currentStep === 0 ? 1 : 1.1 }}
-                        whileTap={{ scale: currentStep === 0 ? 1 : 0.95 }}
-                        disabled={currentStep === 0}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-[#1A1F2E]/60 hover:bg-[#252B3B]/80 rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg backdrop-blur-sm"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 18l-6-6 6-6" />
-                        </svg>
-                      </motion.button>
-                      
-                      <motion.button 
-                        onClick={goToNextStep}
-                        initial={{ opacity: 0.6 }}
-                        animate={{ opacity: currentStep === demoSteps.length - 1 ? 0.3 : 0.8 }}
-                        whileHover={{ opacity: currentStep === demoSteps.length - 1 ? 0.3 : 1, scale: currentStep === demoSteps.length - 1 ? 1 : 1.1 }}
-                        whileTap={{ scale: currentStep === demoSteps.length - 1 ? 1 : 0.95 }}
-                        disabled={currentStep === demoSteps.length - 1}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-[#1A1F2E]/60 hover:bg-[#252B3B]/80 rounded-full border border-[#F0B35B]/20 text-[#F0B35B] disabled:text-[#F0B35B]/30 disabled:cursor-not-allowed shadow-lg backdrop-blur-sm"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
-                      </motion.button>
-                      {/* Indicador de navegação com setas removido para uma experiência mais limpa */}
-
                       {/* Carrossel de Cards com transição suave entre slides */}
                       <div className="overflow-hidden pb-4 flex-1 flex items-center">
                         <div className="flex justify-center w-full">
