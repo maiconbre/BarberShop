@@ -360,9 +360,9 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 relative">
             {/* Modal de histórico detalhado do cliente */}
             {showClientHistory && selectedClient && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 mt-10 z-30 overflow-y-auto">
                     <div 
-                        className="bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden"
+                        className="bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden my-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="sticky top-0 flex justify-between items-center p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">

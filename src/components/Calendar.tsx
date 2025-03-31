@@ -88,36 +88,60 @@ const Calendar: React.FC<CalendarProps> = ({ selectedBarber, onTimeSelect, prelo
   // Dispara a busca quando o barbeiro for selecionado e atualiza a cada 30 segundos
   useEffect(() => {
     if (selectedBarber) {
-      // Se temos agendamentos pré-carregados, usamos eles
-      if (preloadedAppointments && preloadedAppointments.length > 0) {
-        setAppointmentsCache(preloadedAppointments);
-      } else {
-        // Caso contrário, buscamos novos agendamentos
-        fetchAppointments();
-      }
+      // Sempre buscar agendamentos da API para ter os dados mais recentes
+      fetchAppointments();
       
       // Configurar intervalo para atualização periódica
       const interval = setInterval(fetchAppointments, 30000);
       return () => clearInterval(interval);
     }
-  }, [selectedBarber, fetchAppointments, preloadedAppointments]);
+  }, [selectedBarber, fetchAppointments]);
+  
+  // Efeito separado para lidar com os agendamentos pré-carregados
+  useEffect(() => {
+    // Não substituímos o cache, apenas adicionamos os pré-carregados se existirem
+    if (preloadedAppointments && preloadedAppointments.length > 0) {
+      console.log('Usando agendamentos pré-carregados:', preloadedAppointments.length);
+      // Manter os agendamentos existentes e adicionar os pré-carregados
+      setAppointmentsCache(prev => {
+        // Filtrar para evitar duplicatas baseadas no ID
+        const existingIds = new Set(prev.map(app => app.id));
+        const newPreloaded = preloadedAppointments.filter(app => !existingIds.has(app.id));
+        return [...prev, ...newPreloaded];
+      });
+    }
+  }, [preloadedAppointments]);
 
   // Computa os horários reservados (bookedSlots) com base na data, barbeiro e cache
   const computedBookedSlots = useMemo(() => {
     if (selectedDate && selectedBarber) {
       const dateInBrasilia = adjustToBrasilia(selectedDate);
       const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
+      
+      // Filtrar agendamentos normais
       const filteredAppointments = appointmentsCache.filter(
         appointment =>
-          appointment.date === formattedDate && appointment.barberName === selectedBarber
+          appointment.date === formattedDate && 
+          (appointment.barberName === selectedBarber || appointment.barberId === selectedBarber)
       );
+      
+      // Verificar também os horários bloqueados nos preloadedAppointments
+      const blockedAppointments = preloadedAppointments.filter(
+        appointment => 
+          appointment.date === formattedDate && 
+          (appointment.barberName === selectedBarber || appointment.barberId === selectedBarber)
+      );
+      
+      // Combinar os dois conjuntos de agendamentos
+      const allAppointments = [...filteredAppointments, ...blockedAppointments];
+      
       return timeSlots.map(time => ({
         time,
-        isBooked: filteredAppointments.some(appointment => appointment.time === time)
+        isBooked: allAppointments.some(appointment => appointment.time === time)
       }));
     }
     return [];
-  }, [selectedDate, selectedBarber, appointmentsCache, adjustToBrasilia]);
+  }, [selectedDate, selectedBarber, appointmentsCache, preloadedAppointments, adjustToBrasilia]);
 
   const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
