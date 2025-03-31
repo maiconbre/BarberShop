@@ -331,46 +331,46 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col-2 sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto hide-scrollbar w-full sm:w-auto pb-2 sm:pb-0">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('painel')}
-              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-2 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
-              <LayoutDashboard className="w-5 h-5" />
-              <span>Painel</span>
+              <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Painel</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('agenda')}
-              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-2 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
-              <Calendar className="w-5 h-5" />
-              <span>Agenda</span>
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Agenda</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('analytics')}
-              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-2 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
-              <Users className="w-5 h-5" />
-              <span>Clientes</span>
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Clientes</span>
             </motion.button>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative">
               <Notifications />
             </div>
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
+                className="p-1.5 sm:p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
               >
-                <Settings className="w-6 h-6 text-black" />
+                <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
               </button>
               {isDropdownOpen && (
                 <>
@@ -396,6 +396,13 @@ const DashboardPage: React.FC = () => {
                             role="menuitem"
                           >
                             <span>Gerenciar Barbeiros</span>
+                          </button>
+                          <button
+                            onClick={() => navigate('/gerenciar-horarios')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Horários</span>
                           </button>
                           <button
                             onClick={() => navigate('/gerenciar-comentarios')}

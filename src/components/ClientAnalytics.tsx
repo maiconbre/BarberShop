@@ -358,6 +358,108 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     return (
         <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 relative">
+            {/* Modal de histórico detalhado do cliente */}
+            {showClientHistory && selectedClient && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div 
+                        className="bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="sticky top-0 flex justify-between items-center p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
+                            <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
+                                <Users className="h-5 w-5 text-[#F0B35B]" />
+                                Histórico de {selectedClient}
+                            </h3>
+                            <button
+                                onClick={closeClientHistory}
+                                className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700/30 rounded-lg"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        
+                        <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                            {clientAppointments.length > 0 ? (
+                                <div className="space-y-4">
+                                    <div className="bg-[#0D121E] p-3 rounded-lg">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+                                            <div>
+                                                <h4 className="text-sm sm:text-base font-medium text-white">Resumo</h4>
+                                                <p className="text-xs text-gray-400">Histórico completo de visitas</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs bg-[#1A1F2E] px-3 py-1.5 rounded-full">
+                                                <span className="text-gray-400">Total de visitas:</span>
+                                                <span className="text-[#F0B35B] font-medium">{clientAppointments.length}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <div className="bg-[#1A1F2E] p-3 rounded-lg">
+                                                <p className="text-xs text-gray-400 mb-1">Total gasto</p>
+                                                <p className="text-lg font-bold text-green-400">
+                                                    R$ {clientAppointments.reduce((sum, app) => sum + app.price, 0).toFixed(2)}
+                                                </p>
+                                            </div>
+                                            <div className="bg-[#1A1F2E] p-3 rounded-lg">
+                                                <p className="text-xs text-gray-400 mb-1">Primeira visita</p>
+                                                <p className="text-sm font-medium text-white">
+                                                    {new Date([...clientAppointments].sort((a, b) => 
+                                                        new Date(a.date).getTime() - new Date(b.date).getTime())[0].date
+                                                    ).toLocaleDateString('pt-BR')}
+                                                </p>
+                                            </div>
+                                            <div className="bg-[#1A1F2E] p-3 rounded-lg">
+                                                <p className="text-xs text-gray-400 mb-1">Última visita</p>
+                                                <p className="text-sm font-medium text-white">
+                                                    {new Date(clientAppointments[0].date).toLocaleDateString('pt-BR')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <h4 className="text-sm font-medium text-white mt-4 mb-2">Todas as visitas</h4>
+                                    <div className="space-y-3">
+                                        {clientAppointments.map((app, index) => (
+                                            <div 
+                                                key={app.id} 
+                                                className={`bg-[#0D121E] p-3 rounded-lg border-l-2 ${app.status === 'completed' ? 'border-green-400' : app.status === 'confirmed' ? 'border-blue-400' : 'border-yellow-400'}`}
+                                            >
+                                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#1A1F2E]">
+                                                            {new Date(app.date).toLocaleDateString('pt-BR')}
+                                                        </span>
+                                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#1A1F2E]">
+                                                            {app.time}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${app.status === 'completed' ? 'bg-green-400/20 text-green-400' : app.status === 'confirmed' ? 'bg-blue-400/20 text-blue-400' : 'bg-yellow-400/20 text-yellow-400'}`}>
+                                                            {app.status === 'completed' ? 'Concluído' : app.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                                                        </span>
+                                                        <span className="text-xs font-medium text-green-400">
+                                                            R$ {app.price.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-2">
+                                                    <p className="text-sm text-white">{app.service}</p>
+                                                    <p className="text-xs text-gray-400 mt-1">Barbeiro: {app.barberName}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                                    <Users className="h-12 w-12 mb-4 opacity-30" />
+                                    <p>Nenhum histórico encontrado para este cliente</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
                 <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
                     <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#F0B35B]" />
@@ -645,12 +747,19 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             fill="#8884d8"
                                             dataKey="value"
                                             label={({ name, percent }) => {
-                                                // Truncar nomes longos para evitar overflow
-                                                const truncatedName = name.length > (window.innerWidth < 640 ? 8 : 10) ?
-                                                    name.substring(0, window.innerWidth < 640 ? 8 : 10) + '...' : name;
-                                                return window.innerWidth < 640 ?
-                                                    `${(percent * 100).toFixed(0)}%` :
-                                                    `${truncatedName} ${(percent * 100).toFixed(0)}%`;
+                                                // Truncar nomes longos para melhor visualização
+                                                const truncatedName = name.length > (window.innerWidth < 640 ? 6 : window.innerWidth < 768 ? 8 : 10) ?
+                                                    name.substring(0, window.innerWidth < 640 ? 6 : window.innerWidth < 768 ? 8 : 10) + '...' : name;
+                                                // Em dispositivos móveis, mostrar apenas a porcentagem
+                                                // Em tablets, mostrar nome muito curto + porcentagem
+                                                // Em desktop, mostrar nome truncado + porcentagem
+                                                if (window.innerWidth < 640) {
+                                                    return `${(percent * 100).toFixed(0)}%`;
+                                                } else if (window.innerWidth < 768) {
+                                                    return name.length > 8 ? `${(percent * 100).toFixed(0)}%` : `${truncatedName}: ${(percent * 100).toFixed(0)}%`;
+                                                } else {
+                                                    return `${truncatedName}: ${(percent * 100).toFixed(0)}%`;
+                                                }
                                             }}
                                         >
                                             {popularServicesData.map((entry, index) => (
@@ -724,9 +833,16 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             dataKey="value"
                                             label={({ name, percent }) => {
                                                 // Formato mais compacto para evitar overflow
-                                                return window.innerWidth < 640 ?
-                                                    `${(percent * 100).toFixed(0)}%` :
-                                                    `${name.split(' ')[0]}: ${(percent * 100).toFixed(0)}%`;
+                                                const firstWord = name.split(' ')[0];
+                                                // Em dispositivos móveis, mostrar apenas a porcentagem
+                                                // Em tablets e desktop, mostrar primeira palavra + porcentagem
+                                                if (window.innerWidth < 640) {
+                                                    return `${(percent * 100).toFixed(0)}%`;
+                                                } else if (window.innerWidth < 768) {
+                                                    return `${firstWord}: ${(percent * 100).toFixed(0)}%`;
+                                                } else {
+                                                    return `${name}: ${(percent * 100).toFixed(0)}%`;
+                                                }
                                             }}
                                         >
                                             {recurrenceData.map((entry, index) => (
