@@ -54,7 +54,7 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isChartExpanded, setIsChartExpanded] = useState(false);
+  const [isChartExpanded, setIsChartExpanded] = useState(true);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('all');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
