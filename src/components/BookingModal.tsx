@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ApiService from '../services/ApiService';
 import { X, MessageCircle, ArrowRight, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
@@ -22,16 +23,17 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Estado para armazenar os dados do formulário (agora com suporte a múltiplos serviços)
   const [formData, setFormData] = useState({
     name: '',
+    whatsapp: '',
     barber: '',
     barberId: '',
     date: '',
     time: '',
     services: initialService ? [initialService] : [],
   });
-  
+
   // Estado para armazenar os horários pré-carregados
   const [cachedAppointments, setCachedAppointments] = useState(preloadedAppointments || []);
-  
+
   // Atualiza os serviços quando o initialService ou initialServices mudar
   useEffect(() => {
     if (initialService) {
@@ -63,16 +65,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   }, [isOpen]);
 
   // Estado para armazenar os dados completos dos serviços (incluindo preços)
-  const [serviceData, setServiceData] = useState<{[key: string]: number}>({});
-  
+  const [serviceData, setServiceData] = useState<{ [key: string]: number }>({});
+
   // Função para obter o preço de um serviço pelo nome
   const getServicePrice = (serviceName: string): number => {
     return serviceData[serviceName] || 0;
   };
-  const [barbers, setBarbers] = useState([
-    { id: '01', name: 'Maicon', whatsapp: '21997764645', pix: '21997761646' },
-    { id: '02', name: 'Brendon', whatsapp: '2199774658', pix: '21554875965' }
-  ]);
+  // Estado para armazenar os barbeiros (carregados dinamicamente da API)
+  const [barbers, setBarbers] = useState<Array<{ id: string, name: string, whatsapp?: string, pix?: string }>>([]);
   const [services, setServices] = useState<string[]>([]);
 
   // Buscar serviços da API ao carregar o componente
@@ -85,9 +85,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
           if (result.success && result.data) {
             // Armazenar os nomes dos serviços
             setServices(result.data.map((service: any) => service.name));
-            
+
             // Armazenar os preços dos serviços em um objeto para fácil acesso
-            const priceMap: {[key: string]: number} = {};
+            const priceMap: { [key: string]: number } = {};
             result.data.forEach((service: any) => {
               priceMap[service.name] = service.price;
             });
@@ -114,11 +114,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
               // Encontra barbeiros que oferecem todos os serviços selecionados
               const availableBarbers = new Set();
               let isFirstService = true;
-              
+
               // Para cada serviço selecionado
               formData.services.forEach((selectedServiceName: string) => {
                 const serviceData = result.data.find((service: any) => service.name === selectedServiceName);
-                
+
                 if (serviceData && serviceData.Barbers) {
                   if (isFirstService) {
                     // Para o primeiro serviço, adiciona todos os barbeiros
@@ -132,7 +132,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                     serviceData.Barbers.forEach((barber: any) => {
                       currentBarberSet.add(JSON.stringify(barber));
                     });
-                    
+
                     // Filtra para manter apenas os barbeiros que estão em ambos os conjuntos
                     const commonBarbers = new Set();
                     availableBarbers.forEach((barberStr: unknown) => {
@@ -140,7 +140,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                         commonBarbers.add(barberStr);
                       }
                     });
-                    
+
                     // Atualiza o conjunto de barbeiros disponíveis
                     availableBarbers.clear();
                     commonBarbers.forEach((barber: unknown) => {
@@ -149,7 +149,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                   }
                 }
               });
-              
+
               // Converte o conjunto de barbeiros de volta para um array
               if (availableBarbers.size > 0) {
                 const barberArray = Array.from(availableBarbers).map(barberStr => JSON.parse(barberStr as string));
@@ -159,15 +159,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
             }
           }
         }
-        
-        // Se não encontrou barbeiros específicos para os serviços ou nenhum serviço foi selecionado,
-        // busca todos os barbeiros
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`);
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            setBarbers(result.data);
-          }
+
+        const result = await ApiService.getBarbers();
+        if ((result as any).success && (result as any).data) {
+          setBarbers((result as any).data);
         }
       } catch (error) {
         console.error('Erro ao buscar barbeiros:', error);
@@ -176,18 +171,18 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     fetchBarbers();
   }, [formData.services]); // Executa novamente quando os serviços selecionados mudarem
-  
+
   // Efeito para atualizar os horários pré-carregados quando as props mudarem
   useEffect(() => {
     if (preloadedAppointments && preloadedAppointments.length > 0) {
       setCachedAppointments(preloadedAppointments);
     }
   }, [preloadedAppointments]);
-  
+
   // Função para carregar os horários disponíveis caso não tenham sido pré-carregados
   const loadAppointments = async () => {
     if (cachedAppointments.length > 0) return;
-    
+
     try {
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'GET',
@@ -209,7 +204,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       console.error('Erro ao carregar agendamentos:', err);
     }
   };
-  
+
   // Efeito para carregar os horários quando o modal for aberto e não houver pré-carregados
   useEffect(() => {
     if (isOpen && cachedAppointments.length === 0) {
@@ -219,11 +214,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Função para avançar para a próxima etapa
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validação para a etapa 1 (nome e serviços)
+
+    // Validação para a etapa 1 (nome, whatsapp e serviços)
     if (step === 1) {
       if (!formData.name.trim()) {
         setError('Por favor, informe seu nome');
+        return;
+      }
+      if (!formData.whatsapp.trim()) {
+        setError('Por favor, informe seu WhatsApp');
         return;
       }
       if (formData.services.length === 0) {
@@ -234,7 +233,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       setStep(2);
       return;
     }
-    
+
     // Validação para a etapa 2 (barbeiro e data/hora)
     if (step === 2) {
       if (!formData.barber) {
@@ -249,7 +248,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       handleSubmit(e);
     }
   };
-  
+
   // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,7 +257,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     try {
       const formattedDate = formData.date;
-      
+
       // Calcula o preço total dos serviços selecionados
       const totalPrice = formData.services.reduce((total, service) => {
         return total + getServicePrice(service);
@@ -266,6 +265,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
       const appointmentData = {
         clientName: formData.name,
+        wppclient: formData.whatsapp, // Corrigido para corresponder ao campo no modelo Appointment.js
         serviceName: formData.services.join(', '),
         date: formattedDate,
         time: formData.time,
@@ -323,16 +323,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     }
   };
 
-  // Função para obter o WhatsApp do barbeiro selecionado
-  const getBarberWhatsApp = () => {
+  // Função para obter informações do barbeiro selecionado
+  const getSelectedBarberInfo = () => {
     const barber = barbers.find(b => b.name === formData.barber);
-    return barber?.whatsapp || '';
-  };
-
-  // Função para obter o código PIX do barbeiro selecionado
-  const getBarberPix = () => {
-    const barber = barbers.find(b => b.name === formData.barber);
-    return barber?.pix || '';
+    return {
+      whatsapp: barber?.whatsapp || '',
+      pix: barber?.pix || ''
+    };
   };
 
   // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo todos os serviços selecionados
@@ -348,6 +345,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     const message = `Olá, segue meu agendamento:
 Nome: ${formData.name}
+WhatsApp: ${formData.whatsapp}
 Barbeiro: ${formData.barber}
 Serviços: ${formData.services.join(', ')}
 Valor: R$ ${totalPrice.toFixed(2)}
@@ -360,7 +358,7 @@ Aguardo a confirmação.`;
 
   // Função para copiar o PIX para a área de transferência
   const handleCopyPix = () => {
-    const pix = getBarberPix();
+    const { pix } = getSelectedBarberInfo();
     navigator.clipboard.writeText(pix).then(() => {
       alert("PIX copiado!");
     }).catch(err => {
@@ -396,10 +394,10 @@ Aguardo a confirmação.`;
             <div className="inline-block ">
               <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
                 <div className="h-px w-5 bg-[#F0B35B]"></div>
-                
+
                 <span className="uppercase text-xs font-semibold tracking-wider">{step === 1 ? 'Escolha seu serviço' : 'Escolha seu barbeiro'}</span>
                 <div className="h-px w-5 bg-[#F0B35B]"></div>
-              </div> 
+              </div>
             </div>)}
             {step !== 3 && (
               <h2 className="text-xl sm:text-2xl font-bold text-white text-center">
@@ -449,15 +447,37 @@ Aguardo a confirmação.`;
                   <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
                 </div>
               </div>
+              
+              <div className="group relative">
+                <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">WhatsApp</label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    required
+                    className="w-full pl-10 pr-4 py-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-sm placeholder-gray-500"
+                    value={formData.whatsapp}
+                    placeholder="(00) 00000-0000"
+                    onChange={(e) =>
+                      setFormData({ ...formData, whatsapp: e.target.value })
+                    }
+                    onFocus={handleInputFocus}
+                  />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#F0B35B]/70">
+                    <MessageCircle size={20} />
+                  </div>
+                  <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
+                </div>
+              </div>
 
               <div className="group relative">
                 <label className="block text-sm font-medium mb-1.5 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Serviços</label>
                 <div className="bg-[#0D121E] rounded-lg p-3 border border-transparent hover:border-[#F0B35B]/30 transition-all duration-300">
                   <p className="text-sm text-gray-400 mb-2">Selecione um ou mais serviços:</p>
-                  <div className="max-h-40 overflow-y-auto grid grid-cols-1 gap-2 pr-2">
+                  <div className="max-h-40 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-4 py-2 px-2">
                     {services.map((service) => (
-                      <div 
-                        key={service} 
+                      <button
+                        type="button"
+                        key={service}
                         onClick={() => {
                           if (formData.services.includes(service)) {
                             setFormData({ ...formData, services: formData.services.filter(s => s !== service) });
@@ -465,32 +485,30 @@ Aguardo a confirmação.`;
                             setFormData({ ...formData, services: [...formData.services, service] });
                           }
                         }}
-                        className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer transition-all duration-200 ${formData.services.includes(service) 
-                          ? 'bg-[#F0B35B]/20 border border-[#F0B35B] shadow-sm shadow-[#F0B35B]/20' 
-                          : 'bg-[#1A1F2E] border border-transparent hover:border-[#F0B35B]/30'}`}
+                        className={`flex flex-col items-center justify-center p-2.5 rounded-md cursor-pointer transition-all duration-200 h-full
+                          ${formData.services.includes(service)
+                            ? 'bg-[#F0B35B]/20 border border-[#F0B35B] shadow-sm shadow-[#F0B35B]/20 transform scale-[1.02]'
+                            : 'bg-[#1A1F2E] border border-transparent hover:border-[#F0B35B]/30'}`}
                       >
-                        <div className="flex items-center">
-                          <div className={`w-5 h-5 rounded-md flex items-center justify-center mr-3 transition-all duration-200 ${formData.services.includes(service) 
-                            ? 'bg-[#F0B35B]' 
-                            : 'border-2 border-[#F0B35B]/30'}`}>
-                            {formData.services.includes(service) && (
-                              <CheckCircle size={14} className="text-black" />
-                            )}
-                          </div>
-                          <span className={`text-sm transition-colors duration-200 ${formData.services.includes(service) ? 'text-white font-medium' : 'text-gray-300'}`}>
-                            {service}
-                          </span>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center mb-1 transition-all duration-200 
+                          ${formData.services.includes(service) ? 'bg-[#F0B35B]' : 'border-2 border-[#F0B35B]/30'}`}>
+                          {formData.services.includes(service) && (
+                            <CheckCircle size={14} className="text-black" />
+                          )}
                         </div>
-                        <span className="text-xs font-medium text-[#F0B35B]">
+                        <span className={`text-sm transition-colors duration-200 text-center ${formData.services.includes(service) ? 'text-white font-medium' : 'text-gray-300'}`}>
+                          {service}
+                        </span>
+                        <span className="text-xs font-medium text-[#F0B35B] mt-1">
                           R$ {getServicePrice(service).toFixed(2)}
                         </span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                   {formData.services.length > 0 && (
                     <div className="mt-3 pt-2 border-t border-[#F0B35B]/10">
                       <div className="flex justify-between items-center">
-                        <p className="text-sm text-[#F0B35B] font-medium">Serviços selecionados: {formData.services.length}</p>
+                        <p className="text-sm text-[#F0B35B] font-medium">Serviços: {formData.services.length}</p>
                         <p className="text-sm text-white font-medium">Total: R$ {formData.services.reduce((total, service) => {
                           return total + getServicePrice(service);
                         }, 0).toFixed(2)}</p>
@@ -534,8 +552,8 @@ Aguardo a confirmação.`;
                       <button
                         key={barber.id}
                         type="button"
-                        className={`p-2 rounded-lg flex items-center transition-all duration-300 ${formData.barberId === barber.id 
-                          ? 'bg-[#F0B35B] text-black shadow-md scale-[1.02]' 
+                        className={`p-2 rounded-lg flex items-center transition-all duration-300 ${formData.barberId === barber.id
+                          ? 'bg-[#F0B35B] text-black shadow-md scale-[1.02]'
                           : 'bg-[#0D121E] text-white hover:bg-[#0D121E]/80 hover:border-[#F0B35B]/30 border border-transparent hover:border-[#F0B35B]/20'}`}
                         onClick={() => {
                           setFormData({
@@ -569,7 +587,7 @@ Aguardo a confirmação.`;
                   </div>
                 )}
               </div>
-              
+
               <Calendar
                 selectedBarber={formData.barber}
                 onTimeSelect={(date, time) => {
@@ -581,7 +599,7 @@ Aguardo a confirmação.`;
                 }}
                 preloadedAppointments={cachedAppointments}
               />
-              
+
               <button
                 type="submit"
                 disabled={isLoading}
@@ -622,7 +640,7 @@ Aguardo a confirmação.`;
                   Agendamento <span className="text-[#F0B35B] relative overflow-hidden"><span className="relative z-10">Confirmado</span></span>
                 </h2>
               </div>
-              
+
               <div className="bg-[#0D121E] p-2 sm:p-5 rounded-lg mb-3 sm:mb-4 shadow-lg border border-[#F0B35B]/10">
                 {/* Seção do QR Code e Detalhes */}
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6 mb-3 sm:mb-4">
@@ -638,7 +656,7 @@ Aguardo a confirmação.`;
                         />
                         <div className="mt-1 sm:mt-2 flex items-center text-xs">
                           <span className="text-gray-700 font-bold text-xs truncate max-w-[70px] sm:max-w-full">
-                            {getBarberPix()}
+                            {getSelectedBarberInfo().pix}
                           </span>
                           <button
                             onClick={handleCopyPix}
@@ -652,7 +670,7 @@ Aguardo a confirmação.`;
                       <div className="text-gray-700 text-xs">QR Code não disponível</div>
                     )}
                   </div>
-                  
+
                   {/* Detalhes do Agendamento */}
                   <div className="flex-1 text-left bg-[#1A1F2E] p-2 sm:p-4 rounded-lg border border-[#F0B35B]/5 shadow-inner">
                     <h3 className="text-sm sm:text-lg font-semibold text-white mx-4 sm:mx-6 mb-2 sm:mb-3 flex items-center">
@@ -696,11 +714,11 @@ Aguardo a confirmação.`;
                     </ul>
                   </div>
                 </div>
-                
+
                 {/* Botões de Ação */}
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-white/10">
                   <a
-                    href={`https://wa.me/${getBarberWhatsApp()}?text=${getWhatsappMessage()}`}
+                    href={`https://wa.me/${getSelectedBarberInfo().whatsapp}?text=${getWhatsappMessage()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="relative overflow-hidden group flex-1 flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-xs sm:text-sm border border-green-500/20 hover:border-green-500/40"
@@ -709,7 +727,7 @@ Aguardo a confirmação.`;
                     <span>Confirmar via WhatsApp</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-white/10 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine"></div>
                   </a>
-                  
+
                 </div>
               </div>
 

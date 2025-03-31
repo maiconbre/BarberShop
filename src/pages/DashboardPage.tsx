@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw } from 'lucide-react';
+import { Settings, Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
 import Notifications, { useNotifications } from '../components/Notifications';
 import AppointmentViewModal from '../components/AppointmentViewModal';
 import CalendarView from '../components/CalendarView';
+import ClientAnalytics from '../components/ClientAnalytics';
 import CacheService from '../services/CacheService';
 
 interface Appointment {
@@ -63,8 +64,8 @@ const DashboardPage: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const appointmentsPerPage = 8;
-  // View mode state (painel ou agenda)
-  const [activeView, setActiveView] = useState<'painel' | 'agenda'>('painel');
+  // View mode state (painel, agenda ou analytics)
+  const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
   // Calendar view states
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
@@ -350,6 +351,15 @@ const DashboardPage: React.FC = () => {
               <Calendar className="w-5 h-5" />
               <span>Agenda</span>
             </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveView('analytics')}
+              className={`px-3 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+            >
+              <Users className="w-5 h-5" />
+              <span>Clientes</span>
+            </motion.button>
           </div>
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -527,7 +537,7 @@ const DashboardPage: React.FC = () => {
                 </AnimatePresence>
               </div>
             </motion.div>
-          ) : (
+          ) : activeView === 'agenda' ? (
             <motion.div
               key="agenda-view"
               initial={{ opacity: 0 }}
@@ -591,6 +601,19 @@ const DashboardPage: React.FC = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="analytics-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Visualização de Analytics */}
+              <div className="space-y-6">
+                <ClientAnalytics appointments={appointments} />
               </div>
             </motion.div>
           )}

@@ -59,6 +59,10 @@ class ApiService {
     }
   }
 
+  // Mapa para controlar o tempo entre requisições para cada endpoint
+  private endpointCooldowns: Map<string, number> = new Map();
+  private readonly MIN_REQUEST_INTERVAL = 2000; // 2 segundos entre requisições para o mesmo endpoint
+
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     // Verificar se é uma requisição GET
     const isGetRequest = options.method === undefined || options.method === 'GET';
@@ -75,7 +79,18 @@ class ApiService {
           return cachedData;
         }
         
-        // Se estiver online, iniciar uma atualização em background e retornar os dados em cache
+        // Verificar se já fizemos uma requisição recente para este endpoint
+        const now = Date.now();
+        const lastRequestTime = this.endpointCooldowns.get(endpoint) || 0;
+        const timeSinceLastRequest = now - lastRequestTime;
+        
+        // Se a última requisição foi muito recente, use o cache sem atualizar em background
+        if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+          console.log(`Requisição muito recente para ${endpoint} (${Math.round(timeSinceLastRequest/1000)}s < ${this.MIN_REQUEST_INTERVAL/1000}s), usando apenas cache`);
+          return cachedData;
+        }
+        
+        // Se estiver online e passou tempo suficiente, iniciar uma atualização em background
         if (this.connectionErrorTimestamp === 0) { // Só atualiza se não estiver em cooldown
           this.refreshCacheInBackground(endpoint, options);
         }
@@ -126,6 +141,10 @@ class ApiService {
   // Método para atualizar o cache em segundo plano sem bloquear a UI
   private async refreshCacheInBackground<T>(endpoint: string, options: RequestInit = {}): Promise<void> {
     try {
+      // Registrar o timestamp desta requisição para controle de frequência
+      const now = Date.now();
+      this.endpointCooldowns.set(endpoint, now);
+      
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const headers = {
         'Content-Type': 'application/json',
@@ -138,6 +157,10 @@ class ApiService {
       const response = await fetch(`${this.baseUrl}${endpoint}`, { ...options, headers, mode: 'cors' });
       
       if (!response.ok) {
+        // Se receber erro 429, aumentar o intervalo mínimo entre requisições
+        if (response.status === 429) {
+          console.warn(`Erro 429 (Too Many Requests) para ${endpoint}, aumentando intervalo entre requisições`); }
+        
         console.warn(`Falha ao atualizar cache em segundo plano para ${endpoint}: ${response.status}`);
         return;
       }

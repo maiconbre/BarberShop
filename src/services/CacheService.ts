@@ -9,11 +9,14 @@ class CacheService {
   private CACHE_DURATION_OFFLINE = 24 * 60 * 60 * 1000; // 24 horas quando offline
   private STORAGE_KEY_PREFIX = 'app_cache_';
   private retryDelays: Map<string, number>; // Controle de backoff exponencial por endpoint
+  private requestTimestamps: Map<string, number>; // Controle de tempo entre requisições
+  private REQUEST_COOLDOWN = 5000; // 5 segundos entre requisições para o mesmo endpoint
 
   private constructor() {
     this.cache = new Map();
     this.pendingRequests = new Map();
     this.retryDelays = new Map();
+    this.requestTimestamps = new Map();
     this.loadCacheFromStorage();
   }
 
@@ -85,8 +88,48 @@ class CacheService {
       }
     }
 
+    // Verificar se já fizemos uma requisição recente para este endpoint
+    const lastRequestTime = this.requestTimestamps.get(key) || 0;
+    const timeSinceLastRequest = now - lastRequestTime;
+    
+    // Se a última requisição foi muito recente e temos cache, use o cache para evitar 429
+    if (timeSinceLastRequest < this.REQUEST_COOLDOWN && cached) {
+      console.log(`Requisição muito recente para ${key} (${Math.round(timeSinceLastRequest/1000)}s < ${this.REQUEST_COOLDOWN/1000}s), usando cache`);
+      
+      // Agendar uma atualização em background após o período de cooldown
+      if (timeSinceLastRequest < this.REQUEST_COOLDOWN && !this.pendingRequests.has(`${key}_delayed`)) {
+        const delayTime = this.REQUEST_COOLDOWN - timeSinceLastRequest;
+        console.log(`Agendando atualização em background para ${key} em ${Math.round(delayTime/1000)}s`);
+        
+        const delayedPromise = new Promise<T>((resolve) => {
+          setTimeout(async () => {
+            try {
+              // Verificar novamente se já não existe uma requisição pendente
+              if (!this.pendingRequests.has(key)) {
+                const data = await fetchFn();
+                this.cache.set(key, { data, timestamp: Date.now() });
+                this.requestTimestamps.set(key, Date.now());
+                resolve(data);
+              }
+            } catch (error) {
+              console.warn(`Erro na atualização em background para ${key}:`, error);
+            } finally {
+              this.pendingRequests.delete(`${key}_delayed`);
+            }
+          }, delayTime);
+        });
+        
+        this.pendingRequests.set(`${key}_delayed`, delayedPromise);
+      }
+      
+      return cached.data;
+    }
+
     // Implementar backoff exponencial para evitar muitas requisições em caso de falha
     const currentRetryDelay = this.retryDelays.get(key) || 1000;
+    
+    // Registrar o timestamp desta requisição
+    this.requestTimestamps.set(key, now);
     
     // Criar e armazenar a promessa para esta requisição
     const fetchPromise = (async () => {
@@ -102,6 +145,10 @@ class CacheService {
           const newDelay = Math.min(currentRetryDelay * 2, 60000); // Máximo de 1 minuto
           this.retryDelays.set(key, newDelay);
           console.warn(`Erro 429 para ${key}, próximo retry em ${newDelay/1000}s`);
+          
+          // Aumentar o cooldown para este endpoint
+          this.REQUEST_COOLDOWN = Math.min(this.REQUEST_COOLDOWN * 1.5, 30000); // Máximo de 30 segundos
+          console.log(`Aumentando cooldown global para ${this.REQUEST_COOLDOWN/1000}s`);
         }
         
         // Se temos dados em cache, mesmo expirados, use-os em caso de erro

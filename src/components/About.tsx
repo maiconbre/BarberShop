@@ -1,5 +1,6 @@
 import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useState, useEffect, FormEvent, useRef } from 'react';
+import ApiService from '../services/ApiService';
 
 const About = () => {
   // Estados para visibilidade de cada seção
@@ -85,19 +86,14 @@ const About = () => {
       setCommentsError('');
 
       try {
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/comments?status=approved`);
+        // Usar ApiService em vez de fetch diretamente
+        const data = await ApiService.getApprovedComments();
 
-        if (!response.ok) {
-          throw new Error('Erro ao carregar comentários');
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-          setApprovedComments(data.data);
-          setTotalPages(Math.ceil(data.data.length / commentsPerPage));
+        if ((data as { success: boolean }).success) {
+          setApprovedComments((data as { data: any[] }).data);
+          setTotalPages(Math.ceil((data as { data: any[] }).data.length / commentsPerPage));
         } else {
-          throw new Error(data.message || 'Erro ao carregar comentários');
+          throw new Error((data as { message?: string }).message || 'Erro ao carregar comentários');
         }
       } catch (error) {
         console.error('Erro ao buscar comentários:', error);

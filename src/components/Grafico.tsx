@@ -1,47 +1,99 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaChevronDown } from 'react-icons/fa';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TrendingUp, DollarSign, Award, Users } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-
+interface Appointment {
+  id: string;
+  clientName: string;
+  service: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'confirmed' | 'completed';
+  barberId: string;
+  barberName: string;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+  viewed?: boolean;
+}
 
 interface GraficoProps {
-  appointments: any[];
+  appointments: Appointment[];
   isChartExpanded: boolean;
   setIsChartExpanded: (expanded: boolean) => void;
 }
 
 const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsChartExpanded }) => {
-  // Calcular os dados do gráfico a partir dos appointments
-  const weeklyData = React.useMemo(() => {
-    const appointmentsByDate = appointments.reduce((acc, app) => {
-      if (!acc[app.date]) {
-        acc[app.date] = { pending: 0, completed: 0 };
+  // Dados para o gráfico de tendências ao longo do tempo
+  const trendsData = useMemo(() => {
+    const monthlyData: { [key: string]: { clients: number, revenue: number } } = {};
+    const last6Months = [];
+    
+    // Gerar os últimos 6 meses
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthlyData[monthKey] = { clients: 0, revenue: 0 };
+      last6Months.push(monthKey);
+    }
+    
+    // Agrupar dados por mês
+    appointments.forEach(app => {
+      const date = new Date(app.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (monthlyData[monthKey]) {
+        monthlyData[monthKey].revenue += app.price;
+        monthlyData[monthKey].clients += 1;
       }
-      if (app.status === 'pending') {
-        acc[app.date].pending++;
-      } else if (app.status === 'completed') {
-        acc[app.date].completed++;
-      }
-      return acc;
-    }, {} as { [key: string]: { pending: number; completed: number } });
-
-    const sortedDates = Object.keys(appointmentsByDate).sort();
-    return sortedDates.map(date => {
-      const dayDate = new Date(date + 'T12:00:00-03:00');
-      const fullDate = dayDate.toLocaleDateString('pt-BR', {
-        weekday: 'short',
-        day: 'numeric'
-      }).replace('.', '').replace('-feira', '');
-
+    });
+    
+    // Formatar para o gráfico
+    return last6Months.map(month => {
+      const [year, monthNum] = month.split('-');
+      const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('pt-BR', { month: 'short' });
+      
       return {
-        date: String(dayDate.getDate()),
-        fullDate: fullDate.charAt(0).toUpperCase() + fullDate.slice(1),
-        pending: appointmentsByDate[date].pending,
-        completed: appointmentsByDate[date].completed
+        name: monthName,
+        clientes: monthlyData[month].clients,
+        receita: monthlyData[month].revenue
       };
     });
   }, [appointments]);
+
+  // Calcular dados para os cards de métricas
+  const metricsData = useMemo(() => {
+    // Extrair nomes de clientes únicos para calcular total de clientes
+    const uniqueClients = new Set<string>();
+    appointments.forEach(app => uniqueClients.add(app.clientName.toLowerCase()));
+    
+    // Calcular ticket médio
+    const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
+    const ticketMedio = appointments.length > 0 ? totalRevenue / appointments.length : 0;
+    
+    // Calcular clientes que retornam (com mais de uma visita)
+    const clientVisits: Record<string, number> = {};
+    appointments.forEach(app => {
+      const clientName = app.clientName.toLowerCase();
+      clientVisits[clientName] = (clientVisits[clientName] || 0) + 1;
+    });
+    
+    const returningClients = Object.values(clientVisits).filter(visits => visits > 1).length;
+    const returnRate = uniqueClients.size > 0 ? (returningClients / uniqueClients.size) * 100 : 0;
+    
+    // Calcular clientes novos (com apenas uma visita)
+    const newClients = Object.values(clientVisits).filter(visits => visits === 1).length;
+    
+    return {
+      ticketMedio,
+      returnRate,
+      newClients
+    };
+  }, [appointments]);
+
   return (
     <motion.div
       className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg overflow-hidden mb-6"
@@ -53,8 +105,8 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
         onClick={() => setIsChartExpanded(!isChartExpanded)}
       >
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-          <FaChartLine className="text-white bg" />
-          Analise dos agendamentos
+          <FaChartLine className="text-[#F0B35B]" />
+          Tendências e Análises
         </h2>
         <motion.div
           animate={{ rotate: isChartExpanded ? 180 : 0 }}
@@ -69,89 +121,97 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="p-2 sm:p-4"
+            className="p-2 sm:p-4 overflow-x-hidden"
           >
-            <div className="h-[300px] sm:h-[400px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={weeklyData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                >
-                  <defs>
-                    <linearGradient id="colorPending" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FFD700" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#FFD700" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4CAF50" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#4CAF50" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.1)"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="fullDate"
-                    stroke="#fff"
-                    tick={{ fontSize: 10, fill: '#fff' }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                    tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                    height={60}
-                    angle={-45}
-                    textAnchor="end"
-                  />
-                  <YAxis
-                    stroke="#fff"
-                    allowDecimals={false}
-                    tick={{ fontSize: 10, fill: '#fff' }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                    tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                    width={40}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'rgba(26,31,46,0.95)',
-                      border: '1px solid rgba(240,179,91,0.5)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      fontSize: '12px',
-                      color: '#fff'
-                    }}
-                    formatter={(value: any, name: string) => [
-                      value,
-                      name === 'pending' ? 'Pendente' : 'Concluído'
-                    ]}
-                    labelFormatter={(label) => `Data: ${label}`}
-                  />
-                  <Legend
-                    formatter={(value) => value === 'pending' ? 'Pendente' : 'Concluído'}
-                    wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="pending"
-                    name="pending"
-                    stroke="#FFD700"
-                    fillOpacity={1}
-                    fill="url(#colorPending)"
-                    strokeWidth={2}
-                    activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="completed"
-                    name="completed"
-                    stroke="#4CAF50"
-                    fillOpacity={1}
-                    fill="url(#colorCompleted)"
-                    strokeWidth={2}
-                    activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            {/* Gráfico principal de tendências */}
+            <div className="bg-[#0D121E] p-3 sm:p-4 rounded-lg mb-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-3 sm:mb-4 text-center">Tendências das Últimas 12 Semanas</h3>
+              <div className="h-64 sm:h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={trendsData}
+                    margin={{ top: 5, right: 15, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: window.innerWidth < 640 ? 7 : window.innerWidth < 768 ? 8 : 10, fill: '#fff' }}
+                    />
+                    <YAxis 
+                      yAxisId="left" 
+                      orientation="left" 
+                      stroke="#F0B35B" 
+                      tick={{ fontSize: window.innerWidth < 640 ? 7 : window.innerWidth < 768 ? 8 : 10, fill: '#fff' }}
+                      width={30}
+                    />
+                    <YAxis 
+                      yAxisId="right" 
+                      orientation="right" 
+                      stroke="#00C49F" 
+                      tick={{ fontSize: window.innerWidth < 640 ? 7 : window.innerWidth < 768 ? 8 : 10, fill: '#fff' }}
+                      width={30}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(26,31,46,0.95)',
+                        border: '1px solid rgba(240,179,91,0.5)',
+                        borderRadius: '8px',
+                        padding: window.innerWidth < 640 ? '4px' : '8px',
+                        fontSize: window.innerWidth < 640 ? '10px' : '12px',
+                      }}
+                    />
+                    <Legend />
+                    <Line 
+                      yAxisId="left"
+                      type="monotone" 
+                      dataKey="clientes" 
+                      name="Clientes" 
+                      stroke="#F0B35B" 
+                      activeDot={{ r: 8 }} 
+                    />
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="receita" 
+                      name="Receita (R$)" 
+                      stroke="#00C49F" 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            
+            {/* Cards de métricas */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              <div className="bg-[#0D121E] p-2 sm:p-4 rounded-lg">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2 text-center">Ticket Médio</h3>
+                <div className="flex flex-col items-center justify-center h-20 sm:h-24">
+                  <DollarSign className="h-6 w-6 text-green-400 mb-1" />
+                  <p className="text-lg sm:text-2xl font-bold text-white">
+                    R$ {metricsData.ticketMedio.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-[#0D121E] p-2 sm:p-4 rounded-lg">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2 text-center">Taxa de Retorno</h3>
+                <div className="flex flex-col items-center justify-center h-20 sm:h-24">
+                  <Award className="h-6 w-6 text-[#F0B35B] mb-1" />
+                  <p className="text-lg sm:text-2xl font-bold text-white">
+                    {Math.round(metricsData.returnRate)}%
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-[#0D121E] p-2 sm:p-4 rounded-lg">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-1 sm:mb-2 text-center">Clientes Novos</h3>
+                <div className="flex flex-col items-center justify-center h-20 sm:h-24">
+                  <Users className="h-6 w-6 text-blue-400 mb-1" />
+                  <p className="text-lg sm:text-2xl font-bold text-white">
+                    {metricsData.newClients}
+                  </p>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
