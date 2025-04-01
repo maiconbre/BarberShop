@@ -3,9 +3,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCheck,
   FaTrash,
-  FaTimes
+  FaTimes,
+  FaWhatsapp
 } from 'react-icons/fa';
+import { MessageCircle } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
+
+// Função formatWhatsApp reutilizada do ClientAnalytics
+const formatWhatsApp = (whatsapp: string | undefined): string => {
+    if (!whatsapp) return '-';
+    let formatted = whatsapp.replace(/^55/, '');
+    formatted = formatted.replace(/\D/g, '');
+    if (formatted.length >= 10) {
+        const ddd = formatted.substring(0, 2);
+        const parte1 = formatted.length === 10 ? 
+            formatted.substring(2, 6) : 
+            formatted.substring(2, 7);
+        const parte2 = formatted.length === 10 ? 
+            formatted.substring(6) : 
+            formatted.substring(7);
+        return `(${ddd})${parte1}-${parte2}`;
+    }
+    return formatted;
+};
 
 interface Appointment {
   id: string;
@@ -16,6 +36,9 @@ interface Appointment {
   status: 'pending' | 'confirmed' | 'completed';
   price: number;
   barberName: string;
+  clientWhatsapp?: string;
+  wppclient?: string;
+  createdAt?: string;
 }
 
 interface AppointmentViewModalProps {
@@ -24,6 +47,8 @@ interface AppointmentViewModalProps {
   appointment: Appointment | null;
   onDelete: () => void;
   onToggleStatus: () => void;
+  isBarber?: boolean; // Nova prop para identificar se é barbeiro
+  allAppointments?: Appointment[]; // Nova prop para acessar histórico
 }
 
 const statusStyles = {
@@ -92,15 +117,24 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
   onClose, 
   appointment, 
   onDelete, 
-  onToggleStatus 
+  onToggleStatus,
+  isBarber = false,
+  allAppointments = []
 }) => {
-  // Estados para os modais de confirmação
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   
   if (!isOpen || !appointment) return null;
   
   const status = statusStyles[appointment.status];
+  const whatsapp = appointment?.wppclient || appointment?.clientWhatsapp;
+
+  // Filtrar histórico de agendamentos do mesmo cliente
+  const clientHistory = allAppointments.filter(app => 
+    (app.wppclient === whatsapp || app.clientWhatsapp === whatsapp) && 
+    app.id !== appointment.id
+  ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <AnimatePresence>
@@ -109,45 +143,112 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-2 sm:p-4"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.95 }}
-            className="max-w-md w-full"
+            initial={{ y: "100%", scale: 1 }}
+            animate={{ y: 0, scale: 1 }}
+            exit={{ y: "100%", scale: 1 }}
+            transition={{ type: "spring", damping: 20 }}
+            className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl"
             onClick={e => e.stopPropagation()}
           >
             <motion.div
               layout
-              className={`relative bg-[#1A1F2E] rounded-xl border border-white/5 overflow-hidden
+              className={`relative bg-[#1A1F2E] rounded-t-xl sm:rounded-xl border border-white/5 overflow-hidden
                        border-l-4 ${status.border} shadow-lg`}
             >
-              <div className="p-4 sm:p-5">
-                {/* Cabeçalho do Card */}
-                <div className="flex items-center justify-between">
+              <div className="p-4 sm:p-5 space-y-4">
+                {/* Cabeçalho com indicador de arraste para mobile */}
+                <div className="sm:hidden w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4" />
+
+                {/* Informações principais */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h3 className="text-white font-medium text-base sm:text-lg">
+                    <h3 className="text-white font-medium text-lg">
                       {appointment.clientName}
                     </h3>
                     <p className="text-sm text-gray-400">{appointment.service}</p>
                   </div>
                   <span className={`text-sm font-medium ${status.text} 
-                                px-2 py-1 rounded-full`}>
+                                px-2 py-1 rounded-full self-start`}>
                     {formatDateTime(appointment.date, appointment.time)}
                   </span>
                 </div>
 
-                {/* Informações adicionais */}
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-sm text-gray-300">
-                    <span className="text-gray-400">Barbeiro:</span> {appointment.barberName}
-                  </p>
-                </div>
+                {/* Seção WhatsApp */}
+                {whatsapp && (
+                  <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FaWhatsapp className="text-green-400" />
+                        <p className="text-sm text-gray-300">
+                          {formatWhatsApp(whatsapp)}
+                        </p>
+                      </div>
+                      <a
+                        href={`https://wa.me/${whatsapp?.replace(/\D/g, '')}?text=Olá ${appointment.clientName}, tudo bem?`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm hover:bg-green-500/30 transition-all"
+                      >
+                        <MessageCircle size={16} />
+                        <span>Enviar Mensagem</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
 
-                {/* Informações e Ações */}
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
+                {/* Informações adicionais */}
+                {!isBarber && (
+                  <div className="pt-4 border-t border-white/10">
+                    <p className="text-sm text-gray-300">
+                      <span className="text-gray-400">Barbeiro:</span> {appointment.barberName}
+                    </p>
+                  </div>
+                )}
+
+                {/* Histórico de agendamentos */}
+                {clientHistory.length > 0 && (
+                  <div className="pt-4 border-t border-white/10">
+                    <button
+                      onClick={() => setShowHistory(!showHistory)}
+                      className="flex items-center justify-between w-full text-sm text-gray-300 mb-2"
+                    >
+                      <span>Histórico de Agendamentos</span>
+                      <span className="text-[#F0B35B]">{clientHistory.length}</span>
+                    </button>
+                    
+                    {showHistory && (
+                      <div className="space-y-2 mt-3 max-h-48 overflow-y-auto">
+                        {clientHistory.map((hist) => (
+                          <div
+                            key={hist.id}
+                            className={`p-2 rounded-lg bg-[#0D121E] border-l-2 ${statusStyles[hist.status].border}`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-sm text-white">
+                                  {formatDateTime(hist.date, hist.time)}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {hist.service}
+                                </p>
+                              </div>
+                              <span className={`text-xs px-2 py-1 rounded-full ${statusStyles[hist.status].bg} ${statusStyles[hist.status].text}`}>
+                                R$ {hist.price.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Ações */}
+                <div className="flex items-center justify-between pt-4 border-t border-white/10">
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-green-400">
                       R$ {appointment.price.toFixed(2)}
@@ -216,4 +317,5 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
     </AnimatePresence>
   );
 };
+
 export default AppointmentViewModal;
