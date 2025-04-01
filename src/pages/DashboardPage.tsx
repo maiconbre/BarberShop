@@ -161,12 +161,12 @@ const DashboardPage: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
-        
+
         // Se for erro 429, implementar retry com backoff exponencial
         if (error.response?.status === 429 || (typeof error === 'object' && error.message?.includes('429'))) {
           const delay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Máximo de 1 minuto
-          console.warn(`Erro 429, tentando novamente em ${delay/1000}s`);
-          
+          console.warn(`Erro 429, tentando novamente em ${delay / 1000}s`);
+
           if (retryCount < 5) { // Máximo de 5 tentativas
             retryTimeout = setTimeout(() => fetchData(retryCount + 1), delay);
           }
@@ -338,7 +338,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('painel')}
-              className={`px-2 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-1.5 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
               <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-xs sm:text-sm whitespace-nowrap">Painel</span>
@@ -347,7 +347,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('agenda')}
-              className={`px-2 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-1.5 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-xs sm:text-sm whitespace-nowrap">Agenda</span>
@@ -356,7 +356,7 @@ const DashboardPage: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveView('analytics')}
-              className={`px-2 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              className={`px-1.5 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
             >
               <Users className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="text-xs sm:text-sm whitespace-nowrap">Clientes</span>
@@ -447,7 +447,7 @@ const DashboardPage: React.FC = () => {
                           </button>
                         </>
                       )}
-                      
+
                       {/* Opções comuns para ambos */}
                       <button
                         onClick={() => navigate('/trocar-senha')}
@@ -784,16 +784,16 @@ const DashboardPage: React.FC = () => {
           )
         )}
       </main>
-      
-        <AppointmentViewModal
-          isOpen={isViewModalOpen}
-          onClose={() => setIsViewModalOpen(false)}
-          appointment={selectedAppointment}
-          onDelete={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'delete')}
-          onToggleStatus={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status)}
-        />
+
+      <AppointmentViewModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        appointment={selectedAppointment}
+        onDelete={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'delete')}
+        onToggleStatus={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status)}
+      />
     </div>
-    
+
   );
 };
 

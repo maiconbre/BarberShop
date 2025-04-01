@@ -49,15 +49,14 @@ const BlockSchedulePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0D121E] pt-24 px-4 sm:px-6 lg:px-8">
       {/* Botão Voltar */}
-      <motion.button 
-        onClick={() => navigate('/dashboard')}
-        className="relative overflow-hidden group flex items-center gap-2 px-4 py-2 mb-6 bg-[#1A1F2E] rounded-lg hover:bg-[#252B3B] transition-all duration-300 text-white border border-[#F0B35B]/20 hover:border-[#F0B35B]/40"
+      <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
+        onClick={() => navigate('/dashboard')}
+        className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
       >
-        <ArrowLeft size={18} className="text-[#F0B35B]" />
+        <ArrowLeft className="w-5 h-5" />
         <span>Voltar ao Dashboard</span>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine" />
       </motion.button>
 
       <div className="max-w-4xl mx-auto py-8">

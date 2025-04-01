@@ -100,29 +100,9 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
     setIsConfirmOpen(true);
   }, []);
 
-  // Estado para controlar o modal de confirmação de desbloqueio
-  const [isUnblockConfirmOpen, setIsUnblockConfirmOpen] = useState(false);
-  const [timeToUnblock, setTimeToUnblock] = useState<{date: string, time: string} | null>(null);
-
-  // Função para iniciar o processo de remoção de um horário bloqueado
-  const handleRemoveBlockedTime = (date: string, time: string) => {
+  // Função para remover um horário bloqueado
+  const handleRemoveBlockedTime = async (date: string, time: string) => {
     if (!selectedBarber) return;
-    
-    // Encontrar o horário bloqueado nos dados pré-carregados
-    const blockedTime = blockedTimes.find(
-      block => block.date === date && block.time === time && block.barberId === selectedBarber
-    );
-
-    if (blockedTime) {
-      setTimeToUnblock({date, time});
-      setIsUnblockConfirmOpen(true);
-    }
-  };
-
-  // Função para confirmar e executar a remoção do horário bloqueado
-  const confirmUnblockTime = async () => {
-    if (!timeToUnblock || !selectedBarber) return;
-    const {date, time} = timeToUnblock;
 
     setIsLoading(true);
     try {
@@ -162,14 +142,7 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
         // Atualizar localStorage para compatibilidade
         localStorage.setItem('blockedTimes', JSON.stringify(updatedBlockedTimes));
 
-        // Atualizar preloadedAppointments para refletir a mudança no Calendar
-        setPreloadedAppointments(prev => prev.filter(
-          app => !(app.date === date && app.time === time && app.barberId === selectedBarber)
-        ));
-
         toast.success('Horário desbloqueado com sucesso!');
-        setIsUnblockConfirmOpen(false);
-        setTimeToUnblock(null);
       }
     } catch (error) {
       console.error('Erro ao desbloquear horário:', error);
@@ -302,13 +275,12 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
           <Calendar
             selectedBarber={userRole === 'barber' ? barbers[0]?.id : selectedBarber}
             onTimeSelect={handleTimeSelect}
-            onTimeRemove={handleRemoveBlockedTime}
             preloadedAppointments={preloadedAppointments}
           />
         </div>
       )}
 
-      {/* Modal de Confirmação de Bloqueio */}
+      {/* Modal de Confirmação */}
       {isConfirmOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <motion.div
@@ -356,60 +328,6 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
                 className="flex-1 px-4 py-2 rounded-lg bg-[#F0B35B] text-black font-medium hover:bg-[#D4943D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Bloqueando...' : 'Confirmar Bloqueio'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Modal de Confirmação de Desbloqueio */}
-      {isUnblockConfirmOpen && timeToUnblock && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 p-6 max-w-md w-full space-y-4"
-          >
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold text-orange-400">Confirmar Desbloqueio</h3>
-              <button
-                onClick={() => setIsUnblockConfirmOpen(false)}
-                className="p-2 hover:bg-[#252B3B] rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-[#252B3B]/50 rounded-lg p-4 space-y-3">
-              <div className="flex items-center gap-2 text-gray-300">
-                <CalendarIcon className="w-5 h-5 text-orange-400" />
-                <span>
-                  {new Date(timeToUnblock.date).toLocaleDateString('pt-BR')} às {timeToUnblock.time}
-                </span>
-              </div>
-              
-              <div className="flex items-start gap-2 text-orange-400/80 bg-orange-400/10 p-3 rounded-lg">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <p className="text-sm">
-                  Este horário será desbloqueado e estará disponível para agendamentos de clientes. Deseja continuar?
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setIsUnblockConfirmOpen(false)}
-                className="flex-1 px-4 py-2 rounded-lg border border-orange-400/30 text-orange-400 hover:bg-orange-400/10 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmUnblockTime}
-                disabled={isLoading}
-                className="flex-1 px-4 py-2 rounded-lg bg-orange-400 text-black font-medium hover:bg-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'Desbloqueando...' : 'Confirmar Desbloqueio'}
               </button>
             </div>
           </motion.div>

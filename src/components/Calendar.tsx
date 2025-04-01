@@ -136,19 +136,8 @@ const Calendar: React.FC<CalendarProps> = ({
   const handleTimeClick = useCallback((time: string, isBooked: boolean) => {
     if (!selectedDate) return;
     
+    // Não permite clicar se o horário estiver ocupado
     if (isBooked) {
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      const blockedAppointment = preloadedAppointments.find(
-        app => app.date === formattedDate && 
-              app.time === time && 
-              app.barberId === selectedBarber &&
-              app.isBlocked
-      );
-      
-      if (blockedAppointment && onTimeRemove) {
-        onTimeRemove(formattedDate, time);
-        return;
-      }
       return;
     }
 
@@ -156,17 +145,7 @@ const Calendar: React.FC<CalendarProps> = ({
     if (onTimeSelect) {
       onTimeSelect(selectedDate, time);
     }
-  }, [selectedDate, onTimeSelect, onTimeRemove, preloadedAppointments, selectedBarber]);
-  
-  // Função para verificar se um horário está bloqueado (não apenas reservado)
-  const isTimeBlocked = useCallback((date: string, time: string) => {
-    return preloadedAppointments.some(
-      app => app.date === date && 
-            app.time === time && 
-            app.barberId === selectedBarber &&
-            app.isBlocked
-    );
-  }, [preloadedAppointments, selectedBarber]);
+  }, [selectedDate, onTimeSelect]);
 
   return (
     <div className="space-y-4">
@@ -211,30 +190,23 @@ const Calendar: React.FC<CalendarProps> = ({
             timeSlots.map(time => {
               const slot = computedBookedSlots.find(slot => slot.time === time);
               const isBooked = slot ? slot.isBooked : false;
-              const formattedDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
-              const isBlockedTime = isTimeBlocked(formattedDate, time);
               
               return (
                 <button
                   type="button"
                   key={time}
                   onClick={() => handleTimeClick(time, isBooked)}
-                  disabled={isBooked && !isBlockedTime}
+                  disabled={isBooked} // Adiciona disabled para horários ocupados
                   className={`
                     py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden
                     ${isBooked 
-                      ? isBlockedTime
-                        ? 'bg-orange-500/30 text-orange-200 cursor-pointer border border-orange-500/50 hover:bg-orange-500/40' 
-                        : 'bg-red-500/20 text-red-300 cursor-not-allowed opacity-60'
+                      ? 'bg-red-500/20 text-red-300 cursor-not-allowed opacity-60' 
                       : time === selectedTime
                         ? 'bg-[#F0B35B] text-black transform scale-105 shadow-md shadow-[#F0B35B]/20' 
                         : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 cursor-pointer'}
                   `}
                 >
-                  <span className="relative z-10">
-                    {time}
-                    {isBlockedTime && <span className="ml-1">🔓</span>}
-                  </span>
+                  <span className="relative z-10">{time}</span>
                 </button>
               );
             })
