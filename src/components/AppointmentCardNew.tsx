@@ -1,12 +1,10 @@
-import React, { useState, memo, useMemo } from 'react';
+import React, { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCheck,
   FaTrash,
-  FaTimes,
-  FaWhatsapp
+  FaTimes
 } from 'react-icons/fa';
-import { Users, MessageCircle, X } from 'lucide-react';
 
 interface Appointment {
   id: string;

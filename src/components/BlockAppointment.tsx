@@ -35,9 +35,11 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
 
   // Dados genéricos para agendamento fake
   const fakeClientData = {
-    name: "Horário Bloqueado",
-    phone: "00000000000",
-    email: "bloqueado@sistema.com"
+    name: "BLOQUEADO",
+    phone: "21999999999",
+    email: "block@system.com",
+    service: "Corte Simples",
+    price: 0
   };
   
   // Função para carregar horários bloqueados do cache
@@ -106,42 +108,24 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
 
     setIsLoading(true);
     try {
-      // Criar um "fake appointment" para representar o horário bloqueado
-      const appointmentData = {
-        clientName: "Horário Bloqueado",
-        wppclient: "00000000000",
-        serviceName: "Horário Bloqueado",
-        date: date,
-        time: time,
-        barberId: selectedBarber,
-        barberName: barbers.find(b => b.id === selectedBarber)?.name || '',
-        price: 0,
-        isBlocked: true
-      };
+      const appointment = preloadedAppointments.find(
+        app => app.date === date && app.time === time && app.barberId === selectedBarber
+      );
 
-      // Enviar para a API para remover o bloqueio
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/block`, {
+      if (!appointment?.id) return;
+
+      // Usar a rota padrão de delete
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointment.id}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(appointmentData)
+        }
       });
 
       if (response.ok) {
-        // Atualizar o estado local
-        const updatedBlockedTimes = blockedTimes.filter(
-          block => !(block.date === date && block.time === time && block.barberId === selectedBarber)
+        setPreloadedAppointments(prev => 
+          prev.filter(app => app.id !== appointment.id)
         );
-        setBlockedTimes(updatedBlockedTimes);
-        
-        // Atualizar o cache
-        await CacheService.setCache('blockedTimes', updatedBlockedTimes);
-        
-        // Atualizar localStorage para compatibilidade
-        localStorage.setItem('blockedTimes', JSON.stringify(updatedBlockedTimes));
-
         toast.success('Horário desbloqueado com sucesso!');
       }
     } catch (error) {
@@ -167,19 +151,19 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
 
       // Criar um "fake appointment" para representar o horário bloqueado
       const appointmentData = {
-        clientName: "Horário Bloqueado",
-        wppclient: "00000000000",
-        serviceName: "Horário Bloqueado",
+        clientName: fakeClientData.name,
+        wppclient: fakeClientData.phone,
+        serviceName: fakeClientData.service,
         date: formattedDate,
         time: selectedTime,
         barberId: selectedBarber,
         barberName: barberName,
-        price: 0,
+        price: fakeClientData.price,
         isBlocked: true
       };
 
-      // Enviar para a API
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/block`, {
+      // Usar a rota padrão de agendamentos
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,23 +175,6 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
       if (response.ok) {
         const result = await response.json();
         
-        // Criar novo bloco de horário com ID da API
-        const newBlock: BlockedTime = {
-          id: result.data.id,
-          date: formattedDate,
-          time: selectedTime,
-          barberId: selectedBarber,
-          barberName: barberName,
-          isBlocked: true
-        };
-
-        // Atualizar estados e cache
-        const updatedBlockedTimes = [...blockedTimes, newBlock];
-        setBlockedTimes(updatedBlockedTimes);
-        await CacheService.setCache('blockedTimes', updatedBlockedTimes);
-        localStorage.setItem('blockedTimes', JSON.stringify(updatedBlockedTimes));
-
-        // Atualizar preloadedAppointments para refletir no Calendar
         const newAppointment = {
           id: result.data.id,
           date: formattedDate,
@@ -215,9 +182,9 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
           barberId: selectedBarber,
           barberName: barberName,
           status: 'blocked',
-          service: 'Horário Bloqueado',
-          clientName: 'Bloqueado',
-          price: 0,
+          service: fakeClientData.service,
+          clientName: fakeClientData.name,
+          price: fakeClientData.price,
           isBlocked: true
         };
         

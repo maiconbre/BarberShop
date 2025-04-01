@@ -406,12 +406,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                               exit={{ opacity: 1 }}
                               transition={{ duration: 0.3 }}
                             >
-                              <Eye size={16} />
+                              <Eye size={20} />
                             </motion.div>
                           ) : showValues ? (
-                            <Eye size={16} />
+                            <Eye size={20} />
                           ) : (
-                            <EyeOff size={16} />
+                            <EyeOff size={20} />
                           )}
                         </AnimatePresence>
                       </button>

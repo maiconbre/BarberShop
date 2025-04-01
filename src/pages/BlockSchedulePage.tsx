@@ -17,8 +17,8 @@ const BlockSchedulePage: React.FC = () => {
     const fetchBarbers = async () => {
       if (!currentUser) return;
 
-      if (currentUser.role === 'admin') {
-        try {
+      try {
+        if (currentUser.role === 'admin') {
           const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -31,14 +31,14 @@ const BlockSchedulePage: React.FC = () => {
               name: barber.name
             })));
           }
-        } catch (error) {
-          console.error('Erro ao buscar barbeiros:', error);
+        } else {
+          setBarbers([{ id: currentUser.id || '', name: currentUser.name || '' }]);
         }
-      } else {
-        // Se for barbeiro, usa seus próprios dados
-        setBarbers([{ id: currentUser.id || '', name: currentUser.name || '' }]);
+      } catch (error) {
+        console.error('Erro ao buscar barbeiros:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchBarbers();

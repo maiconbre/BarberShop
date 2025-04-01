@@ -4,7 +4,9 @@ import {
   FaCheck,
   FaTrash,
   FaTimes,
-  FaWhatsapp
+  FaWhatsapp,
+  FaHistory,
+  FaTimesCircle
 } from 'react-icons/fa';
 import { MessageCircle } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
@@ -159,6 +161,14 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
               className={`relative bg-[#1A1F2E] rounded-t-xl sm:rounded-xl border border-white/5 overflow-hidden
                        border-l-4 ${status.border} shadow-lg`}
             >
+              {/* Botão de fechar (X) */}
+              <button
+                onClick={onClose}
+                className="absolute top-3 right-3 p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors z-10"
+                aria-label="Fechar"
+              >
+                <FaTimesCircle size={18} />
+              </button>
               <div className="p-4 sm:p-5 space-y-4">
                 {/* Cabeçalho com indicador de arraste para mobile */}
                 <div className="sm:hidden w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4" />
@@ -214,36 +224,61 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                   <div className="pt-4 border-t border-white/10">
                     <button
                       onClick={() => setShowHistory(!showHistory)}
-                      className="flex items-center justify-between w-full text-sm text-gray-300 mb-2"
+                      className="flex items-center justify-between w-full text-sm text-gray-300 mb-2 hover:text-[#F0B35B] transition-colors"
                     >
-                      <span>Histórico de Agendamentos</span>
-                      <span className="text-[#F0B35B]">{clientHistory.length}</span>
+                      <div className="flex items-center gap-2">
+                        <FaHistory className="text-[#F0B35B]" />
+                        <span>Histórico de Agendamentos</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[#F0B35B] font-medium">{clientHistory.length}</span>
+                        <span className="text-xs text-gray-400">{showHistory ? '(ocultar)' : '(mostrar)'}</span>
+                      </div>
                     </button>
                     
-                    {showHistory && (
-                      <div className="space-y-2 mt-3 max-h-48 overflow-y-auto">
-                        {clientHistory.map((hist) => (
-                          <div
-                            key={hist.id}
-                            className={`p-2 rounded-lg bg-[#0D121E] border-l-2 ${statusStyles[hist.status].border}`}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-sm text-white">
-                                  {formatDateTime(hist.date, hist.time)}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {hist.service}
-                                </p>
+                    <AnimatePresence>
+                      {showHistory && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="space-y-2 mt-3 max-h-48 overflow-y-auto pr-1"
+                        >
+                          {clientHistory.map((hist) => (
+                            <motion.div
+                              key={hist.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className={`p-3 rounded-lg bg-[#0D121E] border-l-2 ${statusStyles[hist.status].border} hover:bg-[#151C2A] transition-colors`}
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-sm text-white font-medium">
+                                    {formatDateTime(hist.date, hist.time)}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {hist.service}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Barbeiro: {hist.barberName}
+                                  </p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className={`text-xs px-2 py-1 rounded-full ${statusStyles[hist.status].bg} ${statusStyles[hist.status].text}`}>
+                                    {statusStyles[hist.status].label}
+                                  </span>
+                                  <span className="text-xs text-green-400 font-medium">
+                                    R$ {hist.price.toFixed(2)}
+                                  </span>
+                                </div>
                               </div>
-                              <span className={`text-xs px-2 py-1 rounded-full ${statusStyles[hist.status].bg} ${statusStyles[hist.status].text}`}>
-                                R$ {hist.price.toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 )}
 
