@@ -1,20 +1,28 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCheck,
   FaTrash,
-  FaTimes
+  FaTimes,
+  FaWhatsapp
 } from 'react-icons/fa';
+import { Users, MessageCircle, X } from 'lucide-react';
 
 interface Appointment {
   id: string;
   clientName: string;
+  clientWhatsapp?: string;
+  wppclient?: string;
   service: string;
   date: string;
   time: string;
   status: 'pending' | 'confirmed' | 'completed';
   price: number;
   barberName: string;
+  barberId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  viewed?: boolean;
 }
 
 interface Props {

@@ -247,38 +247,63 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     // Dados para o gráfico de tendências ao longo do tempo
     const trendsData = useMemo(() => {
-        const monthlyData: { [key: string]: { clients: number, revenue: number } } = {};
-        const last6Months = [];
+        const weeklyData: { [key: string]: { clients: number, revenue: number } } = {};
+        const last12Weeks: Array<{ key: string; startDate: Date; endDate: Date }> = [];
 
-        // Gerar os últimos 6 meses
-        for (let i = 5; i >= 0; i--) {
+        // Gerar as últimas 12 semanas
+        for (let i = 11; i >= 0; i--) {
             const date = new Date();
-            date.setMonth(date.getMonth() - i);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            monthlyData[monthKey] = { clients: 0, revenue: 0 };
-            last6Months.push(monthKey);
+            date.setDate(date.getDate() - (i * 7)); // Voltar i semanas
+            
+            // Obter o início da semana (domingo)
+            const dayOfWeek = date.getDay();
+            const startOfWeek = new Date(date);
+            startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+            
+            // Formatar como YYYY-WW (ano-semana)
+            const weekYear = startOfWeek.getFullYear();
+            // Calcular o número da semana
+            const onejan = new Date(weekYear, 0, 1);
+            const weekNum = Math.ceil(((startOfWeek.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
+            
+            const weekKey = `${weekYear}-${String(weekNum).padStart(2, '0')}`;
+            weeklyData[weekKey] = { clients: 0, revenue: 0 };
+            last12Weeks.push({
+                key: weekKey,
+                startDate: new Date(startOfWeek),
+                endDate: new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000) // Adicionar 6 dias
+            });
         }
 
-        // Agrupar dados por mês
+        // Agrupar dados por semana
         appointments.forEach(app => {
-            const date = new Date(app.date);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const appDate = new Date(app.date);
+            
+            // Encontrar a semana correspondente
+            const matchingWeek = last12Weeks.find((week: { key: string; startDate: Date; endDate: Date; }) => 
+                appDate >= week.startDate && appDate <= week.endDate
+            );
 
-            if (monthlyData[monthKey]) {
-                monthlyData[monthKey].revenue += app.price;
-                monthlyData[monthKey].clients += 1;
+            if (matchingWeek && weeklyData[matchingWeek.key]) {
+                weeklyData[matchingWeek.key].revenue += app.price;
+                weeklyData[matchingWeek.key].clients += 1;
             }
         });
 
         // Formatar para o gráfico
-        return last6Months.map(month => {
-            const [year, monthNum] = month.split('-');
-            const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('pt-BR', { month: 'short' });
+        return last12Weeks.map(week => {
+            // Formatar como "DD/MM - DD/MM" (início - fim da semana)
+            const startDay = week.startDate.getDate();
+            const startMonth = week.startDate.getMonth() + 1;
+            const endDay = week.endDate.getDate();
+            const endMonth = week.endDate.getMonth() + 1;
+            
+            const weekLabel = `${String(startDay).padStart(2, '0')}/${String(startMonth).padStart(2, '0')} - ${String(endDay).padStart(2, '0')}/${String(endMonth).padStart(2, '0')}`;
 
             return {
-                name: monthName,
-                clientes: monthlyData[month].clients,
-                receita: monthlyData[month].revenue
+                name: weekLabel,
+                clientes: weeklyData[week.key].clients,
+                receita: weeklyData[week.key].revenue
             };
         });
     }, [appointments]);
@@ -703,28 +728,28 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
             </div>
 
             {/* Filtros de período - Botões menores */}
-            <div className="flex mb-6 gap-1 overflow-x-auto pb-2 hide-scrollbar scrollbar-none">
+            <div className="flex mb-6 gap-2 overflow-x-auto pb-2 hide-scrollbar scrollbar-none">
                 <button
                     onClick={() => setTimeRange('week')}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-2 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
-                    Última Semana
+                    Semana
                 </button>
                 <button
                     onClick={() => setTimeRange('month')}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-2 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
-                    Último Mês
+                    Mês
                 </button>
                 <button
                     onClick={() => setTimeRange('quarter')}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'quarter' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-2 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'quarter' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
-                    Último Trimestre
+                    Trimestre
                 </button>
                 <button
                     onClick={() => setTimeRange('all')}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'all' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-2 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'all' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
                     Todo Período
                 </button>
@@ -1017,7 +1042,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 {activeTab === 'trends' && (
                     <div className="grid grid-cols-1 gap-3 sm:gap-6">
                         <div className="bg-[#0D121E] p-2 sm:p-3 md:p-4 rounded-lg">
-                            <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-4 text-center">Tendências das Últimas 12 Semanas</h3>
+                            <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-4 text-center">Tendências das Últimas 12 Semanas (Semanal)</h3>
                             <div className="h-56 sm:h-64 md:h-72">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart

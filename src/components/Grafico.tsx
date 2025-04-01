@@ -28,38 +28,63 @@ interface GraficoProps {
 const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsChartExpanded }) => {
   // Dados para o gráfico de tendências ao longo do tempo
   const trendsData = useMemo(() => {
-    const monthlyData: { [key: string]: { clients: number, revenue: number } } = {};
-    const last6Months = [];
-    
-    // Gerar os últimos 6 meses
-    for (let i = 5; i >= 0; i--) {
+    const weeklyData: { [key: string]: { clients: number, revenue: number } } = {};
+    const last12Weeks: Array<{ key: string; startDate: Date; endDate: Date }> = [];
+
+    // Gerar as últimas 12 semanas
+    for (let i = 11; i >= 0; i--) {
       const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData[monthKey] = { clients: 0, revenue: 0 };
-      last6Months.push(monthKey);
-    }
-    
-    // Agrupar dados por mês
-    appointments.forEach(app => {
-      const date = new Date(app.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      date.setDate(date.getDate() - (i * 7)); // Voltar i semanas
       
-      if (monthlyData[monthKey]) {
-        monthlyData[monthKey].revenue += app.price;
-        monthlyData[monthKey].clients += 1;
+      // Obter o início da semana (domingo)
+      const dayOfWeek = date.getDay();
+      const startOfWeek = new Date(date);
+      startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+      
+      // Formatar como YYYY-WW (ano-semana)
+      const weekYear = startOfWeek.getFullYear();
+      // Calcular o número da semana
+      const onejan = new Date(weekYear, 0, 1);
+      const weekNum = Math.ceil(((startOfWeek.getTime() - onejan.getTime()) / 86400000 + onejan.getDay() + 1) / 7);
+      
+      const weekKey = `${weekYear}-${String(weekNum).padStart(2, '0')}`;
+      weeklyData[weekKey] = { clients: 0, revenue: 0 };
+      last12Weeks.push({
+        key: weekKey,
+        startDate: new Date(startOfWeek),
+        endDate: new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000) // Adicionar 6 dias
+      });
+    }
+
+    // Agrupar dados por semana
+    appointments.forEach(app => {
+      const appDate = new Date(app.date);
+      
+      // Encontrar a semana correspondente
+      const matchingWeek = last12Weeks.find(week => 
+        appDate >= week.startDate && appDate <= week.endDate
+      );
+
+      if (matchingWeek && weeklyData[matchingWeek.key]) {
+        weeklyData[matchingWeek.key].revenue += app.price;
+        weeklyData[matchingWeek.key].clients += 1;
       }
     });
-    
+
     // Formatar para o gráfico
-    return last6Months.map(month => {
-      const [year, monthNum] = month.split('-');
-      const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('pt-BR', { month: 'short' });
+    return last12Weeks.map(week => {
+      // Formatar como "DD/MM - DD/MM" (início - fim da semana)
+      const startDay = week.startDate.getDate();
+      const startMonth = week.startDate.getMonth() + 1;
+      const endDay = week.endDate.getDate();
+      const endMonth = week.endDate.getMonth() + 1;
       
+      const weekLabel = `${String(startDay).padStart(2, '0')}/${String(startMonth).padStart(2, '0')} - ${String(endDay).padStart(2, '0')}/${String(endMonth).padStart(2, '0')}`;
+
       return {
-        name: monthName,
-        clientes: monthlyData[month].clients,
-        receita: monthlyData[month].revenue
+        name: weekLabel,
+        clientes: weeklyData[week.key].clients,
+        receita: weeklyData[week.key].revenue
       };
     });
   }, [appointments]);
