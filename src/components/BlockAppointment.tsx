@@ -100,6 +100,85 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
     setIsConfirmOpen(true);
   }, []);
 
+  // Estado para controlar o modal de confirmação de desbloqueio
+  const [isUnblockConfirmOpen, setIsUnblockConfirmOpen] = useState(false);
+  const [timeToUnblock, setTimeToUnblock] = useState<{date: string, time: string} | null>(null);
+
+  // Função para iniciar o processo de remoção de um horário bloqueado
+  const handleRemoveBlockedTime = (date: string, time: string) => {
+    if (!selectedBarber) return;
+    
+    // Encontrar o horário bloqueado nos dados pré-carregados
+    const blockedTime = blockedTimes.find(
+      block => block.date === date && block.time === time && block.barberId === selectedBarber
+    );
+
+    if (blockedTime) {
+      setTimeToUnblock({date, time});
+      setIsUnblockConfirmOpen(true);
+    }
+  };
+
+  // Função para confirmar e executar a remoção do horário bloqueado
+  const confirmUnblockTime = async () => {
+    if (!timeToUnblock || !selectedBarber) return;
+    const {date, time} = timeToUnblock;
+
+    setIsLoading(true);
+    try {
+      // Criar um "fake appointment" para representar o horário bloqueado
+      const appointmentData = {
+        clientName: "Horário Bloqueado",
+        wppclient: "00000000000",
+        serviceName: "Horário Bloqueado",
+        date: date,
+        time: time,
+        barberId: selectedBarber,
+        barberName: barbers.find(b => b.id === selectedBarber)?.name || '',
+        price: 0,
+        isBlocked: true
+      };
+
+      // Enviar para a API para remover o bloqueio
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/block`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(appointmentData)
+      });
+
+      if (response.ok) {
+        // Atualizar o estado local
+        const updatedBlockedTimes = blockedTimes.filter(
+          block => !(block.date === date && block.time === time && block.barberId === selectedBarber)
+        );
+        setBlockedTimes(updatedBlockedTimes);
+        
+        // Atualizar o cache
+        await CacheService.setCache('blockedTimes', updatedBlockedTimes);
+        
+        // Atualizar localStorage para compatibilidade
+        localStorage.setItem('blockedTimes', JSON.stringify(updatedBlockedTimes));
+
+        // Atualizar preloadedAppointments para refletir a mudança no Calendar
+        setPreloadedAppointments(prev => prev.filter(
+          app => !(app.date === date && app.time === time && app.barberId === selectedBarber)
+        ));
+
+        toast.success('Horário desbloqueado com sucesso!');
+        setIsUnblockConfirmOpen(false);
+        setTimeToUnblock(null);
+      }
+    } catch (error) {
+      console.error('Erro ao desbloquear horário:', error);
+      toast.error('Erro ao desbloquear horário');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Efeito para carregar horários bloqueados quando o componente montar
   useEffect(() => {
     loadBlockedTimes();
@@ -110,53 +189,73 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
 
     setIsLoading(true);
     try {
-      // Obter o nome do barbeiro selecionado
       const barberName = barbers.find(b => b.id === selectedBarber)?.name || 'Desconhecido';
-      
-      // Formatar a data para o formato yyyy-MM-dd
       const formattedDate = selectedDate.toISOString().split('T')[0];
-      
-      // Criar novo bloco de horário
-      const newBlock: BlockedTime = {
-        id: `blocked-${formattedDate}-${selectedTime}`,
+
+      // Criar um "fake appointment" para representar o horário bloqueado
+      const appointmentData = {
+        clientName: "Horário Bloqueado",
+        wppclient: "00000000000",
+        serviceName: "Horário Bloqueado",
         date: formattedDate,
         time: selectedTime,
         barberId: selectedBarber,
         barberName: barberName,
+        price: 0,
         isBlocked: true
       };
-      
-      // Atualizar o estado local
-      const updatedBlockedTimes = [...blockedTimes, newBlock];
-      setBlockedTimes(updatedBlockedTimes);
-      
-      // Salvar no CacheService
-      await CacheService.setCache('blockedTimes', updatedBlockedTimes);
-      
-      // Manter compatibilidade com localStorage
-      localStorage.setItem('blockedTimes', JSON.stringify(updatedBlockedTimes));
-      
-      // Atualizar os agendamentos pré-carregados para o Calendar
-      const newAppointment = {
-        id: newBlock.id,
-        date: formattedDate,
-        time: selectedTime,
-        barberId: selectedBarber,
-        barberName: barberName,
-        status: 'pending' as const,
-        service: 'Horário Bloqueado',
-        clientName: 'Bloqueado',
-        price: 0
-      };
-      
-      setPreloadedAppointments(prev => [...prev, newAppointment]);
 
-      toast.success('Horário bloqueado com sucesso!');
-      setIsConfirmOpen(false);
-      setSelectedDate(null);
-      setSelectedTime(null);
+      // Enviar para a API
+      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/block`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(appointmentData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Criar novo bloco de horário com ID da API
+        const newBlock: BlockedTime = {
+          id: result.data.id,
+          date: formattedDate,
+          time: selectedTime,
+          barberId: selectedBarber,
+          barberName: barberName,
+          isBlocked: true
+        };
+
+        // Atualizar estados e cache
+        const updatedBlockedTimes = [...blockedTimes, newBlock];
+        setBlockedTimes(updatedBlockedTimes);
+        await CacheService.setCache('blockedTimes', updatedBlockedTimes);
+        localStorage.setItem('blockedTimes', JSON.stringify(updatedBlockedTimes));
+
+        // Atualizar preloadedAppointments para refletir no Calendar
+        const newAppointment = {
+          id: result.data.id,
+          date: formattedDate,
+          time: selectedTime,
+          barberId: selectedBarber,
+          barberName: barberName,
+          status: 'blocked',
+          service: 'Horário Bloqueado',
+          clientName: 'Bloqueado',
+          price: 0,
+          isBlocked: true
+        };
+        
+        setPreloadedAppointments(prev => [...prev, newAppointment]);
+        toast.success('Horário bloqueado com sucesso!');
+        setIsConfirmOpen(false);
+        setSelectedDate(null);
+        setSelectedTime(null);
+      }
     } catch (error) {
-      toast.error('Erro ao bloquear horário. Tente novamente.');
+      toast.error('Erro ao bloquear horário');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -175,7 +274,7 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
         </div>
       </div>
 
-      {userRole === 'admin' && (
+      {userRole === 'admin' ? (
         <div className="space-y-2">
           <label className="text-sm text-gray-400">Selecione o Barbeiro</label>
           <select
@@ -191,19 +290,25 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
             ))}
           </select>
         </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-sm text-gray-400">Barbeiro</p>
+          <p className="text-white font-medium">{barbers[0]?.name}</p>
+        </div>
       )}
 
-      {selectedBarber && (
+      {(selectedBarber || userRole === 'barber') && (
         <div className="space-y-4">
           <Calendar
-            selectedBarber={selectedBarber}
+            selectedBarber={userRole === 'barber' ? barbers[0]?.id : selectedBarber}
             onTimeSelect={handleTimeSelect}
+            onTimeRemove={handleRemoveBlockedTime}
             preloadedAppointments={preloadedAppointments}
           />
         </div>
       )}
 
-      {/* Modal de Confirmação */}
+      {/* Modal de Confirmação de Bloqueio */}
       {isConfirmOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <motion.div
@@ -251,6 +356,60 @@ const BlockAppointment: React.FC<BlockAppointmentProps> = ({
                 className="flex-1 px-4 py-2 rounded-lg bg-[#F0B35B] text-black font-medium hover:bg-[#D4943D] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Bloqueando...' : 'Confirmar Bloqueio'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Desbloqueio */}
+      {isUnblockConfirmOpen && timeToUnblock && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 p-6 max-w-md w-full space-y-4"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-orange-400">Confirmar Desbloqueio</h3>
+              <button
+                onClick={() => setIsUnblockConfirmOpen(false)}
+                className="p-2 hover:bg-[#252B3B] rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-[#252B3B]/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2 text-gray-300">
+                <CalendarIcon className="w-5 h-5 text-orange-400" />
+                <span>
+                  {new Date(timeToUnblock.date).toLocaleDateString('pt-BR')} às {timeToUnblock.time}
+                </span>
+              </div>
+              
+              <div className="flex items-start gap-2 text-orange-400/80 bg-orange-400/10 p-3 rounded-lg">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p className="text-sm">
+                  Este horário será desbloqueado e estará disponível para agendamentos de clientes. Deseja continuar?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setIsUnblockConfirmOpen(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-orange-400/30 text-orange-400 hover:bg-orange-400/10 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmUnblockTime}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 rounded-lg bg-orange-400 text-black font-medium hover:bg-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Desbloqueando...' : 'Confirmar Desbloqueio'}
               </button>
             </div>
           </motion.div>

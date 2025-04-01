@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Users, BarChart2, RefreshCw, Filter, Download, DollarSign, Award, Smartphone, Layers, X } from 'lucide-react';
+import { Search, Users, BarChart2,MessageCircle, RefreshCw, Filter, Download, DollarSign, Award, Smartphone, Layers, X } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LineChart, Line } from 'recharts';
 
 interface Appointment {
@@ -110,12 +110,15 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
         // Processar agendamentos para construir dados de clientes
         filteredAppointments.forEach(app => {
-            const clientName = app.clientName.toLowerCase();
             // Busca o WhatsApp do cliente no campo wppclient (campo usado no backend)
             const clientWhatsapp = app.wppclient || app.clientWhatsapp || '';
+            
+            // Usa o número de WhatsApp como chave única para identificar o cliente
+            // Se não tiver WhatsApp, usa o nome como fallback
+            const clientKey = clientWhatsapp || app.clientName.toLowerCase();
 
-            if (!clientMap.has(clientName)) {
-                clientMap.set(clientName, {
+            if (!clientMap.has(clientKey)) {
+                clientMap.set(clientKey, {
                     name: app.clientName,
                     whatsapp: clientWhatsapp,
                     visits: 0,
@@ -126,7 +129,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 });
             }
 
-            const clientData = clientMap.get(clientName)!;
+            const clientData = clientMap.get(clientKey)!;
             clientData.visits += 1;
             clientData.totalSpent += app.price;
             clientData.appointmentDates.push(app.date);
@@ -294,38 +297,65 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         }));
     }, [clientsData]);
 
-    // Função para simular atualização de dados
-    const handleRefresh = () => {
+    // Função para atualizar dados usando a mesma lógica do DashboardPage
+    const handleRefresh = async () => {
         setIsRefreshing(true);
-        setTimeout(() => {
+        try {
+            // Simular atualização de dados
+            // Em um cenário real, aqui seria chamada a API para buscar novos dados
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+            console.error('Erro ao atualizar dados:', error);
+        } finally {
             setIsRefreshing(false);
-        }, 1000);
+        }
     };
 
-    // Função para exportar dados dos clientes
-    const handleExportData = () => {
-        // Preparar dados para exportação
-        const csvContent = [
-            ['Nome', 'WhatsApp', 'Visitas', 'Total Gasto', 'Última Visita'].join(','),
-            ...filteredClients.map(client => [
-                client.name,
-                client.whatsapp || '',
-                client.visits,
-                client.totalSpent.toFixed(2),
-                new Date(client.lastVisit).toLocaleDateString('pt-BR')
-            ].join(','))
-        ].join('\n');
+    // Estado para o modal de exportação
+    const [showExportModal, setShowExportModal] = useState(false);
 
-        // Criar blob e link para download
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `clientes_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    // Função para exportar dados dos clientes
+    const handleExportData = (format: 'csv' | 'pdf') => {
+        if (format === 'csv') {
+            // Preparar dados para exportação CSV
+            const csvContent = [
+                ['Nome', 'WhatsApp', 'Visitas', 'Total Gasto', 'Última Visita'].join(','),
+                ...filteredClients.map(client => [
+                    client.name,
+                    client.whatsapp || '',
+                    client.visits,
+                    client.totalSpent.toFixed(2),
+                    new Date(client.lastVisit).toLocaleDateString('pt-BR')
+                ].join(','))
+            ].join('\n');
+
+            // Criar blob e link para download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `clientes_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else if (format === 'pdf') {
+            // Simulação de exportação PDF
+            // Em um cenário real, aqui seria usado uma biblioteca como jsPDF
+            alert('Exportação para PDF será implementada em breve!');
+            // Exemplo de como seria com jsPDF:
+            // const doc = new jsPDF();
+            // doc.text('Relatório de Clientes', 10, 10);
+            // doc.save(`clientes_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+        
+        // Fechar o modal após exportar
+        setShowExportModal(false);
+    };
+
+    // Função para abrir o modal de exportação
+    const openExportModal = () => {
+        setShowExportModal(true);
     };
 
     // Função para alternar entre visualização de tabela e cards
@@ -334,11 +364,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     };
 
     // Função para mostrar o histórico de agendamentos de um cliente
-    const handleClientClick = (clientName: string) => {
-        // Filtrar agendamentos do cliente selecionado
-        const clientApps = appointments.filter(app =>
-            app.clientName.toLowerCase() === clientName.toLowerCase()
-        );
+    const handleClientClick = (clientName: string, clientWhatsapp?: string) => {
+        // Filtrar agendamentos do cliente selecionado pelo WhatsApp (se disponível) ou pelo nome
+        const clientApps = clientWhatsapp 
+            ? appointments.filter(app => (app.wppclient || app.clientWhatsapp) === clientWhatsapp)
+            : appointments.filter(app => app.clientName.toLowerCase() === clientName.toLowerCase());
 
         // Ordenar por data (mais recente primeiro)
         clientApps.sort((a, b) => {
@@ -415,6 +445,30 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                 </p>
                                             </div>
                                         </div>
+                                        
+                                        {/* WhatsApp do cliente com botão para enviar mensagem */}
+                                        {clientAppointments[0]?.wppclient || clientAppointments[0]?.clientWhatsapp ? (
+                                            <div className="mt-3 bg-[#1A1F2E] p-3 rounded-lg border border-green-500/20">
+                                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                                    <div>
+                                                        <p className="text-xs text-gray-400 mb-1">WhatsApp</p>
+                                                        <p className="text-sm font-medium text-white">
+                                                            {clientAppointments[0]?.wppclient || clientAppointments[0]?.clientWhatsapp}
+                                                        </p>
+                                                    </div>
+                                                    <a
+                                                        href={`https://wa.me/${clientAppointments[0]?.wppclient || clientAppointments[0]?.clientWhatsapp}?text=Olá ${selectedClient}, tudo bem?`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="relative overflow-hidden group flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-2 px-3 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-xs border border-green-500/20 hover:border-green-500/40"
+                                                    >
+                                                        <MessageCircle size={16} />
+                                                        <span>Enviar Mensagem</span>
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-white/10 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine"></div>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        ) : null}
                                     </div>
                                     
                                     <h4 className="text-sm font-medium text-white mt-4 mb-2">Todas as visitas</h4>
@@ -491,7 +545,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             </button>
 
                             <button
-                                onClick={handleExportData}
+                                onClick={openExportModal}
                                 className="p-4 sm:p-2 rounded-lg bg-[#0D121E] text-gray-400 hover:text-[#F0B35B] transition-colors"
                                 title="Exportar dados"
                             >
@@ -500,10 +554,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
                             <button
                                 onClick={toggleViewMode}
-                                className="p-4 sm:p-2 rounded-lg bg-[#0D121E] text-gray-400 hover:text-[#F0B35B] transition-colors flex sm:flex"
+                                className="p-4 sm:p-2 rounded-lg bg-[#0D121E] text-gray-400 hover:text-[#F0B35B] transition-colors flex items-center gap-1"
                                 title={viewMode === 'table' ? 'Visualizar como cards' : 'Visualizar como tabela'}
                             >
                                 {viewMode === 'table' ? <Layers className="h-3 w-3 sm:h-4 sm:w-4" /> : <Smartphone className="h-3 w-3 sm:h-4 sm:w-4" />}
+                                <span className="hidden sm:inline text-xs">{viewMode === 'table' ? 'Cards' : 'Tabela'}</span>
                             </button>
 
                             <button
@@ -579,59 +634,71 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     </div>
             </div>
 
-            {/* Filtros de período */}
-            <div className="grid grid-cols-2 mb-6 gap-1 sm:gap-2 overflow-x-auto pb-2 hide-scrollbar scrollbar-none">
+            {/* Tabs de navegação - Botões grandes e expressivos */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 mb-6 gap-2 sm:gap-3">
+                <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('clients')}
+                    className={`px-3 py-3 sm:py-4 rounded-lg transition-all flex flex-col items-center justify-center gap-2 ${activeTab === 'clients' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                >
+                    <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <span className="text-xs sm:text-sm font-medium">Clientes</span>
+                </motion.button>
+                <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('services')}
+                    className={`px-3 py-3 sm:py-4 rounded-lg transition-all flex flex-col items-center justify-center gap-2 ${activeTab === 'services' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                >
+                    <Award className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <span className="text-xs sm:text-sm font-medium">Serviços</span>
+                </motion.button>
+                <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('recurrence')}
+                    className={`px-3 py-3 sm:py-4 rounded-lg transition-all flex flex-col items-center justify-center gap-2 ${activeTab === 'recurrence' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                >
+                    <DollarSign className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <span className="text-xs sm:text-sm font-medium">Recorrência</span>
+                </motion.button>
+                <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveTab('trends')}
+                    className={`px-3 py-3 sm:py-4 rounded-lg transition-all flex flex-col items-center justify-center gap-2 ${activeTab === 'trends' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                >
+                    <BarChart2 className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <span className="text-xs sm:text-sm font-medium">Tendências</span>
+                </motion.button>
+            </div>
+
+            {/* Filtros de período - Botões menores */}
+            <div className="flex mb-6 gap-1 overflow-x-auto pb-2 hide-scrollbar scrollbar-none">
                 <button
                     onClick={() => setTimeRange('week')}
-                    className={`px-2 sm:px-3 py-2.5 text-xs rounded-md transition-all flex-shrink-0 ${timeRange === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
                     Última Semana
                 </button>
                 <button
                     onClick={() => setTimeRange('month')}
-                    className={`px-2 sm:px-3 py-2.5 text-xs rounded-md transition-all flex-shrink-0 ${timeRange === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
                     Último Mês
                 </button>
                 <button
                     onClick={() => setTimeRange('quarter')}
-                    className={`px-2 sm:px-3 py-2.5 text-xs rounded-md transition-all flex-shrink-0 ${timeRange === 'quarter' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'quarter' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
                     Último Trimestre
                 </button>
                 <button
                     onClick={() => setTimeRange('all')}
-                    className={`px-2 sm:px-3 py-2.5 text-xs rounded-md transition-all flex-shrink-0 ${timeRange === 'all' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
+                    className={`px-3 py-1.5 text-xs rounded-full transition-all flex-shrink-0 ${timeRange === 'all' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
                 >
                     Todo Período
-                </button>
-            </div>
-
-            {/* Tabs de navegação */}
-            <div className="flex border-b border-gray-700 mb-6 overflow-x-auto scrollbar-none">
-                <button
-                    onClick={() => setActiveTab('clients')}
-                    className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === 'clients' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
-                >
-                    Clientes
-                </button>
-                <button
-                    onClick={() => setActiveTab('services')}
-                    className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === 'services' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
-                >
-                    Serviços
-                </button>
-                <button
-                    onClick={() => setActiveTab('recurrence')}
-                    className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === 'recurrence' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
-                >
-                    Recorrência
-                </button>
-                <button
-                    onClick={() => setActiveTab('trends')}
-                    className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === 'trends' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
-                >
-                    Tendências
                 </button>
             </div>
 
@@ -659,7 +726,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                     <tr
                                                         key={index}
                                                         className="border-b border-gray-700/30 hover:bg-[#0D121E]/50 cursor-pointer"
-                                                        onClick={() => handleClientClick(client.name)}
+                                                        onClick={() => handleClientClick(client.name, client.whatsapp)}
                                                     >
                                                         <td className="px-4 py-3 font-medium">{client.name}</td>
                                                         <td className="px-4 py-3">{client.whatsapp || '-'}</td>
@@ -682,7 +749,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.05 }}
                                             className="bg-[#0D121E] p-4 rounded-lg border-l-2 border-[#F0B35B] shadow-sm cursor-pointer hover:bg-[#0D121E]/70 transition-colors"
-                                            onClick={() => handleClientClick(client.name)}
+                                            onClick={() => handleClientClick(client.name, client.whatsapp)}
                                         >
                                             <div className="flex justify-between items-start mb-2">
                                                 <h4 className="font-medium text-white">{client.name}</h4>
@@ -1022,6 +1089,62 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     </div>
                 )}
             </div>
+
+            {/* Modal de exportação de dados */}
+            {showExportModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-30">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 shadow-xl max-w-md w-full overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-4 border-b border-gray-700/30">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Download className="h-5 w-5 text-[#F0B35B]" />
+                                Exportar Dados
+                            </h3>
+                        </div>
+                        
+                        <div className="p-4">
+                            <p className="text-gray-300 mb-4">Escolha o formato para exportar os dados dos clientes:</p>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => handleExportData('csv')}
+                                    className="flex flex-col items-center justify-center gap-2 p-4 bg-[#0D121E] hover:bg-[#0D121E]/70 rounded-lg border border-gray-700/30 transition-colors"
+                                >
+                                    <div className="w-12 h-12 flex items-center justify-center bg-blue-500/20 text-blue-400 rounded-full">
+                                        <span className="text-lg font-bold">CSV</span>
+                                    </div>
+                                    <span className="text-sm text-white">Planilha</span>
+                                    <span className="text-xs text-gray-400">Excel, Google Sheets</span>
+                                </button>
+                                
+                                <button
+                                    onClick={() => handleExportData('pdf')}
+                                    className="flex flex-col items-center justify-center gap-2 p-4 bg-[#0D121E] hover:bg-[#0D121E]/70 rounded-lg border border-gray-700/30 transition-colors"
+                                >
+                                    <div className="w-12 h-12 flex items-center justify-center bg-red-500/20 text-red-400 rounded-full">
+                                        <span className="text-lg font-bold">PDF</span>
+                                    </div>
+                                    <span className="text-sm text-white">Documento</span>
+                                    <span className="text-xs text-gray-400">Relatório formatado</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 border-t border-gray-700/30 flex justify-end">
+                            <button
+                                onClick={() => setShowExportModal(false)}
+                                className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 };

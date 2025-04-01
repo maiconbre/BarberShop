@@ -79,8 +79,9 @@ const DashboardPage: React.FC = () => {
     setIsRefreshing(true);
     try {
       const newAppointments = await loadAppointments(true);
-      if (newAppointments && newAppointments.length > 0) {
-        setAppointments(prev => [...prev, ...newAppointments]);
+      if (newAppointments && Array.isArray(newAppointments)) {
+        // Substituir os dados existentes ao invés de concatenar
+        setAppointments(newAppointments);
         await CacheService.setLastUpdateTime('appointments', new Date().toISOString());
       }
     } catch (error) {
@@ -368,7 +369,7 @@ const DashboardPage: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="p-1.5 sm:p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
+                className="p-2 sm:p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
               >
                 <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
               </button>
@@ -388,7 +389,8 @@ const DashboardPage: React.FC = () => {
                       </button>
                     </div>
                     <div className="divide-y divide-gray-700/30" role="menu">
-                      {currentUser?.role === 'admin' && (
+                      {/* Opções para admin */}
+                      {currentUser?.role === 'admin' ? (
                         <>
                           <button
                             onClick={() => navigate('/register')}
@@ -419,7 +421,34 @@ const DashboardPage: React.FC = () => {
                             <span>Gerenciar Serviços</span>
                           </button>
                         </>
+                      ) : (
+                        // Opções para barbeiros
+                        <>
+                          <button
+                            onClick={() => navigate('/register')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Editar Meus Dados</span>
+                          </button>
+                          <button
+                            onClick={() => navigate('/gerenciar-horarios')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Meus Horários</span>
+                          </button>
+                          <button
+                            onClick={() => navigate('/gerenciar-comentarios')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Gerenciar Meus Comentários</span>
+                          </button>
+                        </>
                       )}
+                      
+                      {/* Opções comuns para ambos */}
                       <button
                         onClick={() => navigate('/trocar-senha')}
                         className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"

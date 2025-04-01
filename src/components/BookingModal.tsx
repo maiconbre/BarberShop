@@ -211,6 +211,26 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       loadAppointments();
     }
   }, [isOpen, cachedAppointments.length]);
+
+  // Adicionar useEffect para controlar o scroll
+  useEffect(() => {
+    if (isOpen) {
+      // Bloqueia o scroll do body quando o modal abre
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = '15px'; // Compensa a barra de scroll
+    } else {
+      // Restaura o scroll quando o modal fecha
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0px';
+    }
+
+    // Cleanup quando o componente é desmontado
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.body.style.paddingRight = '0px';
+    };
+  }, [isOpen]);
+
   // Função para avançar para a próxima etapa
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
@@ -376,15 +396,21 @@ Aguardo a confirmação.`;
     document.body.style.height = window.innerHeight + 'px';
   };
 
+  // Função modificada para fechar o modal
+  const handleClose = () => {
+    document.body.style.overflow = 'unset';
+    document.body.style.paddingRight = '0px';
+    onClose();
+  };
+
   // Não renderiza nada se o modal estiver fechado
   if (!isOpen) return null;
-
 
   return (
     <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6 md:p-8 transition-all duration-500 ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
       <div className="relative bg-[#1A1F2E] rounded-lg w-[95%] sm:w-[90%] sm:max-w-md max-h-[95vh] sm:max-h-[85vh] overflow-auto shadow-2xl transform transition-all duration-500 ease-out hover:shadow-[#F0B35B]/10">
         <button
-          onClick={onClose}
+          onClick={handleClose} // Usar handleClose ao invés de onClose
           className="absolute top-1 right-1 sm:top-2 sm:right-2 text-gray-400 hover:text-gray-200 transition-colors p-2 hover:bg-white/10 rounded-full"
         >
           <X size={18} className="transform hover:rotate-90 transition-transform duration-300" />
@@ -732,7 +758,7 @@ Aguardo a confirmação.`;
               </div>
 
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="relative overflow-hidden group w-full bg-[#F0B35B] text-black py-3 rounded-lg font-semibold hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 text-sm border-2 border-[#F0B35B]/70 flex items-center justify-center gap-2"
               >
                 <CheckCircle size={18} />
@@ -747,4 +773,4 @@ Aguardo a confirmação.`;
   );
 };
 
-export default BookingModal
+export default BookingModal;
