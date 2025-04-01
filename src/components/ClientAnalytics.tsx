@@ -3,6 +3,34 @@ import { motion } from 'framer-motion';
 import { Search, Users, BarChart2,MessageCircle, RefreshCw, Filter, Download, DollarSign, Award, Smartphone, Layers, X } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LineChart, Line } from 'recharts';
 
+// Função para formatar número de WhatsApp no padrão (xx)xxxxx-xxxx
+const formatWhatsApp = (whatsapp: string | undefined): string => {
+    if (!whatsapp) return '-';
+    
+    // Remove o prefixo 55 se existir
+    let formatted = whatsapp.replace(/^55/, '');
+    
+    // Remove todos os caracteres não numéricos
+    formatted = formatted.replace(/\D/g, '');
+    
+    // Verifica se o número tem pelo menos 10 dígitos (DDD + número)
+    if (formatted.length >= 10) {
+        // Formata como (xx)xxxxx-xxxx ou (xx)xxxx-xxxx dependendo do comprimento
+        const ddd = formatted.substring(0, 2);
+        const parte1 = formatted.length === 10 ? 
+            formatted.substring(2, 6) : 
+            formatted.substring(2, 7);
+        const parte2 = formatted.length === 10 ? 
+            formatted.substring(6) : 
+            formatted.substring(7);
+        
+        return `(${ddd})${parte1}-${parte2}`;
+    }
+    
+    // Se não tiver o formato esperado, retorna como está
+    return formatted;
+};
+
 interface Appointment {
     id: string;
     clientName: string;
@@ -322,7 +350,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 ['Nome', 'WhatsApp', 'Visitas', 'Total Gasto', 'Última Visita'].join(','),
                 ...filteredClients.map(client => [
                     client.name,
-                    client.whatsapp || '',
+                    formatWhatsApp(client.whatsapp),
                     client.visits,
                     client.totalSpent.toFixed(2),
                     new Date(client.lastVisit).toLocaleDateString('pt-BR')
@@ -453,11 +481,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                     <div>
                                                         <p className="text-xs text-gray-400 mb-1">WhatsApp</p>
                                                         <p className="text-sm font-medium text-white">
-                                                            {clientAppointments[0]?.wppclient || clientAppointments[0]?.clientWhatsapp}
+                                                            {formatWhatsApp(clientAppointments[0]?.wppclient || clientAppointments[0]?.clientWhatsapp)}
                                                         </p>
                                                     </div>
                                                     <a
-                                                        href={`https://wa.me/${clientAppointments[0]?.wppclient || clientAppointments[0]?.clientWhatsapp}?text=Olá ${selectedClient}, tudo bem?`}
+                                                        href={`https://wa.me/${(clientAppointments[0]?.wppclient || clientAppointments[0]?.clientWhatsapp || '').replace(/\D/g, '')}?text=Olá ${selectedClient}, tudo bem?`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="relative overflow-hidden group flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-2 px-3 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-xs border border-green-500/20 hover:border-green-500/40"
@@ -729,7 +757,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                         onClick={() => handleClientClick(client.name, client.whatsapp)}
                                                     >
                                                         <td className="px-4 py-3 font-medium">{client.name}</td>
-                                                        <td className="px-4 py-3">{client.whatsapp || '-'}</td>
+                                                        <td className="px-4 py-3">{formatWhatsApp(client.whatsapp)}</td>
                                                         <td className="px-4 py-3">{client.visits}</td>
                                                         <td className="px-4 py-3 text-green-400">R$ {client.totalSpent.toFixed(2)}</td>
                                                         <td className="px-4 py-3">{new Date(client.lastVisit).toLocaleDateString('pt-BR')}</td>
@@ -761,7 +789,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             <div className="grid grid-cols-2 gap-2 text-xs text-gray-400 mt-2">
                                                 <div>
                                                     <p className="mb-1">WhatsApp:</p>
-                                                    <p className="text-white">{client.whatsapp || '-'}</p>
+                                                    <p className="text-white">{formatWhatsApp(client.whatsapp)}</p>
                                                 </div>
                                                 <div>
                                                     <p className="mb-1">Total Gasto:</p>
