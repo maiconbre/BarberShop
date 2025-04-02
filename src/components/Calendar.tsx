@@ -27,7 +27,6 @@ const timeSlots = [
 const Calendar: React.FC<CalendarProps> = ({
   selectedBarber,
   onTimeSelect,
-  onTimeRemove,
   preloadedAppointments = []
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);

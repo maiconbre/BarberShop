@@ -7,7 +7,7 @@ import Home from './pages/Home';
 import AboutPage from './pages/AboutPage';
 import ServicesPage from './pages/ServicesPage';
 import ContactPage from './pages/ContactPage';
-import BlockSchedulePage from './pages/BlockSchedulePage';
+import ScheduleManagementPage from './pages/ScheduleManagementPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -94,7 +94,7 @@ const AppContent = () => {
             } />
             <Route path='/gerenciar-horarios' element={
               <ProtectedRoute>
-                <BlockSchedulePage />
+                <ScheduleManagementPage />
               </ProtectedRoute>
             } />
 
