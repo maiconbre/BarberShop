@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
+import { adjustToBrasilia, formatToISODate } from '../utils/DateTimeUtils';
 
 interface CalendarProps {
   selectedBarber: string;
@@ -27,7 +28,6 @@ const timeSlots = [
 const Calendar: React.FC<CalendarProps> = ({
   selectedBarber,
   onTimeSelect,
-  onTimeRemove,
   preloadedAppointments = []
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -37,11 +37,8 @@ const Calendar: React.FC<CalendarProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const availableDates = useMemo(() => {
-    const today = new Date();
-    const brasiliaOffset = -3 * 60;
-    const localOffset = today.getTimezoneOffset();
-    const offsetDiff = localOffset + brasiliaOffset;
-    today.setMinutes(today.getMinutes() + offsetDiff);
+    // Usar a função de ajuste para Brasília do utilitário
+    const today = adjustToBrasilia(new Date());
     today.setHours(0, 0, 0, 0);
     return Array.from({ length: 15 }, (_, i) => {
       const date = addDays(today, i);
@@ -50,14 +47,7 @@ const Calendar: React.FC<CalendarProps> = ({
     });
   }, []);
 
-  const adjustToBrasilia = useCallback((date: Date) => {
-    const adjusted = new Date(date);
-    const brasiliaOffset = -3 * 60;
-    const localOffset = adjusted.getTimezoneOffset();
-    const offsetDiff = localOffset + brasiliaOffset;
-    adjusted.setMinutes(adjusted.getMinutes() + offsetDiff);
-    return adjusted;
-  }, []);
+  // Não precisamos mais definir esta função localmente, usando a importada do utilitário
 
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
