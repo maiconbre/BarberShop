@@ -304,7 +304,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                 </div>
               ) : (
                 timeSlots.map(time => {
-                  const appointment = getAppointmentForTimeSlot(selectedDate, time);
+                  const appointment = selectedDate ? getAppointmentForTimeSlot(selectedDate, time) : null;
                   const isBooked = !!appointment;
                   const isBlocked = appointment?.isBlocked;
                   
@@ -364,7 +364,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     if (appointments.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center text-center text-gray-400 py-12 bg-[#252B3B]/30 rounded-xl border border-[#F0B35B]/10">
-          <Calendar className="w-12 h-12 text-gray-500 mb-3 opacity-50" />
+          <CalendarIcon className="w-12 h-12 text-gray-500 mb-3 opacity-50" />
           <p>Nenhum agendamento encontrado para este barbeiro.</p>
         </div>
       );
