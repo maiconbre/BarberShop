@@ -5,6 +5,7 @@ import {
   FaTrash,
   FaTimes
 } from 'react-icons/fa';
+import { formatFriendlyDateTime } from '../utils/DateTimeUtils';
 
 interface Appointment {
   id: string;
@@ -102,45 +103,8 @@ const statusStyles = {
   }
 };
 
-const formatDateTime = (date: string, time: string) => {
-  // Configurar timezone para Brasília
-  const timeZone = 'America/Sao_Paulo';
-  
-  // Criar data atual no fuso horário correto
-  const today = new Date().toLocaleString('en-US', { timeZone });
-  const todayDate = new Date(today);
-  
-  // Criar data de amanhã
-  const tomorrow = new Date(todayDate);
-  tomorrow.setDate(todayDate.getDate() + 1);
-  
-  // Criar data do agendamento no fuso horário correto
-  const [year, month, day] = date.split('-');
-  const appointmentDate = new Date(
-    `${year}-${month}-${day}T00:00:00`
-  ).toLocaleString('en-US', { timeZone });
-  const appointmentDateTime = new Date(appointmentDate);
-  
-  // Remover horários para comparação apenas das datas
-  todayDate.setHours(0, 0, 0, 0);
-  tomorrow.setHours(0, 0, 0, 0);
-  appointmentDateTime.setHours(0, 0, 0, 0);
-
-  // Comparar as datas
-  if (appointmentDateTime.getTime() === todayDate.getTime()) {
-    return `Hoje às ${time}`;
-  }
-  
-  if (appointmentDateTime.getTime() === tomorrow.getTime()) {
-    return `Amanhã às ${time}`;
-  }
-
-  // Para outras datas, mostrar dia e mês formatados para pt-BR
-  return appointmentDateTime.toLocaleDateString('pt-BR', {
-    day: 'numeric',
-    month: 'numeric'
-  }).replace(',', '') + ` às ${time}`;
-};
+// Usando a função do utilitário centralizado
+const formatDateTime = formatFriendlyDateTime;
 
 const AppointmentCard = memo(({ appointment, onDelete, onToggleStatus, onView }: Props) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);

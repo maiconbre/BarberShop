@@ -5,6 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import { Clock, Calendar as CalendarIcon, X, AlertCircle, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CacheService from '../services/CacheService';
+import { adjustToBrasilia, formatToISODate, BRASILIA_TIMEZONE } from '../utils/DateTimeUtils';
 
 interface ScheduleManagerProps {
   barbers: Array<{ id: string; name: string }>;
@@ -57,11 +58,8 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   };
 
   const availableDates = React.useMemo(() => {
-    const today = new Date();
-    const brasiliaOffset = -3 * 60;
-    const localOffset = today.getTimezoneOffset();
-    const offsetDiff = localOffset + brasiliaOffset;
-    today.setMinutes(today.getMinutes() + offsetDiff);
+    // Usar a função de ajuste para Brasília do utilitário
+    const today = adjustToBrasilia(new Date());
     today.setHours(0, 0, 0, 0);
     return Array.from({ length: 15 }, (_, i) => {
       const date = addDays(today, i);
@@ -70,14 +68,8 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     });
   }, []);
 
-  const adjustToBrasilia = useCallback((date: Date) => {
-    const adjusted = new Date(date);
-    const brasiliaOffset = -3 * 60;
-    const localOffset = adjusted.getTimezoneOffset();
-    const offsetDiff = localOffset + brasiliaOffset;
-    adjusted.setMinutes(adjusted.getMinutes() + offsetDiff);
-    return adjusted;
-  }, []);
+  // Usando a função importada do utilitário centralizado
+  // Não precisamos mais definir esta função localmente
 
   const fetchAppointments = useCallback(async () => {
     if (!selectedBarber) return;
@@ -166,7 +158,8 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     setIsLoading(true);
     try {
       const barberName = barbers.find(b => b.id === selectedBarber)?.name || 'Desconhecido';
-      const formattedDate = selectedDate.toISOString().split('T')[0];
+      // Usar a função do utilitário para formatar a data no fuso horário de Brasília
+      const formattedDate = formatToISODate(selectedDate);
 
       // Criar um agendamento bloqueado
       const appointmentData = {
@@ -267,7 +260,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         appointment.time === time && 
         (appointment.barberId === selectedBarber || appointment.barberName === selectedBarber)
     ) || null;
-  }, [appointments, selectedBarber, adjustToBrasilia]);
+  }, [appointments, selectedBarber]);
 
   const renderCalendarView = () => {
     return (
@@ -299,53 +292,54 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           </div>
         </div>
 
-        {selectedDate && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-            {isLoading ? (
-              <div className="col-span-full flex justify-center py-4">
-                <Loader2 className="w-6 h-6 animate-spin text-[#F0B35B]" />
-              </div>
-            ) : error ? (
-              <div className="col-span-full text-center text-red-500 py-4">
-                {error}
-              </div>
-            ) : (
-              timeSlots.map(time => {
-                const appointment = getAppointmentForTimeSlot(selectedDate, time);
-                const isBooked = !!appointment;
-                const isBlocked = appointment?.isBlocked;
-                
-                return (
-                  <button
-                    type="button"
-                    key={time}
-                    onClick={() => handleTimeClick(time, appointment)}
-                    className={`
-                      py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden
-                      ${isBlocked 
-                        ? 'bg-orange-500/20 text-orange-300 cursor-pointer' 
-                        : isBooked
-                          ? 'bg-red-500/20 text-red-300 cursor-pointer' 
-                          : time === selectedTime
-                            ? 'bg-[#F0B35B] text-black transform scale-105 shadow-md shadow-[#F0B35B]/20' 
-                            : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 cursor-pointer'}
-                    `}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="relative z-10">{time}</span>
-                      {isBlocked && (
-                        <span className="text-xs bg-orange-500/30 text-orange-200 px-1 rounded">Bloqueado</span>
-                      )}
-                      {isBooked && !isBlocked && (
-                        <span className="text-xs bg-red-500/30 text-red-200 px-1 rounded">Ocupado</span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            )}
+          <div className="flex justify-center">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-4 max-w-3xl mx-auto">
+              {isLoading ? (
+                <div className="col-span-full flex justify-center py-6">
+                  <Loader2 className="w-7 h-7 animate-spin text-[#F0B35B]" />
+                </div>
+              ) : error ? (
+                <div className="col-span-full text-center text-red-500 py-6">
+                  {error}
+                </div>
+              ) : (
+                timeSlots.map(time => {
+                  const appointment = getAppointmentForTimeSlot(selectedDate, time);
+                  const isBooked = !!appointment;
+                  const isBlocked = appointment?.isBlocked;
+                  
+                  return (
+                    <button
+                      type="button"
+                      key={time}
+                      onClick={() => handleTimeClick(time, appointment)}
+                      className={`
+                        py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden
+                        ${isBlocked 
+                          ? 'bg-orange-500/20 text-orange-300 cursor-pointer border border-orange-500/30' 
+                          : isBooked
+                            ? 'bg-red-500/20 text-red-300 cursor-pointer border border-red-500/30' 
+                            : time === selectedTime
+                              ? 'bg-[#F0B35B] text-black transform scale-105 shadow-md shadow-[#F0B35B]/20' 
+                              : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 cursor-pointer border border-[#F0B35B]/10'}
+                      `}
+                    >
+                      <div className="flex flex-col items-center justify-center text-center gap-1">
+                        <span className="relative z-10 font-bold">{time}</span>
+                        {isBlocked && (
+                          <span className="text-xs bg-orange-500/30 text-orange-200 px-2 py-0.5 rounded-full w-full">Bloqueado</span>
+                        )}
+                        {isBooked && !isBlocked && (
+                          <span className="text-xs bg-red-500/30 text-red-200 px-2 py-0.5 rounded-full w-full">Ocupado</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
-        )}
+        
       </div>
     );
   };
@@ -369,16 +363,17 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
 
     if (appointments.length === 0) {
       return (
-        <div className="text-center text-gray-400 py-8">
-          Nenhum agendamento encontrado para este barbeiro.
+        <div className="flex flex-col items-center justify-center text-center text-gray-400 py-12 bg-[#252B3B]/30 rounded-xl border border-[#F0B35B]/10">
+          <Calendar className="w-12 h-12 text-gray-500 mb-3 opacity-50" />
+          <p>Nenhum agendamento encontrado para este barbeiro.</p>
         </div>
       );
     }
 
-    // Obter a data atual no formato yyyy-MM-dd
-    const today = new Date();
+    // Obter a data atual no formato yyyy-MM-dd usando o utilitário
+    const today = adjustToBrasilia(new Date());
     today.setHours(0, 0, 0, 0);
-    const currentDate = today.toISOString().split('T')[0];
+    const currentDate = formatToISODate(today);
     
     // Filtrar apenas agendamentos do dia atual em diante
     const filteredAppointments = appointments.filter(appointment => {
@@ -400,7 +395,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     });
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-3xl mx-auto">
         {sortedDates.map(date => {
           const dateAppointments = groupedAppointments[date];
           // Ordenar por horário
@@ -409,15 +404,16 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           });
 
           return (
-            <div key={date} className="bg-[#1A1F2E] rounded-lg p-4">
-              <h3 className="text-[#F0B35B] font-medium mb-3">
+            <div key={date} className="bg-[#1A1F2E] rounded-lg p-5 shadow-lg border border-[#F0B35B]/20">
+              <h3 className="text-[#F0B35B] font-medium mb-4 flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5 text-[#F0B35B]" />
                 {new Date(date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {dateAppointments.map(appointment => (
                   <div 
                     key={`${appointment.id}-${appointment.time}`} 
-                    className={`flex justify-between items-center p-3 rounded-lg
+                    className={`flex justify-between items-center p-4 rounded-lg transition-all duration-200 hover:shadow-md
                       ${appointment.isBlocked 
                         ? 'bg-orange-500/10 border border-orange-500/30' 
                         : 'bg-[#252B3B] border border-[#F0B35B]/10'}
@@ -428,7 +424,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                         <Clock className="w-5 h-5 text-[#F0B35B]" />
                       </div>
                       <div>
-                        <p className="font-medium">{appointment.time}</p>
+                        <p className="font-medium text-lg">{appointment.time}</p>
                         <p className="text-sm text-gray-400">
                           {appointment.isBlocked 
                             ? 'Horário Bloqueado' 
@@ -486,27 +482,31 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       ) : null}
 
       {/* Botões de alternância de visualização */}
-      <div className="flex space-x-2">
-        <button
-          onClick={() => setViewMode('calendar')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all
-            ${viewMode === 'calendar' 
-              ? 'bg-[#F0B35B] text-black' 
-              : 'bg-[#252B3B] text-white hover:bg-[#252B3B]/80'}
-          `}
-        >
-          Calendário
-        </button>
-        <button
-          onClick={() => setViewMode('list')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all
-            ${viewMode === 'list' 
-              ? 'bg-[#F0B35B] text-black' 
-              : 'bg-[#252B3B] text-white hover:bg-[#252B3B]/80'}
-          `}
-        >
-          Lista de Agendamentos
-        </button>
+      <div className="flex justify-center mb-2">
+        <div className="bg-[#252B3B] p-1.5 rounded-lg flex space-x-1 shadow-lg border border-[#F0B35B]/10">
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-5 py-2.5 rounded-md text-sm font-medium transition-all flex items-center gap-2
+              ${viewMode === 'calendar' 
+                ? 'bg-[#F0B35B] text-black shadow-inner' 
+                : 'bg-transparent text-white hover:bg-[#1A1F2E]'}
+            `}
+          >
+            <CalendarIcon className="w-4 h-4" />
+            Calendário
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-5 py-2.5 rounded-md text-sm font-medium transition-all flex items-center gap-2
+              ${viewMode === 'list' 
+                ? 'bg-[#F0B35B] text-black shadow-inner' 
+                : 'bg-transparent text-white hover:bg-[#1A1F2E]'}
+            `}
+          >
+            <Clock className="w-4 h-4" />
+            Lista
+          </button>
+        </div>
       </div>
 
       {selectedBarber && (

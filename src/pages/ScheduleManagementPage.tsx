@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 const ScheduleManagementPage: React.FC = () => {
   const { getCurrentUser } = useAuth();
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [barbers, setBarbers] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,7 +43,7 @@ const ScheduleManagementPage: React.FC = () => {
     };
 
     fetchBarbers();
-  }, [currentUser]);
+  }, []);
 
   if (!currentUser) return null;
 
@@ -94,47 +94,8 @@ const ScheduleManagementPage: React.FC = () => {
         )}
       </div>
 
-      {/* Seção de instruções */}
-      <div className="max-w-4xl mx-auto mt-8 mb-16 bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Clock className="w-5 h-5 text-[#F0B35B]" />
-          <h2 className="text-xl font-bold text-white">Como gerenciar seus horários</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-[#252B3B] p-4 rounded-lg border border-[#F0B35B]/10">
-            <h3 className="text-[#F0B35B] font-medium mb-2">Bloquear Horários</h3>
-            <p className="text-gray-300 text-sm">
-              Selecione uma data e um horário disponível no calendário e clique para bloqueá-lo. 
-              Horários bloqueados não estarão disponíveis para agendamentos de clientes.
-            </p>
-          </div>
-          
-          <div className="bg-[#252B3B] p-4 rounded-lg border border-[#F0B35B]/10">
-            <h3 className="text-[#F0B35B] font-medium mb-2">Cancelar Agendamentos</h3>
-            <p className="text-gray-300 text-sm">
-              Clique em um horário ocupado (vermelho) para ver os detalhes do agendamento e 
-              cancelá-lo se necessário. Esta ação não pode ser desfeita.
-            </p>
-          </div>
-          
-          <div className="bg-[#252B3B] p-4 rounded-lg border border-[#F0B35B]/10">
-            <h3 className="text-[#F0B35B] font-medium mb-2">Desbloquear Horários</h3>
-            <p className="text-gray-300 text-sm">
-              Clique em um horário bloqueado (laranja) para desbloqueá-lo e torná-lo 
-              disponível novamente para agendamentos.
-            </p>
-          </div>
-          
-          <div className="bg-[#252B3B] p-4 rounded-lg border border-[#F0B35B]/10">
-            <h3 className="text-[#F0B35B] font-medium mb-2">Visualizar Agendamentos</h3>
-            <p className="text-gray-300 text-sm">
-              Alterne entre as visualizações de calendário e lista para ver todos os seus 
-              agendamentos organizados por data e horário.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Espaçamento inferior */}
+      <div className="mb-16"></div>
     </div>
   );
 };
