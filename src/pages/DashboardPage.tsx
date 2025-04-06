@@ -370,7 +370,7 @@ const DashboardPage: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="p-2 sm:p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
+                className="p-1.5 sm:p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
               >
                 <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
               </button>
