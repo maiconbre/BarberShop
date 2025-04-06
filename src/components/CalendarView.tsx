@@ -487,15 +487,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         </p>
                       </div>
 
-                      <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-purple-400">
+                       {/* Cards extras visíveis apenas em telas maiores */}
+
+                      <div className="hidden lg:block p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-purple-400">
                         <h4 className="font-medium text-white text-xs">Horários Estratégicos</h4>
                         <p className="text-gray-400 mt-1 text-xs">
                           Ofereça descontos especiais em horários com menor movimento para otimizar a agenda.
                           Ideal para horários entre 10h e 15h nos dias de semana.
                         </p>
                       </div>
-
-                      {/* Cards extras visíveis apenas em telas maiores */}
+                     
                       <div className="hidden lg:block p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-amber-400">
                         <h4 className="font-medium text-white text-xs">Indicação Premiada</h4>
                         <p className="text-gray-400 mt-1 text-xs">

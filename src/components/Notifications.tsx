@@ -266,7 +266,7 @@ const Notifications: React.FC = () => {
     <div className="relative">
       <button
         onClick={toggleNotificationDropdown}
-        className="relative p-2.5 rounded-full bg-[#1A1F2E] hover:bg-[#252B3B] transition-colors duration-300 flex items-center justify-center"
+        className="relative p-1.5 rounded-full bg-[#1A1F2E] hover:bg-[#252B3B] transition-colors duration-300 flex items-center justify-center"
         aria-label="Notificações"
       >
         <Bell className="w-5 h-5 text-white" />
