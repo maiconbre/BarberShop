@@ -44,7 +44,6 @@ const AppContent = () => {
         <motion.div
           key={location.pathname}
           className="w-full"
-          style={{ position: 'absolute', width: '100%' }}
           initial={pageTransition.initial}
           animate={pageTransition.animate}
           exit={pageTransition.exit}

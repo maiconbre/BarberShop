@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ScheduleManager from '../components/ScheduleManager';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { Loader2, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 

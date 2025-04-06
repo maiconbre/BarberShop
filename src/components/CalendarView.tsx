@@ -405,7 +405,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </p>
         </div>
 
-        
         {/* Gráfico e análise de clientes  */}
         <div className="mt-6">
           <div className="flex items-center gap-2 mb-4">
@@ -416,11 +415,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
 
           {/* Layout em grid responsivo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {/* Gráfico de recorrência */}
-            <div className="md:col-span-1 bg-[#0D121E] p-3 rounded-lg">
+            <div className="bg-[#0D121E] p-3 rounded-lg">
               <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-3 text-center">Perfil de Visitas</h4>
-              <div className="h-80">  {/* Aumentado de h-56 para h-80 */}
+              <div className="h-[calc(100vh-32rem)] min-h-[300px] max-h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -428,7 +427,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={90}  
+                      outerRadius={90}
                       fill="#8884d8"
                       dataKey="value"
                       label={({ name, percent }) => {
@@ -458,32 +457,58 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
             </div>
 
-            {/* Sugestões de promoções - Similar ao ClientAnalytics */}
-            <div className="md:col-span-1 bg-[#0D121E] p-3 rounded-lg">
+            {/* Sugestões de promoções */}
+            <div className="bg-[#0D121E] p-3 rounded-lg">
               <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-3 text-center">Sugestões para Promoções</h4>
-              <div className="space-y-3 h-80">  {/* Removido overflow-y-auto e max-h-56, adicionado h-80 */}
+              <div className="h-[calc(100vh-32rem)] min-h-[300px] max-h-[400px]">
                 {appointments.length > 0 ? (
                   <>
-                    <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-[#F0B35B]">
-                      <h4 className="font-medium text-white text-xs">Clientes Fiéis</h4>
-                      <p className="text-gray-400 mt-1 text-xs">
-                        {clientStats.returningClients} clientes visitaram mais de uma vez.
-                        Considere um programa de fidelidade com desconto progressivo.
-                      </p>
-                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Cards visíveis em todas as telas */}
+                      <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-[#F0B35B]">
+                        <h4 className="font-medium text-white text-xs">Clientes Fiéis</h4>
+                        <p className="text-gray-400 mt-1 text-xs">
+                          {clientStats.returningClients} clientes visitaram mais de uma vez.
+                          Considere um programa de fidelidade com desconto progressivo.
+                        </p>
+                      </div>
 
-                    <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-green-400">
-                      <h4 className="font-medium text-white text-xs">Recuperação de Clientes</h4>
-                      <p className="text-gray-400 mt-1 text-xs">
-                        Envie mensagens personalizadas com ofertas exclusivas para clientes que não retornam há mais de 3 meses.
-                      </p>
-                    </div>
+                      <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-green-400">
+                        <h4 className="font-medium text-white text-xs">Recuperação de Clientes</h4>
+                        <p className="text-gray-400 mt-1 text-xs">
+                          Envie mensagens personalizadas com ofertas exclusivas para clientes que não retornam há mais de 1 meses.
+                        </p>
+                      </div>
 
-                    <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-blue-400">
-                      <h4 className="font-medium text-white text-xs">Pacotes Promocionais</h4>
-                      <p className="text-gray-400 mt-1 text-xs">
-                        Crie pacotes com desconto para clientes que agendarem múltiplos serviços em uma única visita.
-                      </p>
+                      <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-blue-400">
+                        <h4 className="font-medium text-white text-xs">Pacotes Promocionais</h4>
+                        <p className="text-gray-400 mt-1 text-xs">
+                          Crie pacotes com desconto para clientes que agendarem múltiplos serviços em uma única visita.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-purple-400">
+                        <h4 className="font-medium text-white text-xs">Horários Estratégicos</h4>
+                        <p className="text-gray-400 mt-1 text-xs">
+                          Ofereça descontos especiais em horários com menor movimento para otimizar a agenda.
+                          Ideal para horários entre 10h e 15h nos dias de semana.
+                        </p>
+                      </div>
+
+                      {/* Cards extras visíveis apenas em telas maiores */}
+                      <div className="hidden lg:block p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-amber-400">
+                        <h4 className="font-medium text-white text-xs">Indicação Premiada</h4>
+                        <p className="text-gray-400 mt-1 text-xs">
+                          Implemente um programa de indicações onde clientes ganham descontos ao trazerem novos clientes.
+                        </p>
+                      </div>
+
+                      <div className="hidden lg:block p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-pink-400">
+                        <h4 className="font-medium text-white text-xs">Datas Especiais</h4>
+                        <p className="text-gray-400 mt-1 text-xs">
+                          Prepare promoções antecipadas para datas comemorativas e eventos especiais do calendário.
+                        </p>
+                      </div>
                     </div>
                   </>
                 ) : (

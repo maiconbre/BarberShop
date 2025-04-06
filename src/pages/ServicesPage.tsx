@@ -25,10 +25,6 @@ const ServicesPage = () => {
 
   return (
     <>
-      <Helmet>
-        <title>Nossos Serviços | BarberShop - Barbearia de Excelência</title>
-        <meta name="description" content="Conheça nossa variedade de serviços profissionais de barbearia. Cortes modernos, barba e tratamentos capilares com os melhores profissionais." />
-      </Helmet>
 
       <motion.div
         initial={{ opacity: 0 }}
