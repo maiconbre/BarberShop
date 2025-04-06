@@ -114,43 +114,6 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple }) =
             Escolha entre nossa variedade de serviços profissionais para uma experiência única
           </p>
           
-          <button
-            onClick={() => {
-              setMultiSelectMode(!multiSelectMode);
-              if (!multiSelectMode) {
-                setSelectedServices([]);
-              }
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-300 mx-auto ${multiSelectMode ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white border border-[#F0B35B]/30'}`}
-          >
-            {multiSelectMode ? (
-              <>
-                <span>Concluir Seleção</span>
-              </>
-            ) : (
-              <>
-                <span>Selecionar Múltiplos Serviços</span>
-              </>
-            )}
-          </button>
-          
-          {multiSelectMode && selectedServices.length > 0 && (
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  if (onScheduleMultiple && selectedServices.length > 0) {
-                    onScheduleMultiple(selectedServices);
-                    setMultiSelectMode(false);
-                    setSelectedServices([]);
-                  }
-                }}
-                className="relative overflow-hidden group bg-[#F0B35B] text-black px-6 py-2.5 rounded-lg transition-all duration-300 font-semibold text-sm sm:text-base hover:shadow-[0_0_20px_rgba(240,179,91,0.4)] focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 hover:scale-105 active:scale-95"
-              >
-                <span className="relative z-10">Agendar Serviços Selecionados ({selectedServices.length})</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -skew-x-45 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-700"></div>
-              </button>
-            </div>
-          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 max-w-sm sm:max-w-none mx-auto">

@@ -18,6 +18,7 @@ import VendaPage2 from './pages/VendaPage2';
 import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
 
+
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -43,7 +44,6 @@ const AppContent = () => {
         <motion.div
           key={location.pathname}
           className="w-full"
-          style={{ position: 'absolute', width: '100%' }}
           initial={pageTransition.initial}
           animate={pageTransition.animate}
           exit={pageTransition.exit}
@@ -97,6 +97,7 @@ const AppContent = () => {
                 <ScheduleManagementPage />
               </ProtectedRoute>
             } />
+
 
       
           </Routes>

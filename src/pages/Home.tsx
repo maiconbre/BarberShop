@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import Hero from '../components/Hero';
 import Services from '../components/Services';
 import About from '../components/About';
@@ -12,35 +13,50 @@ interface HomeProps {
 const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState('');
-  
-  
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
   const handleOpenBookingModal = (serviceName: string) => {
     setSelectedService(serviceName);
+    setSelectedServices([serviceName]);
+    setIsBookingModalOpen(true);
+  };
+
+  const handleOpenBookingModalMultiple = (serviceNames: string[]) => {
+    setSelectedServices(serviceNames);
+    setSelectedService('');
     setIsBookingModalOpen(true);
   };
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex flex-col min-h-screen bg-[#0D121E]"
+    >
       <Hero setIsModalOpen={setIsModalOpen} />
 
-      <div id="services">
-        <Services onSchedule={handleOpenBookingModal} />
-      </div>
+      {/* Garantindo que o Services seja renderizado com uma altura mínima */}
+      <section className="min-h-screen w-full">
+        <Services 
+          onSchedule={handleOpenBookingModal}
+          onScheduleMultiple={handleOpenBookingModalMultiple}
+        />
+      </section>
 
-      <div id="about">
+      <section id="about">
         <About />
-      </div>
+      </section>
 
-      <div id="contacts" >
-        <Footer />
-      </div>
+      <Footer />
 
       <BookingModal 
         isOpen={isBookingModalOpen} 
         onClose={() => setIsBookingModalOpen(false)} 
         initialService={selectedService}
+        initialServices={selectedServices}
       />
-    </>
+    </motion.div>
   );
 };
 

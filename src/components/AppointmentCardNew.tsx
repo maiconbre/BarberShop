@@ -29,9 +29,6 @@ interface Props {
   onDelete: () => void;
   onToggleStatus: () => void;
   onView?: () => void;
-  filterMode?: string;
-  revenueDisplayMode: string;
-  appointments: Appointment[];
 }
 
 interface ConfirmationModalProps {

@@ -377,6 +377,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     
     // Filtrar apenas agendamentos do dia atual em diante
     const filteredAppointments = appointments.filter(appointment => {
+      // Garantir que estamos comparando apenas as datas, sem considerar o horário
       return appointment.date >= currentDate;
     });
     
@@ -407,7 +408,18 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
             <div key={date} className="bg-[#1A1F2E] rounded-lg p-5 shadow-lg border border-[#F0B35B]/20">
               <h3 className="text-[#F0B35B] font-medium mb-4 flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-[#F0B35B]" />
-                {new Date(date).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {(() => {
+                  // Criar a data no fuso horário de Brasília para evitar o problema de deslocamento de dia
+                  const dateParts = date.split('-');
+                  const year = parseInt(dateParts[0]);
+                  const month = parseInt(dateParts[1]) - 1; // Mês em JavaScript é 0-indexed
+                  const day = parseInt(dateParts[2]);
+                  
+                  // Criar a data com o horário definido como meio-dia para evitar problemas de fuso horário
+                  const dateObj = new Date(year, month, day, 12, 0, 0);
+                  
+                  return dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+                })()}
               </h3>
               <div className="space-y-3">
                 {dateAppointments.map(appointment => (

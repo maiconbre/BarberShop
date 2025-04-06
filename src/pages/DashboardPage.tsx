@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
+import { Settings, Calendar,ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -56,14 +56,14 @@ const DashboardPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
-  const [filterMode, setFilterMode] = useState('all');
+  const [filterMode, setFilterMode] = useState('today');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   // Modal state
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const appointmentsPerPage = 8;
+  const appointmentsPerPage = 9; // Aumentado para 9 para melhor harmonia visual com a coluna da esquerda
   // View mode state (painel, agenda ou analytics)
   const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
   // Calendar view states
@@ -323,6 +323,7 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
+      <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl opacity-30"></div>
 
       <div className="absolute inset-0 opacity-5">
         <div className="h-full w-full" style={{
@@ -331,8 +332,8 @@ const DashboardPage: React.FC = () => {
         }}></div>
       </div>
 
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col-2 sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 xl:px-0 relative z-10">
+        <div className="flex flex-col-2 sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3">
           <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto hide-scrollbar w-full sm:w-auto pb-2 sm:pb-0">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -420,6 +421,13 @@ const DashboardPage: React.FC = () => {
                           >
                             <span>Gerenciar Serviços</span>
                           </button>
+                          <button
+                            onClick={() => navigate('/configuracoes-site')}
+                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
+                            role="menuitem"
+                          >
+                            <span>Configurações do Site</span>
+                          </button>
                         </>
                       ) : (
                         // Opções para barbeiros
@@ -476,312 +484,275 @@ const DashboardPage: React.FC = () => {
           {activeView === 'painel' ? (
             <motion.div
               key="painel-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
             >
-              {/* Componentes de estatísticas e gráficos */}
-              <div className="mb-6">
-                <Stats
-                  appointments={appointments}
-                  revenueDisplayMode={revenueDisplayMode}
-                  setRevenueDisplayMode={setRevenueDisplayMode}
-                />
-              </div>
-
-              <div className="mb-6">
-                <Grafico
-                  appointments={appointments}
-                  isChartExpanded={isChartExpanded}
-                  setIsChartExpanded={setIsChartExpanded}
-                />
-              </div>
-
-              {/* Filtros de agendamentos */}
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-400">Total: {filteredAppointments.length}</span>
+              {/* Layout para desktop com melhor distribuição de espaço */}
+              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
+                {/* Coluna principal - Stats e Gráfico */}
+                <div className="w-full xl:w-8/12">
+                  {/* Stats com mais espaço e melhor visualização */}
+                  <div className="mb-6 xl:mb-8">
+                    <Stats
+                      appointments={appointments}
+                      revenueDisplayMode={revenueDisplayMode}
+                      setRevenueDisplayMode={setRevenueDisplayMode}
+                    />
+                  </div>
+                  
+                  {/* Gráfico com mais espaço */}
+                  <div className="mb-6 xl:mb-8">
+                    <Grafico
+                      appointments={appointments}
+                      isChartExpanded={isChartExpanded}
+                      setIsChartExpanded={setIsChartExpanded}
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-row items-center justify-start gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setFilterMode('today')}
-                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'today' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
-                  >
-                    Hoje
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setFilterMode('tomorrow')}
-                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 ${filterMode === 'tomorrow' ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
-                  >
-                    Amanhã
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={refreshData}
-                    className={`w-full sm:w-auto px-4 py-2 rounded-md transition-all duration-300 bg-[#1A1F2E] text-white hover:bg-[#252B3B] ${isRefreshing ? 'opacity-70' : ''}`}
-                  >
-                    <motion.div
-                      animate={{ rotate: isRefreshing ? 360 : 0 }}
-                      transition={{ duration: 1, repeat: isRefreshing ? Infinity : 0, ease: "linear" }}
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                    </motion.div>
-                  </motion.button>
-                </div>
-              </div>
+                
+                {/* Coluna lateral - Agendamentos */}
+                <div className="w-full xl:w-4/12">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 sticky top-20">
+                    <div className="flex justify-between items-center mb-5">
+                      <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-[#F0B35B]" />
+                        Agendamentos
+                      </h2>
+                      <div className="flex items-center gap-3">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={refreshData}
+                          className={`p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin' : ''}`}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </motion.button>
+                        <div className="relative">
+                          <select
+                            value={filterMode}
+                            onChange={(e) => setFilterMode(e.target.value)}
+                            className="appearance-none bg-[#1A1F2E] text-white text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
+                          >
+                            <option value="today">Hoje</option>
+                            <option value="tomorrow">Amanhã</option>
+                            <option value="all">Todos</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Lista de agendamentos */}
-              <div className="space-y-4 mb-8">
-                <AnimatePresence>
-                  {filteredAppointments.length > 0 ? (
-                    <>
-                      {currentAppointments.map((appointment) => (
-                        <AppointmentCardNew
-                          key={appointment.id}
-                          appointment={appointment}
-                          onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                          onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                          onView={() => handleAppointmentAction(appointment.id, 'view')}
-                          filterMode={filterMode}
-                          revenueDisplayMode={revenueDisplayMode}
-                          appointments={appointments}
-                        />
-                      ))}
-                    </>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="bg-[#1A1F2E] p-6 rounded-lg text-center"
-                    >
-                      <p className="text-gray-400">
-                        {filterMode === 'today'
-                          ? 'Nenhum agendamento para hoje'
-                          : filterMode === 'tomorrow'
-                            ? 'Nenhum agendamento para amanhã'
-                            : 'Nenhum agendamento encontrado'}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    {currentAppointments.length === 0 ? (
+                      <div className="bg-[#0D121E] rounded-lg p-6 text-center">
+                        <p className="text-gray-400">
+                          {filterMode === 'today'
+                            ? 'Nenhum agendamento para hoje'
+                            : filterMode === 'tomorrow'
+                              ? 'Nenhum agendamento para amanhã'
+                              : 'Nenhum agendamento encontrado'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4">
+                        {calendarCurrentAppointments.map((appointment) => (
+                          <AppointmentCardNew
+                            key={appointment.id}
+                            appointment={appointment}
+                            onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                            onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                            onView={() => handleAppointmentAction(appointment.id, 'view')}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Paginação removida daqui - agora usando o componente de paginação global */}
+                  </div>
+                </div>
               </div>
             </motion.div>
           ) : activeView === 'agenda' ? (
             <motion.div
               key="agenda-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
             >
-              {/* Calendário unificado com filtros e estatísticas */}
-              <CalendarView
-                appointments={appointments}
-                selectedDate={selectedDate}
-                onDateSelect={handleDateSelection}
-                startDate={startDate}
-                endDate={endDate}
-                currentUser={currentUser}
-                isRangeFilterActive={isRangeFilterActive}
-                onToggleRangeFilter={() => {
-                  setIsRangeFilterActive(!isRangeFilterActive);
-                  setStartDate(null);
-                  setEndDate(null);
-                  setCurrentPage(1); // Reset to first page when filter is toggled
-                }}
-                onResetFilters={resetFilters}
-                totalValue={totalValue}
-              />
+              {/* Layout melhorado para visualização de agenda */}
+              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
+                {/* Coluna principal - Calendário */}
+                <div className="w-full xl:w-8/12">
+                  <div className="mb-6 xl:mb-8">
+                    <CalendarView
+                      appointments={appointments}
+                      selectedDate={selectedDate}
+                      onDateSelect={handleDateSelection}
+                      startDate={startDate}
+                      endDate={endDate}
+                      currentUser={currentUser}
+                      isRangeFilterActive={isRangeFilterActive}
+                      onToggleRangeFilter={() => {
+                        setIsRangeFilterActive(!isRangeFilterActive);
+                        setStartDate(null);
+                        setEndDate(null);
+                        setCurrentPage(1); // Reset to first page when filter is toggled
+                      }}
+                      onResetFilters={resetFilters}
+                      totalValue={totalValue}
+                    />
+                  </div>
+                </div>
+                
+                {/* Coluna lateral - Agendamentos filtrados por data */}
+                <div className="w-full xl:w-4/12">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 sticky top-20">
+                    <div className="flex justify-between items-center mb-5">
+                      <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-[#F0B35B]" />
+                        Agendamentos
+                      </h2>
+                      <div className="flex items-center gap-3">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={refreshData}
+                          className={`p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin' : ''}`}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-sm text-white bg-[#1A1F2E] px-3 py-1.5 rounded-lg">
+                        <span className="text-gray-400 mr-2">Total:</span>
+                        <span>{calendarFilteredAppointments.length}</span>
+                      </div>
+                      <div className="text-sm text-white bg-[#1A1F2E] px-3 py-1.5 rounded-lg">
+                        <span className="text-gray-400 mr-2">Valor:</span>
+                        <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
+                      </div>
+                    </div>
 
-              {/* Lista de Agendamentos */}
-              <div className="my-4">
-                <AnimatePresence>
-                  {calendarCurrentAppointments.length > 0 ? (
-                    calendarCurrentAppointments.map((appointment) => (
-                      <motion.div
-                        key={appointment.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2 }}
-                        className="mb-2"
-                      >
-                        <AppointmentCardNew
-                          appointment={appointment}
-                          onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                          onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                          onView={() => handleAppointmentAction(appointment.id, 'view')}
-                          filterMode="all"
-                          revenueDisplayMode="total"
-                          appointments={appointments}
-                        />
-                      </motion.div>
-                    ))
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="bg-[#1A1F2E] p-6 rounded-lg text-center border border-[#F0B35B]/10"
-                    >
-                      <p className="text-gray-400">
-                        Nenhum agendamento encontrado para este período
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    {calendarFilteredAppointments.length === 0 ? (
+                      <div className="bg-[#0D121E] rounded-lg p-6 text-center">
+                        <p className="text-gray-400">
+                          {isRangeFilterActive
+                            ? 'Nenhum agendamento no período selecionado'
+                            : 'Nenhum agendamento para esta data'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4">
+                        {calendarCurrentAppointments.map((appointment) => (
+                          <AppointmentCardNew
+                            key={appointment.id}
+                            appointment={appointment}
+                            onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                            onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                            onView={() => handleAppointmentAction(appointment.id, 'view')}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Paginação */}
+                    {/* Paginação removida daqui - agora usando o componente de paginação global */}
+                  </div>
+                </div>
               </div>
             </motion.div>
           ) : (
             <motion.div
               key="analytics-view"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
             >
-              {/* Visualização de Analytics */}
-              <div className="space-y-6">
-                <ClientAnalytics appointments={appointments} />
+              {/* Layout melhorado para visualização de analytics */}
+              <div className="w-full">
+                <div className="mb-6 xl:mb-8">
+                  <ClientAnalytics appointments={appointments} />
+                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Pagination Controls - Renderização condicional baseada na visualização ativa */}
-        {activeView === 'painel' ? (
-          filteredAppointments.length > appointmentsPerPage && (
-            <div className="flex justify-center mt-6 mb-4">
-              <div className="flex items-center space-x-2">
-                {/* Previous Page Button */}
-                {currentPage > 1 && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage - 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </motion.button>
-                )}
-
-                {/* First Page */}
-                {currentPage > 1 && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage - 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    {currentPage - 1}
-                  </motion.button>
-                )}
-
-                {/* Current Page */}
+        {/* Pagination Controls - Componente único otimizado */}
+        {((activeView === 'painel' && filteredAppointments.length > appointmentsPerPage) || 
+          (activeView !== 'painel' && calendarFilteredAppointments.length > appointmentsPerPage)) && (
+          <div className="flex justify-center mt-6 mb-4">
+            <div className="flex items-center space-x-2">
+              {/* Previous Page Button */}
+              {currentPage > 1 && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+                  onClick={() => paginate(currentPage - 1)}
+                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
                 >
-                  {currentPage}
+                  <ChevronLeft className="w-4 h-4" />
                 </motion.button>
+              )}
 
-                {/* Next Page */}
-                {currentPage < totalPages && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage + 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    {currentPage + 1}
-                  </motion.button>
-                )}
-
-                {/* Next Page Button */}
-                {currentPage < totalPages && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage + 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </motion.button>
-                )}
-              </div>
-            </div>
-          )
-        ) : (
-          calendarFilteredAppointments.length > appointmentsPerPage && (
-            <div className="flex justify-center mt-6 mb-4">
-              <div className="flex items-center space-x-2">
-                {/* Previous Page Button */}
-                {currentPage > 1 && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage - 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </motion.button>
-                )}
-
-                {/* First Page */}
-                {currentPage > 1 && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage - 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    {currentPage - 1}
-                  </motion.button>
-                )}
-
-                {/* Current Page */}
+              {/* First Page */}
+              {currentPage > 1 && (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+                  onClick={() => paginate(currentPage - 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
                 >
-                  {currentPage}
+                  {currentPage - 1}
                 </motion.button>
+              )}
 
-                {/* Next Page */}
-                {currentPage < calendarTotalPages && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage + 1)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    {currentPage + 1}
-                  </motion.button>
-                )}
+              {/* Current Page */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
+              >
+                {currentPage}
+              </motion.button>
 
-                {/* Next Page Button */}
-                {currentPage < calendarTotalPages && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => paginate(currentPage + 1)}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text.white hover:bg-[#252B3B] transition-colors duration-300"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </motion.button>
-                )}
-              </div>
+              {/* Next Page */}
+              {((activeView === 'painel' && currentPage < totalPages) || 
+                (activeView !== 'painel' && currentPage < calendarTotalPages)) && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  {currentPage + 1}
+                </motion.button>
+              )}
+
+              {/* Next Page Button */}
+              {((activeView === 'painel' && currentPage < totalPages) || 
+                (activeView !== 'painel' && currentPage < calendarTotalPages)) && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => paginate(currentPage + 1)}
+                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </motion.button>
+              )}
             </div>
-          )
+          </div>
         )}
       </main>
 
@@ -789,8 +760,17 @@ const DashboardPage: React.FC = () => {
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         appointment={selectedAppointment}
-        onDelete={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'delete')}
-        onToggleStatus={() => selectedAppointment && handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status)}
+        onDelete={() => {
+          if (selectedAppointment) {
+            handleAppointmentAction(selectedAppointment.id, 'delete');
+            setIsViewModalOpen(false);
+          }
+        }}
+        onToggleStatus={() => {
+          if (selectedAppointment) {
+            handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status);
+          }
+        }}
       />
     </div>
 

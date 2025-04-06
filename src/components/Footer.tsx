@@ -1,13 +1,31 @@
-import { Instagram, Facebook, Twitter } from 'lucide-react';
+import { Instagram, Facebook, Twitter, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
+
 const Footer = () => {
   const navigate = useNavigate();
+  
+  // Valores estáticos para o Footer
+  // Redes sociais
+  const instagramUrl = '#';
+  const facebookUrl = '#';
+  const twitterUrl = '#';
+  
+  // Informações de contato
+  const phone = '(11) 99999-9999';
+  const email = 'contato@barbershop.com';
+  const address = 'Rua Exemplo, 123 - Centro';
+  
+  // Horários de funcionamento
+  const weekdaysHours = '09:00 - 20:00';
+  const saturdayHours = '09:00 - 18:00';
+  const sundayHours = 'Fechado';
+  
   const socialLinks = [
-    { icon: <Instagram size={20} />, label: 'Instagram' },
-    { icon: <Facebook size={20} />, label: 'Facebook' },
-    { icon: <Twitter size={20} />, label: 'Twitter' }
+    { icon: <Instagram size={20} />, label: 'Instagram', url: instagramUrl },
+    { icon: <Facebook size={20} />, label: 'Facebook', url: facebookUrl },
+    { icon: <Twitter size={20} />, label: 'Twitter', url: twitterUrl }
   ];
 
   return (
@@ -27,7 +45,9 @@ const Footer = () => {
               {socialLinks.map((link) => (
                 <motion.a
                   key={link.label}
-                  href="#"
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-gray-400 hover:text-[#F0B35B] transition-colors p-2 rounded-lg hover:bg-[#252B3B]/50"
                   aria-label={link.label}
                   whileHover={{ scale: 1.1 }}
@@ -40,28 +60,30 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Contato e Horários */}
           <div className="flex flex-col items-center">
-            <h3 className="text-[#F0B35B] text-sm font-semibold mb-4">Links Rápidos</h3>
-            <div className="flex flex-col items-center gap-2">
-              <Link
-                to="/services"
-                className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors"
-              >
-                Serviços
-              </Link>
-              <Link
-                to="/about"
-                className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors"
-              >
-                Sobre Nós
-              </Link>
-              <Link
-                to="/contact"
-                className="text-gray-400 hover:text-[#F0B35B] text-sm transition-colors"
-              >
-                Contato
-              </Link>
+            <h3 className="text-[#F0B35B] text-sm font-semibold mb-4">Contato e Horários</h3>
+            <div className="flex flex-col items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2">
+                <Phone size={16} className="text-[#F0B35B]" />
+                <span>{phone}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail size={16} className="text-[#F0B35B]" />
+                <span>{email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin size={16} className="text-[#F0B35B]" />
+                <span>{address}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Clock size={16} className="text-[#F0B35B]" />
+                <div className="flex flex-col">
+                  <span>Seg-Sex: {weekdaysHours}</span>
+                  <span>Sábado: {saturdayHours}</span>
+                  <span>Domingo: {sundayHours}</span>
+                </div>
+              </div>
             </div>
           </div>
 

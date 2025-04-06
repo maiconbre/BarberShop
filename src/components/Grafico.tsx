@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaChevronDown } from 'react-icons/fa';
-import { TrendingUp, DollarSign, Award, Users } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { DollarSign, Award, Users } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 
 interface Appointment {
   id: string;
@@ -24,6 +24,9 @@ interface GraficoProps {
   isChartExpanded: boolean;
   setIsChartExpanded: (expanded: boolean) => void;
 }
+
+// Cores para os gráficos de pizza e barras
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#F0B35B'];
 
 const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsChartExpanded }) => {
   // Dados para o gráfico de tendências ao longo do tempo
@@ -87,6 +90,41 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
         receita: weeklyData[week.key].revenue
       };
     });
+  }, [appointments]);
+
+  // Dados para o gráfico de serviços mais populares
+  const popularServicesData = useMemo(() => {
+    const servicesCount: { [key: string]: number } = {};
+    
+    // Contar ocorrências de cada serviço
+    appointments.forEach(app => {
+      const services = app.service.split(',').map(s => s.trim());
+      services.forEach(service => {
+        servicesCount[service] = (servicesCount[service] || 0) + 1;
+      });
+    });
+
+    return Object.entries(servicesCount)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6); // Limitar aos 6 serviços mais populares
+  }, [appointments]);
+
+  // Dados para o gráfico de frequência por dia da semana
+  const weekdayFrequencyData = useMemo(() => {
+    const weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const weekdayCounts = Array(7).fill(0);
+
+    appointments.forEach(app => {
+      const date = new Date(app.date);
+      const weekday = date.getDay();
+      weekdayCounts[weekday]++;
+    });
+
+    return weekdays.map((name, index) => ({
+      name,
+      value: weekdayCounts[index]
+    }));
   }, [appointments]);
 
   // Calcular dados para os cards de métricas
@@ -203,6 +241,92 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
                     />
                   </LineChart>
                 </ResponsiveContainer>
+              </div>
+            </div>
+            
+            {/* Gráficos adicionais - Serviços e Dias da Semana */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6 mb-4">
+              {/* Gráfico de pizza - Serviços mais populares */}
+              <div className="bg-[#0D121E] p-2 sm:p-3 md:p-4 rounded-lg">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-4 text-center">Serviços Mais Populares</h3>
+                <div className="h-56 sm:h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={popularServicesData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={window.innerWidth < 640 ? 60 : window.innerWidth < 768 ? 70 : 80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => {
+                          // Truncar nomes longos para melhor visualização
+                          const truncatedName = name.length > (window.innerWidth < 640 ? 6 : window.innerWidth < 768 ? 8 : 10) ?
+                            name.substring(0, window.innerWidth < 640 ? 6 : window.innerWidth < 768 ? 8 : 10) + '...' : name;
+                          // Em dispositivos móveis, mostrar apenas a porcentagem
+                          // Em tablets, mostrar nome muito curto + porcentagem
+                          // Em desktop, mostrar nome truncado + porcentagem
+                          if (window.innerWidth < 640) {
+                            return `${(percent * 100).toFixed(0)}%`;
+                          } else if (window.innerWidth < 768) {
+                            return name.length > 8 ? `${(percent * 100).toFixed(0)}%` : `${truncatedName}: ${(percent * 100).toFixed(0)}%`;
+                          } else {
+                            return `${truncatedName}: ${(percent * 100).toFixed(0)}%`;
+                          }
+                        }}
+                      >
+                        {popularServicesData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value, name, props) => [`${value} agendamentos`, props.payload.name]}
+                        contentStyle={{
+                          backgroundColor: 'rgba(26,31,46,0.95)',
+                          border: '1px solid rgba(240,179,91,0.5)',
+                          borderRadius: '8px',
+                          padding: window.innerWidth < 640 ? '3px' : window.innerWidth < 768 ? '4px' : '8px',
+                          fontSize: window.innerWidth < 640 ? '10px' : '12px'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Gráfico de barras - Frequência por dia da semana */}
+              <div className="bg-[#0D121E] p-2 sm:p-3 md:p-4 rounded-lg">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-4 text-center">Frequência por Dia da Semana</h3>
+                <div className="h-56 sm:h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={weekdayFrequencyData}
+                      margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: window.innerWidth < 640 ? 7 : window.innerWidth < 768 ? 8 : 10, fill: '#fff' }}
+                        tickFormatter={(value) => window.innerWidth < 640 ? value.substring(0, 3) : value}
+                      />
+                      <YAxis
+                        tick={{ fontSize: window.innerWidth < 640 ? 7 : window.innerWidth < 768 ? 8 : 10, fill: '#fff' }}
+                        width={window.innerWidth < 640 ? 25 : window.innerWidth < 768 ? 30 : 40}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'rgba(26,31,46,0.95)',
+                          border: '1px solid rgba(240,179,91,0.5)',
+                          borderRadius: '8px',
+                          padding: window.innerWidth < 640 ? '3px' : window.innerWidth < 768 ? '4px' : '8px',
+                          fontSize: window.innerWidth < 640 ? '10px' : '12px'
+                        }}
+                      />
+                      <Bar dataKey="value" fill="#F0B35B" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
             

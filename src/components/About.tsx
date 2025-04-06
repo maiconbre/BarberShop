@@ -2,6 +2,7 @@ import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import ApiService from '../services/ApiService';
 
+
 const About = () => {
   // Estados para visibilidade de cada seção
   const [headerVisible, setHeaderVisible] = useState(false);
@@ -12,6 +13,13 @@ const About = () => {
   const [locationVisible, setLocationVisible] = useState(false);
   const [reviewsVisible, setReviewsVisible] = useState(false);
   const [commentFormVisible, setCommentFormVisible] = useState(false);
+  
+  // Valores estáticos para o About
+  const about_title = 'Sobre Nossa';
+  const about_description = 'Com mais de 10 anos de experiência, nossa barbearia é referência em cortes modernos e clássicos.';
+  const business_hours_weekdays = '09:00 - 20:00';
+  const business_hours_saturday = '09:00 - 18:00';
+  const business_hours_sunday = 'Fechado';
   
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
@@ -142,10 +150,10 @@ const About = () => {
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-white">
-            Sobre Nossa <span className="text-[#F0B35B]">Barbearia</span>
+            {about_title} <span className="text-[#F0B35B]">Barbearia</span>
           </h2>
           <p className="text-gray-300 max-w-3xl mx-auto text-lg">
-            Com mais de 10 anos de experiência, nossa barbearia é referência em cortes modernos e clássicos.
+            {about_description}
           </p>
         </div>
 
@@ -182,15 +190,21 @@ const About = () => {
               <ul className="space-y-3">
                 <li className="flex justify-between items-center border-b border-gray-700/30 pb-2">
                   <span className="font-medium">Segunda - Sexta</span>
-                  <span className="bg-[#F0B35B]/10 text-[#F0B35B] px-3 py-1 rounded-full text-sm font-medium">09:00 - 20:00</span>
+                  <span className="bg-[#F0B35B]/10 text-[#F0B35B] px-3 py-1 rounded-full text-sm font-medium">
+                    {business_hours_weekdays}
+                  </span>
                 </li>
                 <li className="flex justify-between items-center border-b border-gray-700/30 pb-2">
                   <span className="font-medium">Sábado</span>
-                  <span className="bg-[#F0B35B]/10 text-[#F0B35B] px-3 py-1 rounded-full text-sm font-medium">09:00 - 18:00</span>
+                  <span className="bg-[#F0B35B]/10 text-[#F0B35B] px-3 py-1 rounded-full text-sm font-medium">
+                    {business_hours_saturday}
+                  </span>
                 </li>
                 <li className="flex justify-between items-center">
                   <span className="font-medium">Domingo</span>
-                  <span className="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-sm font-medium">Fechado</span>
+                  <span className="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-sm font-medium">
+                    {business_hours_sunday}
+                  </span>
                 </li>
               </ul>
             </div>
