@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Scissors, Clock, MapPin } from 'lucide-react';
 // @ts-ignore
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
+
 
 interface HeroProps {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -79,6 +80,11 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
     setIsModalOpen(true);
   }, [setIsModalOpen]);
 
+  // Valores estáticos para o Hero
+  const heroTitle = 'ESTILO É UM REFLEXO DA SUA ATITUDE E PERSONALIDADE';
+  const heroSubtitle = 'Transforme seu visual com os melhores profissionais de Bangu';
+  const heroCta = 'Agende Agora';
+  
   return (
     <section
       aria-label="Hero Section"
@@ -138,12 +144,12 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
           itemProp="headline"
         >
           <span className="sr-only">BarberShop - </span>
-          <span className="block mb-2 text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">ESTILO É UM REFLEXO DA SUA</span>
+          <span className="block mb-2 text-white/80 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">{heroTitle.split(' ').slice(0, 5).join(' ')}</span>
           <span
             className="text-[#F0B35B] font-extrabold inline-block drop-shadow-[0_1px_3px_rgba(240,179,91,0.3)]"
             itemProp="alternativeHeadline"
           >
-            <span className="relative z-10 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 bg-clip-text animate-shine-text">ATITUDE E PERSONALIDADE</span>
+            <span className="relative z-10 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 bg-clip-text animate-shine-text">{heroTitle.split(' ').slice(5).join(' ')}</span>
           </span>
         </h1>
 
@@ -151,7 +157,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
           className="text-lg md:text-xl lg:text-2xl mb-8 max-w-2xl mx-auto text-gray-300 leading-relaxed"
           itemProp="description"
         >
-          Transforme seu visual com os melhores profissionais de Bangu
+          {heroSubtitle}
         </p>
 
         {/* Botão de agendamento */}
@@ -172,7 +178,8 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
           "
         >
           <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>            Agende Agora
+            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>
+            {heroCta}
             <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>          </span>
           <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
         </button>

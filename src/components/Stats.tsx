@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Calendar, Clock, Eye, EyeOff, TrendingUp, Users } from 'lucide-react';
+import { Clock, Eye, EyeOff, TrendingUp, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -286,12 +286,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.2 }}
-                    className="text-center sm:text-left"
+                    className="text-center "
                   >
-                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center sm:text-left">
+                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
                       Receita Mensal (30 dias)
                     </p>
-                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center sm:justify-start gap-2">
+                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center  gap-2">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -323,7 +323,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                         "R$ ******"
                       )}
                     </h4>
-                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
+                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
                       <span className="inline-block mr-1">↑</span>
                       <span>{clientesMes} clientes nos últimos 30 dias</span>
                     </div>
@@ -335,12 +335,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.2 }}
-                    className="text-center sm:text-left"
+                    className="text-center "
                   >
-                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center sm:text-left">
+                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
                       Receita Semanal
                     </p>
-                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center sm:justify-start gap-2">
+                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -372,7 +372,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                         "R$ ******"
                       )}
                     </h4>
-                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
+                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
                       <span className="inline-block mr-1">↑</span>
                       <span>{clientesSemana} clientes nesta semana</span>
                     </div>
@@ -384,12 +384,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.2 }}
-                    className="text-center sm:text-left"
+                    className="text-center "
                   >
-                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center sm:text-left">
+                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
                       Receita Hoje
                     </p>
-                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center sm:justify-start gap-2">
+                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -421,7 +421,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                         "R$ ******"
                       )}
                     </h4>
-                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center sm:justify-start">
+                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
                       <span className="inline-block mr-1">↑</span>
                       <span>{clientesHoje} clientes hoje</span>
                     </div>

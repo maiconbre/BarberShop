@@ -18,6 +18,7 @@ import VendaPage2 from './pages/VendaPage2';
 import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
 
+
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -97,6 +98,7 @@ const AppContent = () => {
                 <ScheduleManagementPage />
               </ProtectedRoute>
             } />
+
 
       
           </Routes>

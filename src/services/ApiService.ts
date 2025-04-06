@@ -10,8 +10,20 @@ class ApiService {
   private connectionErrorCooldown: number = 30000; // 30 segundos de cooldown entre tentativas após falha
 
   private constructor() {
-    this.baseUrl = (import.meta as any).env.VITE_API_URL;
+    // Obter a URL base da API do arquivo .env
+    let apiUrl = (import.meta as any).env.VITE_API_URL || '';
+    
+    // Garantir que a URL não termina com barra
+    if (apiUrl.endsWith('/')) {
+      apiUrl = apiUrl.slice(0, -1);
+    }
+    
+  
+    
+    this.baseUrl = apiUrl;
     this.setupOnlineListener();
+    
+    console.log('ApiService inicializado com URL:', this.baseUrl);
   }
 
   static getInstance() {

@@ -1,7 +1,9 @@
 import { Scissors } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import ApiService from '../services/ApiService';
 
-const services = [
+// Serviços padrão caso não seja possível carregar do backend
+const defaultServices = [
   {
     name: 'Corte Tradicional',
     price: 'R$ 45,00',
@@ -12,7 +14,6 @@ const services = [
     name: 'Tesoura',
     price: 'R$ 60,00',
     image: 'https://img.freepik.com/fotos-premium/barbeiro-corte-cabelo-masculino-corte-de-cabelo-moderno-com-tesoura_118478-2296.jpg',
-
     description: 'Corte exclusivo feito com tesoura para um visual personalizado'
   },
   {
@@ -31,14 +32,52 @@ interface ServicesProps {
 const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple }) => {
   // Estados para visibilidade de cada seção
   const [headerVisible, setHeaderVisible] = useState(false);
-  const [cardsVisible, setCardsVisible] = useState<boolean[]>(services.map(() => false));
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
+  
+  // Estado para armazenar os serviços carregados
+  const [services, setServices] = useState(defaultServices);
+  const [cardsVisible, setCardsVisible] = useState<boolean[]>(services.map(() => false));
   
   // Referências para cada seção
   const sectionRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>(services.map(() => null));
+  
+  // Carregar serviços
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        // Buscar todos os serviços disponíveis
+        const response = await ApiService.request<{success: boolean; data: any[]}>('/api/services');
+        
+        if (response.success && response.data && response.data.length > 0) {
+          // Pegar os 3 primeiros serviços para exibir
+          const servicesToShow = response.data.slice(0, 3).map(service => ({
+            name: service.name,
+            price: `R$ ${service.price.toFixed(2).replace('.', ',')}`,
+            image: service.image || defaultServices[0].image,
+            description: service.description || 'Serviço profissional de alta qualidade'
+          }));
+          
+          // Atualizar o estado com os serviços do backend
+          setServices(servicesToShow);
+          // Atualizar as referências e estados de visibilidade
+          cardRefs.current = servicesToShow.map(() => null);
+          setCardsVisible(servicesToShow.map(() => false));
+        } else {
+          // Se não encontrou serviços, usar os padrões
+          setServices(defaultServices);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar serviços:', error);
+        // Em caso de erro, usar os serviços padrão
+        setServices(defaultServices);
+      }
+    };
+    
+    fetchServices();
+  }, []); // Carregar apenas uma vez na montagem do componente
   
   // Função para verificar se está em dispositivo móvel
   const isMobile = () => window.innerWidth < 640; // sm breakpoint no Tailwind
@@ -114,25 +153,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple }) =
             Escolha entre nossa variedade de serviços profissionais para uma experiência única
           </p>
           
-          <button
-            onClick={() => {
-              setMultiSelectMode(!multiSelectMode);
-              if (!multiSelectMode) {
-                setSelectedServices([]);
-              }
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-300 mx-auto ${multiSelectMode ? 'bg-[#F0B35B] text-black' : 'bg-[#1A1F2E] text-white border border-[#F0B35B]/30'}`}
-          >
-            {multiSelectMode ? (
-              <>
-                <span>Concluir Seleção</span>
-              </>
-            ) : (
-              <>
-                <span>Selecionar Múltiplos Serviços</span>
-              </>
-            )}
-          </button>
+          
           
           {multiSelectMode && selectedServices.length > 0 && (
             <div className="mt-4">

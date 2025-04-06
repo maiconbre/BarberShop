@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
-import { adjustToBrasilia, formatToISODate } from '../utils/DateTimeUtils';
+import { adjustToBrasilia } from '../utils/DateTimeUtils';
 
 interface CalendarProps {
   selectedBarber: string;
