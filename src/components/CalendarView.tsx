@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, CalendarIcon, Filter, Users, Award } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, AreaChart, Area, CartesianGrid } from 'recharts';
 
 interface Appointment {
   id: string;
@@ -13,6 +13,7 @@ interface Appointment {
   barberName?: string;
   price?: number;
   service?: string;
+  isBlocked?: boolean;
 }
 
 interface CalendarViewProps {
@@ -136,10 +137,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const filteredAppointments = appointments.filter(app => {
       // Se for admin, mostra todos os agendamentos
       if (currentUser?.role === 'admin') {
+        // Excluir agendamentos bloqueados
+        if (app.isBlocked) return false;
         return true;
       }
       // Se não for admin, mostra apenas os agendamentos do barbeiro logado
-      return app.barberId === currentUser?.id;
+      // e exclui agendamentos bloqueados
+      return app.barberId === currentUser?.id && !app.isBlocked;
     });
 
     return filteredAppointments.some(app => app.date === date);
@@ -282,11 +286,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   return (
-    <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-4 sm:p-6 shadow-lg border border-[#F0B35B]/10">
+    <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-4 sm:p-6 shadow-lg border border-[#F0B35B]/10 h-full flex flex-col">
       {/* Layout principal com uma coluna em mobile e desktop */}
-      <div className="flex flex-col ">
+      <div className="flex flex-col flex-grow">
         {/* Card Unificado com Estatísticas e Filtros */}
-        <div className="mb-2">
+        <div className="mb-4">
           <div className="flex flex-col gap-4">
             {/* Cards de Estatísticas - Unificados lado a lado */}
             <div className="flex flex-row justify-between items-stretch gap-3">
@@ -401,12 +405,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="mt-4 mb-4 text-center bg-[#252B3B] p-3 rounded-lg shadow-md border border-[#F0B35B]/20">
           <p className="text-[#F0B35B] text-base font-medium">
             {filteredAppointments.length} {filteredAppointments.length === 1 ? 'agendamento' : 'agendamentos'}
-            {!isRangeFilterActive ? `para o dia ${new Date(selectedDate).toLocaleDateString('pt-BR')}` : 'no período selecionado'}
+            {!isRangeFilterActive ? ` para o dia ${new Date(selectedDate).toLocaleDateString('pt-BR')}` : ' no período selecionado'}
           </p>
         </div>
 
         {/* Gráfico e análise de clientes  */}
-        <div className="mt-6">
+        <div className="mt-6 flex-grow">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <Users className="h-4 w-4 text-[#F0B35B]" />
@@ -415,11 +419,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
 
           {/* Layout em grid responsivo */}
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Gráfico de recorrência */}
             <div className="bg-[#0D121E] p-3 rounded-lg">
               <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-3 text-center">Perfil de Visitas</h4>
-              <div className="h-[calc(100vh-32rem)] min-h-[300px] max-h-[400px]">
+              <div className="h-[200px] sm:h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -460,10 +464,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             {/* Sugestões de promoções */}
             <div className="bg-[#0D121E] p-3 rounded-lg">
               <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-3 text-center">Sugestões para Promoções</h4>
-              <div className="h-[calc(100vh-32rem)] min-h-[300px] max-h-[400px]">
+              <div className="h-[200px] sm:h-[250px] overflow-y-auto pr-1 custom-scrollbar hide-scrollbar">
                 {appointments.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       {/* Cards visíveis em todas as telas */}
                       <div className="p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-[#F0B35B]">
                         <h4 className="font-medium text-white text-xs">Clientes Fiéis</h4>
@@ -486,38 +490,242 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           Crie pacotes com desconto para clientes que agendarem múltiplos serviços em uma única visita.
                         </p>
                       </div>
-
-                       {/* Cards extras visíveis apenas em telas maiores */}
-
-                      <div className="hidden lg:block p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-purple-400">
-                        <h4 className="font-medium text-white text-xs">Horários Estratégicos</h4>
-                        <p className="text-gray-400 mt-1 text-xs">
-                          Ofereça descontos especiais em horários com menor movimento para otimizar a agenda.
-                          Ideal para horários entre 10h e 15h nos dias de semana.
-                        </p>
-                      </div>
-                     
-                      <div className="hidden lg:block p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-amber-400">
-                        <h4 className="font-medium text-white text-xs">Indicação Premiada</h4>
-                        <p className="text-gray-400 mt-1 text-xs">
-                          Implemente um programa de indicações onde clientes ganham descontos ao trazerem novos clientes.
-                        </p>
-                      </div>
-
-                      <div className="hidden lg:block p-3 bg-[#1A1F2E] rounded-lg border-l-2 border-pink-400">
-                        <h4 className="font-medium text-white text-xs">Datas Especiais</h4>
-                        <p className="text-gray-400 mt-1 text-xs">
-                          Prepare promoções antecipadas para datas comemorativas e eventos especiais do calendário.
-                        </p>
-                      </div>
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-40 text-gray-400">
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400">
                     <Award className="h-8 w-8 mb-2 opacity-30" />
                     <p className="text-xs">Sem dados suficientes para gerar sugestões</p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Nova seção para métricas adicionais - Visível apenas em desktop */}
+        <div className="hidden lg:block mt-8">
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#F0B35B]/20"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-[#252B3B] px-4 text-sm text-gray-400">Métricas Adicionais</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Gráfico de distribuição por dia da semana - Barras Horizontais */}
+            <div className="bg-[#0D121E] p-3 rounded-lg">
+              <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-3 text-center">Distribuição por Dia da Semana</h4>
+              <div className="h-[200px] sm:h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    layout="vertical"
+                    data={useMemo(() => {
+                      const weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                      const counts = Array(7).fill(0);
+                      
+                      appointments.forEach(app => {
+                        const date = new Date(app.date);
+                        const day = date.getDay();
+                        counts[day]++;
+                      });
+                      
+                      return weekdays.map((name, index) => ({
+                        name: name,
+                        value: counts[index]
+                      })).filter(item => item.value > 0);
+                    }, [appointments])}
+                    margin={{ top: 5, right: 20, left: 40, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" horizontal={false} />
+                    <XAxis type="number" domain={[0, 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 10 }} />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      tick={{ fill: '#9ca3af', fontSize: 10 }} 
+                      width={60} 
+                    />
+                    <Tooltip
+                      formatter={(value: any) => [`${value} agendamentos`, '']}
+                      contentStyle={{
+                        backgroundColor: 'rgba(26,31,46,0.95)',
+                        border: '1px solid rgba(240,179,91,0.5)',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        fontSize: '12px'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="value" 
+                      fill="#F0B35B" 
+                      radius={[0, 4, 4, 0]}
+                      barSize={20}
+                      label={{ 
+                        position: 'right', 
+                        fill: '#fff', 
+                        fontSize: 10,
+                        formatter: (value: any) => value > 0 ? value : ''
+                      }}
+                    >
+                      {useMemo(() => {
+                        const weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+                        const counts = Array(7).fill(0);
+                        
+                        appointments.forEach(app => {
+                          const date = new Date(app.date);
+                          const day = date.getDay();
+                          counts[day]++;
+                        });
+                        
+                        return weekdays.map((name, index) => ({
+                          name: name,
+                          value: counts[index]
+                        })).filter(item => item.value > 0);
+                      }, [appointments]).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Gráfico de horários mais populares - Gráfico de Área */}
+            <div className="bg-[#0D121E] p-3 rounded-lg">
+              <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-3 text-center">Horários Mais Populares</h4>
+              <div className="h-[200px] sm:h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={useMemo(() => {
+                      // Criar um array com todos os horários possíveis para garantir continuidade no gráfico
+                      const allTimeSlots = ['09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'];
+                      const timeData = allTimeSlots.map(hour => ({
+                        name: `${hour}h`,
+                        value: 0
+                      }));
+                      
+                      // Preencher com os dados reais
+                      appointments.forEach(app => {
+                        if (app.time) {
+                          const hour = app.time.split(':')[0];
+                          const index = allTimeSlots.indexOf(hour);
+                          if (index !== -1) {
+                            timeData[index].value += 1;
+                          }
+                        }
+                      });
+                      
+                      return timeData;
+                    }, [appointments])}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fill: '#9ca3af', fontSize: 10 }}
+                    />
+                    <YAxis 
+                      tick={{ fill: '#9ca3af', fontSize: 10 }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      formatter={(value: any) => [`${value} agendamentos`, '']}
+                      contentStyle={{
+                        backgroundColor: 'rgba(26,31,46,0.95)',
+                        border: '1px solid rgba(240,179,91,0.5)',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        fontSize: '12px'
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#F0B35B" 
+                      fill="url(#colorGradient)" 
+                      activeDot={{ r: 6, fill: '#F0B35B', stroke: '#fff' }}
+                    />
+                    <defs>
+                      <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F0B35B" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#F0B35B" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Card de métricas de conversão */}
+            <div className="bg-[#0D121E] p-3 rounded-lg">
+              <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-3 text-center">Métricas de Desempenho</h4>
+              <div className="h-[200px] sm:h-[250px] flex flex-col justify-between">
+                {/* Taxa de Conversão */}
+                <div className="bg-[#1A1F2E] p-3 rounded-lg mb-3">
+                  <h5 className="text-xs font-medium text-white mb-1">Taxa de Conclusão</h5>
+                  <div className="flex items-center justify-between">
+                    <div className="text-[#F0B35B] text-lg font-bold">
+                      {useMemo(() => {
+                        const completed = appointments.filter(app => app.status === 'completed').length;
+                        const total = appointments.length;
+                        return total > 0 ? `${((completed / total) * 100).toFixed(1)}%` : '0%';
+                      }, [appointments])}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {useMemo(() => {
+                        const completed = appointments.filter(app => app.status === 'completed').length;
+                        return `${completed} concluídos`;
+                      }, [appointments])}
+                    </div>
+                  </div>
+                  <div className="w-full bg-[#252B3B] h-2 rounded-full mt-2 overflow-hidden">
+                    <div 
+                      className="bg-[#F0B35B] h-full rounded-full" 
+                      style={{ 
+                        width: `${useMemo(() => {
+                          const completed = appointments.filter(app => app.status === 'completed').length;
+                          const total = appointments.length;
+                          return total > 0 ? (completed / total) * 100 : 0;
+                        }, [appointments])}%` 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Ticket Médio */}
+                <div className="bg-[#1A1F2E] p-3 rounded-lg mb-3">
+                  <h5 className="text-xs font-medium text-white mb-1">Ticket Médio</h5>
+                  <div className="flex items-center justify-between">
+                    <div className="text-[#F0B35B] text-lg font-bold">
+                      R$ {clientStats.ticketMedio.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {appointments.length} agendamentos
+                    </div>
+                  </div>
+                </div>
+
+                {/* Serviços por Cliente */}
+                <div className="bg-[#1A1F2E] p-3 rounded-lg">
+                  <h5 className="text-xs font-medium text-white mb-1">Serviços por Cliente</h5>
+                  <div className="flex items-center justify-between">
+                    <div className="text-[#F0B35B] text-lg font-bold">
+                      {useMemo(() => {
+                        const uniqueClients = new Set();
+                        appointments.forEach(app => {
+                          if (app.clientName) uniqueClients.add(app.clientName.toLowerCase());
+                        });
+                        const clientCount = uniqueClients.size;
+                        return clientCount > 0 ? (appointments.length / clientCount).toFixed(1) : '0';
+                      }, [appointments])}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      média por cliente
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -38,6 +38,7 @@ interface Appointment {
     createdAt?: string;
     updatedAt?: string;
     viewed?: boolean;
+    isBlocked?: boolean;
 }
 
 interface ClientAnalyticsProps {
@@ -91,7 +92,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     const clientsData = useMemo(() => {
         const clientMap = new Map<string, any>();
 
-        const filteredAppointments = appointments.filter(app => {
+        // Filtrar agendamentos bloqueados antes de processar
+        const nonBlockedAppointments = appointments.filter(app => !app.isBlocked);
+
+        const filteredAppointments = nonBlockedAppointments.filter(app => {
             if (timeRange === 'all') return true;
 
             const appDate = new Date(app.date);

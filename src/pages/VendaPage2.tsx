@@ -55,8 +55,6 @@ const VendaPage2: React.FC = () => {
     setShowDemo(true);
   };
 
-  // Referência para o carrossel
-  const carouselRef = React.useRef<HTMLDivElement>(null);
 
   // Demonstração simplificada em 3 passos
   const demoSteps = [
@@ -139,6 +137,8 @@ const VendaPage2: React.FC = () => {
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://barber.targetweb.tech" />
       </Helmet>
+
+
 
       {/* Promoção Flutuante mais elegante e responsiva */}
       <motion.div
@@ -293,11 +293,11 @@ const VendaPage2: React.FC = () => {
                   className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight"
                 >
                   <span className="block mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400">
-                    Leve sua Barbearia para
+                    Leve sua Barbearia para o 
                   </span>
                   <span className="relative">
                     <span className={`relative inline-block bg-clip-text text-transparent text-[1.2em] sm:text-[1em] ${commonAnimations.buttonGradient}`}>
-                      O Próximo Nível
+                      Próximo Nível
                       <motion.span
                         initial={{ width: "0%" }}
                         animate={{ width: "100%" }}
@@ -930,6 +930,65 @@ const VendaPage2: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* Seção de Funcionalidades Exclusivas */}
+        <section className="py-24 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1A1F2E] via-[#0D121E] to-[#1A1F2E]">
+            <div className="absolute inset-0 bg-[url('/img/pattern.svg')] opacity-5"></div>
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow"></div>
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#F0B35B]/5 rounded-full filter blur-[100px] animate-pulse-slow animation-delay-1000"></div>
+          </div>
+
+          <div className="relative container mx-auto px-4">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Funcionalidades Exclusivas
+              </h2>
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Descubra como nosso sistema pode transformar a gestão da sua barbearia
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {demoSteps.map((step, index) => (
+                <motion.div
+                  key={step.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.2 }}
+                  whileHover={{ y: -5 }}
+                  className={`p-6 rounded-xl border border-[#F0B35B]/20 bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] backdrop-blur-sm hover:border-[#F0B35B]/40 transition-all duration-300 shadow-lg hover:shadow-[#F0B35B]/20`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <step.icon className="w-8 h-8 text-[#F0B35B]" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-white mb-2">{step.title}</h3>
+                      <p className="text-gray-400 mb-4">{step.description}</p>
+                      <ul className="space-y-2">
+                        {step.details.map((detail, idx) => (
+                          <li key={idx} className="text-gray-300 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#F0B35B]"></span>
+                            {detail}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* CTA Final Aprimorado */}
         <section className="relative py-24 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-[#1A1F2E] via-[#0D121E] to-[#1A1F2E]">
@@ -1037,6 +1096,180 @@ const VendaPage2: React.FC = () => {
                 </div>
               </div>
             </motion.div>
+          </div>
+        </section>
+
+        {/* Seção de Formulário de Cadastro */}
+        <section className="py-20 w-full relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#F0B35B]/20 to-transparent"></div>
+            <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-[#F0B35B]/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+            <div className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-[#F0B35B]/5 rounded-full filter blur-3xl animate-pulse-slow animation-delay-2000"></div>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0B35B]/5 text-[#F0B35B] rounded-full border border-[#F0B35B]/10 backdrop-blur-sm mb-6">
+                <span className="animate-pulse text-lg">🎁</span>
+                <span>Oferta Exclusiva</span>
+              </div>
+
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
+                <span className="block bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400 mb-2">
+                  Experimente Gratuitamente por
+                </span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#D4943D]">
+                  7 Dias Completos
+                </span>
+              </h2>
+
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Preencha o formulário abaixo e receba acesso ao sistema completo
+                <br />sem compromisso e sem necessidade de cartão de crédito
+              </p>
+            </motion.div>
+
+            <div className="max-w-3xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className={`${commonAnimations.cardGradient} rounded-2xl p-6 sm:p-8 border border-[#F0B35B]/20 shadow-lg relative overflow-hidden`}
+              >
+                {/* Efeito de brilho no card */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-card-shine"></div>
+                
+                <div className="relative z-10">
+                  <h3 className="text-2xl font-bold text-white mb-6 text-center">Cadastre-se para Acesso Gratuito</h3>
+                  
+                  <form className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label htmlFor="barbershopName" className="block text-sm font-medium text-gray-300">Nome da Barbearia</label>
+                        <input
+                          type="text"
+                          id="barbershopName"
+                          placeholder="Ex: Barbearia Estilo"
+                          className="w-full px-4 py-3 rounded-xl bg-[#252B3B] border border-[#F0B35B]/20 text-white placeholder-gray-500 focus:outline-none focus:border-[#F0B35B] transition-all duration-300"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="socialMedia" className="block text-sm font-medium text-gray-300">Instagram da Barbearia</label>
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">@</span>
+                          <input
+                            type="text"
+                            id="socialMedia"
+                            placeholder="seu.instagram"
+                            className="w-full pl-8 pr-4 py-3 rounded-xl bg-[#252B3B] border border-[#F0B35B]/20 text-white placeholder-gray-500 focus:outline-none focus:border-[#F0B35B] transition-all duration-300"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="ownerName" className="block text-sm font-medium text-gray-300">Seu Nome</label>
+                      <input
+                        type="text"
+                        id="ownerName"
+                        placeholder="Nome completo"
+                        className="w-full px-4 py-3 rounded-xl bg-[#252B3B] border border-[#F0B35B]/20 text-white placeholder-gray-500 focus:outline-none focus:border-[#F0B35B] transition-all duration-300"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="space-y-2">
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-300">Seu E-mail</label>
+                        <input
+                          type="email"
+                          id="email"
+                          placeholder="email@exemplo.com"
+                          className="w-full px-4 py-3 rounded-xl bg-[#252B3B] border border-[#F0B35B]/20 text-white placeholder-gray-500 focus:outline-none focus:border-[#F0B35B] transition-all duration-300"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-300">WhatsApp</label>
+                        <input
+                          type="tel"
+                          id="whatsapp"
+                          placeholder="(00) 00000-0000"
+                          className="w-full px-4 py-3 rounded-xl bg-[#252B3B] border border-[#F0B35B]/20 text-white placeholder-gray-500 focus:outline-none focus:border-[#F0B35B] transition-all duration-300"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <motion.button
+                        whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(240,179,91,0.4)' }}
+                        whileTap={{ scale: 0.98 }}
+                        type="submit"
+                        className="
+                          w-full px-6 py-4 bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black rounded-xl
+                          text-lg font-bold
+                          shadow-[0_0_15px_rgba(240,179,91,0.3)]
+                          border-2 border-[#F0B35B]
+                          transition-all duration-300
+                          relative overflow-hidden
+                          group
+                        "
+                      >
+                        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          Quero Testar Gratuitamente
+                          <motion.span
+                            animate={{ x: [0, 5, 0] }}
+                            transition={{ repeat: Infinity, duration: 1 }}
+                          >
+                            <ArrowRight size={20} />
+                          </motion.span>
+                        </span>
+                      </motion.button>
+                    </div>
+                  </form>
+
+                  <div className="mt-6 text-center">
+                    <p className="text-gray-400 text-sm">
+                      Após o envio, nossa equipe analisará seu cadastro e enviará suas credenciais de acesso
+                      <br />e link personalizado em até <span className="text-[#F0B35B] font-medium">48 horas</span>.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-6 mt-8">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                        <CheckCircle className="w-4 h-4" />
+                      </div>
+                      <span className="text-gray-400 text-sm">Sem cartão de crédito</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                        <CheckCircle className="w-4 h-4" />
+                      </div>
+                      <span className="text-gray-400 text-sm">Acesso completo por 7 dias</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#252B3B] flex items-center justify-center text-[#F0B35B]">
+                        <CheckCircle className="w-4 h-4" />
+                      </div>
+                      <span className="text-gray-400 text-sm">Suporte personalizado</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </section>
 

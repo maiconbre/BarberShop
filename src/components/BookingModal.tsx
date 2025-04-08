@@ -84,7 +84,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
           const result = await response.json();
           if (result.success && result.data) {
             // Armazenar os nomes dos serviços
-            setServices(result.data.map((service: any) => service.name));
+            const serviceNames = result.data.map((service: any) => service.name);
+            setServices(serviceNames);
+
+            // Se houver serviços iniciais, verificar se estão na lista da API
+            if (initialService && !serviceNames.includes(initialService)) {
+              setServices(prev => [...prev, initialService]);
+            }
+            if (initialServices && initialServices.length > 0) {
+              initialServices.forEach(service => {
+                if (!serviceNames.includes(service)) {
+                  setServices(prev => [...prev, service]);
+                }
+              });
+            }
 
             // Armazenar os preços dos serviços em um objeto para fácil acesso
             const priceMap: { [key: string]: number } = {};
@@ -96,70 +109,22 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
       } catch (error) {
         console.error('Erro ao buscar serviços:', error);
+        // Se a API falhar, usar os serviços iniciais como fallback
+        if (initialService) {
+          setServices(prev => [...prev, initialService]);
+        }
+        if (initialServices && initialServices.length > 0) {
+          setServices(prev => [...prev, ...initialServices]);
+        }
       }
     };
 
     fetchServices();
-  }, []);
+  }, [initialService, initialServices]);
   // Buscar barbeiros da API ao carregar o componente
   React.useEffect(() => {
     const fetchBarbers = async () => {
       try {
-        // Se serviços foram selecionados, busca apenas os barbeiros que oferecem esses serviços
-        if (formData.services.length > 0) {
-          const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services`);
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.data) {
-              // Encontra barbeiros que oferecem todos os serviços selecionados
-              const availableBarbers = new Set();
-              let isFirstService = true;
-
-              // Para cada serviço selecionado
-              formData.services.forEach((selectedServiceName: string) => {
-                const serviceData = result.data.find((service: any) => service.name === selectedServiceName);
-
-                if (serviceData && serviceData.Barbers) {
-                  if (isFirstService) {
-                    // Para o primeiro serviço, adiciona todos os barbeiros
-                    serviceData.Barbers.forEach((barber: any) => {
-                      availableBarbers.add(JSON.stringify(barber));
-                    });
-                    isFirstService = false;
-                  } else {
-                    // Para os próximos serviços, mantém apenas os barbeiros em comum
-                    const currentBarberSet = new Set();
-                    serviceData.Barbers.forEach((barber: any) => {
-                      currentBarberSet.add(JSON.stringify(barber));
-                    });
-
-                    // Filtra para manter apenas os barbeiros que estão em ambos os conjuntos
-                    const commonBarbers = new Set();
-                    availableBarbers.forEach((barberStr: unknown) => {
-                      if (currentBarberSet.has(barberStr)) {
-                        commonBarbers.add(barberStr);
-                      }
-                    });
-
-                    // Atualiza o conjunto de barbeiros disponíveis
-                    availableBarbers.clear();
-                    commonBarbers.forEach((barber: unknown) => {
-                      availableBarbers.add(barber);
-                    });
-                  }
-                }
-              });
-
-              // Converte o conjunto de barbeiros de volta para um array
-              if (availableBarbers.size > 0) {
-                const barberArray = Array.from(availableBarbers).map(barberStr => JSON.parse(barberStr as string));
-                setBarbers(barberArray);
-                return;
-              }
-            }
-          }
-        }
-
         const result = await ApiService.getBarbers();
         if ((result as any).success && (result as any).data) {
           setBarbers((result as any).data);
@@ -170,7 +135,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     fetchBarbers();
-  }, [formData.services]); // Executa novamente quando os serviços selecionados mudarem
+  }, []); // Executa apenas uma vez ao montar o componente
 
   // Efeito para atualizar os horários pré-carregados quando as props mudarem
   useEffect(() => {

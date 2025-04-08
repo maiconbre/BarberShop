@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { Helmet } from 'react-helmet-async';
 import Services from '../components/Services';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';

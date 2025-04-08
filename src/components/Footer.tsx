@@ -5,23 +5,21 @@ import { motion } from 'framer-motion';
 
 const Footer = () => {
   const navigate = useNavigate();
-  
-  // Valores estáticos para o Footer
-  // Redes sociais
+
   const instagramUrl = '#';
   const facebookUrl = '#';
   const twitterUrl = '#';
-  
+
   // Informações de contato
   const phone = '(11) 99999-9999';
   const email = 'contato@barbershop.com';
   const address = 'Rua Exemplo, 123 - Centro';
-  
+
   // Horários de funcionamento
   const weekdaysHours = '09:00 - 20:00';
   const saturdayHours = '09:00 - 18:00';
   const sundayHours = 'Fechado';
-  
+
   const socialLinks = [
     { icon: <Instagram size={20} />, label: 'Instagram', url: instagramUrl },
     { icon: <Facebook size={20} />, label: 'Facebook', url: facebookUrl },
@@ -109,7 +107,7 @@ const Footer = () => {
         {/* Divider */}
         <div className="border-t border-[#252B3B]/50 mt-4 pt-4 text-center">
           <p className="text-gray-500 text-sm">
-          Target Web®  All rights reserved © {new Date().getFullYear()}
+            Target Web®  All rights reserved © {new Date().getFullYear()}
           </p>
         </div>
       </div>
