@@ -11,7 +11,7 @@ const Footer = () => {
   const twitterUrl = '#';
 
   // Informações de contato
-  const phone = '(11) 99999-9999';
+  const phone = '(21) 99999-9999';
   const email = 'contato@barbershop.com';
   const address = 'Rua Exemplo, 123 - Centro';
 
