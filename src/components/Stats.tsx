@@ -501,12 +501,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
               )}
             </div>
             <div className="flex-1 bg-[#1A1F2E]/50 p-1.5 sm:p-2 rounded-lg">
-              <p className="text-gray-400 text-[10px] xs:text-xs mb-0.5 text-center xs:text-left flex items-center justify-center xs:justify-start gap-1">
+              <p className="text-gray-400 text-[10px] xs:text-xs mb-0.5 text-center  flex items-center justify-center  gap-1">
                 <TrendingUp className="h-3 w-3 text-[#F0B35B]" />
                 Tendência de Crescimento
               </p>
               <div className="flex flex-col gap-0.5 sm:gap-1">
-                <h5 className="text-base sm:text-lg font-semibold text-white text-center xs:text-left">
+                <h5 className="text-base sm:text-lg font-semibold text-white text-center ">
                   {clientesMes > clientesSemana/4 ? (
                     <span className="text-green-400">Em alta</span>
                   ) : clientesMes < clientesSemana/4 ? (
@@ -515,7 +515,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     <span className="text-yellow-400">Estável</span>
                   )}
                 </h5>
-                <div className="flex items-center justify-center xs:justify-start gap-2 text-[10px] xs:text-xs text-gray-400">
+                <div className="flex items-center justify-center  gap-2 text-[10px] xs:text-xs text-gray-400">
                   <Users className="h-3 w-3" />
                   <span>{clientesMes} clientes no mês</span>
                 </div>

@@ -42,6 +42,7 @@ interface Appointment {
   clientWhatsapp?: string;
   wppclient?: string;
   createdAt?: string;
+  isBlocked?: boolean;
 }
 
 interface AppointmentViewModalProps {
