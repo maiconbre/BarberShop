@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users, Eye, EyeOff } from 'lucide-react';
+import { Settings, Calendar, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -74,10 +74,6 @@ const DashboardPage: React.FC = () => {
   const [endDate, setEndDate] = useState<string | null>(null);
   // Estado para controlar a animação do botão de atualização
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Estado para controlar a visibilidade dos gráficos em dispositivos móveis
-  const [showGraphsOnMobile, setShowGraphsOnMobile] = useState(true);
-  // Estado para detectar se estamos em um dispositivo móvel
-  const [isMobile, setIsMobile] = useState(false);
 
   // Função para atualizar dados usando CacheService
   const refreshData = async () => {
@@ -143,29 +139,7 @@ const DashboardPage: React.FC = () => {
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Efeito para rolar para o topo da página quando o componente for renderizado
-  // e detectar se estamos em um dispositivo móvel
-  useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-    
-    // Função para detectar se estamos em um dispositivo móvel
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    // Verificar inicialmente
-    checkIfMobile();
-    
-    // Adicionar listener para redimensionamento
-    window.addEventListener('resize', checkIfMobile);
-    
-    // Limpar listener
-    return () => window.removeEventListener('resize', checkIfMobile);
-  }, []); // Executar apenas uma vez na montagem do componente
-
+  
   useEffect(() => {
     let isSubscribed = true;
     let retryTimeout: NodeJS.Timeout | null = null;
@@ -539,28 +513,26 @@ const DashboardPage: React.FC = () => {
                         <Calendar className="w-5 h-5 text-[#F0B35B]" />
                         Agendamentos
                       </h2>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={refreshData}
-                          className={`p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin' : ''}`}
+                          className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                          aria-label="Atualizar"
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         </motion.button>
                         <div className="relative">
                           <select
                             value={filterMode}
                             onChange={(e) => setFilterMode(e.target.value)}
-                            className="appearance-none bg-[#1A1F2E] text-white text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
+                            className="appearance-none bg-[#1A1F2E] text-white text-xs rounded-lg px-2 py-1.5 pr-6 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
                           >
                             <option value="today">Hoje</option>
                             <option value="tomorrow">Amanhã</option>
                             <option value="all">Todos</option>
                           </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                            <ChevronDown className="w-4 h-4 text-gray-400" />
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -648,6 +620,7 @@ const DashboardPage: React.FC = () => {
                     />
                   </div>
                 </div>
+                </div>
                 
                 {/* Coluna lateral - Agendamentos filtrados por data */}
                 <div className="w-full xl:w-4/12">
@@ -657,30 +630,29 @@ const DashboardPage: React.FC = () => {
                         <Calendar className="w-5 h-5 text-[#F0B35B]" />
                         Agendamentos
                       </h2>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={refreshData}
-                          className={`p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin' : ''}`}
+                          className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                          aria-label="Atualizar"
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         </motion.button>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="text-sm text-white bg-[#1A1F2E] px-3 py-1.5 rounded-lg">
-                        <span className="text-gray-400 mr-2">Total:</span>
-                        <span>{calendarFilteredAppointments.length}</span>
-                      </div>
-                      <div className="text-sm text-white bg-[#1A1F2E] px-3 py-1.5 rounded-lg">
-                        <span className="text-gray-400 mr-2">Valor:</span>
-                        <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    {calendarFilteredAppointments.length === 0 ? (
+                     <div className="flex items-center justify-between mb-4">
+                       <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                         <span className="text-gray-400 mr-1 sm:mr-2">Total:</span>
+                         <span>{calendarFilteredAppointments.length}</span>
+                       </div>
+                       <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                         <span className="text-gray-400 mr-1 sm:mr-2">Valor:</span>
+                         <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
+                       </div>
+                     </div>
+                     
+                     {calendarFilteredAppointments.length === 0 ? (
                       <div className="bg-[#0D121E] rounded-lg p-6 text-center flex-grow flex items-center justify-center">
                         <p className="text-gray-400">
                           {isRangeFilterActive
