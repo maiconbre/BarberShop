@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar,ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
+import { Settings, Calendar, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users, Eye, EyeOff } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -74,6 +74,10 @@ const DashboardPage: React.FC = () => {
   const [endDate, setEndDate] = useState<string | null>(null);
   // Estado para controlar a animação do botão de atualização
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Estado para controlar a visibilidade dos gráficos em dispositivos móveis
+  const [showGraphsOnMobile, setShowGraphsOnMobile] = useState(true);
+  // Estado para detectar se estamos em um dispositivo móvel
+  const [isMobile, setIsMobile] = useState(false);
 
   // Função para atualizar dados usando CacheService
   const refreshData = async () => {
@@ -140,11 +144,26 @@ const DashboardPage: React.FC = () => {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   // Efeito para rolar para o topo da página quando o componente for renderizado
+  // e detectar se estamos em um dispositivo móvel
   useEffect(() => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
+    
+    // Função para detectar se estamos em um dispositivo móvel
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Verificar inicialmente
+    checkIfMobile();
+    
+    // Adicionar listener para redimensionamento
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Limpar listener
+    return () => window.removeEventListener('resize', checkIfMobile);
   }, []); // Executar apenas uma vez na montagem do componente
 
   useEffect(() => {
@@ -427,13 +446,6 @@ const DashboardPage: React.FC = () => {
                           >
                             <span>Gerenciar Serviços</span>
                           </button>
-                          <button
-                            onClick={() => navigate('/configuracoes-site')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Configurações do Site</span>
-                          </button>
                         </>
                       ) : (
                         // Opções para barbeiros
@@ -565,7 +577,7 @@ const DashboardPage: React.FC = () => {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-4">
-                        {calendarCurrentAppointments.map((appointment) => (
+                        {currentAppointments.map((appointment) => (
                           <AppointmentCardNew
                             key={appointment.id}
                             appointment={appointment}
@@ -577,7 +589,28 @@ const DashboardPage: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Paginação removida daqui - agora usando o componente de paginação global */}
+                    {/* Paginação para o painel inicial */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
+                        <button
+                          onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="text-sm text-white">
+                          {currentPage} / {totalPages}
+                        </span>
+                        <button
+                          onClick={() => paginate(currentPage < totalPages ? currentPage + 1 : totalPages)}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -714,78 +747,17 @@ const DashboardPage: React.FC = () => {
               <div className="w-full">
                 <div className="mb-6 xl:mb-8">
                   <ClientAnalytics appointments={appointments} />
+                 
+                  
+                  
+                  
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Pagination Controls - Componente único otimizado */}
-        {((activeView === 'painel' && filteredAppointments.length > appointmentsPerPage) || 
-          (activeView !== 'painel' && calendarFilteredAppointments.length > appointmentsPerPage)) && (
-          <div className="flex justify-center mt-6 mb-4">
-            <div className="flex items-center space-x-2">
-              {/* Previous Page Button */}
-              {currentPage > 1 && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage - 1)}
-                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </motion.button>
-              )}
-
-              {/* First Page */}
-              {currentPage > 1 && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage - 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                >
-                  {currentPage - 1}
-                </motion.button>
-              )}
-
-              {/* Current Page */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#F0B35B] text-black font-medium transition-colors duration-300"
-              >
-                {currentPage}
-              </motion.button>
-
-              {/* Next Page */}
-              {((activeView === 'painel' && currentPage < totalPages) || 
-                (activeView !== 'painel' && currentPage < calendarTotalPages)) && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                >
-                  {currentPage + 1}
-                </motion.button>
-              )}
-
-              {/* Next Page Button */}
-              {((activeView === 'painel' && currentPage < totalPages) || 
-                (activeView !== 'painel' && currentPage < calendarTotalPages)) && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => paginate(currentPage + 1)}
-                  className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-300"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </motion.button>
-              )}
-            </div>
-          </div>
-        )}
+      
       </main>
 
       <AppointmentViewModal

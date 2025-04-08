@@ -98,8 +98,6 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
 
-
-      
           </Routes>
         </motion.div>
       </AnimatePresence>

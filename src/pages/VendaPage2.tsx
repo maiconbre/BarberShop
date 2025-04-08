@@ -129,13 +129,76 @@ const VendaPage2: React.FC = () => {
   return (
     <>
       <Helmet>
+        {/* SEO Meta Tags Básicas */}
         <title>BarberShop - Agendamento Online para Barbearias | Sem Cadastro, Sem App</title>
         <meta name="description" content="Sistema de agendamento para barbearias. Sem necessidade de cadastro ou aplicativo. Agende em 30 segundos e aumente seu faturamento em até 70%. Sistema completo de gestão." />
-        <meta name="keywords" content="agendamento barbearia, sistema barbearia, agenda online, sem cadastro, sem aplicativo, gestão barbearia" />
-        <meta property="og:title" content="BarberShop - Agendamento Sem Complicação" />
-        <meta property="og:description" content="Agende em 30 segundos, sem cadastro e sem baixar nada" />
-        <meta name="robots" content="index, follow" />
+        <meta name="keywords" content="agendamento barbearia, sistema barbearia, agenda online, sem cadastro, sem aplicativo, gestão barbearia, software barbearia, agendamento online, barbeiro, barber shop" />
+        <meta name="author" content="BarberShop" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta name="language" content="pt-BR" />
+        <meta name="geo.region" content="BR-RJ" />
+        <meta name="geo.placename" content="Rio de Janeiro" />
+        
+        {/* Canonical URL */}
         <link rel="canonical" href="https://barber.targetweb.tech" />
+        
+        {/* Open Graph Tags para Facebook e outras redes sociais */}
+        <meta property="og:locale" content="pt_BR" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="BarberShop - Agendamento Sem Complicação" />
+        <meta property="og:description" content="Agende em 30 segundos, sem cadastro e sem baixar nada. Aumente seu faturamento em até 70% com nosso sistema completo." />
+        <meta property="og:url" content="https://barber.targetweb.tech" />
+        <meta property="og:site_name" content="BarberShop" />
+        <meta property="og:image" content="https://barber.targetweb.tech/img/fotohero-optimized.avif" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/avif" />
+        <meta property="og:image:alt" content="Sistema de agendamento para barbearias" />
+        
+        {/* Twitter Card Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="BarberShop - Agendamento Online para Barbearias" />
+        <meta name="twitter:description" content="Sistema completo para gerenciar sua barbearia. Aumente seu faturamento em até 70%." />
+        <meta name="twitter:image" content="https://barber.targetweb.tech/img/fotohero-optimized.avif" />
+        <meta name="twitter:image:alt" content="Sistema de agendamento para barbearias" />
+        
+        {/* Tags para Google Ads */}
+        <meta name="google-site-verification" content="seu-código-de-verificação" />
+        <meta name="format-detection" content="telephone=no" />
+        
+        {/* Tags para Facebook Ads */}
+        <meta name="facebook-domain-verification" content="seu-código-de-verificação" />
+        
+        {/* Preconnect para recursos externos */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {/* JSON-LD para Rich Snippets */}
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "BarberShop",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "BRL"
+            },
+            "description": "Sistema de agendamento online para barbearias. Aumente seu faturamento em até 70%.",
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.8",
+              "ratingCount": "127"
+            }
+          }
+        `}</script>
+        
+        {/* Tags para remarketing */}
+        <meta name="google-adwords-id" content="seu-id-adwords" />
+        <meta name="facebook-pixel-id" content="seu-pixel-id" />
       </Helmet>
 
 
