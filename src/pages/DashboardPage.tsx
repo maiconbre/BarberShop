@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users, Eye, EyeOff } from 'lucide-react';
+import { Settings, Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -74,10 +74,6 @@ const DashboardPage: React.FC = () => {
   const [endDate, setEndDate] = useState<string | null>(null);
   // Estado para controlar a animação do botão de atualização
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Estado para controlar a visibilidade dos gráficos em dispositivos móveis
-  const [showGraphsOnMobile, setShowGraphsOnMobile] = useState(true);
-  // Estado para detectar se estamos em um dispositivo móvel
-  const [isMobile, setIsMobile] = useState(false);
 
   // Função para atualizar dados usando CacheService
   const refreshData = async () => {
@@ -143,29 +139,7 @@ const DashboardPage: React.FC = () => {
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Efeito para rolar para o topo da página quando o componente for renderizado
-  // e detectar se estamos em um dispositivo móvel
-  useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-    
-    // Função para detectar se estamos em um dispositivo móvel
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    // Verificar inicialmente
-    checkIfMobile();
-    
-    // Adicionar listener para redimensionamento
-    window.addEventListener('resize', checkIfMobile);
-    
-    // Limpar listener
-    return () => window.removeEventListener('resize', checkIfMobile);
-  }, []); // Executar apenas uma vez na montagem do componente
-
+  
   useEffect(() => {
     let isSubscribed = true;
     let retryTimeout: NodeJS.Timeout | null = null;
@@ -539,28 +513,26 @@ const DashboardPage: React.FC = () => {
                         <Calendar className="w-5 h-5 text-[#F0B35B]" />
                         Agendamentos
                       </h2>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={refreshData}
-                          className={`p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin' : ''}`}
+                          className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                          aria-label="Atualizar"
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         </motion.button>
                         <div className="relative">
                           <select
                             value={filterMode}
                             onChange={(e) => setFilterMode(e.target.value)}
-                            className="appearance-none bg-[#1A1F2E] text-white text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
+                            className="appearance-none bg-[#1A1F2E] text-white text-xs rounded-lg px-2 py-1.5 pr-6 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
                           >
                             <option value="today">Hoje</option>
                             <option value="tomorrow">Amanhã</option>
                             <option value="all">Todos</option>
                           </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                            <ChevronDown className="w-4 h-4 text-gray-400" />
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -657,25 +629,26 @@ const DashboardPage: React.FC = () => {
                         <Calendar className="w-5 h-5 text-[#F0B35B]" />
                         Agendamentos
                       </h2>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={refreshData}
-                          className={`p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin' : ''}`}
+                          className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                          aria-label="Atualizar"
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className="w-3.5 h-3.5" />
                         </motion.button>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between mb-4">
-                      <div className="text-sm text-white bg-[#1A1F2E] px-3 py-1.5 rounded-lg">
-                        <span className="text-gray-400 mr-2">Total:</span>
+                      <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                        <span className="text-gray-400 mr-1 sm:mr-2">Total:</span>
                         <span>{calendarFilteredAppointments.length}</span>
                       </div>
-                      <div className="text-sm text-white bg-[#1A1F2E] px-3 py-1.5 rounded-lg">
-                        <span className="text-gray-400 mr-2">Valor:</span>
+                      <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                        <span className="text-gray-400 mr-1 sm:mr-2">Valor:</span>
                         <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
                       </div>
                     </div>
@@ -689,45 +662,47 @@ const DashboardPage: React.FC = () => {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto pr-1 custom-scrollbar hide-scrollbar">
-                        {calendarCurrentAppointments.map((appointment) => (
-                          <AppointmentCardNew
-                            key={appointment.id}
-                            appointment={appointment}
-                            onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                            onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                            onView={() => handleAppointmentAction(appointment.id, 'view')}
-                          />
-                        ))}
-                        {/* Adicionar cards vazios para manter a altura consistente quando há poucos agendamentos */}
-                        {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 && 
-                          Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
-                            <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
-                          ))
-                        }
-                      </div>
-                    )}
+                      <div className="flex flex-col flex-grow">
+                        <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto pr-1 custom-scrollbar hide-scrollbar">
+                          {calendarCurrentAppointments.map((appointment) => (
+                            <AppointmentCardNew
+                              key={appointment.id}
+                              appointment={appointment}
+                              onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                              onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                              onView={() => handleAppointmentAction(appointment.id, 'view')}
+                            />
+                          ))}
+                          {/* Adicionar cards vazios para manter a altura consistente quando há poucos agendamentos */}
+                          {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 && 
+                            Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
+                              <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
+                            ))
+                          }
+                        </div>
 
-                    {/* Paginação */}
-                    {calendarTotalPages > 1 && (
-                      <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
-                        <button
-                          onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
-                          disabled={currentPage === 1}
-                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <span className="text-sm text-white">
-                          {currentPage} / {calendarTotalPages}
-                        </span>
-                        <button
-                          onClick={() => paginate(currentPage < calendarTotalPages ? currentPage + 1 : calendarTotalPages)}
-                          disabled={currentPage === calendarTotalPages}
-                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                        {/* Paginação */}
+                        {calendarTotalPages > 1 && (
+                          <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
+                            <button
+                              onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
+                              disabled={currentPage === 1}
+                              className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <span className="text-sm text-white">
+                              {currentPage} / {calendarTotalPages}
+                            </span>
+                            <button
+                              onClick={() => paginate(currentPage < calendarTotalPages ? currentPage + 1 : calendarTotalPages)}
+                              disabled={currentPage === calendarTotalPages}
+                              className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -747,10 +722,6 @@ const DashboardPage: React.FC = () => {
               <div className="w-full">
                 <div className="mb-6 xl:mb-8">
                   <ClientAnalytics appointments={appointments} />
-                 
-                  
-                  
-                  
                 </div>
               </div>
             </motion.div>

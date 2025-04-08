@@ -90,7 +90,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
       aria-label="Hero Section"
       className={`
         relative min-h-screen flex items-center justify-center 
-        transition-all duration-1000 ease-out overflow-hidden
+        transition-all duration-500 ease-out overflow-hidden
         ${bgLoaded ? 'filter blur-0 opacity-100 translate-x-0' : 'filter blur-3xl opacity-0 -translate-x-10'}
       `}
     >

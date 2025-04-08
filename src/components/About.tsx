@@ -57,8 +57,8 @@ const About = () => {
           }
         },
         {
-          threshold: 0.1, // Quando pelo menos 5% do componente estiver visível
-          rootMargin: '0px'
+          threshold: 0.2, // Quando pelo menos 20% do componente estiver visível
+          rootMargin: '0px 0px -10% 0px' // Aciona um pouco antes para melhorar a experiência
         }
       );
 
@@ -141,7 +141,7 @@ const About = () => {
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div ref={headerRef} className={`text-center mb-16 transition-all duration-1000 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div ref={headerRef} className={`text-center mb-16 transition-all duration-300 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="inline-block mb-3">
             <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
               <div className="h-px w-8 bg-[#F0B35B]"></div>
@@ -158,14 +158,14 @@ const About = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div ref={leftColRef} className={`transition-all duration-1000 delay-300 ${leftColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
+          <div ref={leftColRef} className={`transition-all duration-300 delay-150 ${leftColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
             <p className="text-gray-300 mb-8 text-lg leading-relaxed">
               Oferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
               qualificados cuidam do seu visual. Nossa missão é proporcionar uma experiência única de cuidado pessoal,
               combinando técnicas tradicionais com tendências contemporâneas.
             </p>
 
-            <div ref={featuresRef} className={`grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 transition-all duration-700 ${featuresVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div ref={featuresRef} className={`grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 transition-all duration-300 ${featuresVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               {features.map((feature, index) => (
                 <div
                   key={index}
@@ -182,7 +182,7 @@ const About = () => {
               ))}
             </div>
 
-            <div ref={hoursRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/20 shadow-lg mb-6 transition-all duration-700 ${hoursVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div ref={hoursRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/20 shadow-lg mb-6 transition-all duration-300 ${hoursVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="text-[#F0B35B]" />
                 <h3 className="text-xl font-semibold">Horário de Funcionamento</h3>
@@ -209,7 +209,7 @@ const About = () => {
               </ul>
             </div>
 
-            <div ref={locationRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mb-6 transition-all duration-700 ${locationVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div ref={locationRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mb-6 transition-all duration-300 ${locationVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <MapPin className="text-[#F0B35B]" /> Localização
               </h2>
@@ -227,9 +227,9 @@ const About = () => {
                 ></iframe>
               </div>
             </div>
-          </div>
+          </div> {/* Fechamento da div leftColRef que estava faltando */}
 
-          <div ref={rightColRef} className={`space-y-6 transition-all duration-1000 delay-300 ${rightColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+          <div ref={rightColRef} className={`space-y-6 transition-all duration-300 delay-150 ${rightColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
             <div className="relative group overflow-hidden rounded-lg shadow-xl">
               <img
                 src="https://images.unsplash.com/photo-1572663459735-75425e957ab9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -243,7 +243,7 @@ const About = () => {
               </div>
             </div>
 
-            <div ref={reviewsRef} className={`bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10 transition-all duration-700 ${reviewsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div ref={reviewsRef} className={`bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10 transition-all duration-300 ${reviewsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Star className="text-[#F0B35B] w-4 h-4" /> Avaliações
               </h3>
@@ -319,7 +319,7 @@ const About = () => {
             </div>
 
             {/* Seção de Comentários */}
-            <div ref={commentFormRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mt-6 transition-all duration-700 ${commentFormVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div ref={commentFormRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mt-6 transition-all duration-300 ${commentFormVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Star className="text-[#F0B35B] w-4 h-4" /> Deixe seu comentário
               </h3>
