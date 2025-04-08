@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
+import { Settings, Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
@@ -620,7 +620,6 @@ const DashboardPage: React.FC = () => {
                     />
                   </div>
                 </div>
-                </div>
                 
                 {/* Coluna lateral - Agendamentos filtrados por data */}
                 <div className="w-full xl:w-4/12">
@@ -641,18 +640,20 @@ const DashboardPage: React.FC = () => {
                           <RefreshCw className="w-3.5 h-3.5" />
                         </motion.button>
                       </div>
-                     <div className="flex items-center justify-between mb-4">
-                       <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
-                         <span className="text-gray-400 mr-1 sm:mr-2">Total:</span>
-                         <span>{calendarFilteredAppointments.length}</span>
-                       </div>
-                       <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
-                         <span className="text-gray-400 mr-1 sm:mr-2">Valor:</span>
-                         <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
-                       </div>
-                     </div>
-                     
-                     {calendarFilteredAppointments.length === 0 ? (
+                    </div>
+
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                        <span className="text-gray-400 mr-1 sm:mr-2">Total:</span>
+                        <span>{calendarFilteredAppointments.length}</span>
+                      </div>
+                      <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                        <span className="text-gray-400 mr-1 sm:mr-2">Valor:</span>
+                        <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {calendarFilteredAppointments.length === 0 ? (
                       <div className="bg-[#0D121E] rounded-lg p-6 text-center flex-grow flex items-center justify-center">
                         <p className="text-gray-400">
                           {isRangeFilterActive
@@ -661,45 +662,47 @@ const DashboardPage: React.FC = () => {
                         </p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto pr-1 custom-scrollbar hide-scrollbar">
-                        {calendarCurrentAppointments.map((appointment) => (
-                          <AppointmentCardNew
-                            key={appointment.id}
-                            appointment={appointment}
-                            onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                            onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                            onView={() => handleAppointmentAction(appointment.id, 'view')}
-                          />
-                        ))}
-                        {/* Adicionar cards vazios para manter a altura consistente quando há poucos agendamentos */}
-                        {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 && 
-                          Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
-                            <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
-                          ))
-                        }
-                      </div>
-                    )}
+                      <div className="flex flex-col flex-grow">
+                        <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto pr-1 custom-scrollbar hide-scrollbar">
+                          {calendarCurrentAppointments.map((appointment) => (
+                            <AppointmentCardNew
+                              key={appointment.id}
+                              appointment={appointment}
+                              onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                              onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                              onView={() => handleAppointmentAction(appointment.id, 'view')}
+                            />
+                          ))}
+                          {/* Adicionar cards vazios para manter a altura consistente quando há poucos agendamentos */}
+                          {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 && 
+                            Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
+                              <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
+                            ))
+                          }
+                        </div>
 
-                    {/* Paginação */}
-                    {calendarTotalPages > 1 && (
-                      <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
-                        <button
-                          onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
-                          disabled={currentPage === 1}
-                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <span className="text-sm text-white">
-                          {currentPage} / {calendarTotalPages}
-                        </span>
-                        <button
-                          onClick={() => paginate(currentPage < calendarTotalPages ? currentPage + 1 : calendarTotalPages)}
-                          disabled={currentPage === calendarTotalPages}
-                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                        {/* Paginação */}
+                        {calendarTotalPages > 1 && (
+                          <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
+                            <button
+                              onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
+                              disabled={currentPage === 1}
+                              className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <span className="text-sm text-white">
+                              {currentPage} / {calendarTotalPages}
+                            </span>
+                            <button
+                              onClick={() => paginate(currentPage < calendarTotalPages ? currentPage + 1 : calendarTotalPages)}
+                              disabled={currentPage === calendarTotalPages}
+                              className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -719,10 +722,6 @@ const DashboardPage: React.FC = () => {
               <div className="w-full">
                 <div className="mb-6 xl:mb-8">
                   <ClientAnalytics appointments={appointments} />
-                 
-                  
-                  
-                  
                 </div>
               </div>
             </motion.div>

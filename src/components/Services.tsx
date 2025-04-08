@@ -55,8 +55,8 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple }) =
           }
         },
         {
-          threshold: 0.1, // Quando pelo menos 10% do componente estiver visível
-          rootMargin: '0px'
+          threshold: 0.2, // Quando pelo menos 20% do componente estiver visível
+          rootMargin: '0px 0px -10% 0px' // Aciona um pouco antes para melhorar a experiência
         }
       );
 
@@ -106,7 +106,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple }) =
       </div>
       
       <div className="max-w-7xl mx-auto relative z-10">
-        <div ref={headerRef} className={`text-center mb-12 sm:mb-16 transition-all duration-1000 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div ref={headerRef} className={`text-center mb-12 sm:mb-16 transition-all duration-300 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80">
             Nossos Serviços
           </h2>
@@ -121,7 +121,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple }) =
             <div
               key={service.name}
               ref={el => cardRefs.current[index] = el}
-              className={`bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-1000 hover:-translate-y-2 ${selectedServices.includes(service.name) ? 'ring-2 ring-[#F0B35B]' : ''} ${cardsVisible[index] ? 'opacity-100 translate-y-0 sm:translate-x-0 sm:translate-y-0' : isMobile() ? 
+              className={`bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 ${selectedServices.includes(service.name) ? 'ring-2 ring-[#F0B35B]' : ''} ${cardsVisible[index] ? 'opacity-100 translate-y-0 sm:translate-x-0 sm:translate-y-0' : isMobile() ? 
                 // Animações diferentes para cada card em mobile
                 index % 3 === 0 ? 'opacity-0 -translate-x-20' : 
                 index % 3 === 1 ? 'opacity-0 translate-y-20' : 
@@ -142,7 +142,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple }) =
                 <img
                   src={service.image}
                   alt={service.name}
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                  className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-110"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
