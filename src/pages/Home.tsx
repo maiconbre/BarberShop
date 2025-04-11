@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Hero from '../components/Hero';
 import Services from '../components/Services';
@@ -27,44 +27,7 @@ const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
     setIsBookingModalOpen(true);
   };
 
-  useEffect(() => {
-    const createCustomObserver = (
-      callback: IntersectionObserverCallback,
-      options: IntersectionObserverInit = {}
-    ): IntersectionObserver | null => {
-      if (!window.IntersectionObserver) {
-        console.warn('IntersectionObserver não suportado');
-        return null;
-      }
-
-      return new IntersectionObserver(callback, {
-        threshold: 0.2,
-        rootMargin: '0px',
-        ...options
-      });
-    };
-
-    // Configurar variáveis CSS para controlar a velocidade das animações globalmente
-    document.documentElement.style.setProperty('--animation-speed', '0.5'); // 50% da velocidade original
-    
-    // Aplicar estilos para acelerar todas as animações
-    const style = document.createElement('style');
-    style.innerHTML = `
-      .transition-all, .duration-1000, .duration-700, .duration-500, .duration-300 {
-        transition-duration: 300ms !important;
-      }
-      
-      [class*="animate-"] {
-        animation-duration: 0.5s !important;
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      // Limpar ao desmontar
-      document.head.removeChild(style);
-    };
-  }, []);
+  
 
   return (
     <motion.div

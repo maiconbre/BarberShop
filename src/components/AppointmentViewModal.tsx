@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence, PanInfo, useMotionValue } from 'framer-motion';
 import {
   FaCheck,
   FaTrash,
@@ -10,7 +10,7 @@ import {
 } from 'react-icons/fa';
 import { MessageCircle } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
-import { formatFriendlyDateTime, BRASILIA_TIMEZONE } from '../utils/DateTimeUtils';
+import { formatFriendlyDateTime } from '../utils/DateTimeUtils';
 
 // Função formatWhatsApp reutilizada do ClientAnalytics
 const formatWhatsApp = (whatsapp: string | undefined): string => {
@@ -91,6 +91,42 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const modalY = useMotionValue(0);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Detectar se é dispositivo móvel
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+  
+  // Função para lidar com o gesto de deslize
+  const handleDrag = (_: any, info: PanInfo) => {
+    // Só permitir deslize para baixo
+    if (info.offset.y > 0) {
+      modalY.set(info.offset.y);
+    }
+  };
+  
+  // Função para lidar com o fim do gesto de deslize
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    // Se o usuário deslizou mais de 100px para baixo, fechar o modal
+    if (info.offset.y > 100) {
+      onClose();
+    } else {
+      // Caso contrário, voltar para a posição original
+      modalY.set(0);
+    }
+    setIsDragging(false);
+  };
   
   if (!isOpen || !appointment) return null;
   
@@ -114,12 +150,21 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
           onClick={onClose}
         >
           <motion.div
+            ref={modalRef}
             initial={{ y: "100%", scale: 1 }}
             animate={{ y: 0, scale: 1 }}
             exit={{ y: "100%", scale: 1 }}
             transition={{ type: "spring", damping: 20 }}
             className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl"
             onClick={e => e.stopPropagation()}
+            style={{ y: modalY }}
+            drag={isMobile ? "y" : false}
+            dragDirectionLock
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDrag={handleDrag}
+            onDragEnd={handleDragEnd}
+            onDragStart={() => setIsDragging(true)}
           >
             <motion.div
               layout
@@ -136,7 +181,12 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
               </button>
               <div className="p-4 sm:p-5 space-y-4">
                 {/* Cabeçalho com indicador de arraste para mobile */}
-                <div className="sm:hidden w-12 h-1 bg-gray-600 rounded-full mx-auto mb-4" />
+                <div className="sm:hidden flex flex-col items-center mb-4">
+                  <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto" />
+                  {isDragging ? (
+                    <span className="text-xs text-gray-400 mt-2 animate-pulse">Deslize para baixo para fechar</span>
+                  ) : null}
+                </div>
 
                 {/* Informações principais */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
