@@ -146,16 +146,22 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-2 sm:p-4"
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
           onClick={onClose}
         >
           <motion.div
             ref={modalRef}
-            initial={{ y: "100%", scale: 1 }}
-            animate={{ y: 0, scale: 1 }}
-            exit={{ y: "100%", scale: 1 }}
-            transition={{ type: "spring", damping: 20 }}
-            className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ 
+              type: "spring", 
+              damping: 30, 
+              stiffness: 300,
+              mass: 0.8 
+            }}
+            className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl bg-[#1A1F2E]"
             onClick={e => e.stopPropagation()}
             style={{ y: modalY }}
             drag={isMobile ? "y" : false}
@@ -166,28 +172,31 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
             onDragEnd={handleDragEnd}
             onDragStart={() => setIsDragging(true)}
           >
+            {/* Barra superior de arraste e fechamento */}
+            <div 
+              className="sticky top-0 z-10 px-4 pt-3 pb-2 bg-[#1A1F2E] border-b border-white/5"
+              onClick={onClose}
+            >
+              <div className="flex justify-center mb-2">
+                <div className="w-12 h-1 bg-gray-600 rounded-full" />
+              </div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-medium">Detalhes do Agendamento</h3>
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                  aria-label="Fechar"
+                >
+                  <FaTimesCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+            </div>
+
             <motion.div
               layout
-              className={`relative bg-[#1A1F2E] rounded-t-xl sm:rounded-xl border border-white/5 overflow-hidden
-                       border-l-4 ${status.border} shadow-lg`}
+              className={`relative border-l-4 ${status.border}`}
             >
-              {/* Botão de fechar (X) */}
-              <button
-                onClick={onClose}
-                className="absolute top-3 right-3 p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors z-10"
-                aria-label="Fechar"
-              >
-                <FaTimesCircle size={18} />
-              </button>
-              <div className="p-4 sm:p-5 space-y-4">
-                {/* Cabeçalho com indicador de arraste para mobile */}
-                <div className="sm:hidden flex flex-col items-center mb-4">
-                  <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto" />
-                  {isDragging ? (
-                    <span className="text-xs text-gray-400 mt-2 animate-pulse">Deslize para baixo para fechar</span>
-                  ) : null}
-                </div>
-
+              <div className="p-4 space-y-4">
                 {/* Informações principais */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
