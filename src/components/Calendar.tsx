@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { format, addDays, isSameDay } from 'date-fns';
+import { format, addDays, isSameDay, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { adjustToBrasilia } from '../utils/DateTimeUtils';
@@ -9,6 +9,7 @@ interface CalendarProps {
   onTimeSelect?: (date: Date, time: string) => void;
   onTimeRemove?: (date: string, time: string) => void;
   preloadedAppointments?: Appointment[];
+  onAppointmentConfirmed?: (appointment: Appointment) => void;
 }
 
 interface Appointment {
@@ -18,6 +19,7 @@ interface Appointment {
   barberId: string;
   barberName: string;
   isBlocked?: boolean;
+  isRemoved?: boolean;
 }
 
 const timeSlots = [
@@ -28,16 +30,17 @@ const timeSlots = [
 const Calendar: React.FC<CalendarProps> = ({
   selectedBarber,
   onTimeSelect,
-  preloadedAppointments = []
+  preloadedAppointments = [],
+  onAppointmentConfirmed
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [appointmentsCache, setAppointmentsCache] = useState<Appointment[]>([]);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [appointmentsCache, setAppointmentsCache] = useState<Appointment[]>(preloadedAppointments);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<{date: string, time: string} | null>(null);
 
   const availableDates = useMemo(() => {
-    // Usar a função de ajuste para Brasília do utilitário
     const today = adjustToBrasilia(new Date());
     today.setHours(0, 0, 0, 0);
     return Array.from({ length: 15 }, (_, i) => {
@@ -46,8 +49,6 @@ const Calendar: React.FC<CalendarProps> = ({
       return date;
     });
   }, []);
-
-  // Não precisamos mais definir esta função localmente, usando a importada do utilitário
 
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
@@ -86,56 +87,83 @@ const Calendar: React.FC<CalendarProps> = ({
   }, [selectedBarber, fetchAppointments]);
 
   useEffect(() => {
-    if (preloadedAppointments && preloadedAppointments.length > 0) {
+    if (preloadedAppointments?.length > 0) {
       setAppointmentsCache(prev => {
         const existingIds = new Set(prev.map(app => app.id));
-        const newPreloaded = preloadedAppointments.filter(app => !existingIds.has(app.id));
-        return [...prev, ...newPreloaded];
+        const newAppointments = preloadedAppointments.filter(app => !existingIds.has(app.id));
+        return [...prev, ...newAppointments];
       });
     }
   }, [preloadedAppointments]);
 
-  const computedBookedSlots = useMemo(() => {
-    if (selectedDate && selectedBarber) {
-      const dateInBrasilia = adjustToBrasilia(selectedDate);
-      const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
-      const filteredAppointments = appointmentsCache.filter(
-        appointment =>
-          appointment.date === formattedDate && 
-          (appointment.barberName === selectedBarber || appointment.barberId === selectedBarber)
-      );
-      const blockedAppointments = preloadedAppointments.filter(
-        appointment => 
-          appointment.date === formattedDate && 
-          (appointment.barberName === selectedBarber || appointment.barberId === selectedBarber)
-      );
-      const allAppointments = [...filteredAppointments, ...blockedAppointments];
-      return timeSlots.map(time => ({
-        time,
-        isBooked: allAppointments.some(appointment => appointment.time === time)
-      }));
-    }
-    return [];
-  }, [selectedDate, selectedBarber, appointmentsCache, preloadedAppointments, adjustToBrasilia]);
+  useEffect(() => {
+    const handleAppointmentUpdate = (event: CustomEvent) => {
+      const updatedAppointment = event.detail;
+      if (updatedAppointment.isRemoved) {
+        setAppointmentsCache(prev => prev.filter(app => 
+          !(app.date === updatedAppointment.date && 
+            app.time === updatedAppointment.time && 
+            app.barberId === updatedAppointment.barberId)
+        ));
+      } else {
+        setAppointmentsCache(prev => {
+          const filtered = prev.filter(app => 
+            !(app.date === updatedAppointment.date && 
+              app.time === updatedAppointment.time && 
+              app.barberId === updatedAppointment.barberId)
+          );
+          return [...filtered, updatedAppointment];
+        });
+      }
+    };
+
+    window.addEventListener('appointmentUpdate', handleAppointmentUpdate as EventListener);
+    window.addEventListener('timeSlotBlocked', handleAppointmentUpdate as EventListener);
+    window.addEventListener('timeSlotUnblocked', handleAppointmentUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('appointmentUpdate', handleAppointmentUpdate as EventListener);
+      window.removeEventListener('timeSlotBlocked', handleAppointmentUpdate as EventListener);
+      window.removeEventListener('timeSlotUnblocked', handleAppointmentUpdate as EventListener);
+    };
+  }, []);
+
+  const isTimeSlotAvailable = useCallback((date: Date, time: string): boolean => {
+    if (!selectedBarber || !date) return false;
+    
+    const dateInBrasilia = adjustToBrasilia(date);
+    const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
+    
+    return !appointmentsCache.some(appointment => 
+      appointment.date === formattedDate && 
+      appointment.time === time && 
+      (appointment.barberId === selectedBarber || appointment.barberName === selectedBarber) && 
+      !appointment.isRemoved
+    );
+  }, [selectedBarber, appointmentsCache]);
 
   const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
   }, []);
 
-  const handleTimeClick = useCallback((time: string, isBooked: boolean) => {
+  const handleTimeClick = useCallback((time: string) => {
     if (!selectedDate) return;
-    
-    // Não permite clicar se o horário estiver ocupado
-    if (isBooked) {
+
+    const dateInBrasilia = adjustToBrasilia(selectedDate);
+    const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
+
+    if (!isTimeSlotAvailable(selectedDate, time)) {
       return;
     }
 
     setSelectedTime(time);
+    setPendingSelection({ date: formattedDate, time });
+    
     if (onTimeSelect) {
-      onTimeSelect(selectedDate, time);
+      onTimeSelect(dateInBrasilia, time);
     }
-  }, [selectedDate, onTimeSelect]);
+  }, [selectedDate, onTimeSelect, isTimeSlotAvailable]);
 
   return (
     <div className="space-y-4">
@@ -178,25 +206,34 @@ const Calendar: React.FC<CalendarProps> = ({
             </div>
           ) : (
             timeSlots.map(time => {
-              const slot = computedBookedSlots.find(slot => slot.time === time);
-              const isBooked = slot ? slot.isBooked : false;
+              const isPending = pendingSelection?.time === time && 
+                              pendingSelection?.date === format(adjustToBrasilia(selectedDate), 'yyyy-MM-dd');
+              const isAvailable = isTimeSlotAvailable(selectedDate, time);
+              const isSelected = selectedTime === time;
               
               return (
                 <button
                   type="button"
                   key={time}
-                  onClick={() => handleTimeClick(time, isBooked)}
-                  disabled={isBooked} // Adiciona disabled para horários ocupados
+                  onClick={() => handleTimeClick(time)}
+                  disabled={!isAvailable}
                   className={`
-                    py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden
-                    ${isBooked 
-                      ? 'bg-red-500/20 text-red-300 cursor-not-allowed opacity-60' 
-                      : time === selectedTime
+                    py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300
+                    ${!isAvailable 
+                      ? 'bg-red-500/20 text-red-300 cursor-not-allowed border border-red-500/30' 
+                      : isPending
                         ? 'bg-[#F0B35B] text-black transform scale-105 shadow-md shadow-[#F0B35B]/20' 
-                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 cursor-pointer'}
+                        : isSelected
+                          ? 'bg-[#F0B35B]/80 text-black border border-[#F0B35B]'
+                          : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 hover:border-[#F0B35B]/30 border border-transparent'}
                   `}
                 >
                   <span className="relative z-10">{time}</span>
+                  {!isAvailable && (
+                    <span className="text-xs block mt-1">
+                      Ocupado
+                    </span>
+                  )}
                 </button>
               );
             })

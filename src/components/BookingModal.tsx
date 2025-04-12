@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ApiService from '../services/ApiService';
 import { X, MessageCircle, ArrowRight, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
+import { adjustToBrasilia } from '../utils/DateTimeUtils'; // Adicionar esta importação
+
+// Constante com horários disponíveis
+export const AVAILABLE_TIME_SLOTS = [
+  '09:00', '10:00', '11:00', '14:00', '15:00',
+  '16:00', '17:00', '18:00', '19:00', '20:00'
+];
 
 // Interface para as props do componente
 interface BookingModalProps {
@@ -144,8 +151,21 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     }
   }, [preloadedAppointments]);
 
-  // Função para carregar os horários disponíveis caso não tenham sido pré-carregados
-  const loadAppointments = async () => {
+  // Função atualizada para verificar disponibilidade de horário
+  const isTimeSlotAvailable = useCallback((date: string, time: string, barberId: string): boolean => {
+    if (!cachedAppointments || !Array.isArray(cachedAppointments)) return true;
+    
+    return !cachedAppointments.some(appointment => 
+      appointment.date === date && 
+      appointment.time === time && 
+      appointment.barberId === barberId &&
+      !appointment.isCancelled && 
+      !appointment.isRemoved
+    );
+  }, [cachedAppointments]);
+
+  // Função para carregar os horários disponíveis com retry e cache
+  const loadAppointments = async (retryCount = 0) => {
     if (cachedAppointments.length > 0) return;
 
     try {
@@ -154,21 +174,137 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': localStorage.getItem('token') ? 'Bearer ' + localStorage.getItem('token') : ''
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
         }
       });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
       const jsonData = await response.json();
       if (!jsonData.success) {
         throw new Error('Erro na resposta da API');
       }
-      setCachedAppointments(jsonData.data);
+
+      // Filtrar apenas agendamentos válidos e não cancelados
+      const validAppointments = jsonData.data.filter((apt: any) => 
+        apt && apt.date && apt.time && !apt.isCancelled
+      );
+      
+      setCachedAppointments(validAppointments);
+      
+      // Atualizar cache local
+      localStorage.setItem('appointments', JSON.stringify(validAppointments));
+      
     } catch (err) {
       console.error('Erro ao carregar agendamentos:', err);
+      
+      // Tentar recuperar do cache local em caso de falha
+      const localCache = localStorage.getItem('appointments');
+      if (localCache) {
+        setCachedAppointments(JSON.parse(localCache));
+        return;
+      }
+      
+      // Retry lógico em caso de falha
+      if (retryCount < 3) {
+        setTimeout(() => loadAppointments(retryCount + 1), 1000 * Math.pow(2, retryCount));
+      }
     }
   };
+
+  // Efeito para sincronizar mudanças nos agendamentos
+  useEffect(() => {
+    if (isOpen) {
+      loadAppointments();
+      
+      // Listener para atualização em tempo real
+      const handleStorageChange = () => {
+        const localCache = localStorage.getItem('appointments');
+        if (localCache) {
+          setCachedAppointments(JSON.parse(localCache));
+        }
+      };
+
+      window.addEventListener('storage', handleStorageChange);
+      return () => window.removeEventListener('storage', handleStorageChange);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Listener para atualizações em tempo real
+      const handleTimeSlotBlocked = (event: CustomEvent) => {
+        const blockedSlot = event.detail;
+        setCachedAppointments(prev => [...prev, blockedSlot]);
+      };
+
+      const handleTimeSlotUnblocked = (event: CustomEvent) => {
+        const unblocked = event.detail;
+        setCachedAppointments(prev => 
+          prev.filter(app => 
+            !(app.date === unblocked.date && 
+              app.time === unblocked.time && 
+              app.barberId === unblocked.barberId)
+          )
+        );
+      };
+
+      const handleAppointmentUpdate = (event: CustomEvent) => {
+        const updatedAppointment = event.detail;
+        
+        if (updatedAppointment.isRemoved) {
+          setCachedAppointments(prev => 
+            prev.filter(app => 
+              !(app.date === updatedAppointment.date && 
+                app.time === updatedAppointment.time && 
+                app.barberId === updatedAppointment.barberId)
+            )
+          );
+        } else {
+          setCachedAppointments(prev => {
+            const filtered = prev.filter(app => 
+              !(app.date === updatedAppointment.date && 
+                app.time === updatedAppointment.time && 
+                app.barberId === updatedAppointment.barberId)
+            );
+            return [...filtered, updatedAppointment];
+          });
+        }
+      };
+
+      // Registrar todos os listeners
+      window.addEventListener('timeSlotBlocked', handleTimeSlotBlocked as EventListener);
+      window.addEventListener('timeSlotUnblocked', handleTimeSlotUnblocked as EventListener);
+      window.addEventListener('appointmentUpdate', handleAppointmentUpdate as EventListener);
+
+      // Limpar listeners ao fechar
+      return () => {
+        window.removeEventListener('timeSlotBlocked', handleTimeSlotBlocked as EventListener);
+        window.removeEventListener('timeSlotUnblocked', handleTimeSlotUnblocked as EventListener);
+        window.removeEventListener('appointmentUpdate', handleAppointmentUpdate as EventListener);
+      };
+    }
+  }, [isOpen]);
+
+  // Atualizar função handleTimeSelect do Calendar
+  const handleTimeSelect = useCallback((date: Date, time: string) => {
+    const formattedDate = format(adjustToBrasilia(date), 'yyyy-MM-dd');
+    
+    if (!formData.barberId) {
+      setError('Por favor, selecione um barbeiro primeiro');
+      return;
+    }
+
+    // Apenas atualiza o estado do formulário, sem fazer nenhuma reserva ainda
+    setFormData(prev => ({
+      ...prev,
+      date: formattedDate,
+      time: time
+    }));
+    setError('');
+  }, [formData.barberId]);
 
   // Efeito para carregar os horários quando o modal for aberto e não houver pré-carregados
   useEffect(() => {
@@ -241,68 +377,84 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     setError('');
 
     try {
-      const formattedDate = formData.date;
+      // Verificar novamente a disponibilidade antes de confirmar
+      const isStillAvailable = isTimeSlotAvailable(formData.date, formData.time, formData.barberId);
+      if (!isStillAvailable) {
+        throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
+      }
 
-      // Calcula o preço total dos serviços selecionados
-      const totalPrice = formData.services.reduce((total, service) => {
-        return total + getServicePrice(service);
-      }, 0);
-
-      const appointmentData = {
+      // Criar o appointment temporário para atualização otimista
+      const tempAppointment = {
+        id: `temp-${Date.now()}`,
         clientName: formData.name,
-        wppclient: formData.whatsapp, // Corrigido para corresponder ao campo no modelo Appointment.js
         serviceName: formData.services.join(', '),
-        date: formattedDate,
+        date: formData.date,
         time: formData.time,
         barberId: formData.barberId,
         barberName: formData.barber,
-        price: totalPrice
+        price: formData.services.reduce((total, service) => total + getServicePrice(service), 0)
       };
+
+      // Atualização otimista do cache
+      setCachedAppointments(prev => [...prev, tempAppointment]);
+
+      // Disparar evento de bloqueio temporário
+      window.dispatchEvent(new CustomEvent('timeSlotBlocked', {
+        detail: tempAppointment
+      }));
 
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(appointmentData),
+        body: JSON.stringify({
+          clientName: formData.name,
+          wppclient: formData.whatsapp,
+          serviceName: formData.services.join(', '),
+          date: formData.date,
+          time: formData.time,
+          barberId: formData.barberId,
+          barberName: formData.barber,
+          price: formData.services.reduce((total, service) => total + getServicePrice(service), 0)
+        })
       });
+
+      if (!response.ok) {
+        // Reverter atualização otimista em caso de erro
+        setCachedAppointments(prev => prev.filter(app => app.id !== tempAppointment.id));
+        window.dispatchEvent(new CustomEvent('timeSlotUnblocked', {
+          detail: tempAppointment
+        }));
+        
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao criar agendamento');
+      }
 
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Erro ao criar agendamento');
-      }
+      // Atualizar o appointment com o ID real
+      const confirmedAppointment = {
+        ...tempAppointment,
+        id: result.data.id
+      };
 
-      // Update local storage
-      const storedAppointments = localStorage.getItem('appointments') || '[]';
-      const appointments = JSON.parse(storedAppointments);
-      appointments.push({
-        id: result.data.id.toString(),
-        client_name: appointmentData.clientName,
-        service_name: appointmentData.serviceName,
-        date: appointmentData.date,
-        time: appointmentData.time,
-        status: 'pending',
-        barber_id: appointmentData.barberId,
-        barber_name: appointmentData.barberName,
-        price: appointmentData.price
-      });
-      localStorage.setItem('appointments', JSON.stringify(appointments));
-
-      // Trigger storage event for dashboard update
-      window.dispatchEvent(new Event('storage'));
+      // Disparar evento de atualização com o ID real
+      window.dispatchEvent(new CustomEvent('appointmentUpdate', {
+        detail: confirmedAppointment
+      }));
 
       setShowSuccessMessage(true);
       setTimeout(() => {
         setShowSuccessMessage(false);
-        setStep(3); // Avança para o passo 3 (resumo do agendamento)
+        setStep(3);
       }, 1500);
 
     } catch (err) {
       console.error('Error saving appointment:', err);
-      setError('Erro ao salvar agendamento');
+      setError(err instanceof Error ? err.message : 'Erro ao salvar agendamento. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -581,13 +733,7 @@ Aguardo a confirmação.`;
 
               <Calendar
                 selectedBarber={formData.barber}
-                onTimeSelect={(date, time) => {
-                  setFormData({
-                    ...formData,
-                    date: format(date, 'yyyy-MM-dd'),
-                    time: time
-                  });
-                }}
+                onTimeSelect={handleTimeSelect}
                 preloadedAppointments={cachedAppointments}
               />
 
@@ -686,7 +832,7 @@ Aguardo a confirmação.`;
                         <CalendarIcon size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
                         <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Data:</span>
                         <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">
-                          {formData.date ? format(new Date(formData.date), 'dd/MM/yyyy') : ''}
+                          {formData.date ? format(adjustToBrasilia(new Date(new Date(formData.date).setDate(new Date(formData.date).getDate() + 1))), 'dd/MM/yyyy') : ''}
                         </span>
                       </li>
                       <li className="flex items-center">

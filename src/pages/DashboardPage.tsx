@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Settings, Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import Grafico from '../components/Grafico';
-import Notifications, { useNotifications } from '../components/Notifications';
+import { useNotifications } from '../components/Notifications';
 import AppointmentViewModal from '../components/AppointmentViewModal';
 import CalendarView from '../components/CalendarView';
 import ClientAnalytics from '../components/ClientAnalytics';
@@ -28,209 +27,125 @@ interface Appointment {
   isBlocked?: boolean;
 }
 
-// Hook personalizado para filtrar agendamentos
-const useFilteredAppointments = (appointments: Appointment[], filterMode: string) => {
-  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
-
-  useEffect(() => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
-
-    if (filterMode === 'today') {
-      setFilteredAppointments(appointments.filter(app => app.date === today));
-    } else if (filterMode === 'tomorrow') {
-      setFilteredAppointments(appointments.filter(app => app.date === tomorrow));
-    } else {
-      setFilteredAppointments(appointments);
-    }
-  }, [appointments, filterMode]);
-
-  return filteredAppointments;
-};
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em millisegundos
 
 const DashboardPage: React.FC = () => {
-  const { logout, getCurrentUser } = useAuth();
+  const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
-  const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('today');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  // Modal state
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const appointmentsPerPage = 9; // Aumentado para 9 para melhor harmonia visual com a coluna da esquerda
-  // View mode state (painel, agenda ou analytics)
+  const appointmentsPerPage = 9;
   const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
-  // Calendar view states
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  // Estado para controlar a animação do botão de atualização
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Função para atualizar dados usando CacheService
-  const refreshData = async () => {
+  const { loadAppointments } = useNotifications();
+
+  const filteredAppointments = useMemo(() => {
+    if (!appointments.length) return [];
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
+
+    if (filterMode === 'today') {
+      return appointments.filter(app => app.date === today);
+    } else if (filterMode === 'tomorrow') {
+      return appointments.filter(app => app.date === tomorrow);
+    }
+    return appointments;
+  }, [appointments, filterMode]);
+
+  const calendarFilteredAppointments = useMemo(() => {
+    if (!appointments.length) return [];
+
+    return appointments.filter(app => {
+      if (app.isBlocked) return false;
+
+      if (!isRangeFilterActive || !startDate) {
+        return app.date === selectedDate;
+      }
+
+      if (startDate && endDate) {
+        const appDate = new Date(app.date);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        return appDate >= start && appDate <= end;
+      }
+
+      return app.date === startDate;
+    });
+  }, [appointments, selectedDate, isRangeFilterActive, startDate, endDate]);
+
+  const refreshData = useCallback(async () => {
     setIsRefreshing(true);
     try {
+      const lastUpdate = await CacheService.getLastUpdateTime('appointments');
+      const now = new Date().getTime();
+
+      if (lastUpdate && (now - new Date(lastUpdate).getTime()) < CACHE_DURATION) {
+        console.log('Usando dados em cache');
+        return;
+      }
+
       const newAppointments = await loadAppointments(true);
       if (newAppointments && Array.isArray(newAppointments)) {
-        // Substituir os dados existentes ao invés de concatenar
         setAppointments(newAppointments);
-        await CacheService.setLastUpdateTime('appointments', new Date().toISOString());
+        await CacheService.setLastUpdateTime('appointments', new Date().getTime());
       }
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [loadAppointments]);
 
-  // Usando o hook de notificações
-  const { loadAppointments } = useNotifications();
-
-  // Usando o hook personalizado para filtrar agendamentos
-  const filteredAppointments = useFilteredAppointments(appointments, filterMode);
-
-  // Pagination logic
-  const indexOfLastAppointment = currentPage * appointmentsPerPage;
-  const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
-  // Filtrar agendamentos bloqueados antes de exibir
-  const visibleAppointments = filteredAppointments.filter(app => !app.isBlocked);
-  const currentAppointments = visibleAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
-  const totalPages = Math.ceil(visibleAppointments.length / appointmentsPerPage);
-
-  // Lógica para filtrar agendamentos na visualização de agenda
-  const calendarFilteredAppointments = appointments.filter(app => {
-    // Excluir agendamentos bloqueados
-    if (app.isBlocked) return false;
-    
-    if (!isRangeFilterActive || !startDate) {
-      return app.date === selectedDate;
+  const handleViewChange = useCallback((view: 'painel' | 'agenda' | 'analytics') => {
+    setCurrentPage(1);
+    if (view !== 'agenda') {
+      setIsRangeFilterActive(false);
+      setStartDate(null);
+      setEndDate(null);
     }
+    setActiveView(view);
+  }, []);
 
-    if (startDate && endDate) {
-      const appDate = new Date(app.date);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      return appDate >= start && appDate <= end;
-    }
-
-    return app.date === startDate;
-  });
-
-  // Calcular valor total para a visualização de agenda
   const calculateTotalValue = (apps: Appointment[]) => {
     return apps.reduce((total, app) => total + (app.price || 0), 0);
   };
 
   const totalValue = calculateTotalValue(calendarFilteredAppointments);
 
-  // Pagination logic para visualização de agenda
+  const indexOfLastAppointment = currentPage * appointmentsPerPage;
+  const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
+  const visibleAppointments = filteredAppointments.filter(app => !app.isBlocked);
+  const currentAppointments = visibleAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const totalPages = Math.ceil(visibleAppointments.length / appointmentsPerPage);
   const calendarCurrentAppointments = calendarFilteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
   const calendarTotalPages = Math.ceil(calendarFilteredAppointments.length / appointmentsPerPage);
 
-  // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  
-  useEffect(() => {
-    let isSubscribed = true;
-    let retryTimeout: NodeJS.Timeout | null = null;
-
-    const fetchData = async (retryCount = 0) => {
-      if (!isSubscribed) return;
-
-      try {
-        // Verificar se o usuário está online antes de fazer requisições
-        if (!navigator.onLine) {
-          console.log('Dispositivo offline, usando dados em cache');
-          return;
-        }
-
-        const formattedAppointments = await loadAppointments(false);
-        if (isSubscribed && Array.isArray(formattedAppointments)) {
-          setAppointments(formattedAppointments);
-        }
-      } catch (error: any) {
-        console.error('Error fetching dashboard data:', error);
-
-        // Se for erro 429, implementar retry com backoff exponencial
-        if (error.response?.status === 429 || (typeof error === 'object' && error.message?.includes('429'))) {
-          const delay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Máximo de 1 minuto
-          console.warn(`Erro 429, tentando novamente em ${delay / 1000}s`);
-
-          if (retryCount < 5) { // Máximo de 5 tentativas
-            retryTimeout = setTimeout(() => fetchData(retryCount + 1), delay);
-          }
-        } else {
-          setAppointments([]);
-        }
-      }
-    };
-
-    // Adicionar um pequeno atraso antes da primeira requisição
-    const initialFetchTimeout = setTimeout(() => fetchData(), 500);
-
-    return () => {
-      isSubscribed = false;
-      if (retryTimeout) clearTimeout(retryTimeout);
-      clearTimeout(initialFetchTimeout);
-    };
-  }, [loadAppointments]);
-
-  // Efeito para verificar se os agendamentos foram carregados corretamente
-  useEffect(() => {
-    console.log('Estado atual de appointments:', appointments);
-  }, [appointments]);
-
-  // Efeito para escutar eventos de abertura de modal vindos das notificações
-  useEffect(() => {
-    const handleOpenAppointmentModal = (event: CustomEvent) => {
-      const { appointmentId } = event.detail;
-      if (appointmentId) {
-        handleAppointmentAction(appointmentId, 'view');
-      }
-    };
-
-    // Adicionar o listener de evento
-    window.addEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
-
-    // Remover o listener quando o componente for desmontado
-    return () => {
-      window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
-    };
-  }, [appointments]); // Dependência de appointments para garantir que temos os dados mais recentes
-
-  useEffect(() => {
-    if (revenueDisplayMode === 'day') {
-      setFilterMode('today');
-    } else if (revenueDisplayMode === 'week') {
-      setFilterMode('all');
-    } else if (revenueDisplayMode === 'month') {
-      setFilterMode('all');
-    }
-    setCurrentPage(1); // Reset to first page when revenue display mode changes
-  }, [revenueDisplayMode]);
-
-  // Função para lidar com a seleção de data na visualização de agenda
   const handleDateSelection = (date: string) => {
     if (!isRangeFilterActive) {
       setSelectedDate(date);
-      setCurrentPage(1); // Reset to first page when date changes
+      setCurrentPage(1);
       return;
     }
 
     if (!startDate || (startDate && endDate)) {
       setStartDate(date);
       setEndDate(null);
-      setCurrentPage(1); // Reset to first page when date range changes
+      setCurrentPage(1);
     } else {
       if (new Date(date) < new Date(startDate)) {
         setEndDate(startDate);
@@ -238,30 +153,27 @@ const DashboardPage: React.FC = () => {
       } else {
         setEndDate(date);
       }
-      setCurrentPage(1); // Reset to first page when date range is completed
+      setCurrentPage(1);
     }
   };
 
-  // Função para resetar filtros na visualização de agenda
   const resetFilters = () => {
     setIsRangeFilterActive(false);
     setStartDate(null);
     setEndDate(null);
     setSelectedDate(new Date().toISOString().split('T')[0]);
-    setCurrentPage(1); // Reset to first page when filters are reset
+    setCurrentPage(1);
   };
 
   const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
     if (!appointmentId) return;
     try {
       if (action === 'view') {
-        // Encontrar o agendamento pelo ID
         const appointment = appointments.find(app => app.id === appointmentId);
         if (appointment) {
           setSelectedAppointment(appointment);
           setIsViewModalOpen(true);
 
-          // Marcar como visualizado se estiver no localStorage
           const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
           if (!viewedAppointmentIds.includes(appointmentId)) {
             viewedAppointmentIds.push(appointmentId);
@@ -272,22 +184,38 @@ const DashboardPage: React.FC = () => {
       }
 
       if (action === 'delete') {
+        // Verifica se o ID é válido antes de fazer a requisição
+        if (!appointmentId.trim()) {
+          console.error('ID do agendamento inválido');
+          return;
+        }
+
         const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
           mode: 'cors'
         });
+
+        // Verifica se a resposta foi bem-sucedida
         if (response.ok) {
           setAppointments(prev => prev.filter(app => app.id !== appointmentId));
-          // Fechar o modal se o agendamento excluído for o que está sendo visualizado
           if (selectedAppointment?.id === appointmentId) {
             setIsViewModalOpen(false);
             setSelectedAppointment(null);
           }
+        } else {
+          // Se a resposta não for ok, tenta obter mais informações do erro
+          const errorData = await response.json().catch(() => null);
+          console.error('Erro ao deletar agendamento:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData
+          });
+          throw new Error(`Erro ao deletar agendamento: ${response.status} ${response.statusText}`);
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
@@ -296,27 +224,114 @@ const DashboardPage: React.FC = () => {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
           mode: 'cors',
           body: JSON.stringify({ status: newStatus })
         });
+
         if (response.ok) {
           const updatedAppointments = appointments.map(app =>
             app.id === appointmentId ? { ...app, status: newStatus } : app
           );
           setAppointments(updatedAppointments as Appointment[]);
 
-          // Atualizar o agendamento selecionado se estiver sendo visualizado
           if (selectedAppointment?.id === appointmentId) {
             setSelectedAppointment({ ...selectedAppointment, status: newStatus });
           }
+        } else {
+          const errorData = await response.json().catch(() => null);
+          console.error('Erro ao atualizar status:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData
+          });
+          throw new Error(`Erro ao atualizar status: ${response.status} ${response.statusText}`);
         }
       }
     } catch (error) {
       console.error(`Erro na ação ${action}:`, error);
+      // Aqui você pode adicionar uma notificação visual para o usuário
+      // Por exemplo, usando um toast ou alert
     }
-  }
+  };
+
+  useEffect(() => {
+    let isSubscribed = true;
+    let retryTimeout: NodeJS.Timeout | null = null;
+
+    const fetchData = async (retryCount = 0) => {
+      if (!isSubscribed) return;
+
+      try {
+        if (!navigator.onLine) {
+          console.log('Dispositivo offline, usando dados em cache');
+          return;
+        }
+
+        const formattedAppointments = await CacheService.fetchWithCache(
+          'appointments',
+          () => loadAppointments(false),
+          false
+        );
+
+        if (isSubscribed && Array.isArray(formattedAppointments)) {
+          setAppointments(formattedAppointments);
+        }
+      } catch (error: any) {
+        console.error('Error fetching dashboard data:', error);
+
+        if (error.response?.status === 429 || (typeof error === 'object' && error.message?.includes('429'))) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 60000);
+          console.warn(`Erro 429, tentando novamente em ${delay / 1000}s`);
+
+          if (retryCount < 5) {
+            retryTimeout = setTimeout(() => fetchData(retryCount + 1), delay);
+          }
+        } else {
+          setAppointments([]);
+        }
+      }
+    };
+
+    const initialFetchTimeout = setTimeout(() => fetchData(), 500);
+
+    return () => {
+      isSubscribed = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      clearTimeout(initialFetchTimeout);
+    };
+  }, [loadAppointments]);
+
+  useEffect(() => {
+    console.log('Estado atual de appointments:', appointments);
+  }, [appointments]);
+
+  useEffect(() => {
+    const handleOpenAppointmentModal = (event: CustomEvent) => {
+      const { appointmentId } = event.detail;
+      if (appointmentId) {
+        handleAppointmentAction(appointmentId, 'view');
+      }
+    };
+
+    window.addEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
+
+    return () => {
+      window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
+    };
+  }, [appointments]);
+
+  useEffect(() => {
+    if (revenueDisplayMode === 'day') {
+      setFilterMode('today');
+    } else if (revenueDisplayMode === 'week') {
+      setFilterMode('all');
+    } else if (revenueDisplayMode === 'month') {
+      setFilterMode('all');
+    }
+    setCurrentPage(1);
+  }, [revenueDisplayMode]);
 
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
@@ -332,146 +347,38 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 xl:px-0 relative z-10">
-        <div className="flex flex-col-2 sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3">
-          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto hide-scrollbar w-full sm:w-auto pb-2 sm:pb-0">
+        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-3 overflow-x-auto hide-scrollbar">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveView('painel')}
-              className={`px-1.5 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              onClick={() => handleViewChange('painel')}
+              className={`px-4 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Painel</span>
+              <LayoutDashboard className="w-5 h-5" />
+              <span className="text-sm whitespace-nowrap">Painel</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveView('agenda')}
-              className={`px-1.5 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              onClick={() => handleViewChange('agenda')}
+              className={`px-4 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Agenda</span>
+              <Calendar className="w-5 h-5" />
+              <span className="text-sm whitespace-nowrap">Agenda</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveView('analytics')}
-              className={`px-1.5 sm:px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium' : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}`}
+              onClick={() => handleViewChange('analytics')}
+              className={`px-4 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Clientes</span>
+              <Users className="w-5 h-5" />
+              <span className="text-sm whitespace-nowrap">Clientes</span>
             </motion.button>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative">
-              <Notifications />
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="p-1.5 sm:p-2 rounded-full bg-[#F0B35B] transition-colors duration-300"
-              >
-                <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
-              </button>
-              {isDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
-                    onClick={() => setIsDropdownOpen(false)}
-                  />
-                  <div className="fixed sm:absolute top-[20%] sm:top-full left-[50%] sm:left-auto right-auto sm:right-0 transform-gpu -translate-x-1/2 sm:translate-x-0 -translate-y-0 sm:-translate-y-0 mt-0 sm:mt-4 w-[90vw] sm:w-[350px] md:w-[400px] max-h-[70vh] xs:max-h-[75vh] sm:max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1A1F2E] ring-1 ring-[#F0B35B]/20 z-50 animate-fade-in-up">
-                    <div className="sticky top-0 flex justify-between items-center p-3 sm:p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
-                      <h3 className="text-lg sm:text-xl font-semibold text-white">Configurações</h3>
-                      <button
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="text-gray-400 hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-gray-700/30 rounded-lg"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    <div className="divide-y divide-gray-700/30" role="menu">
-                      {/* Opções para admin */}
-                      {currentUser?.role === 'admin' ? (
-                        <>
-                          <button
-                            onClick={() => navigate('/register')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Gerenciar Barbeiros</span>
-                          </button>
-                          <button
-                            onClick={() => navigate('/gerenciar-horarios')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Gerenciar Horários</span>
-                          </button>
-                          <button
-                            onClick={() => navigate('/gerenciar-comentarios')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Gerenciar Comentários</span>
-                          </button>
-                          <button
-                            onClick={() => navigate('/servicos')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Gerenciar Serviços</span>
-                          </button>
-                        </>
-                      ) : (
-                        // Opções para barbeiros
-                        <>
-                          <button
-                            onClick={() => navigate('/register')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Editar Meus Dados</span>
-                          </button>
-                          <button
-                            onClick={() => navigate('/gerenciar-horarios')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Gerenciar Meus Horários</span>
-                          </button>
-                          <button
-                            onClick={() => navigate('/gerenciar-comentarios')}
-                            className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                            role="menuitem"
-                          >
-                            <span>Gerenciar Meus Comentários</span>
-                          </button>
-                        </>
-                      )}
-
-                      {/* Opções comuns para ambos */}
-                      <button
-                        onClick={() => navigate('/trocar-senha')}
-                        className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                        role="menuitem"
-                      >
-                        <span>Trocar Senha</span>
-                      </button>
-                      <button
-                        onClick={logout}
-                        className="flex w-full items-center text-left px-4 py-3 text-sm text-white hover:bg-[#252B3B] transition-colors"
-                        role="menuitem"
-                      >
-                        <span>Sair</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* Renderização condicional baseada na visualização ativa */}
         <AnimatePresence mode="wait">
           {activeView === 'painel' ? (
             <motion.div
@@ -482,21 +389,16 @@ const DashboardPage: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              {/* Layout para desktop com melhor distribuição de espaço */}
-              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8 min-h-[800px]">
-                {/* Coluna principal - Stats e Gráfico */}
-                <div className="w-full xl:w-8/12">
-                  {/* Stats com mais espaço e melhor visualização */}
-                  <div className="mb-6 xl:mb-8">
+              <div className="flex flex-col xl:flex-row gap-6 min-h-screen">
+                <div className="w-full xl:w-8/12 flex flex-col gap-6">
+                  <div className="flex-none">
                     <Stats
                       appointments={appointments}
                       revenueDisplayMode={revenueDisplayMode}
                       setRevenueDisplayMode={setRevenueDisplayMode}
                     />
                   </div>
-                  
-                  {/* Gráfico com mais espaço */}
-                  <div className="mb-6 xl:mb-8">
+                  <div className="flex-1 min-h-[500px] xl:min-h-[600px]">
                     <Grafico
                       appointments={appointments}
                       isChartExpanded={isChartExpanded}
@@ -504,85 +406,118 @@ const DashboardPage: React.FC = () => {
                     />
                   </div>
                 </div>
-                
-                {/* Coluna lateral - Agendamentos */}
                 <div className="w-full xl:w-4/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 sticky top-20">
-                    <div className="flex justify-between items-center mb-5">
-                      <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-[#F0B35B]" />
-                        Agendamentos
-                      </h2>
-                      <div className="flex items-center gap-2">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={refreshData}
-                          className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
-                          aria-label="Atualizar"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                        </motion.button>
-                        <div className="relative">
-                          <select
-                            value={filterMode}
-                            onChange={(e) => setFilterMode(e.target.value)}
-                            className="appearance-none bg-[#1A1F2E] text-white text-xs rounded-lg px-2 py-1.5 pr-6 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg flex flex-col xl:sticky xl:top-24 h-[calc(100vh-8rem)] max-h-[900px]">
+                    <div className="flex-none p-4 sm:p-6 border-b border-white/5">
+                      <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                          <Calendar className="w-5 h-5 text-[#F0B35B]" />
+                          Agendamentos
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={refreshData}
+                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                            aria-label="Atualizar"
                           >
-                            <option value="today">Hoje</option>
-                            <option value="tomorrow">Amanhã</option>
-                            <option value="all">Todos</option>
-                          </select>
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          </motion.button>
+                          <div className="relative">
+                            <select
+                              value={filterMode}
+                              onChange={(e) => setFilterMode(e.target.value)}
+                              className="appearance-none bg-[#1A1F2E] text-white text-xs rounded-lg px-2 py-1.5 pr-6 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
+                            >
+                              <option value="today">Hoje</option>
+                              <option value="tomorrow">Amanhã</option>
+                              <option value="all">Todos</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {currentAppointments.length === 0 ? (
-                      <div className="bg-[#0D121E] rounded-lg p-6 text-center">
-                        <p className="text-gray-400">
-                          {filterMode === 'today'
-                            ? 'Nenhum agendamento para hoje'
-                            : filterMode === 'tomorrow'
-                              ? 'Nenhum agendamento para amanhã'
-                              : 'Nenhum agendamento encontrado'}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-4">
-                        {currentAppointments.map((appointment) => (
-                          <AppointmentCardNew
-                            key={appointment.id}
-                            appointment={appointment}
-                            onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                            onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                            onView={() => handleAppointmentAction(appointment.id, 'view')}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Paginação para o painel inicial */}
-                    {totalPages > 1 && (
-                      <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
-                        <button
-                          onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
-                          disabled={currentPage === 1}
-                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <span className="text-sm text-white">
-                          {currentPage} / {totalPages}
-                        </span>
-                        <button
-                          onClick={() => paginate(currentPage < totalPages ? currentPage + 1 : totalPages)}
-                          disabled={currentPage === totalPages}
-                          className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                      {currentAppointments.length === 0 ? (
+                        <div className="flex-1 flex items-center justify-center p-6">
+                          <p className="text-gray-400">
+                            {filterMode === 'today'
+                              ? 'Nenhum agendamento para hoje'
+                              : filterMode === 'tomorrow'
+                                ? 'Nenhum agendamento para amanhã'
+                                : 'Nenhum agendamento encontrado'}
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex-1 p-4">
+                            <div className="grid grid-cols-1 gap-2 auto-rows-max">
+                              {currentAppointments.slice(0, 15).map((appointment) => (
+                                <AppointmentCardNew
+                                  key={appointment.id}
+                                  appointment={appointment}
+                                  onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                                  onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                                  onView={() => handleAppointmentAction(appointment.id, 'view')}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {totalPages > 1 && (
+                            <div className="flex-none p-4 border-t border-white/10 bg-[#1A1F2E]/80 backdrop-blur-sm">
+                              <div className="flex items-center justify-between">
+                                <button
+                                  onClick={() => paginate(currentPage - 1)}
+                                  disabled={currentPage === 1}
+                                  className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                  <span className="text-sm hidden sm:inline">Anterior</span>
+                                </button>
+                                <div className="flex items-center gap-1.5">
+                                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
+                                    let pageNumber;
+                                    if (totalPages <= 5) {
+                                      pageNumber = idx + 1;
+                                    } else if (currentPage <= 3) {
+                                      pageNumber = idx + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                      pageNumber = totalPages - (4 - idx);
+                                    } else {
+                                      pageNumber = currentPage - 2 + idx;
+                                    }
+                                    
+                                    return (
+                                      <button
+                                        key={idx}
+                                        onClick={() => paginate(pageNumber)}
+                                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                                          currentPage === pageNumber
+                                            ? 'bg-[#F0B35B] text-black'
+                                            : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'
+                                        }`}
+                                      >
+                                        {pageNumber}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <button
+                                  onClick={() => paginate(currentPage + 1)}
+                                  disabled={currentPage === totalPages}
+                                  className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                >
+                                  <span className="text-sm hidden sm:inline">Próximo</span>
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -596,11 +531,9 @@ const DashboardPage: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              {/* Layout melhorado para visualização de agenda */}
-              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8 min-h-[800px]">
-                {/* Coluna principal - Calendário */}
-                <div className="w-full xl:w-8/12 flex flex-col">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 flex-grow">
+              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
+                <div className="w-full xl:w-8/12">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6">
                     <CalendarView
                       appointments={appointments}
                       selectedDate={selectedDate}
@@ -613,17 +546,15 @@ const DashboardPage: React.FC = () => {
                         setIsRangeFilterActive(!isRangeFilterActive);
                         setStartDate(null);
                         setEndDate(null);
-                        setCurrentPage(1); // Reset to first page when filter is toggled
+                        setCurrentPage(1);
                       }}
                       onResetFilters={resetFilters}
                       totalValue={totalValue}
                     />
                   </div>
                 </div>
-                
-                {/* Coluna lateral - Agendamentos filtrados por data */}
                 <div className="w-full xl:w-4/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 sticky top-20 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 sticky top-24">
                     <div className="flex justify-between items-center mb-5">
                       <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-[#F0B35B]" />
@@ -673,15 +604,12 @@ const DashboardPage: React.FC = () => {
                               onView={() => handleAppointmentAction(appointment.id, 'view')}
                             />
                           ))}
-                          {/* Adicionar cards vazios para manter a altura consistente quando há poucos agendamentos */}
                           {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 && 
                             Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
                               <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
                             ))
                           }
                         </div>
-
-                        {/* Paginação */}
                         {calendarTotalPages > 1 && (
                           <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
                             <button
@@ -718,17 +646,26 @@ const DashboardPage: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              {/* Layout melhorado para visualização de analytics */}
-              <div className="w-full">
-                <div className="mb-6 xl:mb-8">
-                  <ClientAnalytics appointments={appointments} />
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8">
+                <div className="xl:col-span-8">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6">
+                    <ClientAnalytics appointments={appointments} />
+                  </div>
+                </div>
+                <div className="xl:col-span-4">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 sticky top-24">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <Users className="w-5 h-5 text-[#F0B35B]" />
+                        Resumo
+                      </h2>
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-
-      
       </main>
 
       <AppointmentViewModal
@@ -748,8 +685,7 @@ const DashboardPage: React.FC = () => {
         }}
       />
     </div>
-
   );
 };
 
-export default DashboardPage;
+export default React.memo(DashboardPage);

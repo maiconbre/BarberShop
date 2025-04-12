@@ -25,15 +25,24 @@ const ScheduleManagementPage: React.FC = () => {
             }
           });
           const data = await response.json();
-          if (data.success) {
-            setBarbers(data.data.map((barber: any) => ({
-              id: barber.id,
+          console.log('Barbers data:', data); // Debug log
+          
+          if (response.ok && data.data) {
+            const formattedBarbers = data.data.map((barber: any) => ({
+              id: barber.id.toString(), // Garantir que o ID seja string
               name: barber.name
-            })));
+            }));
+            console.log('Formatted barbers:', formattedBarbers); // Debug log
+            setBarbers(formattedBarbers);
+          } else {
+            console.error('Erro na resposta da API:', data);
           }
         } else {
-          // Se for barbeiro, só mostra ele mesmo
-          setBarbers([{ id: currentUser.id || '', name: currentUser.name || '' }]);
+          // Se for barbeiro, usar os dados do usuário atual
+          setBarbers([{
+            id: currentUser.id?.toString() || '', // Garantir que o ID seja string
+            name: currentUser.name || ''
+          }]);
         }
       } catch (error) {
         console.error('Erro ao buscar barbeiros:', error);
@@ -43,7 +52,7 @@ const ScheduleManagementPage: React.FC = () => {
     };
 
     fetchBarbers();
-  }, []);
+  }, [currentUser]);
 
   if (!currentUser) return null;
 

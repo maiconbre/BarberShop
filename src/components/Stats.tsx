@@ -248,278 +248,270 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
   }, [filteredPendingAppointments, filteredCompletedAppointments, filteredPendingRevenue, filteredCompletedRevenue]);
 
   return (
-    <div className="mb-6 sm:mb-8 sm:px-0">
-      <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 w-full relative">
-        <div className="flex flex-col gap-3">
-          <div className="flex justify-between items-center flex-wrap gap-2 sm:gap-3 sm:pr-0">
-            <div className="flex flex-1 justify-center gap-2">
-             
-              <button
-                onClick={() => handleModeChange('month')}
-                className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-              >
-                Mensal 
-              </button>
-              <button
-                onClick={() => handleModeChange('week')}
-                className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-              >
-                Semana
-              </button>
-              <button
-                onClick={() => handleModeChange('day')}
-                className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'day' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-              >
-                Hoje
-              </button>
-            </div>
+    <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 w-full">
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-center items-center gap-2">
+          <button
+            onClick={() => handleModeChange('month')}
+            className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
+          >
+            Mensal 
+          </button>
+          <button
+            onClick={() => handleModeChange('week')}
+            className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
+          >
+            Semana
+          </button>
+          <button
+            onClick={() => handleModeChange('day')}
+            className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'day' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
+          >
+            Hoje
+          </button>
+        </div>
 
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-4 items-center sm:items-start">
-            <motion.div className="flex-1 w-full">
-              <AnimatePresence mode="wait">
-                {revenueDisplayMode === 'month' ? (
-                  <motion.div
-                    key="month"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-center "
-                  >
-                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
-                      Receita Mensal (30 dias)
-                    </p>
-                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center  gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleValueVisibility();
-                        }}
-                        className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
-                      >
-                        <AnimatePresence mode="wait">
-                          {isBlinking ? (
-                            <motion.div
-                              key="blinking"
-                              initial={{ opacity: 1 }}
-                              animate={{ opacity: 0 }}
-                              exit={{ opacity: 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <Eye size={16} />
-                            </motion.div>
-                          ) : showValues ? (
-                            <Eye size={16} />
-                          ) : (
-                            <EyeOff size={16} />
-                          )}
-                        </AnimatePresence>
-                      </button>
-                      {showValues ? (
-                        <>R$ <CountUp end={receitaMes} /></>
-                      ) : (
-                        "R$ ******"
-                      )}
-                    </h4>
-                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
-                      <span className="inline-block mr-1">↑</span>
-                      <span>{clientesMes} clientes nos últimos 30 dias</span>
-                    </div>
-                  </motion.div>
-                ) : revenueDisplayMode === 'week' ? (
-                  <motion.div
-                    key="week"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-center "
-                  >
-                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
-                      Receita Semanal
-                    </p>
-                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleValueVisibility();
-                        }}
-                        className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
-                      >
-                        <AnimatePresence mode="wait">
-                          {isBlinking ? (
-                            <motion.div
-                              key="blinking"
-                              initial={{ opacity: 1 }}
-                              animate={{ opacity: 0 }}
-                              exit={{ opacity: 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <Eye size={16} />
-                            </motion.div>
-                          ) : showValues ? (
-                            <Eye size={16} />
-                          ) : (
-                            <EyeOff size={16} />
-                          )}
-                        </AnimatePresence>
-                      </button>
-                      {showValues ? (
-                        <>R$ <CountUp end={receitaSemana} /></>
-                      ) : (
-                        "R$ ******"
-                      )}
-                    </h4>
-                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
-                      <span className="inline-block mr-1">↑</span>
-                      <span>{clientesSemana} clientes nesta semana</span>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="day"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-center "
-                  >
-                    <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
-                      Receita Hoje
-                    </p>
-                    <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleValueVisibility();
-                        }}
-                        className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
-                      >
-                        <AnimatePresence mode="wait">
-                          {isBlinking ? (
-                            <motion.div
-                              key="blinking"
-                              initial={{ opacity: 1 }}
-                              animate={{ opacity: 0 }}
-                              exit={{ opacity: 1 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <Eye size={20} />
-                            </motion.div>
-                          ) : showValues ? (
-                            <Eye size={20} />
-                          ) : (
-                            <EyeOff size={20} />
-                          )}
-                        </AnimatePresence>
-                      </button>
-                      {showValues ? (
-                        <>R$ <CountUp end={receitaHoje} /></>
-                      ) : (
-                        "R$ ******"
-                      )}
-                    </h4>
-                    <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
-                      <span className="inline-block mr-1">↑</span>
-                      <span>{clientesHoje} clientes hoje</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Gráfico de Pizza */}
-            <div className="w-full lg:w-auto flex flex-row items-center justify-center gap-4">
-              <div className="w-[140px] h-[140px]">  {/* Increased from 120px to 140px */}
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieChartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={60} 
-                      innerRadius={35} 
-                      fill="#8884d8"
-                      dataKey="value"
-                      stroke="rgba(255,255,255,0.1)"
-                      strokeWidth={1}
+        <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
+          <motion.div className="flex-1 w-full">
+            <AnimatePresence mode="wait">
+              {revenueDisplayMode === 'month' ? (
+                <motion.div
+                  key="month"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-center "
+                >
+                  <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
+                    Receita Mensal (30 dias)
+                  </p>
+                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center  gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleValueVisibility();
+                      }}
+                      className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
                     >
-                      <Cell key="pending" fill="#FFD700" />
-                      <Cell key="completed" fill="#4CAF50" />
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: any, name: string, props: any) => {
-                        const data = props.payload;
-                        return [`${value} agendamentos - R$ ${data.revenue.toFixed(2)}`, name];
+                      <AnimatePresence mode="wait">
+                        {isBlinking ? (
+                          <motion.div
+                            key="blinking"
+                            initial={{ opacity: 1 }}
+                            animate={{ opacity: 0 }}
+                            exit={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Eye size={16} />
+                          </motion.div>
+                        ) : showValues ? (
+                          <Eye size={16} />
+                        ) : (
+                          <EyeOff size={16} />
+                        )}
+                      </AnimatePresence>
+                    </button>
+                    {showValues ? (
+                      <>R$ <CountUp end={receitaMes} /></>
+                    ) : (
+                      "R$ ******"
+                    )}
+                  </h4>
+                  <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
+                    <span className="inline-block mr-1">↑</span>
+                    <span>{clientesMes} clientes nos últimos 30 dias</span>
+                  </div>
+                </motion.div>
+              ) : revenueDisplayMode === 'week' ? (
+                <motion.div
+                  key="week"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-center "
+                >
+                  <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
+                    Receita Semanal
+                  </p>
+                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleValueVisibility();
                       }}
-                      contentStyle={{
-                        backgroundColor: 'rgba(26,31,46,0.95)',
-                        border: '1px solid rgba(240,179,91,0.5)',
-                        borderRadius: '8px',
-                        padding: '8px',
-                        color: '#fff',
-                        fontSize: '12px'
+                      className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
+                    >
+                      <AnimatePresence mode="wait">
+                        {isBlinking ? (
+                          <motion.div
+                            key="blinking"
+                            initial={{ opacity: 1 }}
+                            animate={{ opacity: 0 }}
+                            exit={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Eye size={16} />
+                          </motion.div>
+                        ) : showValues ? (
+                          <Eye size={16} />
+                        ) : (
+                          <EyeOff size={16} />
+                        )}
+                      </AnimatePresence>
+                    </button>
+                    {showValues ? (
+                      <>R$ <CountUp end={receitaSemana} /></>
+                    ) : (
+                      "R$ ******"
+                    )}
+                  </h4>
+                  <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
+                    <span className="inline-block mr-1">↑</span>
+                    <span>{clientesSemana} clientes nesta semana</span>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="day"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-center "
+                >
+                  <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
+                    Receita Hoje
+                  </p>
+                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleValueVisibility();
                       }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                      className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
+                    >
+                      <AnimatePresence mode="wait">
+                        {isBlinking ? (
+                          <motion.div
+                            key="blinking"
+                            initial={{ opacity: 1 }}
+                            animate={{ opacity: 0 }}
+                            exit={{ opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Eye size={20} />
+                          </motion.div>
+                        ) : showValues ? (
+                          <Eye size={20} />
+                        ) : (
+                          <EyeOff size={20} />
+                        )}
+                      </AnimatePresence>
+                    </button>
+                    {showValues ? (
+                      <>R$ <CountUp end={receitaHoje} /></>
+                    ) : (
+                      "R$ ******"
+                    )}
+                  </h4>
+                  <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
+                    <span className="inline-block mr-1">↑</span>
+                    <span>{clientesHoje} clientes hoje</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Gráfico de Pizza */}
+          <div className="flex items-center gap-6 lg:w-auto">
+            <div className="w-[120px] h-[120px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={55}
+                    innerRadius={35}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="rgba(255,255,255,0.1)"
+                    strokeWidth={1}
+                  >
+                    <Cell key="pending" fill="#FFD700" />
+                    <Cell key="completed" fill="#4CAF50" />
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: any, name: string, props: any) => {
+                      const data = props.payload;
+                      return [`${value} agendamentos - R$ ${data.revenue.toFixed(2)}`, name];
+                    }}
+                    contentStyle={{
+                      backgroundColor: 'rgba(26,31,46,0.95)',
+                      border: '1px solid rgba(240,179,91,0.5)',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      color: '#fff',
+                      fontSize: '12px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#FFD700]"></div>
+                <span className="text-xs text-gray-300">Pendentes ({filteredPendingAppointments})</span>
               </div>
-              <div className="flex flex-col justify-center gap-2">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-[#FFD700]"></div>
-                  <span className="text-xs text-gray-300">Pendentes ({filteredPendingAppointments})</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
-                  <span className="text-xs text-gray-300">Concluídos ({filteredCompletedAppointments})</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
+                <span className="text-xs text-gray-300">Concluídos ({filteredCompletedAppointments})</span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Estatísticas adicionais */}
-          <div className="flex flex-col xs:flex-row gap-3 mt-4">
-            <div className="flex-1 bg-[#1A1F2E]/50 p-1.5 sm:p-2 rounded-lg text-center">
-              <p className="text-gray-400 text-[10px] xs:text-xs my-1 sm:my-2 flex items-center justify-center gap-1">
-                <Clock className="h-3 w-3 text-[#F0B35B]" />
-                Próximo Agendamento
-              </p>
-              <h5 className="text-base sm:text-lg font-semibold flex items-center justify-center text-white">
-                {getNextAppointment ? (
-                  getNextAppointment.formattedTime
-                ) : (
-                  "Nenhum agendamento"
-                )}
-              </h5>
-              {getNextAppointment?.appointment && (
-                <p className="text-[10px] xs:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate px-1">
-                  {getNextAppointment.appointment.clientName} - {getNextAppointment.appointment.time}
-                </p>
+        {/* Estatísticas adicionais */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <div className="bg-[#1A1F2E]/50 p-3 rounded-lg">
+            <p className="text-gray-400 text-xs mb-2 flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-[#F0B35B]" />
+              Próximo Agendamento
+            </p>
+            <h5 className="text-sm font-medium text-white">
+              {getNextAppointment ? (
+                getNextAppointment.formattedTime
+              ) : (
+                "Nenhum agendamento"
               )}
-            </div>
-            <div className="flex-1 bg-[#1A1F2E]/50 p-1.5 sm:p-2 rounded-lg">
-              <p className="text-gray-400 text-[10px] xs:text-xs mb-0.5 text-center  flex items-center justify-center  gap-1">
-                <TrendingUp className="h-3 w-3 text-[#F0B35B]" />
-                Tendência de Crescimento
+            </h5>
+            {getNextAppointment?.appointment && (
+              <p className="text-xs text-gray-400 mt-1 truncate">
+                {getNextAppointment.appointment.clientName} - {getNextAppointment.appointment.time}
               </p>
-              <div className="flex flex-col gap-0.5 sm:gap-1">
-                <h5 className="text-base sm:text-lg font-semibold text-white text-center ">
-                  {clientesMes > clientesSemana/4 ? (
-                    <span className="text-green-400">Em alta</span>
-                  ) : clientesMes < clientesSemana/4 ? (
-                    <span className="text-red-400">Em queda</span>
-                  ) : (
-                    <span className="text-yellow-400">Estável</span>
-                  )}
-                </h5>
-                <div className="flex items-center justify-center  gap-2 text-[10px] xs:text-xs text-gray-400">
-                  <Users className="h-3 w-3" />
-                  <span>{clientesMes} clientes no mês</span>
-                </div>
-              </div>
+            )}
+          </div>
+          <div className="bg-[#1A1F2E]/50 p-3 rounded-lg">
+            <p className="text-gray-400 text-xs mb-2 flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5 text-[#F0B35B]" />
+              Tendência de Crescimento
+            </p>
+            <h5 className="text-sm font-medium">
+              {clientesMes > clientesSemana/4 ? (
+                <span className="text-green-400">Em alta</span>
+              ) : clientesMes < clientesSemana/4 ? (
+                <span className="text-red-400">Em queda</span>
+              ) : (
+                <span className="text-yellow-400">Estável</span>
+              )}
+            </h5>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Users className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-xs text-gray-400">{clientesMes} clientes no mês</span>
             </div>
           </div>
         </div>

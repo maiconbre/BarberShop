@@ -269,11 +269,9 @@ const Notifications: React.FC = () => {
         className="relative p-1.5 rounded-full bg-[#1A1F2E] hover:bg-[#252B3B] transition-colors duration-300 flex items-center justify-center"
         aria-label="Notificações"
       >
-        <Bell className="w-5 h-5 text-white" />
+        <Bell className="w-4 h-4 text-white" />
         {totalNotifications > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
-            {totalNotifications}
-          </span>
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500"></span>
         )}
       </button>
 
@@ -299,12 +297,10 @@ const Notifications: React.FC = () => {
                 className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${notificationTab === 'comments' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
               >
                 <div className="flex items-center justify-center gap-1 sm:gap-2">
-                  <MessageCircle className="w-6 h-6 sm:w-5 sm:h-5" />
+                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden xs:inline">Comentários</span>
                   {pendingComments.length > 0 && (
-                    <span className="px-1.5 sm:px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
-                      {pendingComments.length}
-                    </span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
                   )}
                 </div>
               </button>
@@ -313,12 +309,10 @@ const Notifications: React.FC = () => {
                 className={`flex-1 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${notificationTab === 'appointments' ? 'text-[#F0B35B] border-b-2 border-[#F0B35B]' : 'text-gray-400 hover:text-white'}`}
               >
                 <div className="flex items-center justify-center gap-1 sm:gap-2">
-                  <CalendarIcon className="w-6 h-6 sm:w-5 sm:h-5" />
+                  <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden xs:inline">Agendamentos</span>
                   {newAppointments.length > 0 && (
-                    <span className="px-2 sm:px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
-                      {newAppointments.length}
-                    </span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
                   )}
                 </div>
               </button>
@@ -370,9 +364,7 @@ const Notifications: React.FC = () => {
                           <p className="text-xs sm:text-sm md:text-base text-white font-medium">{appointment.clientName}</p>
                           <p className="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">{appointment.service}</p>
                         </div>
-                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] sm:text-xs font-medium">
-                          Novo
-                        </span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5"></div>
                       </div>
                       <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-[#0D121E]/50 rounded-lg">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">

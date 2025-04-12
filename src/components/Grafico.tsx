@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaChevronDown } from 'react-icons/fa';
 import { DollarSign, Award, Users } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area } from 'recharts';
 
 interface Appointment {
   id: string;
@@ -189,7 +189,7 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
             {/* Gráfico principal de tendências */}
             <div className="bg-[#0D121E] p-3 sm:p-4 rounded-lg mb-4">
               <h3 className="text-sm font-medium text-gray-300 mb-3 sm:mb-4 text-center">Tendências das Últimas 12 Semanas</h3>
-              <div className="h-64 sm:h-72">
+              <div style={{ width: '100%', height: '400px', minWidth: '300px', minHeight: '400px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={trendsData}
@@ -245,86 +245,115 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
             </div>
             
             {/* Gráficos adicionais - Serviços e Dias da Semana */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6 mb-4">
-              {/* Gráfico de pizza - Serviços mais populares */}
-              <div className="bg-[#0D121E] p-2 sm:p-3 md:p-4 rounded-lg">
+            <div className="flex flex-col gap-3 sm:gap-6 mb-4">
+              {/* Gráfico de barras verticais - Serviços mais populares */}
+              <div className="bg-[#0D121E] p-2 sm:p-3 md:p-4 rounded-lg w-full">
                 <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-4 text-center">Serviços Mais Populares</h3>
-                <div className="h-56 sm:h-64">
+                <div className="h-64 sm:h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={popularServicesData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={window.innerWidth < 640 ? 60 : window.innerWidth < 768 ? 70 : 80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => {
-                          // Truncar nomes longos para melhor visualização
-                          const truncatedName = name.length > (window.innerWidth < 640 ? 6 : window.innerWidth < 768 ? 8 : 10) ?
-                            name.substring(0, window.innerWidth < 640 ? 6 : window.innerWidth < 768 ? 8 : 10) + '...' : name;
-                          // Em dispositivos móveis, mostrar apenas a porcentagem
-                          // Em tablets, mostrar nome muito curto + porcentagem
-                          // Em desktop, mostrar nome truncado + porcentagem
-                          if (window.innerWidth < 640) {
-                            return `${(percent * 100).toFixed(0)}%`;
-                          } else if (window.innerWidth < 768) {
-                            return name.length > 8 ? `${(percent * 100).toFixed(0)}%` : `${truncatedName}: ${(percent * 100).toFixed(0)}%`;
-                          } else {
-                            return `${truncatedName}: ${(percent * 100).toFixed(0)}%`;
-                          }
+                    <BarChart
+                      data={popularServicesData}
+                      margin={{ top: 5, right: 5, left: 5, bottom: 25 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis
+                        dataKey="name"
+                        tick={(props) => {
+                          const { x, y, payload } = props;
+                          return (
+                            <g transform={`translate(${x},${y})`}>
+                              <text
+                                x={0}
+                                y={0}
+                                dy={16}
+                                fontSize={window.innerWidth < 640 ? 8 : 10}
+                                fill="#fff"
+                                textAnchor="end"
+                                transform="rotate(-45)"
+                              >
+                                {payload.value}
+                              </text>
+                            </g>
+                          );
+                        }}
+                        height={50}
+                      />
+                      <YAxis
+                        tick={{ 
+                          fontSize: window.innerWidth < 640 ? 10 : 12,
+                          fill: '#fff'
+                        }}
+                        width={30}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'rgba(26,31,46,0.95)',
+                          border: '1px solid rgba(240,179,91,0.5)',
+                          borderRadius: '8px',
+                          padding: '8px',
+                        }}
+                      />
+                      <Bar 
+                        dataKey="value" 
+                        name="Quantidade"
+                        background={{ fill: 'rgba(255,255,255,0.05)' }}
+                        radius={[4, 4, 0, 0]}
+                        label={{
+                          position: 'top',
+                          fill: '#fff',
+                          fontSize: window.innerWidth < 640 ? 10 : 12,
                         }}
                       >
                         {popularServicesData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value, name, props) => [`${value} agendamentos`, props.payload.name]}
-                        contentStyle={{
-                          backgroundColor: 'rgba(26,31,46,0.95)',
-                          border: '1px solid rgba(240,179,91,0.5)',
-                          borderRadius: '8px',
-                          padding: window.innerWidth < 640 ? '3px' : window.innerWidth < 768 ? '4px' : '8px',
-                          fontSize: window.innerWidth < 640 ? '10px' : '12px'
-                        }}
-                      />
-                    </PieChart>
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Gráfico de barras - Frequência por dia da semana */}
+              {/* Gráfico de área - Frequência por dia da semana */}
               <div className="bg-[#0D121E] p-2 sm:p-3 md:p-4 rounded-lg">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-4 text-center">Frequência por Dia da Semana</h3>
-                <div className="h-56 sm:h-64">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-4 text-center">Frequência Semanal</h3>
+                <div className="h-32 sm:h-40">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
+                    <AreaChart
                       data={weekdayFrequencyData}
                       margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F0B35B" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#F0B35B" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                       <XAxis
                         dataKey="name"
-                        tick={{ fontSize: window.innerWidth < 640 ? 7 : window.innerWidth < 768 ? 8 : 10, fill: '#fff' }}
-                        tickFormatter={(value) => window.innerWidth < 640 ? value.substring(0, 3) : value}
+                        tick={{ fontSize: window.innerWidth < 640 ? 10 : 12, fill: '#fff' }}
+                        tickFormatter={(value) => value.substring(0, 3)}
                       />
-                      <YAxis
-                        tick={{ fontSize: window.innerWidth < 640 ? 7 : window.innerWidth < 768 ? 8 : 10, fill: '#fff' }}
-                        width={window.innerWidth < 640 ? 25 : window.innerWidth < 768 ? 30 : 40}
+                      <YAxis 
+                        tick={{ fontSize: window.innerWidth < 640 ? 10 : 12, fill: '#fff' }}
+                        width={25}
                       />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: 'rgba(26,31,46,0.95)',
                           border: '1px solid rgba(240,179,91,0.5)',
                           borderRadius: '8px',
-                          padding: window.innerWidth < 640 ? '3px' : window.innerWidth < 768 ? '4px' : '8px',
-                          fontSize: window.innerWidth < 640 ? '10px' : '12px'
+                          padding: '8px',
                         }}
                       />
-                      <Bar dataKey="value" fill="#F0B35B" />
-                    </BarChart>
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#F0B35B"
+                        fillOpacity={1}
+                        fill="url(#colorValue)"
+                      />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>

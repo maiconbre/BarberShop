@@ -24,12 +24,14 @@ interface Appointment {
   price?: number;
   status?: string;
   isBlocked?: boolean;
+  isCancelled?: boolean;
 }
 
+// Atualizar array de horários disponíveis para sincronizar com o BookingModal
 const timeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
   '16:00', '17:00', '18:00', '19:00', '20:00'
-];
+].sort();
 
 const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   barbers,
@@ -68,68 +70,64 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     });
   }, []);
 
-  // Usando a função importada do utilitário centralizado
-  // Não precisamos mais definir esta função localmente
-
-  const fetchAppointments = useCallback(async () => {
-    if (!selectedBarber) return;
-    
-    setIsLoading(true);
-    setError(null);
+  const fetchAppointments = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': localStorage.getItem('token') ? 'Bearer ' + localStorage.getItem('token') : ''
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const jsonData = await response.json();
-      if (!jsonData.success) {
-        throw new Error('Erro na resposta da API');
-      }
-      
-      // Filtrar apenas os agendamentos do barbeiro selecionado
-      const filteredAppointments = jsonData.data.filter(
-        (appointment: Appointment) => 
-          appointment.barberId === selectedBarber || 
-          appointment.barberName === selectedBarber
+      const cacheKey = `schedule_appointments_${selectedBarber}`;
+      const response = await CacheService.fetchWithCache(
+        cacheKey,
+        async () => {
+          const response = await fetch(
+            `${(import.meta as any).env.VITE_API_URL}/api/appointments?barberId=${selectedBarber}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          );
+          
+          if (!response.ok) throw new Error('Falha ao buscar agendamentos');
+          
+          const data = await response.json();
+          const appointments = data.data || data || [];
+          
+          // Filtrar apenas agendamentos válidos
+          return appointments.filter((apt: any) => 
+            apt && 
+            apt.date && 
+            apt.time && 
+            timeSlots.includes(apt.time) && 
+            !apt.isCancelled
+          );
+        },
       );
+
+      setAppointments(Array.isArray(response) ? response : []);
+      setError(null);
       
-      setAppointments(filteredAppointments);
+      // Disparar evento para sincronizar com BookingModal
+      window.dispatchEvent(new Event('appointmentsUpdated'));
       
-      // Salvar no cache para acesso offline
-      await CacheService.setCache(`appointments_${selectedBarber}`, filteredAppointments);
-    } catch (err) {
-      console.error('Erro ao buscar agendamentos:', err);
-      setError('Não foi possível carregar os horários. Tente novamente.');
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos:', error);
+      setError('Erro ao carregar agendamentos. Tente novamente mais tarde.');
       
-      // Tentar carregar do cache se a API falhar
-      try {
-        const cachedAppointments = await CacheService.getCache<Appointment[]>(`appointments_${selectedBarber}`);
-        if (cachedAppointments && cachedAppointments.length > 0) {
-          setAppointments(cachedAppointments);
-          setError('Usando dados em cache. Alguns dados podem estar desatualizados.');
-        }
-      } catch (cacheErr) {
-        console.error('Erro ao carregar do cache:', cacheErr);
+      // Tentar usar cache em caso de erro
+      const cachedData = await CacheService.getCache(`schedule_appointments_${selectedBarber}`);
+      if (cachedData) {
+        setAppointments(Array.isArray(cachedData) ? cachedData : []);
       }
-    } finally {
-      setIsLoading(false);
     }
-  }, [selectedBarber]);
+  };
 
   useEffect(() => {
     if (selectedBarber) {
+      setAppointments([]); // Limpa os agendamentos anteriores
+      setError(null); // Limpa possíveis erros anteriores
       fetchAppointments();
       const interval = setInterval(fetchAppointments, 30000); // Atualiza a cada 30 segundos
       return () => clearInterval(interval);
     }
-  }, [selectedBarber, fetchAppointments]);
+  }, [selectedBarber]);
 
   const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
@@ -155,59 +153,85 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   const blockTimeSlot = async () => {
     if (!selectedDate || !selectedTime || !selectedBarber) return;
 
+    const formattedDate = formatToISODate(selectedDate);
+    if (!isTimeSlotAvailable(formattedDate, selectedTime, selectedBarber)) {
+      setError('Este horário não está mais disponível');
+      return;
+    }
+
+    const barberName = barbers.find(b => b.id === selectedBarber)?.name || 'Desconhecido';
+    
+    const tempAppointment: Appointment = {
+      id: `temp-${Date.now()}`,
+      date: formattedDate,
+      time: selectedTime,
+      barberId: selectedBarber,
+      barberName: barberName,
+      clientName: blockedAppointmentData.name,
+      serviceName: blockedAppointmentData.service,
+      price: blockedAppointmentData.price,
+      status: 'blocked',
+      isBlocked: true
+    };
+
+    // Atualização otimista do estado
+    setAppointments(prev => [...prev, tempAppointment]);
+    setIsConfirmOpen(false);
+    setSelectedTime(null);
+
+    // Disparar evento de bloqueio
+    window.dispatchEvent(new CustomEvent('timeSlotBlocked', {
+      detail: tempAppointment
+    }));
+
     setIsLoading(true);
     try {
-      const barberName = barbers.find(b => b.id === selectedBarber)?.name || 'Desconhecido';
-      // Usar a função do utilitário para formatar a data no fuso horário de Brasília
-      const formattedDate = formatToISODate(selectedDate);
-
-      // Criar um agendamento bloqueado
-      const appointmentData = {
-        clientName: blockedAppointmentData.name,
-        wppclient: blockedAppointmentData.phone,
-        serviceName: blockedAppointmentData.service,
-        date: formattedDate,
-        time: selectedTime,
-        barberId: selectedBarber,
-        barberName: barberName,
-        price: blockedAppointmentData.price,
-        isBlocked: true
-      };
-
       const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(appointmentData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        
-        const newAppointment = {
-          id: result.data.id,
+        body: JSON.stringify({
+          clientName: blockedAppointmentData.name,
+          wppclient: blockedAppointmentData.phone,
+          serviceName: blockedAppointmentData.service,
           date: formattedDate,
           time: selectedTime,
           barberId: selectedBarber,
           barberName: barberName,
-          clientName: blockedAppointmentData.name,
-          serviceName: blockedAppointmentData.service,
           price: blockedAppointmentData.price,
-          status: 'blocked',
           isBlocked: true
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const confirmedAppointment = {
+          ...tempAppointment,
+          id: result.data.id
         };
-        
-        setAppointments(prev => [...prev, newAppointment]);
+
+        // Atualizar o appointment com o ID real
+        setAppointments(prev => prev.map(app => 
+          app.id === tempAppointment.id ? confirmedAppointment : app
+        ));
+
+        // Disparar evento de atualização com o ID real
+        window.dispatchEvent(new CustomEvent('appointmentUpdate', {
+          detail: confirmedAppointment
+        }));
+
         toast.success('Horário bloqueado com sucesso!');
-        setIsConfirmOpen(false);
-        setSelectedTime(null);
       } else {
+        // Reverter a atualização otimista
+        setAppointments(prev => prev.filter(app => app.id !== tempAppointment.id));
         const errorData = await response.json();
         throw new Error(errorData.message || 'Erro ao bloquear horário');
       }
     } catch (error) {
+      // Reverter a atualização otimista
+      setAppointments(prev => prev.filter(app => app.id !== tempAppointment.id));
       console.error('Erro ao bloquear horário:', error);
       toast.error('Erro ao bloquear horário');
     } finally {
@@ -218,38 +242,91 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   const deleteAppointment = async () => {
     if (!appointmentToDelete) return;
 
+    const deletedAppointment = appointmentToDelete;
+
+    // Verificar se o agendamento existe antes de tentar excluir
+    const existingAppointment = appointments.find(a => a.id === deletedAppointment.id);
+    if (!existingAppointment) {
+      toast.error('Agendamento não encontrado');
+      setIsDeleteConfirmOpen(false);
+      setAppointmentToDelete(null);
+      return;
+    }
+
+    // Atualização otimista
+    setAppointments(prev => prev.filter(app => app.id !== deletedAppointment.id));
+    setIsDeleteConfirmOpen(false);
+    setAppointmentToDelete(null);
+
+    // Disparar evento de desbloqueio/remoção
+    window.dispatchEvent(new CustomEvent(
+      deletedAppointment.isBlocked ? 'timeSlotUnblocked' : 'appointmentUpdate',
+      {
+        detail: {
+          ...deletedAppointment,
+          isRemoved: true
+        }
+      }
+    ));
+
     setIsLoading(true);
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      const response = await fetch(
+        `${(import.meta as any).env.VITE_API_URL}/api/appointments/${deletedAppointment.id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
         }
-      });
+      );
 
       if (response.ok) {
-        setAppointments(prev => 
-          prev.filter(app => app.id !== appointmentToDelete.id)
-        );
-        toast.success(appointmentToDelete.isBlocked 
+        toast.success(deletedAppointment.isBlocked 
           ? 'Horário desbloqueado com sucesso!' 
           : 'Agendamento cancelado com sucesso!');
+        
+        // Atualizar o cache após uma exclusão bem-sucedida
+        const cacheKey = `schedule_appointments_${selectedBarber}`;
+        const cachedData = await CacheService.getCache(cacheKey);
+        if (cachedData) {
+          const updatedCache = Array.isArray(cachedData) 
+            ? cachedData.filter(app => app.id !== deletedAppointment.id)
+            : [];
+          await CacheService.setCache(cacheKey, updatedCache);
+        }
+        
+        // Recarregar os agendamentos
+        fetchAppointments();
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao excluir agendamento');
+        // Reverter a atualização otimista
+        setAppointments(prev => [...prev, deletedAppointment]);
+        
+        // Reverter o evento
+        window.dispatchEvent(new CustomEvent('appointmentUpdate', {
+          detail: deletedAppointment
+        }));
+        
+        throw new Error('Erro ao excluir agendamento');
       }
     } catch (error) {
+      // Reverter a atualização otimista
+      setAppointments(prev => [...prev, deletedAppointment]);
+      
+      // Reverter o evento
+      window.dispatchEvent(new CustomEvent('appointmentUpdate', {
+        detail: deletedAppointment
+      }));
+      
       console.error('Erro ao excluir agendamento:', error);
       toast.error('Erro ao excluir agendamento');
     } finally {
       setIsLoading(false);
-      setIsDeleteConfirmOpen(false);
-      setAppointmentToDelete(null);
     }
   };
 
   const getAppointmentForTimeSlot = useCallback((date: Date, time: string): Appointment | null => {
-    if (!date) return null;
+    if (!date || !Array.isArray(appointments)) return null;
     
     const dateInBrasilia = adjustToBrasilia(date);
     const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
@@ -258,9 +335,20 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       appointment => 
         appointment.date === formattedDate && 
         appointment.time === time && 
-        (appointment.barberId === selectedBarber || appointment.barberName === selectedBarber)
+        appointment.barberId === selectedBarber && 
+        !appointment.isCancelled && 
+        timeSlots.includes(appointment.time)
     ) || null;
   }, [appointments, selectedBarber]);
+
+  const isTimeSlotAvailable = useCallback((date: string, time: string, barberId: string): boolean => {
+    return !appointments.some(appointment => 
+      appointment.date === date && 
+      appointment.time === time && 
+      appointment.barberId === barberId && 
+      !appointment.isCancelled
+    );
+  }, [appointments]);
 
   const renderCalendarView = () => {
     return (
@@ -399,32 +487,25 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       <div className="space-y-6 max-w-3xl mx-auto">
         {sortedDates.map(date => {
           const dateAppointments = groupedAppointments[date];
-          // Ordenar por horário
-          dateAppointments.sort((a, b) => {
-            return a.time.localeCompare(b.time);
-          });
+          dateAppointments.sort((a, b) => a.time.localeCompare(b.time));
 
           return (
             <div key={date} className="bg-[#1A1F2E] rounded-lg p-5 shadow-lg border border-[#F0B35B]/20">
               <h3 className="text-[#F0B35B] font-medium mb-4 flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5 text-[#F0B35B]" />
                 {(() => {
-                  // Criar a data no fuso horário de Brasília para evitar o problema de deslocamento de dia
                   const dateParts = date.split('-');
                   const year = parseInt(dateParts[0]);
-                  const month = parseInt(dateParts[1]) - 1; // Mês em JavaScript é 0-indexed
+                  const month = parseInt(dateParts[1]) - 1;
                   const day = parseInt(dateParts[2]);
-                  
-                  // Criar a data com o horário definido como meio-dia para evitar problemas de fuso horário
                   const dateObj = new Date(year, month, day, 12, 0, 0);
-                  
                   return dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
                 })()}
               </h3>
               <div className="space-y-3">
                 {dateAppointments.map(appointment => (
                   <div 
-                    key={`${appointment.id}-${appointment.time}`} 
+                    key={appointment.id} 
                     className={`flex justify-between items-center p-4 rounded-lg transition-all duration-200 hover:shadow-md
                       ${appointment.isBlocked 
                         ? 'bg-orange-500/10 border border-orange-500/30' 
@@ -649,6 +730,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           </motion.div>
         </div>
       )}
+
     </div>
   );
 };
