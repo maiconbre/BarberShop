@@ -4,11 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
-import Grafico from '../components/Grafico';
+import ClientAnalytics from '../components/ClientAnalytics';
 import { useNotifications } from '../components/Notifications';
 import AppointmentViewModal from '../components/AppointmentViewModal';
 import CalendarView from '../components/CalendarView';
-import ClientAnalytics from '../components/ClientAnalytics';
 import CacheService from '../services/CacheService';
 
 interface Appointment {
@@ -47,8 +46,19 @@ const DashboardPage: React.FC = () => {
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const { loadAppointments } = useNotifications();
+
+  // Detectar mudanças no tamanho da tela
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const filteredAppointments = useMemo(() => {
     if (!appointments.length) return [];
@@ -202,7 +212,9 @@ const DashboardPage: React.FC = () => {
 
         // Verifica se a resposta foi bem-sucedida
         if (response.ok) {
-          setAppointments(prev => prev.filter(app => app.id !== appointmentId));
+          // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
+          setAppointments(prevAppointments => prevAppointments.filter(app => app.id !== appointmentId));
+          
           if (selectedAppointment?.id === appointmentId) {
             setIsViewModalOpen(false);
             setSelectedAppointment(null);
@@ -231,13 +243,16 @@ const DashboardPage: React.FC = () => {
         });
 
         if (response.ok) {
-          const updatedAppointments = appointments.map(app =>
-            app.id === appointmentId ? { ...app, status: newStatus } : app
+          // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
+          setAppointments(prevAppointments => 
+            prevAppointments.map(app => 
+              app.id === appointmentId ? { ...app, status: newStatus } : app
+            )
           );
-          setAppointments(updatedAppointments as Appointment[]);
 
+          // Atualizar o agendamento selecionado se necessário
           if (selectedAppointment?.id === appointmentId) {
-            setSelectedAppointment({ ...selectedAppointment, status: newStatus });
+            setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
           }
         } else {
           const errorData = await response.json().catch(() => null);
@@ -346,35 +361,35 @@ const DashboardPage: React.FC = () => {
         }}></div>
       </div>
 
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 xl:px-0 relative z-10">
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-4 mb-6">
-          <div className="flex items-center gap-3 overflow-x-auto hide-scrollbar">
+      <main className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-8 xl:px-0 relative z-10">
+        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto hide-scrollbar">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('painel')}
-              className={`px-4 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <LayoutDashboard className="w-5 h-5" />
-              <span className="text-sm whitespace-nowrap">Painel</span>
+              <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Painel</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('agenda')}
-              className={`px-4 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <Calendar className="w-5 h-5" />
-              <span className="text-sm whitespace-nowrap">Agenda</span>
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Agenda</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('analytics')}
-              className={`px-4 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <Users className="w-5 h-5" />
-              <span className="text-sm whitespace-nowrap">Clientes</span>
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm whitespace-nowrap">Relatório</span>
             </motion.button>
           </div>
         </div>
@@ -389,8 +404,8 @@ const DashboardPage: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="flex flex-col xl:flex-row gap-6 min-h-screen">
-                <div className="w-full xl:w-8/12 flex flex-col gap-6">
+              <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 min-h-screen">
+                <div className="w-full xl:w-8/12 flex flex-col gap-4 sm:gap-6">
                   <div className="flex-none">
                     <Stats
                       appointments={appointments}
@@ -398,20 +413,13 @@ const DashboardPage: React.FC = () => {
                       setRevenueDisplayMode={setRevenueDisplayMode}
                     />
                   </div>
-                  <div className="flex-1 min-h-[500px] xl:min-h-[600px]">
-                    <Grafico
-                      appointments={appointments}
-                      isChartExpanded={isChartExpanded}
-                      setIsChartExpanded={setIsChartExpanded}
-                    />
-                  </div>
                 </div>
                 <div className="w-full xl:w-4/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg flex flex-col xl:sticky xl:top-24 h-[calc(100vh-8rem)] max-h-[900px]">
-                    <div className="flex-none p-4 sm:p-6 border-b border-white/5">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg flex flex-col xl:sticky xl:top-24 h-[calc(100vh-12rem)] sm:h-[calc(100vh-8rem)] max-h-[900px]">
+                    <div className="flex-none p-3 sm:p-4 border-b border-white/5">
                       <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                          <Calendar className="w-5 h-5 text-[#F0B35B]" />
+                        <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
+                          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#F0B35B]" />
                           Agendamentos
                         </h2>
                         <div className="flex items-center gap-2">
@@ -422,7 +430,7 @@ const DashboardPage: React.FC = () => {
                             className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
                             aria-label="Atualizar"
                           >
-                            <RefreshCw className="w-3.5 h-3.5" />
+                            <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           </motion.button>
                           <div className="relative">
                             <select
@@ -441,8 +449,8 @@ const DashboardPage: React.FC = () => {
 
                     <div className="flex-1 flex flex-col overflow-hidden">
                       {currentAppointments.length === 0 ? (
-                        <div className="flex-1 flex items-center justify-center p-6">
-                          <p className="text-gray-400">
+                        <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+                          <p className="text-gray-400 text-sm">
                             {filterMode === 'today'
                               ? 'Nenhum agendamento para hoje'
                               : filterMode === 'tomorrow'
@@ -452,11 +460,11 @@ const DashboardPage: React.FC = () => {
                         </div>
                       ) : (
                         <>
-                          <div className="flex-1 p-4">
-                            <div className="grid grid-cols-1 gap-2 auto-rows-max">
+                          <div className="flex-1 p-3 sm:p-4">
+                            <div className="grid grid-cols-1 gap-2 auto-rows-max overflow-y-auto max-h-[calc(100vh-15rem)] custom-scrollbar hide-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
                               {currentAppointments.slice(0, 15).map((appointment) => (
                                 <AppointmentCardNew
-                                  key={appointment.id}
+                                  key={`appointment-${appointment.id}-${appointment.status}`}
                                   appointment={appointment}
                                   onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
                                   onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
@@ -466,17 +474,17 @@ const DashboardPage: React.FC = () => {
                             </div>
                           </div>
                           {totalPages > 1 && (
-                            <div className="flex-none p-4 border-t border-white/10 bg-[#1A1F2E]/80 backdrop-blur-sm">
+                            <div className="flex-none p-3 sm:p-4 border-t border-white/10 bg-[#1A1F2E]/80 backdrop-blur-sm">
                               <div className="flex items-center justify-between">
                                 <button
                                   onClick={() => paginate(currentPage - 1)}
                                   disabled={currentPage === 1}
-                                  className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                  className="p-1.5 sm:p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 sm:gap-2"
                                 >
-                                  <ChevronLeft className="w-4 h-4" />
-                                  <span className="text-sm hidden sm:inline">Anterior</span>
+                                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  <span className="text-xs sm:text-sm hidden sm:inline">Anterior</span>
                                 </button>
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1 sm:gap-1.5">
                                   {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
                                     let pageNumber;
                                     if (totalPages <= 5) {
@@ -493,7 +501,7 @@ const DashboardPage: React.FC = () => {
                                       <button
                                         key={idx}
                                         onClick={() => paginate(pageNumber)}
-                                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${
+                                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                                           currentPage === pageNumber
                                             ? 'bg-[#F0B35B] text-black'
                                             : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'
@@ -507,10 +515,10 @@ const DashboardPage: React.FC = () => {
                                 <button
                                   onClick={() => paginate(currentPage + 1)}
                                   disabled={currentPage === totalPages}
-                                  className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                                  className="p-1.5 sm:p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 sm:gap-2"
                                 >
-                                  <span className="text-sm hidden sm:inline">Próximo</span>
-                                  <ChevronRight className="w-4 h-4" />
+                                  <span className="text-xs sm:text-sm hidden sm:inline">Próximo</span>
+                                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                                 </button>
                               </div>
                             </div>
@@ -531,9 +539,9 @@ const DashboardPage: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
+              <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 xl:gap-8">
                 <div className="w-full xl:w-8/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
                     <CalendarView
                       appointments={appointments}
                       selectedDate={selectedDate}
@@ -554,10 +562,10 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="w-full xl:w-4/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 sticky top-24">
-                    <div className="flex justify-between items-center mb-5">
-                      <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-[#F0B35B]" />
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 sticky top-24">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#F0B35B]" />
                         Agendamentos
                       </h2>
                       <div className="flex items-center gap-2">
@@ -568,7 +576,7 @@ const DashboardPage: React.FC = () => {
                           className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
                           aria-label="Atualizar"
                         >
-                          <RefreshCw className="w-3.5 h-3.5" />
+                          <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         </motion.button>
                       </div>
                     </div>
@@ -585,8 +593,8 @@ const DashboardPage: React.FC = () => {
                     </div>
 
                     {calendarFilteredAppointments.length === 0 ? (
-                      <div className="bg-[#0D121E] rounded-lg p-6 text-center flex-grow flex items-center justify-center">
-                        <p className="text-gray-400">
+                      <div className="bg-[#0D121E] rounded-lg p-4 sm:p-6 text-center flex-grow flex items-center justify-center">
+                        <p className="text-gray-400 text-sm">
                           {isRangeFilterActive
                             ? 'Nenhum agendamento no período selecionado'
                             : 'Nenhum agendamento para esta data'}
@@ -594,10 +602,10 @@ const DashboardPage: React.FC = () => {
                       </div>
                     ) : (
                       <div className="flex flex-col flex-grow">
-                        <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto pr-1 custom-scrollbar hide-scrollbar">
+                        <div className="grid grid-cols-1 gap-3 sm:gap-4 max-h-[calc(100vh-20rem)] overflow-y-auto pr-1 custom-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
                           {calendarCurrentAppointments.map((appointment) => (
                             <AppointmentCardNew
-                              key={appointment.id}
+                              key={`calendar-appointment-${appointment.id}-${appointment.status}`}
                               appointment={appointment}
                               onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
                               onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
@@ -615,19 +623,19 @@ const DashboardPage: React.FC = () => {
                             <button
                               onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
                               disabled={currentPage === 1}
-                              className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                              className="p-1.5 sm:p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                              <ChevronLeft className="w-4 h-4" />
+                              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            <span className="text-sm text-white">
+                            <span className="text-xs sm:text-sm text-white">
                               {currentPage} / {calendarTotalPages}
                             </span>
                             <button
                               onClick={() => paginate(currentPage < calendarTotalPages ? currentPage + 1 : calendarTotalPages)}
                               disabled={currentPage === calendarTotalPages}
-                              className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                              className="p-1.5 sm:p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                             >
-                              <ChevronRight className="w-4 h-4" />
+                              <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           </div>
                         )}
@@ -646,20 +654,10 @@ const DashboardPage: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8">
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 xl:gap-8">
                 <div className="xl:col-span-8">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6">
                     <ClientAnalytics appointments={appointments} />
-                  </div>
-                </div>
-                <div className="xl:col-span-4">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 sticky top-24">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                        <Users className="w-5 h-5 text-[#F0B35B]" />
-                        Resumo
-                      </h2>
-                    </div>
                   </div>
                 </div>
               </div>

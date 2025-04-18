@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, Scissors, User, Calendar, Home, Settings, Users } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, Scissors, User, Calendar, Home, Settings, Users, LogOut, Key, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,47 +22,43 @@ const Navbar: React.FC<NavbarProps> = ({
   const { logout, getCurrentUser } = useAuth();
   const [navLoaded, setNavLoaded] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const inactivityTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
   const currentUser = getCurrentUser();
   const isAuthenticated = !!currentUser;
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setNavLoaded(true);
-    }, 100); // Delay para iniciar a animação
+    }, 100);
     return () => clearTimeout(timer);
   }, []);
-  
-  // Efeito para fechar o menu após período de inatividade
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-      inactivityTimerRef.current = setTimeout(() => {
-        setIsMobileMenuOpen(false);
-      }, 5000);
-    }
-    return () => {
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-        inactivityTimerRef.current = null;
-      }
-    };
-  }, [isMobileMenuOpen, setIsMobileMenuOpen]);
 
-  // Efeito para fechar o menu ao rolar a página
+  // Fechar dropdowns ao clicar fora
   useEffect(() => {
-    const handleScroll = () => {
-      if (isMobileMenuOpen) {
-        setIsMobileMenuOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
       }
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [isMobileMenuOpen, setIsMobileMenuOpen]);
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const handleChangePassword = () => {
+    navigate('/trocar-senha');
+    setIsProfileDropdownOpen(false);
+  };
 
   const scrollToSection = (sectionId: string) => {
     if (location.pathname !== '/') {
@@ -88,9 +84,13 @@ const Navbar: React.FC<NavbarProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <div className="flex-shrink-0">
-            <div className="transform hover:scale-[1.02] transition-transform duration-300" onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}>
-              <div className="inline-block relative cursor-pointer">
+            <div 
+              className="transform hover:scale-[1.02] transition-transform duration-300 cursor-pointer" 
+              onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
+            >
+              <div className="inline-block relative">
                 <div className="text-[#F0B35B] text-lg font-medium tracking-wider border border-[#F0B35B]/70 px-2 py-1 rounded">
                   BARBER<span className="text-white/80">SHOP</span>
                 </div>
@@ -102,88 +102,134 @@ const Navbar: React.FC<NavbarProps> = ({
           {/* Menu Desktop */}
           <div className="hidden md:flex md:items-center">
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
+                {/* Notificações */}
                 <div className="relative group">
                   <Notifications />
                 </div>
-                <div className="relative">
+
+                {/* Perfil Dropdown */}
+                <div className="relative" ref={profileDropdownRef}>
                   <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="p-1.5 rounded-full bg-[#1A1F2E] hover:bg-[#252B3B] transition-colors duration-300 flex items-center justify-center"
-                    aria-label="Configurações"
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1A1F2E] hover:bg-[#252B3B] transition-all duration-300 group"
                   >
-                    <Settings className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
+                      <User className="w-4 h-4 text-[#F0B35B]" />
+                    </div>
+                    <span className="text-white text-sm font-medium">
+                      {currentUser?.name || 'Usuário'}
+                    </span>
+                    {isProfileDropdownOpen ? (
+                      <ChevronUp className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+                    )}
                   </button>
 
-                  {isDropdownOpen && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsDropdownOpen(false)}
-                      />
-                      <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[#1A1F2E] shadow-lg ring-1 ring-[#F0B35B]/20 z-50 py-1">
-                        <button 
-                          onClick={() => {
-                            navigate('/servicos');
-                            setIsDropdownOpen(false);
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left"
-                        >
-                          <Scissors className="w-4 h-4" />
-                          Gerenciar Serviços
-                        </button>
-                        <button 
-                          onClick={() => {
-                            navigate('/gerenciar-horarios');
-                            setIsDropdownOpen(false);
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left"
-                        >
-                          <Calendar className="w-4 h-4" />
-                          Gerenciar Horários
-                        </button>
-                        <button 
-                          onClick={() => {
-                            navigate('/register');
-                            setIsDropdownOpen(false);
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left"
-                        >
-                          <Users className="w-4 h-4" />
-                          Gerenciar Barbeiros
-                        </button>
-                        <button 
-                          onClick={() => {
-                            logout();
-                            setIsDropdownOpen(false);
-                            navigate('/');
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 w-full text-left"
-                        >
-                          Sair
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  <AnimatePresence>
+                    {isProfileDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-56 rounded-xl bg-[#1A1F2E] shadow-lg ring-1 ring-[#F0B35B]/20 z-50 overflow-hidden"
+                      >
+                        <div className="py-1">
+                          <button
+                            onClick={handleChangePassword}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left transition-colors"
+                          >
+                            <Key className="w-4 h-4 text-[#F0B35B]" />
+                            Trocar Senha
+                          </button>
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 w-full text-left transition-colors"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Sair
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Configurações Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="p-2 rounded-lg bg-[#1A1F2E] hover:bg-[#252B3B] transition-all duration-300 group"
+                    aria-label="Configurações"
+                  >
+                    <Settings className="w-5 h-5 text-white group-hover:text-[#F0B35B] transition-colors" />
+                  </button>
+
+                  <AnimatePresence>
+                    {isDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 mt-2 w-56 rounded-xl bg-[#1A1F2E] shadow-lg ring-1 ring-[#F0B35B]/20 z-50 overflow-hidden"
+                      >
+                        <div className="py-1">
+                          <button
+                            onClick={() => {
+                              navigate('/servicos');
+                              setIsDropdownOpen(false);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left transition-colors"
+                          >
+                            <Scissors className="w-4 h-4 text-[#F0B35B]" />
+                            Gerenciar Serviços
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigate('/gerenciar-horarios');
+                              setIsDropdownOpen(false);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left transition-colors"
+                          >
+                            <Calendar className="w-4 h-4 text-[#F0B35B]" />
+                            Gerenciar Horários
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigate('/register');
+                              setIsDropdownOpen(false);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left transition-colors"
+                          >
+                            <Users className="w-4 h-4 text-[#F0B35B]" />
+                            Gerenciar Barbeiros
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             ) : (
-              <div className="ml-10 flex items-baseline space-x-8">
+              <div className="ml-10 flex items-baseline space-x-6">
                 <button
                   onClick={() => scrollToSection('services')}
-                  className="text-white/90 hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-105"
+                  className="text-white/90 hover:text-[#F0B35B] transition-all duration-300 hover:scale-105"
                 >
                   Serviços
                 </button>
                 <button
                   onClick={() => scrollToSection('about')}
-                  className="text-white/90 hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-105"
+                  className="text-white/90 hover:text-[#F0B35B] transition-all duration-300 hover:scale-105"
                 >
                   Sobre
                 </button>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="relative overflow-hidden group bg-[#F0B35B] text-black px-4 py-2 rounded-md transition-all duration-300 hover:scale-110 border-2 border-[#F0B35B]/70 hover:shadow-[0_0_15px_rgba(240,179,91,0.4)]"
+                  className="relative overflow-hidden group bg-[#F0B35B] text-black px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 border-2 border-[#F0B35B]/70 hover:shadow-[0_0_15px_rgba(240,179,91,0.4)]"
                 >
                   <span className="relative z-10">Agendar horário</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:opacity-100 transition-opacity animate-shine"></div>
@@ -192,182 +238,219 @@ const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Ícone para Mobile */}
-          {!isAuthenticated && (
-            <div className="md:hidden">
+          {/* Menu Mobile */}
+          <div className="md:hidden flex items-center gap-3">
+            {isAuthenticated ? (
+              <>
+                <div className="relative group">
+                  <Notifications />
+                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="p-2 rounded-lg bg-[#1A1F2E] hover:bg-[#252B3B] transition-all duration-300"
+                >
+                  {isMobileMenuOpen ? (
+                    <X className="w-5 h-5 text-white" />
+                  ) : (
+                    <Menu className="w-5 h-5 text-white" />
+                  )}
+                </button>
+              </>
+            ) : (
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-white hover:text-[#F0B35B] transition-colors transition-transform duration-300 hover:scale-110"
+                className="p-2 rounded-lg bg-[#1A1F2E] hover:bg-[#252B3B] transition-all duration-300"
               >
-                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
-          )}
-
-          {/* Menu Mobile para Usuário Logado */}
-          {isAuthenticated && (
-            <div className="md:hidden flex items-center gap-3">
-              <div className="relative group">
-                <Notifications />
-              </div>
-              <div className="relative">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="p-1.5 rounded-full bg-[#1A1F2E] hover:bg-[#252B3B] transition-colors duration-300 flex items-center justify-center"
-                  aria-label="Configurações"
-                >
-                  <Settings className="w-4 h-4 text-white" />
-                </button>
-
-                {isDropdownOpen && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsDropdownOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-[#1A1F2E] shadow-lg ring-1 ring-[#F0B35B]/20 z-50 py-1">
-                      <button 
-                        onClick={() => {
-                          navigate('/servicos');
-                          setIsDropdownOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left"
-                      >
-                        <Scissors className="w-4 h-4" />
-                        Gerenciar Serviços
-                      </button>
-                      <button 
-                        onClick={() => {
-                          navigate('/gerenciar-horarios');
-                          setIsDropdownOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left"
-                      >
-                        <Calendar className="w-4 h-4" />
-                        Gerenciar Horários
-                      </button>
-                      <button 
-                        onClick={() => {
-                          navigate('/register');
-                          setIsDropdownOpen(false);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left"
-                      >
-                        <Users className="w-4 h-4" />
-                        Gerenciar Barbeiros
-                      </button>
-                      <button 
-                        onClick={() => {
-                          logout();
-                          setIsDropdownOpen(false);
-                          navigate('/');
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 w-full text-left"
-                      >
-                        Sair
-                      </button>
-                    </div>
-                  </>
+                {isMobileMenuOpen ? (
+                  <X className="w-5 h-5 text-white" />
+                ) : (
+                  <Menu className="w-5 h-5 text-white" />
                 )}
-              </div>
-            </div>
-          )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Menu Mobile para Usuário Não Logado */}
-      {!isAuthenticated && (
-        <AnimatePresence mode="wait">
-          {isMobileMenuOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="md:hidden relative z-50"
-              >
-                <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-[#0D121E] border-b border-[#F0B35B]/10">
-                  <button
-                    onClick={() => {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
-                  >
-                    <motion.span
-                      whileHover={{ x: 5 }}
-                      className="flex items-center gap-3 text-[#F0B35B] text-lg"
+      {/* Menu Mobile Content */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              className="md:hidden relative z-50"
+            >
+              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-[#0D121E] border-b border-[#F0B35B]/10">
+                {isAuthenticated ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        navigate('/dashboard');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
                     >
-                      <Home className="flex-shrink-0" size={20} />
-                      Home
-                    </motion.span>
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      scrollToSection('about');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
-                  >
-                    <motion.span
-                      whileHover={{ x: 5 }}
-                      className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <Home className="flex-shrink-0" size={20} />
+                        Dashboard
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/servicos');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
                     >
-                      <User className="flex-shrink-0" size={20} />
-                      Sobre
-                    </motion.span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      scrollToSection('services');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
-                  >
-                    <motion.span
-                      whileHover={{ x: 5 }}
-                      className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <Scissors size={20} className="flex-shrink-0" />
+                        Serviços
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/gerenciar-horarios');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
                     >
-                      <Scissors size={20} className="flex-shrink-0" />
-                      Serviços
-                    </motion.span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsModalOpen(true);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="relative overflow-hidden group w-full text-left px-4 py-3 rounded-lg bg-[#F0B35B]/20 border border-[#F0B35B]/30 hover:border-[#F0B35B]/50 transition-all"
-                  >
-                    <motion.span
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-3 text-[#F0B35B] text-lg font-semibold"
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <Calendar size={20} className="flex-shrink-0" />
+                        Horários
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigate('/register');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
                     >
-                      <Calendar size={20} className="flex-shrink-0" />
-                      Agendar Horário
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine" />
-                    </motion.span>
-                  </button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      )}
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <Users size={20} className="flex-shrink-0" />
+                        Barbeiros
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={handleChangePassword}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
+                    >
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <Key size={20} className="flex-shrink-0" />
+                        Trocar Senha
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-red-500/10 transition-colors"
+                    >
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-red-400 text-lg"
+                      >
+                        <LogOut size={20} className="flex-shrink-0" />
+                        Sair
+                      </motion.span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
+                    >
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <Home className="flex-shrink-0" size={20} />
+                        Home
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        scrollToSection('about');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
+                    >
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <User className="flex-shrink-0" size={20} />
+                        Sobre
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        scrollToSection('services');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
+                    >
+                      <motion.span
+                        whileHover={{ x: 5 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                      >
+                        <Scissors size={20} className="flex-shrink-0" />
+                        Serviços
+                      </motion.span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsModalOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="relative overflow-hidden group w-full text-left px-4 py-3 rounded-lg bg-[#F0B35B]/20 border border-[#F0B35B]/30 hover:border-[#F0B35B]/50 transition-all"
+                    >
+                      <motion.span
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-3 text-[#F0B35B] text-lg font-semibold"
+                      >
+                        <Calendar size={20} className="flex-shrink-0" />
+                        Agendar Horário
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine" />
+                      </motion.span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };
