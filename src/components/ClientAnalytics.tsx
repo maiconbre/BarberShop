@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, Users, RefreshCw, Filter, Layers, Smartphone, X } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, X, BarChart2, PieChart, LineChart, Calendar, Users, DollarSign, TrendingUp, LayoutGrid, Table, Repeat, Gift, Percent, Clock, MessageSquare, User, History } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ComposedChart } from 'recharts';
+import { useAuth } from '../contexts/AuthContext';
 
-// Função para formatar número de WhatsApp no padrão (xx)xxxxx-xxxx
 const formatWhatsApp = (whatsapp: string | undefined): string => {
     if (!whatsapp) return '-';
 
@@ -35,86 +37,132 @@ interface Appointment {
     barberId: string;
     barberName: string;
     price: number;
-    createdAt?: string;
-    updatedAt?: string;
-    viewed?: boolean;
     isBlocked?: boolean;
 }
 
 interface ClientAnalyticsProps {
     appointments: Appointment[];
+    onRefreshData?: () => Promise<void>;
 }
 
+
 const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
+    const { getCurrentUser } = useAuth();
+    const currentUser = getCurrentUser();
+    const isAdmin = currentUser?.role === 'admin';
+
     const [searchTerm, setSearchTerm] = useState('');
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [timeRange, setTimeRange] = useState<'all' | 'month' | 'week'>('month');
-    const [filterModalOpen, setFilterModalOpen] = useState(false);
-    const [spendingRange, setSpendingRange] = useState<'all' | 'low' | 'medium' | 'high'>('all');
-    const [sortBy, setSortBy] = useState<'visits' | 'spent' | 'recent'>('visits');
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-    const [selectedClient, setSelectedClient] = useState<string | null>(null);
-    const [clientAppointments, setClientAppointments] = useState<Appointment[]>([]);
-    const [showClientHistory, setShowClientHistory] = useState(false);
-    const [frequencyFilter, setFrequencyFilter] = useState<'all' | 'regular' | 'occasional' | 'new'>('all');
-    const [serviceFilter, setServiceFilter] = useState<string>('all');
-    const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
-    const filterModalRef = useRef<HTMLDivElement>(null);
+    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'services' | 'trends'>('overview');
+    // Define interface for client data type
+    interface ClientData {
+        id: string;
+        name: string;
+        whatsapp?: string;
+        visits: number;
+        totalSpent: number;
+        lastVisit: string;
+        services: Record<string, number>;
+    }
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (filterModalRef.current && !filterModalRef.current.contains(event.target as Node)) {
-                setFilterModalOpen(false);
-            }
+    const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+    // Cores para os gráficos
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#F0B35B'];
+
+    // Função para lidar com o clique no cliente
+
+    // Filtrar agendamentos por barbeiro se não for admin
+    const filteredAppointments = useMemo(() => {
+        if (isAdmin) return appointments;
+        return appointments.filter(app => app.barberId === currentUser?.id);
+    }, [appointments, isAdmin, currentUser?.id]);
+
+    // Dados para o gráfico de tendências semanais
+    const weeklyData = useMemo(() => {
+        const weeks = Array.from({ length: 12 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (i * 7));
+            const startOfWeek = new Date(date);
+            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+            // Filtrar agendamentos da semana
+            const weekAppointments = filteredAppointments.filter(app => {
+                const appDate = new Date(app.date);
+                return appDate >= startOfWeek && appDate <= endOfWeek;
+            });
+
+            // Calcular métricas da semana
+            const uniqueClients = new Set(weekAppointments.map(app => app.clientName));
+            const totalRevenue = weekAppointments.reduce((sum, app) => sum + app.price, 0);
+            const ticketMedio = weekAppointments.length > 0 ? totalRevenue / weekAppointments.length : 0;
+
+            return {
+                name: `${startOfWeek.getDate()}/${startOfWeek.getMonth() + 1}`,
+                clientes: uniqueClients.size,
+                receita: totalRevenue,
+                ticketMedio: ticketMedio
+            };
+        }).reverse();
+
+        return weeks;
+    }, [filteredAppointments]);
+
+    // Dados para o gráfico de serviços
+    const servicesData = useMemo(() => {
+        const servicesCount: { [key: string]: number } = {};
+
+        filteredAppointments.forEach(app => {
+            const services = app.service.split(',').map(s => s.trim());
+            services.forEach(service => {
+                servicesCount[service] = (servicesCount[service] || 0) + 1;
+            });
+        });
+
+        return Object.entries(servicesCount)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 6);
+    }, [filteredAppointments]);
+
+    // Dados para o gráfico de frequência semanal
+
+    // Métricas gerais
+    const metricsData = useMemo(() => {
+        const uniqueClients = new Set<string>();
+        filteredAppointments.forEach(app => uniqueClients.add(app.clientName.toLowerCase()));
+
+        const totalRevenue = filteredAppointments.reduce((sum, app) => sum + app.price, 0);
+        const ticketMedio = filteredAppointments.length > 0 ? totalRevenue / filteredAppointments.length : 0;
+
+        const clientVisits: Record<string, number> = {};
+        filteredAppointments.forEach(app => {
+            const clientName = app.clientName.toLowerCase();
+            clientVisits[clientName] = (clientVisits[clientName] || 0) + 1;
+        });
+
+        const returningClients = Object.values(clientVisits).filter(visits => visits > 1).length;
+        const returnRate = uniqueClients.size > 0 ? (returningClients / uniqueClients.size) * 100 : 0;
+
+        const newClients = Object.values(clientVisits).filter(visits => visits === 1).length;
+
+        return {
+            ticketMedio,
+            returnRate,
+            newClients,
+            totalClients: uniqueClients.size,
+            totalRevenue,
+            averageVisits: filteredAppointments.length / uniqueClients.size
         };
+    }, [filteredAppointments]);
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth < 768) {
-                setViewMode('cards');
-            } else {
-                setViewMode('table');
-            }
-        };
-
-        handleResize();
-
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
+    // Dados dos clientes
     const clientsData = useMemo(() => {
         const clientMap = new Map<string, any>();
-
-        // Filtrar agendamentos bloqueados antes de processar
-        const nonBlockedAppointments = appointments.filter(app => !app.isBlocked);
-
-        const filteredAppointments = nonBlockedAppointments.filter(app => {
-            if (timeRange === 'all') return true;
-
-            const appDate = new Date(app.date);
-            const now = new Date();
-
-            if (timeRange === 'month') {
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(now.getDate() - 30);
-                return appDate >= thirtyDaysAgo;
-            }
-
-            if (timeRange === 'week') {
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(now.getDate() - 7);
-                return appDate >= sevenDaysAgo;
-            }
-
-            return true;
-        });
 
         filteredAppointments.forEach(app => {
             const clientWhatsapp = app.wppclient || app.clientWhatsapp || '';
@@ -148,453 +196,872 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         });
 
         return Array.from(clientMap.values());
-    }, [appointments, timeRange]);
+    }, [filteredAppointments]);
 
-    const uniqueServices = useMemo(() => {
-        const services = new Set<string>();
-        appointments.forEach(app => {
-            app.service.split(',').forEach(s => services.add(s.trim()));
+
+
+
+
+    const renderServicesTab = () => (
+        <div className="space-y-6">
+            {/* Gráfico de Serviços por Barbeiro */}
+            <div className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5">
+                <h3 className="text-lg font-medium text-white mb-4">Serviços por Barbeiro</h3>
+                <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={servicesData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                            <XAxis
+                                dataKey="name"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                interval={window.innerWidth <= 320 ? 1 : 0}
+                            />
+                            <YAxis
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: 'rgba(26,31,46,0.95)',
+                                    border: '1px solid rgba(240,179,91,0.5)',
+                                    borderRadius: '8px',
+                                    padding: '8px',
+                                    fontSize: window.innerWidth <= 320 ? 10 : 12
+                                }}
+                            />
+                            <Bar dataKey="value" name="Quantidade">
+                                {servicesData.map((_, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Gráfico de Satisfação por Serviço */}
+            <div className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5">
+                <h3 className="text-lg font-medium text-white mb-4">Satisfação por Serviço</h3>
+                <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={servicesData}>
+                            <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                            <PolarAngleAxis
+                                dataKey="name"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                            />
+                            <PolarRadiusAxis
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                            />
+                            <Radar
+                                name="Satisfação"
+                                dataKey="value"
+                                stroke="#F0B35B"
+                                fill="#F0B35B"
+                                fillOpacity={0.6}
+                            />
+                        </RadarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </div>
+    );
+
+    // Dados para o gráfico de previsão semanal
+    const forecastData = useMemo(() => {
+        const lastWeek = weeklyData[weeklyData.length - 1];
+        const secondLastWeek = weeklyData[weeklyData.length - 2];
+
+        // Calcular taxa de crescimento real das últimas 12 semanas
+        const growthRate = secondLastWeek.receita > 0
+            ? (lastWeek.receita - secondLastWeek.receita) / secondLastWeek.receita
+            : 0.02; // 2% de crescimento base se não houver dados suficientes
+
+        // Projetar crescimento para as próximas 12 semanas
+        return Array.from({ length: 12 }, (_, i) => {
+            const weekNumber = i + 1;
+            const projectedRevenue = lastWeek.receita * Math.pow(1 + growthRate, weekNumber);
+            const goal = lastWeek.receita * (1 + (0.1 * weekNumber)); // Meta de 10% de crescimento por semana
+
+            return {
+                name: `Semana ${weekNumber}`,
+                valor: projectedRevenue,
+                meta: goal,
+                tendencia: growthRate > 0 ? 'alta' : 'baixa'
+            };
         });
-        return Array.from(services);
-    }, [appointments]);
+    }, [weeklyData]);
 
-    const getClientFrequency = (visits: number, firstVisitDate: string): 'regular' | 'occasional' | 'new' => {
-        const daysSinceFirst = Math.floor((Date.now() - new Date(firstVisitDate).getTime()) / (1000 * 60 * 60 * 24));
-        if (daysSinceFirst <= 30) return 'new';
-        const visitsPerMonth = (visits / daysSinceFirst) * 30;
-        return visitsPerMonth >= 1 ? 'regular' : 'occasional';
-    };
-
-    const filteredClients = useMemo(() => {
-        let filtered = clientsData;
-
-        if (searchTerm.trim()) {
-            const term = searchTerm.toLowerCase();
-            filtered = filtered.filter(client =>
-                client.name.toLowerCase().includes(term) ||
-                (client.whatsapp && client.whatsapp.includes(term))
-            );
-        }
-
-        if (spendingRange !== 'all') {
-            filtered = filtered.filter(client => {
-                if (spendingRange === 'low' && client.totalSpent <= 100) return true;
-                if (spendingRange === 'medium' && client.totalSpent > 100 && client.totalSpent <= 300) return true;
-                if (spendingRange === 'high' && client.totalSpent > 300) return true;
-                return false;
+    // Dados para o gráfico de sazonalidade
+    const seasonalityData = useMemo(() => {
+        const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+        return weekdays.map((day, index) => {
+            // Filtrar agendamentos por dia da semana
+            const dayAppointments = filteredAppointments.filter(app => {
+                const appDate = new Date(app.date);
+                return appDate.getDay() === index;
             });
-        }
 
-        if (frequencyFilter !== 'all') {
-            filtered = filtered.filter(client => {
-                const frequency = getClientFrequency(client.visits, client.appointmentDates[0]);
-                return frequency === frequencyFilter;
+            const uniqueClients = new Set(dayAppointments.map(app => app.clientName));
+            const totalRevenue = dayAppointments.reduce((sum, app) => sum + app.price, 0);
+
+            return {
+                name: day,
+                clientes: uniqueClients.size,
+                receita: totalRevenue
+            };
+        });
+    }, [filteredAppointments]);
+
+    // Dados para o gráfico de ticket médio por período
+    const ticketData = useMemo(() => {
+        const periods = [
+            { name: 'Manhã', start: 8, end: 12 },
+            { name: 'Tarde', start: 12, end: 18 },
+            { name: 'Noite', start: 18, end: 22 }
+        ];
+
+        return periods.map(period => {
+            // Filtrar agendamentos por período do dia
+            const periodAppointments = filteredAppointments.filter(app => {
+                const hour = parseInt(app.time.split(':')[0]);
+                return hour >= period.start && hour < period.end;
             });
-        }
 
-        if (serviceFilter !== 'all') {
-            filtered = filtered.filter(client =>
-                client.services[serviceFilter] && client.services[serviceFilter] > 0
-            );
-        }
+            const totalRevenue = periodAppointments.reduce((sum, app) => sum + app.price, 0);
+            const ticketMedio = periodAppointments.length > 0 ? totalRevenue / periodAppointments.length : 0;
 
-        if (dateSort === 'asc') {
-            filtered.sort((a, b) => new Date(a.lastVisit).getTime() - new Date(b.lastVisit).getTime());
-        }
-
-        return filtered.sort((a, b) => {
-            if (sortBy === 'visits') return b.visits - a.visits;
-            if (sortBy === 'spent') return b.totalSpent - a.totalSpent;
-            if (sortBy === 'recent') return new Date(b.lastVisit).getTime() - new Date(a.lastVisit).getTime();
-            return 0;
+            return {
+                name: period.name,
+                ticket: ticketMedio,
+                servicos: periodAppointments.length
+            };
         });
-    }, [clientsData, searchTerm, spendingRange, sortBy, frequencyFilter, serviceFilter, dateSort]);
+    }, [filteredAppointments]);
 
-    const handleRefresh = async () => {
-        setIsRefreshing(true);
-        try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        } catch (error) {
-            console.error('Erro ao atualizar dados:', error);
-        } finally {
-            setIsRefreshing(false);
-        }
-    };
+    const renderTrendsTab = () => (
+        <div className="space-y-4">
+            {/* Gráfico de Tendências Semanais */}
+            <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <h3 className="text-lg font-medium text-white mb-3">Tendências das Últimas 12 Semanas</h3>
+                <div className="h-[250px] sm:h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RechartsLineChart
+                            data={weeklyData}
+                            margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                            <XAxis
+                                dataKey="name"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                interval={window.innerWidth <= 320 ? 1 : 0}
+                                padding={{ left: 0, right: 0 }}
+                            />
+                            <YAxis
+                                yAxisId="left"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                width={window.innerWidth <= 320 ? 30 : 40}
+                            />
+                            <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                width={window.innerWidth <= 320 ? 30 : 40}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: 'rgba(26,31,46,0.95)',
+                                    border: '1px solid rgba(240,179,91,0.5)',
+                                    borderRadius: '8px',
+                                    padding: '8px',
+                                    fontSize: window.innerWidth <= 320 ? 10 : 12
+                                }}
+                            />
+                            <Line
+                                yAxisId="left"
+                                type="monotone"
+                                dataKey="clientes"
+                                name="Clientes"
+                                stroke="#F0B35B"
+                                strokeWidth={2}
+                                dot={{ fill: '#F0B35B', r: window.innerWidth <= 320 ? 2 : 4 }}
+                            />
+                            <Line
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="receita"
+                                name="Receita (R$)"
+                                stroke="#00C49F"
+                                strokeWidth={2}
+                                dot={{ fill: '#00C49F', r: window.innerWidth <= 320 ? 2 : 4 }}
+                            />
+                            <Legend
+                                verticalAlign="top"
+                                height={36}
+                                wrapperStyle={{
+                                    paddingTop: '10px',
+                                    fontSize: window.innerWidth <= 320 ? '10px' : '12px'
+                                }}
+                            />
+                        </RechartsLineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
 
-    const toggleViewMode = () => {
-        setViewMode(viewMode === 'table' ? 'cards' : 'table');
-    };
+            {/* Gráfico de Previsão de Receita */}
+            <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <h3 className="text-lg font-medium text-white mb-3">Previsão de Receita (Próximas 12 Semanas)</h3>
+                <div className="h-[250px] sm:h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                            data={forecastData}
+                            margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                            <XAxis
+                                dataKey="name"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                interval={window.innerWidth <= 320 ? 1 : 0}
+                                padding={{ left: 0, right: 0 }}
+                            />
+                            <YAxis
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                width={window.innerWidth <= 320 ? 30 : 40}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: 'rgba(26,31,46,0.95)',
+                                    border: '1px solid rgba(240,179,91,0.5)',
+                                    borderRadius: '8px',
+                                    padding: '8px',
+                                    fontSize: window.innerWidth <= 320 ? 10 : 12
+                                }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="valor"
+                                name="Receita Prevista"
+                                fill="#F0B35B"
+                                stroke="#F0B35B"
+                                fillOpacity={0.3}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="meta"
+                                name="Meta"
+                                stroke="#00C49F"
+                                strokeWidth={2}
+                                dot={false}
+                                strokeDasharray="5 5"
+                            />
+                            <Legend
+                                verticalAlign="top"
+                                height={36}
+                                wrapperStyle={{
+                                    paddingTop: '10px',
+                                    fontSize: window.innerWidth <= 320 ? '10px' : '12px'
+                                }}
+                            />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
 
-    const handleClientClick = (clientName: string, clientWhatsapp?: string) => {
-        const clientApps = clientWhatsapp
-            ? appointments.filter(app => (app.wppclient || app.clientWhatsapp) === clientWhatsapp)
-            : appointments.filter(app => app.clientName.toLowerCase() === clientName.toLowerCase());
+            {/* Gráfico de Sazonalidade Semanal */}
+            <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <h3 className="text-lg font-medium text-white mb-3">Sazonalidade Semanal</h3>
+                <div className="h-[250px] sm:h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                            data={seasonalityData}
+                            margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                            <XAxis
+                                dataKey="name"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                interval={0}
+                                padding={{ left: 0, right: 0 }}
+                            />
+                            <YAxis
+                                yAxisId="left"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                width={window.innerWidth <= 320 ? 30 : 40}
+                            />
+                            <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                width={window.innerWidth <= 320 ? 30 : 40}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: 'rgba(26,31,46,0.95)',
+                                    border: '1px solid rgba(240,179,91,0.5)',
+                                    borderRadius: '8px',
+                                    padding: '8px',
+                                    fontSize: window.innerWidth <= 320 ? 10 : 12
+                                }}
+                            />
+                            <Bar
+                                yAxisId="left"
+                                dataKey="clientes"
+                                name="Clientes"
+                                fill="#F0B35B"
+                                fillOpacity={0.8}
+                            />
+                            <Line
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="receita"
+                                name="Receita (R$)"
+                                stroke="#00C49F"
+                                strokeWidth={2}
+                                dot={{ fill: '#00C49F', r: window.innerWidth <= 320 ? 2 : 4 }}
+                            />
+                            <Legend
+                                verticalAlign="top"
+                                height={36}
+                                wrapperStyle={{
+                                    paddingTop: '10px',
+                                    fontSize: window.innerWidth <= 320 ? '10px' : '12px'
+                                }}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
 
-        clientApps.sort((a, b) => {
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
-        });
+            {/* Gráfico de Ticket Médio por Período */}
+            <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <h3 className="text-lg font-medium text-white mb-3">Ticket Médio por Período</h3>
+                <div className="h-[250px] sm:h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart
+                            data={ticketData}
+                            margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                            <XAxis
+                                dataKey="name"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                interval={0}
+                                padding={{ left: 0, right: 0 }}
+                            />
+                            <YAxis
+                                yAxisId="left"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                width={window.innerWidth <= 320 ? 30 : 40}
+                            />
+                            <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                tick={{ fill: '#fff', fontSize: window.innerWidth <= 320 ? 10 : 12 }}
+                                width={window.innerWidth <= 320 ? 30 : 40}
+                            />
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: 'rgba(26,31,46,0.95)',
+                                    border: '1px solid rgba(240,179,91,0.5)',
+                                    borderRadius: '8px',
+                                    padding: '8px',
+                                    fontSize: window.innerWidth <= 320 ? 10 : 12
+                                }}
+                            />
+                            <Bar
+                                yAxisId="left"
+                                dataKey="servicos"
+                                name="Serviços"
+                                fill="#F0B35B"
+                                fillOpacity={0.8}
+                            />
+                            <Line
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="ticket"
+                                name="Ticket Médio (R$)"
+                                stroke="#00C49F"
+                                strokeWidth={2}
+                                dot={{ fill: '#00C49F', r: window.innerWidth <= 320 ? 2 : 4 }}
+                            />
+                            <Legend
+                                verticalAlign="top"
+                                height={36}
+                                wrapperStyle={{
+                                    paddingTop: '10px',
+                                    fontSize: window.innerWidth <= 320 ? '10px' : '12px'
+                                }}
+                            />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </div>
+    );
 
-        setSelectedClient(clientName);
-        setClientAppointments(clientApps);
-        setShowClientHistory(true);
-    };
+    const renderOverviewTab = () => (
+        <div className="space-y-6">
+            {/* Cards de métricas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <motion.div
+                    className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5"
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-400 text-sm">Receita Total</p>
+                            <h3 className="text-2xl font-bold text-[#F0B35B]">R$ {metricsData.totalRevenue.toFixed(2)}</h3>
+                        </div>
+                        <div className="bg-[#F0B35B]/10 p-2 rounded-lg">
+                            <DollarSign className="w-6 h-6 text-[#F0B35B]" />
+                        </div>
+                    </div>
+                </motion.div>
 
-    const closeClientHistory = () => {
-        setShowClientHistory(false);
-        setSelectedClient(null);
-    };
+                <motion.div
+                    className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5"
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-400 text-sm">Total de Clientes</p>
+                            <h3 className="text-2xl font-bold text-white">{metricsData.totalClients}</h3>
+                        </div>
+                        <div className="bg-blue-500/10 p-2 rounded-lg">
+                            <Users className="w-6 h-6 text-blue-500" />
+                        </div>
+                    </div>
+                </motion.div>
 
-    const renderMetrics = (client: any) => {
-        const visitFrequency = getClientFrequency(client.visits, client.appointmentDates[0]);
-        const avgSpentPerVisit = client.totalSpent / client.visits;
+                <motion.div
+                    className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5"
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-400 text-sm">Ticket Médio</p>
+                            <h3 className="text-2xl font-bold text-green-400">R$ {metricsData.ticketMedio.toFixed(2)}</h3>
+                        </div>
+                        <div className="bg-green-500/10 p-2 rounded-lg">
+                            <TrendingUp className="w-6 h-6 text-green-500" />
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+
+            {/* Componente de Resumo e Estratégias */}
+            <div className="bg-[#1A1F2E] p-6 rounded-xl border border-white/5">
+                <h3 className="text-xl font-semibold text-white mb-4">Análise e Estratégias</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Análise de Desempenho */}
+                    <div className="space-y-4">
+                        <h4 className="text-lg font-medium text-[#F0B35B]">Análise de Desempenho</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                                <div className="bg-[#F0B35B]/10 p-2 rounded-lg">
+                                    <TrendingUp className="w-5 h-5 text-[#F0B35B]" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Crescimento de Clientes</p>
+                                    <p className="text-gray-400 text-sm">
+                                        {metricsData.newClients} novos clientes nos últimos 30 dias
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="bg-green-500/10 p-2 rounded-lg">
+                                    <Repeat className="w-5 h-5 text-green-500" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Taxa de Retorno</p>
+                                    <p className="text-gray-400 text-sm">
+                                        {metricsData.returnRate.toFixed(1)}% dos clientes retornam
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Estratégias Recomendadas */}
+                    <div className="space-y-4">
+                        <h4 className="text-lg font-medium text-[#F0B35B]">Estratégias Recomendadas</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                                <div className="bg-blue-500/10 p-2 rounded-lg">
+                                    <Gift className="w-5 h-5 text-blue-500" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Programa de Fidelidade</p>
+                                    <p className="text-gray-400 text-sm">
+                                        Implementar um sistema de pontos para clientes frequentes
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="bg-purple-500/10 p-2 rounded-lg">
+                                    <Calendar className="w-5 h-5 text-purple-500" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Horários de Pico</p>
+                                    <p className="text-gray-400 text-sm">
+                                        Oferecer descontos em horários com menor movimento
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Promoções Sugeridas */}
+                    <div className="space-y-4">
+                        <h4 className="text-lg font-medium text-[#F0B35B]">Promoções Sugeridas</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                                <div className="bg-red-500/10 p-2 rounded-lg">
+                                    <Percent className="w-5 h-5 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Pacote Mensal</p>
+                                    <p className="text-gray-400 text-sm">
+                                        Oferecer desconto para clientes que agendam serviços mensais
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="bg-yellow-500/10 p-2 rounded-lg">
+                                    <Users className="w-5 h-5 text-yellow-500" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Indicação Premium</p>
+                                    <p className="text-gray-400 text-sm">
+                                        Bônus para clientes que indicarem novos clientes
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Melhorias de Negócio */}
+                    <div className="space-y-4">
+                        <h4 className="text-lg font-medium text-[#F0B35B]">Melhorias de Negócio</h4>
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                                <div className="bg-green-500/10 p-2 rounded-lg">
+                                    <Clock className="w-5 h-5 text-green-500" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Gestão de Tempo</p>
+                                    <p className="text-gray-400 text-sm">
+                                        Otimizar agendamentos para reduzir tempos de espera
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="bg-pink-500/10 p-2 rounded-lg">
+                                    <MessageSquare className="w-5 h-5 text-pink-500" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-medium">Feedback Contínuo</p>
+                                    <p className="text-gray-400 text-sm">
+                                        Implementar sistema de avaliação pós-serviço
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderClientsTab = () => {
+        // Filtrar clientes com base no termo de busca
+        const filteredClients = clientsData.filter(client =>
+            client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (client.whatsapp && client.whatsapp.includes(searchTerm))
+        );
 
         return (
-            <div className="grid grid-cols-2 gap-2 mt-3 bg-[#0D121E]/50 p-2 rounded-lg">
-                <div className="text-xs">
-                    <span className="text-gray-400">Frequência: </span>
-                    <span className={`
-                        ${visitFrequency === 'regular' ? 'text-green-400' : ''}
-                        ${visitFrequency === 'occasional' ? 'text-yellow-400' : ''}
-                        ${visitFrequency === 'new' ? 'text-blue-400' : ''}
-                    `}>
-                        {visitFrequency === 'regular' ? 'Regular' :
-                            visitFrequency === 'occasional' ? 'Ocasional' : 'Novo'}
-                    </span>
+            <div className="space-y-6">
+                {/* Filtros e Busca */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar cliente..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-[#1A1F2E] rounded-lg border border-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50"
+                        />
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+                            className="p-2 rounded-lg bg-[#1A1F2E] border border-white/5 text-white hover:bg-[#F0B35B]/10 transition-colors"
+                        >
+                            {viewMode === 'table' ? <LayoutGrid className="w-5 h-5" /> : <Table className="w-5 h-5" />}
+                        </button>
+                    </div>
                 </div>
-                <div className="text-xs">
-                    <span className="text-gray-400">Média/Visita: </span>
-                    <span className="text-green-400">R$ {avgSpentPerVisit.toFixed(2)}</span>
+
+                {/* Lista de Clientes */}
+                <div className="bg-[#1A1F2E] rounded-xl border border-white/5 overflow-hidden">
+                    {viewMode === 'table' ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-white/5">
+                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Cliente</th>
+                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">WhatsApp</th>
+                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Visitas</th>
+                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Última Visita</th>
+                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Total Gasto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredClients.map((client) => (
+                                        <tr key={client.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
+                                                        <User className="w-4 h-4 text-[#F0B35B]" />
+                                                    </div>
+                                                    <span className="text-white">{client.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-400">{formatWhatsApp(client.whatsapp)}</td>
+                                            <td className="py-3 px-4 text-gray-400">{client.visits}</td>
+                                            <td className="py-3 px-4 text-gray-400">
+                                                {new Date(client.lastVisit).toLocaleDateString()}
+                                            </td>
+                                            <td className="py-3 px-4 text-[#F0B35B]">
+                                                R$ {client.totalSpent.toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                            {filteredClients.map((client) => (
+                                <motion.div
+                                    key={client.id}
+                                    className="bg-[#252B3B] p-4 rounded-lg border border-white/5"
+                                    whileHover={{ scale: 1.02 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
+                                            <User className="w-5 h-5 text-[#F0B35B]" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-white font-medium">{client.name}</h4>
+                                            <p className="text-gray-400 text-sm">{formatWhatsApp(client.whatsapp)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-gray-400 text-sm">Visitas</p>
+                                            <p className="text-white font-medium">{client.visits}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-400 text-sm">Total Gasto</p>
+                                            <p className="text-[#F0B35B] font-medium">R$ {client.totalSpent.toFixed(2)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-400 text-sm">Última Visita</p>
+                                            <p className="text-white font-medium">
+                                                {new Date(client.lastVisit).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-400 text-sm">Ticket Médio</p>
+                                            <p className="text-white font-medium">
+                                                R$ {(client.totalSpent / client.visits).toFixed(2)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 mb-6 relative">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
-                <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#F0B35B]" />
-                    Histórico de Clientes
-                </h2>
-
-                <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                    <div className="relative w-full sm:w-64 min-w-[180px]">
-                        <input
-                            type="text"
-                            placeholder="Nome ou WhatsApp"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-8 sm:pl-10 pr-3 py-2 bg-[#0D121E] rounded-lg focus:ring-1 focus:ring-[#F0B35B] outline-none transition-all"
-                        />
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    </div>
-
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setFilterModalOpen(!filterModalOpen)}
-                            className="p-2 rounded-lg bg-[#0D121E] text-gray-400 hover:text-[#F0B35B] transition-colors"
+        <div className="w-full h-full flex flex-col">
+            {/* Modais */}
+            <AnimatePresence>
+                {isHistoryModalOpen && selectedClient && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="bg-[#1A1F2E] rounded-xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
                         >
-                            <Filter className="h-4 w-4" />
-                        </button>
-
-                        <button
-                            onClick={toggleViewMode}
-                            className="p-2 rounded-lg bg-[#0D121E] text-gray-400 hover:text-[#F0B35B] transition-colors"
-                        >
-                            {viewMode === 'table' ? <Layers className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
-                        </button>
-
-                        <button
-                            onClick={handleRefresh}
-                            className="p-2 rounded-lg bg-[#0D121E] text-gray-400 hover:text-[#F0B35B] transition-colors"
-                            disabled={isRefreshing}
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`} />
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mb-4">
-                <select
-                    value={frequencyFilter}
-                    onChange={(e) => setFrequencyFilter(e.target.value as any)}
-                    className="bg-[#0D121E] text-white text-xs rounded-full px-3 py-1.5"
-                >
-                    <option value="all">Todas frequências</option>
-                    <option value="regular">Clientes regulares</option>
-                    <option value="occasional">Clientes ocasionais</option>
-                    <option value="new">Novos clientes</option>
-                </select>
-
-                <select
-                    value={serviceFilter}
-                    onChange={(e) => setServiceFilter(e.target.value)}
-                    className="bg-[#0D121E] text-white text-xs rounded-full px-3 py-1.5"
-                >
-                    <option value="all">Todos serviços</option>
-                    {uniqueServices.map(service => (
-                        <option key={service} value={service}>{service}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="flex mb-6 gap-2">
-                <button
-                    onClick={() => setTimeRange('week')}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-all ${timeRange === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
-                >
-                    Última Semana
-                </button>
-                <button
-                    onClick={() => setTimeRange('month')}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-all ${timeRange === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
-                >
-                    Último Mês
-                </button>
-                <button
-                    onClick={() => setTimeRange('all')}
-                    className={`px-3 py-1.5 text-xs rounded-full transition-all ${timeRange === 'all' ? 'bg-[#F0B35B] text-black' : 'bg-[#0D121E] text-white hover:bg-[#F0B35B]/20'}`}
-                >
-                    Todo Período
-                </button>
-            </div>
-
-            <div className="min-h-[300px]">
-                {filteredClients.length > 0 ? (
-                    <>
-                        {viewMode === 'table' && (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left text-gray-300">
-                                    <thead className="text-xs uppercase bg-[#0D121E] text-gray-400">
-                                        <tr>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3 rounded-tl-lg">Cliente</th>
-                                            <th className="hidden sm:table-cell px-4 py-3">WhatsApp</th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3">Visitas</th>
-                                            <th className="px-2 sm:px-4 py-2 sm:py-3">Total</th>
-                                            <th className="hidden sm:table-cell px-4 py-3 rounded-tr-lg">Última Visita</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredClients.map((client, index) => (
-                                            <tr
-                                                key={index}
-                                                className="border-b border-gray-700/30 hover:bg-[#0D121E]/50 cursor-pointer"
-                                                onClick={() => handleClientClick(client.name, client.whatsapp)}
-                                            >
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3 font-medium">
-                                                    <div>
-                                                        {client.name}
-                                                        <div className="sm:hidden text-xs text-gray-400">
-                                                            {formatWhatsApp(client.whatsapp)}
-                                                        </div>
-                                                        <div className="sm:hidden text-xs text-gray-400">
-                                                            {new Date(client.lastVisit).toLocaleDateString('pt-BR')}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="hidden sm:table-cell px-4 py-3">{formatWhatsApp(client.whatsapp)}</td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3">{client.visits}</td>
-                                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-green-400">R$ {client.totalSpent.toFixed(2)}</td>
-                                                <td className="hidden sm:table-cell px-4 py-3">{new Date(client.lastVisit).toLocaleDateString('pt-BR')}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        <div className={`${viewMode === 'cards' ? 'grid' : 'hidden sm:hidden'} grid-cols-1 gap-4`}>
-                            {filteredClients.map((client, index) => (
-                                <div
-                                    key={index}
-                                    className="bg-[#0D121E] p-4 rounded-lg border-l-2 border-[#F0B35B] shadow-sm cursor-pointer hover:bg-[#0D121E]/70 transition-colors"
-                                    onClick={() => handleClientClick(client.name, client.whatsapp)}
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-medium text-white">Histórico de {selectedClient.name}</h3>
+                                <button
+                                    onClick={() => setIsHistoryModalOpen(false)}
+                                    className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
                                 >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-medium text-white">{client.name}</h4>
-                                        <span className="text-xs bg-[#F0B35B]/20 text-[#F0B35B] px-2 py-1 rounded-full">
-                                            {client.visits} {client.visits === 1 ? 'visita' : 'visitas'}
-                                        </span>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-400 mt-2">
-                                        <div>
-                                            <p className="mb-1">WhatsApp:</p>
-                                            <p className="text-white">{formatWhatsApp(client.whatsapp)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="mb-1">Total Gasto:</p>
-                                            <p className="text-green-400">R$ {client.totalSpent.toFixed(2)}</p>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <p className="mb-1">Última Visita:</p>
-                                            <p className="text-white">{new Date(client.lastVisit).toLocaleDateString('pt-BR')}</p>
-                                        </div>
-                                    </div>
-
-                                    {renderMetrics(client)}
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <React.Suspense fallback={
+                                <div className="flex justify-center items-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#F0B35B]"></div>
                                 </div>
-                            ))}
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                        <Users className="h-12 w-12 mb-4 opacity-30" />
-                        <p>Nenhum cliente encontrado com o termo "{searchTerm}"</p>
+                            }>
+                            </React.Suspense>
+                            <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm text-gray-400">Total de visitas: <span className="text-white">{selectedClient.visits}</span></p>
+                                    <p className="text-sm text-gray-400">Total gasto: <span className="text-green-400">R$ {selectedClient.totalSpent.toFixed(2)}</span></p>
+                                </div>
+                                <button
+                                    onClick={() => setIsHistoryModalOpen(false)}
+                                    className="px-3 py-1.5 bg-[#252B3B] text-white rounded-lg text-sm hover:bg-[#2E354A] transition-colors"
+                                >
+                                    Fechar
+                                </button>
+                            </div>
+                        </motion.div>
                     </div>
                 )}
-            </div>
-
-            {showClientHistory && selectedClient && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 mt-10 z-30 overflow-y-auto">
-                    <div
-                        className="bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20 shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden my-4"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="sticky top-0 flex justify-between items-center p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
-                            <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                                <Users className="h-5 w-5 text-[#F0B35B]" />
-                                Histórico de {selectedClient}
-                            </h3>
-                            <button
-                                onClick={closeClientHistory}
-                                className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700/30 rounded-lg"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-                            {clientAppointments.length > 0 ? (
-                                <div className="space-y-4">
-                                    <div className="bg-[#0D121E] p-3 rounded-lg">
-                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
-                                            <div>
-                                                <h4 className="text-sm sm:text-base font-medium text-white">Resumo</h4>
-                                                <p className="text-xs text-gray-400">Histórico completo de visitas</p>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs bg-[#1A1F2E] px-3 py-1.5 rounded-full">
-                                                <span className="text-gray-400">Total de visitas:</span>
-                                                <span className="text-[#F0B35B] font-medium">{clientAppointments.length}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                            <div className="bg-[#1A1F2E] p-3 rounded-lg">
-                                                <p className="text-xs text-gray-400 mb-1">Total gasto</p>
-                                                <p className="text-lg font-bold text-green-400">
-                                                    R$ {clientAppointments.reduce((sum, app) => sum + app.price, 0).toFixed(2)}
-                                                </p>
-                                            </div>
-                                            <div className="bg-[#1A1F2E] p-3 rounded-lg">
-                                                <p className="text-xs text-gray-400 mb-1">Primeira visita</p>
-                                                <p className="text-sm font-medium text-white">
-                                                    {new Date([...clientAppointments].sort((a, b) =>
-                                                        new Date(a.date).getTime() - new Date(b.date).getTime())[0].date
-                                                    ).toLocaleDateString('pt-BR')}
-                                                </p>
-                                            </div>
-                                            <div className="bg-[#1A1F2E] p-3 rounded-lg">
-                                                <p className="text-xs text-gray-400 mb-1">Última visita</p>
-                                                <p className="text-sm font-medium text-white">
-                                                    {new Date(clientAppointments[0].date).toLocaleDateString('pt-BR')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <h4 className="text-sm font-medium text-white mt-4 mb-2">Todas as visitas</h4>
-                                    <div className="space-y-3">
-                                        {clientAppointments.map((app) => (
-                                            <div
-                                                key={app.id}
-                                                className={`bg-[#0D121E] p-3 rounded-lg border-l-2 ${app.status === 'completed' ? 'border-green-400' : app.status === 'confirmed' ? 'border-blue-400' : 'border-yellow-400'}`}
-                                            >
-                                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#1A1F2E]">
-                                                            {new Date(app.date).toLocaleDateString('pt-BR')}
-                                                        </span>
-                                                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#1A1F2E]">
-                                                            {app.time}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${app.status === 'completed' ? 'bg-green-400/20 text-green-400' : app.status === 'confirmed' ? 'bg-blue-400/20 text-blue-400' : 'bg-yellow-400/20 text-yellow-400'}`}>
-                                                            {app.status === 'completed' ? 'Concluído' : app.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                                                        </span>
-                                                        <span className="text-xs font-medium text-green-400">
-                                                            R$ {app.price.toFixed(2)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-2">
-                                                    <p className="text-sm text-white">{app.service}</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Barbeiro: {app.barberName}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                                    <Users className="h-12 w-12 mb-4 opacity-30" />
-                                    <p>Nenhum histórico encontrado para este cliente</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {filterModalOpen && (
-                <div
-                    ref={filterModalRef}
-                    className="absolute right-2 sm:right-4 top-20 sm:top-20 z-10 bg-[#1A1F2E] rounded-lg shadow-xl border border-gray-700 p-3 sm:p-4 w-[250px] sm:w-[320px]"
-                >
-                    <div className="flex justify-between items-center mb-2 sm:mb-3">
-                        <h3 className="text-xs sm:text-sm font-medium text-white">Filtros Avançados</h3>
-                        <button
-                            onClick={() => setFilterModalOpen(false)}
-                            className="text-gray-400 hover:text-white"
+            </AnimatePresence>
+            <AnimatePresence>
+                {isClientModalOpen && selectedClient && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, y: 50 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 50 }}
+                            className="bg-[#1A1F2E] rounded-xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
                         >
-                            <X size={14} />
-                        </button>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-medium text-white">Detalhes do Cliente</h3>
+                                <button
+                                    onClick={() => setIsClientModalOpen(false)}
+                                    className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
+                                        <User className="w-6 h-6 text-[#F0B35B]" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white font-medium">{selectedClient.name}</h4>
+                                        <p className="text-sm text-gray-400">{formatWhatsApp(selectedClient.whatsapp)}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3 mt-4">
+                                    <div className="p-3 bg-white/5 rounded-lg">
+                                        <p className="text-sm text-gray-400">Visitas</p>
+                                        <p className="text-lg font-medium text-white">{selectedClient.visits}</p>
+                                    </div>
+                                    <div className="p-3 bg-white/5 rounded-lg">
+                                        <p className="text-sm text-gray-400">Total Gasto</p>
+                                        <p className="text-lg font-medium text-green-400">R$ {selectedClient.totalSpent.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-white/5 rounded-lg">
+                                    <p className="text-sm text-gray-400 mb-2">Serviços Preferidos</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.entries(selectedClient.services || {})
+                                            .sort(([, a]: any, [, b]: any) => b - a)
+                                            .slice(0, 3)
+                                            .map(([service, count]: [string, any]) => (
+                                                <span
+                                                    key={service}
+                                                    className="px-2 py-1 bg-[#F0B35B]/10 text-[#F0B35B] text-xs rounded-full"
+                                                >
+                                                    {service} ({count}x)
+                                                </span>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-white/5 rounded-lg">
+                                    <p className="text-sm text-gray-400 mb-2">Última Visita</p>
+                                    <p className="text-white">{selectedClient.lastVisit ? new Date(selectedClient.lastVisit).toLocaleDateString('pt-BR') : '-'}</p>
+                                </div>
+                                <div className="flex justify-between mt-4 pt-4 border-t border-white/10">
+                                    <button
+                                        onClick={() => {
+                                            setIsClientModalOpen(false);
+                                        }}
+                                        className="px-3 py-2 bg-[#F0B35B]/10 text-[#F0B35B] rounded-lg text-sm hover:bg-[#F0B35B]/20 transition-colors flex items-center gap-2"
+                                    >
+                                        <History size={16} />
+                                        Ver Histórico
+                                    </button>
+                                    <button
+                                        onClick={() => setIsClientModalOpen(false)}
+                                        className="px-3 py-2 bg-[#252B3B] text-white rounded-lg text-sm hover:bg-[#2E354A] transition-colors"
+                                    >
+                                        Fechar
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
-
-                    <div className="space-y-3 sm:space-y-4">
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1">Faixa de Gastos</label>
-                            <select
-                                value={spendingRange}
-                                onChange={(e) => setSpendingRange(e.target.value as any)}
-                                className="w-full bg-[#0D121E] text-white text-xs sm:text-sm rounded-md px-2 sm:px-3 py-1.5 sm:py-2 outline-none focus:ring-1 focus:ring-[#F0B35B]"
+                )}
+            </AnimatePresence>
+            {/* Tabs de navegação */}
+            <div className="space-y-6">
+                <div className="flex flex-wrap justify-center gap-2 bg-[#1A1F2E] p-1 rounded-lg">
+                    {[
+                        { id: 'overview', label: 'Visão Geral', icon: BarChart2 },
+                        { id: 'clients', label: 'Clientes', icon: Users },
+                        { id: 'services', label: 'Serviços', icon: PieChart },
+                        { id: 'trends', label: 'Tendências', icon: LineChart }
+                    ].map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                            <motion.button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${activeTab === tab.id
+                                        ? 'bg-[#F0B35B] text-black font-medium'
+                                        : 'text-white hover:bg-[#F0B35B]/20'
+                                    }`}
                             >
-                                <option value="all">Todos os valores</option>
-                                <option value="low">Até R$ 100</option>
-                                <option value="medium">R$ 101 - R$ 300</option>
-                                <option value="high">Acima de R$ 300</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1">Ordenar por</label>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as any)}
-                                className="w-full bg-[#0D121E] text-white text-xs sm:text-sm rounded-md px-2 sm:px-3 py-1.5 sm:py-2 outline-none focus:ring-1 focus:ring-[#F0B35B]"
-                            >
-                                <option value="visits">Número de visitas</option>
-                                <option value="spent">Total gasto</option>
-                                <option value="recent">Visita mais recente</option>
-                            </select>
-                        </div>
-                    </div>
+                                <Icon className="w-4 h-4" />
+                                <span className="text-sm">{tab.label}</span>
+                            </motion.button>
+                        );
+                    })}
                 </div>
-            )}
+                {/* Conteúdo das tabs */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        {activeTab === 'overview' && renderOverviewTab()}
+                        {activeTab === 'clients' && renderClientsTab()}
+                        {activeTab === 'services' && renderServicesTab()}
+                        {activeTab === 'trends' && renderTrendsTab()}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
         </div>
     );
 };
 
-export default ClientAnalytics;
+export default React.memo(ClientAnalytics);

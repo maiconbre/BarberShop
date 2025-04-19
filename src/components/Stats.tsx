@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Clock, Eye, EyeOff, TrendingUp, Users } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Clock, Eye, EyeOff, TrendingUp, Users, DollarSign, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface StatsProps {
@@ -12,7 +11,7 @@ interface StatsProps {
 }
 
 // Componente para animação de contagem
-const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?: number; prefix?: string }) => {
+const CountUp = ({ end, duration = 0.4, prefix = '', suffix = '' }: { end: number; duration?: number; prefix?: string; suffix?: string }) => {
   const [count, setCount] = useState(0);
   const prevEndRef = useRef(end);
 
@@ -41,12 +40,11 @@ const CountUp = ({ end, duration = 0.4, prefix = '' }: { end: number; duration?:
   }, [end, duration]);
 
   return (
-    <span>{prefix}{count.toFixed(2)}</span>
+    <span>{prefix}{count.toFixed(2)}{suffix}</span>
   );
 };
 
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
-  const navigate = useNavigate();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showValues, setShowValues] = useState(true);
   const { getCurrentUser } = useAuth();
@@ -126,11 +124,11 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
       .reduce((sum, app) => sum + app.price, 0),
     [currentFilteredAppointments]);
 
+
   // Função para calcular o próximo agendamento e o tempo restante
   const getNextAppointment = useMemo(() => {
     // Obter a data e hora atual
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
     
     // Filtrar agendamentos futuros (hoje ou depois) e não concluídos
     let futureAppointments = appointments.filter(app => {
@@ -247,52 +245,70 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     ];
   }, [filteredPendingAppointments, filteredCompletedAppointments, filteredPendingRevenue, filteredCompletedRevenue]);
 
+  const periodTexts: Record<string, string> = {
+    day: 'Hoje',
+    week: 'semana',
+    month: 'mês'
+  };
+
   return (
-    <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 w-full">
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-center items-center gap-2">
-          <button
-            onClick={() => handleModeChange('month')}
-            className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'month' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
+    <motion.div 
+      className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 w-full overflow-hidden"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="flex flex-col gap-5">
+        {/* Período de visualização */}
+        <div className="flex justify-center items-center gap-2 bg-[#252B3B]/30 p-1 rounded-lg">
+          {(['month', 'week', 'day'] as const).map((mode) => (
+            <motion.button
+              key={mode}
+              onClick={() => handleModeChange(mode)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`relative px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-300 flex-1 ${
+                revenueDisplayMode === mode 
+                  ? 'bg-[#F0B35B] text-black font-medium shadow-lg' 
+                  : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'
+              }`}
           >
-            Mensal 
-          </button>
-          <button
-            onClick={() => handleModeChange('week')}
-            className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'week' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-          >
-            Semana
-          </button>
-          <button
-            onClick={() => handleModeChange('day')}
-            className={`px-3 py-2 text-sm rounded-md transition-all duration-300 w-24 ${revenueDisplayMode === 'day' ? 'bg-[#F0B35B] text-black' : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'}`}
-          >
-            Hoje
-          </button>
+              {periodTexts[mode]}
+              {revenueDisplayMode === mode && (
+                <motion.div 
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#F0B35B]/80"
+                  layoutId="indicator"
+                />
+              )}
+            </motion.button>
+          ))}
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
-          <motion.div className="flex-1 w-full">
+          <motion.div 
+            className="flex-1 w-full"
+            layout
+          >
             <AnimatePresence mode="wait">
-              {revenueDisplayMode === 'month' ? (
                 <motion.div
-                  key="month"
-                  initial={{ opacity: 0, y: 20 }}
+                key={`${revenueDisplayMode}`}
+                initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
+                exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="text-center "
-                >
-                  <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
-                    Receita Mensal (30 dias)
+                className="text-center py-4 px-3 bg-[#252B3B]/20 rounded-xl border border-white/5"
+              >
+                <p className="text-gray-400 text-sm sm:text-base mb-3 flex items-center justify-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  <span>Receita {periodTexts[revenueDisplayMode]}</span>
                   </p>
-                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center  gap-2">
+                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleValueVisibility();
                       }}
-                      className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
+                    className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors bg-[#252B3B]/40 p-1.5 rounded-full"
                     >
                       <AnimatePresence mode="wait">
                         {isBlinking ? (
@@ -313,121 +329,42 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                       </AnimatePresence>
                     </button>
                     {showValues ? (
-                      <>R$ <CountUp end={receitaMes} /></>
+                    <CountUp 
+                      end={revenueDisplayMode === 'day' 
+                        ? receitaHoje 
+                        : revenueDisplayMode === 'week' 
+                        ? receitaSemana 
+                        : receitaMes} 
+                      prefix="R$ "
+                      suffix=""
+                    />
                     ) : (
                       "R$ ******"
                     )}
                   </h4>
-                  <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
-                    <span className="inline-block mr-1">↑</span>
-                    <span>{clientesMes} clientes nos últimos 30 dias</span>
+                <div className="flex items-center text-sm text-green-400 mt-3 justify-center">
+                  <ArrowUpRight className="w-4 h-4 mr-1.5" />
+                  <span>
+                    {revenueDisplayMode === 'day' 
+                      ? `${clientesHoje} clientes hoje` 
+                      : revenueDisplayMode === 'week' 
+                      ? `${clientesSemana} clientes esta semana` 
+                      : `${clientesMes} clientes este mês`}
+                  </span>
                   </div>
                 </motion.div>
-              ) : revenueDisplayMode === 'week' ? (
-                <motion.div
-                  key="week"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
-                  className="text-center "
-                >
-                  <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
-                    Receita Semanal
-                  </p>
-                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleValueVisibility();
-                      }}
-                      className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
-                    >
-                      <AnimatePresence mode="wait">
-                        {isBlinking ? (
-                          <motion.div
-                            key="blinking"
-                            initial={{ opacity: 1 }}
-                            animate={{ opacity: 0 }}
-                            exit={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Eye size={16} />
-                          </motion.div>
-                        ) : showValues ? (
-                          <Eye size={16} />
-                        ) : (
-                          <EyeOff size={16} />
-                        )}
-                      </AnimatePresence>
-                    </button>
-                    {showValues ? (
-                      <>R$ <CountUp end={receitaSemana} /></>
-                    ) : (
-                      "R$ ******"
-                    )}
-                  </h4>
-                  <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
-                    <span className="inline-block mr-1">↑</span>
-                    <span>{clientesSemana} clientes nesta semana</span>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="day"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
-                  className="text-center "
-                >
-                  <p className="text-gray-400 text-sm sm:text-base mb-2 text-center ">
-                    Receita Hoje
-                  </p>
-                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleValueVisibility();
-                      }}
-                      className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors"
-                    >
-                      <AnimatePresence mode="wait">
-                        {isBlinking ? (
-                          <motion.div
-                            key="blinking"
-                            initial={{ opacity: 1 }}
-                            animate={{ opacity: 0 }}
-                            exit={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <Eye size={20} />
-                          </motion.div>
-                        ) : showValues ? (
-                          <Eye size={20} />
-                        ) : (
-                          <EyeOff size={20} />
-                        )}
-                      </AnimatePresence>
-                    </button>
-                    {showValues ? (
-                      <>R$ <CountUp end={receitaHoje} /></>
-                    ) : (
-                      "R$ ******"
-                    )}
-                  </h4>
-                  <div className="flex items-center text-sm text-green-400 mt-2 justify-center ">
-                    <span className="inline-block mr-1">↑</span>
-                    <span>{clientesHoje} clientes hoje</span>
-                  </div>
-                </motion.div>
-              )}
             </AnimatePresence>
           </motion.div>
 
-          {/* Gráfico de Pizza */}
-          <div className="flex items-center gap-6 lg:w-auto">
-            <div className="w-[120px] h-[120px]">
+          {/* Gráfico de Pizza com melhoria visual */}
+          <motion.div 
+            className="flex flex-col items-center gap-4 bg-[#252B3B]/20 p-4 rounded-xl border border-white/5"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
+            <h3 className="text-sm text-gray-300 font-medium">Visão Geral</h3>
+            <div className="flex flex-row lg:flex-col items-center gap-6">
+              <div className="w-[120px] h-[120px] relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -441,6 +378,8 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     dataKey="value"
                     stroke="rgba(255,255,255,0.1)"
                     strokeWidth={1}
+                      animationDuration={800}
+                      animationBegin={200}
                   >
                     <Cell key="pending" fill="#FFD700" />
                     <Cell key="completed" fill="#4CAF50" />
@@ -456,28 +395,46 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                       borderRadius: '8px',
                       padding: '8px',
                       color: '#fff',
-                      fontSize: '12px'
+                        fontSize: '12px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
                     }}
                   />
                 </PieChart>
               </ResponsiveContainer>
+                {pieChartData[0].value + pieChartData[1].value > 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-300">
+                    Total: {pieChartData[0].value + pieChartData[1].value}
             </div>
-            <div className="flex flex-col gap-2">
+                ) : null}
+              </div>
+              <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#FFD700]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#FFD700]"></div>
                 <span className="text-xs text-gray-300">Pendentes ({filteredPendingAppointments})</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#4CAF50]"></div>
                 <span className="text-xs text-gray-300">Concluídos ({filteredCompletedAppointments})</span>
+                </div>
+                {showValues && (
+                  <div className="mt-1 text-xs text-gray-400">
+                    R$ {(filteredPendingRevenue + filteredCompletedRevenue).toFixed(2)}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Estatísticas adicionais */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          <div className="bg-[#1A1F2E]/50 p-3 rounded-lg">
+        {/* Cards de estatísticas adicionais com design melhorado */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          <motion.div 
+            className="bg-[#252B3B]/20 p-4 rounded-lg border border-white/5 hover:border-[#F0B35B]/20 transition-colors"
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(37,43,59,0.3)' }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-start justify-between">
+              <div>
             <p className="text-gray-400 text-xs mb-2 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-[#F0B35B]" />
               Próximo Agendamento
@@ -495,7 +452,20 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
               </p>
             )}
           </div>
-          <div className="bg-[#1A1F2E]/50 p-3 rounded-lg">
+              {getNextAppointment?.appointment && (
+                <div className="bg-[#F0B35B]/10 p-1.5 rounded-full">
+                  <Clock className="h-5 w-5 text-[#F0B35B]" />
+                </div>
+              )}
+            </div>
+          </motion.div>
+          <motion.div 
+            className="bg-[#252B3B]/20 p-4 rounded-lg border border-white/5 hover:border-[#F0B35B]/20 transition-colors"
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(37,43,59,0.3)' }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-start justify-between">
+              <div>
             <p className="text-gray-400 text-xs mb-2 flex items-center gap-1.5">
               <TrendingUp className="h-3.5 w-3.5 text-[#F0B35B]" />
               Tendência de Crescimento
@@ -514,9 +484,26 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
               <span className="text-xs text-gray-400">{clientesMes} clientes no mês</span>
             </div>
           </div>
+              <div className={`p-1.5 rounded-full ${
+                clientesMes > clientesSemana/4 
+                  ? 'bg-green-500/10' 
+                  : clientesMes < clientesSemana/4 
+                  ? 'bg-red-500/10' 
+                  : 'bg-yellow-500/10'
+              }`}>
+                <TrendingUp className={`h-5 w-5 ${
+                  clientesMes > clientesSemana/4 
+                    ? 'text-green-400' 
+                    : clientesMes < clientesSemana/4 
+                    ? 'text-red-400' 
+                    : 'text-yellow-400'
+                }`} />
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo, useMotionValue, useTransform } from 'framer-motion';
 import {
   FaCheck,
   FaTrash,
@@ -94,7 +94,10 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const modalY = useMotionValue(0);
+  const modalOpacity = useTransform(modalY, [0, 300], [1, 0]);
   const modalRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   
@@ -109,6 +112,24 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
     
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
+  
+  // Função para lidar com o gesto de deslize com melhor performance
+  const handleDrag = (_: any, info: PanInfo) => {
+    if (info.offset.y > 0) {
+      modalY.set(info.offset.y);
+    }
+  };
+  
+  // Função para lidar com o fim do gesto de deslize com feedback visual
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    if (info.offset.y > 100) {
+      modalY.set(300);
+      setTimeout(onClose, 200);
+    } else {
+      modalY.set(0);
+    }
+    setIsDragging(false);
+  };
 
   // Função para lidar com ações com feedback visual
   const handleAction = async (action: () => void) => {
@@ -132,29 +153,42 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
   ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isOpen && appointment && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+          onClick={onClose}
+        >
           <motion.div
             ref={modalRef}
             initial={{ y: "100%" }}
-            animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl bg-[#1A1F2E] relative z-10"
-            onClick={(e) => e.stopPropagation()}
+            transition={{ 
+              type: "spring", 
+              damping: 30, 
+              stiffness: 300,
+              mass: 0.8 
+            }}
+            className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl bg-[#1A1F2E] will-change-transform"
+            onClick={e => e.stopPropagation()}
+            style={{ y: modalY }}
+            drag={isMobile ? "y" : false}
+            dragDirectionLock
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDrag={handleDrag}
+            onDragEnd={handleDragEnd}
+            onDragStart={() => setIsDragging(true)}
           >
             {/* Barra superior de arraste e fechamento */}
-            <div className="sticky top-0 z-10 px-4 pt-3 pb-2 bg-[#1A1F2E] border-b border-white/5">
+            <div 
+              className="sticky top-0 z-10 px-4 pt-3 pb-2 bg-[#1A1F2E] border-b border-white/5"
+              onClick={onClose}
+            >
               <div className="flex justify-center mb-2">
                 <div className="w-12 h-1 bg-gray-600 rounded-full" />
               </div>
@@ -304,7 +338,7 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
               appointment.status === 'completed' ? 'pendente' : 'concluído'
             }?`}
           />
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
