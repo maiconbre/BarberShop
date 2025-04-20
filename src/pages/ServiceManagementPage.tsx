@@ -159,7 +159,7 @@ const ServiceManagementPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0D121E] pt-20">
+    <div className="min-h-screen bg-[#0D121E] pt-20 pb-10">
       
       {/* Background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -172,12 +172,12 @@ const ServiceManagementPage: React.FC = () => {
         }}></div>
       </div>
       
-      <div className="max-w-4xl mx-auto p-4 relative z-10">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">Gerenciamento de Serviços</h1>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="flex items-center justify-between mb-6 border-b border-[#F0B35B]/20 pb-4">
+          <h1 className="text-3xl font-bold text-white">Gerenciamento de Serviços</h1>
           <motion.button 
             onClick={() => navigate('/dashboard')}
-            className="relative overflow-hidden group flex items-center gap-2 px-4 py-2 bg-[#1A1F2E] rounded-lg hover:bg-[#252B3B] transition-all duration-300 text-white border border-[#F0B35B]/20 hover:border-[#F0B35B]/40"
+            className="relative overflow-hidden group flex items-center  px-4 py-2 bg-[#1A1F2E] rounded-lg hover:bg-[#252B3B] transition-all duration-300 text-white border border-[#F0B35B]/20 hover:border-[#F0B35B]/40"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -207,20 +207,20 @@ const ServiceManagementPage: React.FC = () => {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <motion.div 
-            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-lg shadow-lg border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300"
+            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h2 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+            <h2 className="text-2xl font-semibold mb-4 text-white flex items-center gap-3">
               <Scissors className="text-[#F0B35B] w-5 h-5" />
               <span>Adicionar Novo Serviço</span>
             </h2>
-            <form onSubmit={handleAddService}>
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleAddService}>
               <div className="mb-4">
-                <label className="block text-gray-300 mb-2 text-sm">Nome do Serviço</label>
+                <label className="block text-gray-300 mb-2 text-sm font-medium">Nome do Serviço</label>
                 <input
                   type="text"
                   value={newService.name}
@@ -230,7 +230,7 @@ const ServiceManagementPage: React.FC = () => {
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-300 mb-2 text-sm">Valor (R$)</label>
+                <label className="block text-gray-300 mb-2 text-sm font-medium">Valor (R$)</label>
                 <input
                   type="number"
                   value={newService.price}
@@ -243,7 +243,7 @@ const ServiceManagementPage: React.FC = () => {
               <motion.button 
                 type="submit" 
                 disabled={isLoading}
-                className="relative overflow-hidden group w-full py-3 bg-[#F0B35B] text-black rounded-lg font-semibold hover:scale-105 hover:shadow-[0_0_20px_rgba(240,179,91,0.5)] transition-all duration-300 border-2 border-[#F0B35B]/70 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
+                className="relative overflow-hidden group md:col-span-2 w-full py-3 bg-[#F0B35B] text-black rounded-xl font-semibold hover:shadow-lg transition-all duration-300 border-2 border-[#F0B35B]/70 flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -254,26 +254,27 @@ const ServiceManagementPage: React.FC = () => {
           </motion.div>
 
           <motion.div 
-            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-lg shadow-lg border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300"
+            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <div className="flex justify-between items-center mb-4 border-b border-[#F0B35B]/20 pb-2">
+              <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
                 <Scissors className="text-[#F0B35B] w-5 h-5" />
                 <span>Serviços Cadastrados</span>
+                <span className="ml-2 bg-[#F0B35B] text-black text-xs font-bold px-2 py-0.5 rounded-full">{services.length}</span>
               </h2>
             </div>
             
             {services.length === 0 ? (
-              <p className="text-gray-400">Nenhum serviço cadastrado ainda.</p>
+              <p className="text-center text-gray-400 py-10">Nenhum serviço cadastrado ainda.</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#F0B35B]/20 scrollbar-track-transparent">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {services.map(service => (
                   <motion.div 
                     key={service.id} 
-                    className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 rounded-lg shadow-lg border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300"
+                    className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
                     whileHover={{ scale: 1.02, y: -2 }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -281,13 +282,13 @@ const ServiceManagementPage: React.FC = () => {
                   >
                     <div className="flex flex-col h-full">
                       <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-medium text-white truncate">{service.name}</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-white truncate">{service.name}</h3>
                       </div>
                       
                       <div className="mt-auto pt-2 flex justify-between items-center">
-                        <span className="text-xs text-gray-400">Valor:</span>
+                        <span className="text-sm text-gray-300">Valor:</span>
                         <motion.div 
-                          className="text-[#F0B35B] font-bold text-lg px-2 py-0.5 rounded"
+                          className="bg-[#F0B35B]/10 text-[#F0B35B] font-bold text-xl px-3 py-1 rounded"
                           whileHover={{ scale: 1.05 }}
                           transition={{ type: "spring", stiffness: 400, damping: 10 }}
                         >

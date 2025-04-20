@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, X, BarChart2, PieChart, LineChart, Calendar, Users, DollarSign, TrendingUp, LayoutGrid, Table, Repeat, Gift, Percent, Clock, MessageSquare, User, History } from 'lucide-react';
+import { Search, X, BarChart2, PieChart, LineChart, Calendar, Users, DollarSign, TrendingUp, LayoutGrid, Table, Repeat, Gift, Percent, Clock, MessageSquare, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ComposedChart } from 'recharts';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart as RechartsPieChart, Cell, BarChart, Bar, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ComposedChart } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
+import AppointmentHistory from './AppointmentHistory';
 
 const formatWhatsApp = (whatsapp: string | undefined): string => {
     if (!whatsapp) return '-';
@@ -45,7 +46,6 @@ interface ClientAnalyticsProps {
     onRefreshData?: () => Promise<void>;
 }
 
-
 const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     const { getCurrentUser } = useAuth();
     const currentUser = getCurrentUser();
@@ -54,7 +54,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
     const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'services' | 'trends'>('overview');
-    // Define interface for client data type
     interface ClientData {
         id: string;
         name: string;
@@ -67,20 +66,14 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
-    // Cores para os gráficos
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#F0B35B'];
 
-    // Função para lidar com o clique no cliente
-
-    // Filtrar agendamentos por barbeiro se não for admin
     const filteredAppointments = useMemo(() => {
         if (isAdmin) return appointments;
         return appointments.filter(app => app.barberId === currentUser?.id);
     }, [appointments, isAdmin, currentUser?.id]);
 
-    // Dados para o gráfico de tendências semanais
     const weeklyData = useMemo(() => {
         const weeks = Array.from({ length: 12 }, (_, i) => {
             const date = new Date();
@@ -90,13 +83,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
             const endOfWeek = new Date(startOfWeek);
             endOfWeek.setDate(endOfWeek.getDate() + 6);
 
-            // Filtrar agendamentos da semana
             const weekAppointments = filteredAppointments.filter(app => {
                 const appDate = new Date(app.date);
                 return appDate >= startOfWeek && appDate <= endOfWeek;
             });
 
-            // Calcular métricas da semana
             const uniqueClients = new Set(weekAppointments.map(app => app.clientName));
             const totalRevenue = weekAppointments.reduce((sum, app) => sum + app.price, 0);
             const ticketMedio = weekAppointments.length > 0 ? totalRevenue / weekAppointments.length : 0;
@@ -112,7 +103,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         return weeks;
     }, [filteredAppointments]);
 
-    // Dados para o gráfico de serviços
     const servicesData = useMemo(() => {
         const servicesCount: { [key: string]: number } = {};
 
@@ -129,9 +119,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
             .slice(0, 6);
     }, [filteredAppointments]);
 
-    // Dados para o gráfico de frequência semanal
-
-    // Métricas gerais
     const metricsData = useMemo(() => {
         const uniqueClients = new Set<string>();
         filteredAppointments.forEach(app => uniqueClients.add(app.clientName.toLowerCase()));
@@ -160,7 +147,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         };
     }, [filteredAppointments]);
 
-    // Dados dos clientes
     const clientsData = useMemo(() => {
         const clientMap = new Map<string, any>();
 
@@ -198,13 +184,73 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         return Array.from(clientMap.values());
     }, [filteredAppointments]);
 
+    const forecastData = useMemo(() => {
+        const lastWeek = weeklyData[weeklyData.length - 1];
+        const secondLastWeek = weeklyData[weeklyData.length - 2];
 
+        const growthRate = secondLastWeek.receita > 0
+            ? (lastWeek.receita - secondLastWeek.receita) / secondLastWeek.receita
+            : 0.02;
 
+        return Array.from({ length: 12 }, (_, i) => {
+            const weekNumber = i + 1;
+            const projectedRevenue = lastWeek.receita * Math.pow(1 + growthRate, weekNumber);
+            const goal = lastWeek.receita * (1 + (0.1 * weekNumber));
 
+            return {
+                name: `Semana ${weekNumber}`,
+                valor: projectedRevenue,
+                meta: goal,
+                tendencia: growthRate > 0 ? 'alta' : 'baixa'
+            };
+        });
+    }, [weeklyData]);
+
+    const seasonalityData = useMemo(() => {
+        const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+        return weekdays.map((day, index) => {
+            const dayAppointments = filteredAppointments.filter(app => {
+                const appDate = new Date(app.date);
+                return appDate.getDay() === index;
+            });
+
+            const uniqueClients = new Set(dayAppointments.map(app => app.clientName));
+            const totalRevenue = dayAppointments.reduce((sum, app) => sum + app.price, 0);
+
+            return {
+                name: day,
+                clientes: uniqueClients.size,
+                receita: totalRevenue
+            };
+        });
+    }, [filteredAppointments]);
+
+    const ticketData = useMemo(() => {
+        const periods = [
+            { name: 'Manhã', start: 8, end: 12 },
+            { name: 'Tarde', start: 12, end: 18 },
+            { name: 'Noite', start: 18, end: 22 }
+        ];
+
+        return periods.map(period => {
+            const periodAppointments = filteredAppointments.filter(app => {
+                const hour = parseInt(app.time.split(':')[0]);
+                return hour >= period.start && hour < period.end;
+            });
+
+            const totalRevenue = periodAppointments.reduce((sum, app) => sum + app.price, 0);
+            const ticketMedio = periodAppointments.length > 0 ? totalRevenue / periodAppointments.length : 0;
+
+            return {
+                name: period.name,
+                ticket: ticketMedio,
+                servicos: periodAppointments.length
+            };
+        });
+    }, [filteredAppointments]);
 
     const renderServicesTab = () => (
         <div className="space-y-6">
-            {/* Gráfico de Serviços por Barbeiro */}
             <div className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5">
                 <h3 className="text-lg font-medium text-white mb-4">Serviços por Barbeiro</h3>
                 <div className="h-[300px]">
@@ -238,7 +284,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
             </div>
 
-            {/* Gráfico de Satisfação por Serviço */}
             <div className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5">
                 <h3 className="text-lg font-medium text-white mb-4">Satisfação por Serviço</h3>
                 <div className="h-[300px]">
@@ -266,81 +311,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         </div>
     );
 
-    // Dados para o gráfico de previsão semanal
-    const forecastData = useMemo(() => {
-        const lastWeek = weeklyData[weeklyData.length - 1];
-        const secondLastWeek = weeklyData[weeklyData.length - 2];
-
-        // Calcular taxa de crescimento real das últimas 12 semanas
-        const growthRate = secondLastWeek.receita > 0
-            ? (lastWeek.receita - secondLastWeek.receita) / secondLastWeek.receita
-            : 0.02; // 2% de crescimento base se não houver dados suficientes
-
-        // Projetar crescimento para as próximas 12 semanas
-        return Array.from({ length: 12 }, (_, i) => {
-            const weekNumber = i + 1;
-            const projectedRevenue = lastWeek.receita * Math.pow(1 + growthRate, weekNumber);
-            const goal = lastWeek.receita * (1 + (0.1 * weekNumber)); // Meta de 10% de crescimento por semana
-
-            return {
-                name: `Semana ${weekNumber}`,
-                valor: projectedRevenue,
-                meta: goal,
-                tendencia: growthRate > 0 ? 'alta' : 'baixa'
-            };
-        });
-    }, [weeklyData]);
-
-    // Dados para o gráfico de sazonalidade
-    const seasonalityData = useMemo(() => {
-        const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-        return weekdays.map((day, index) => {
-            // Filtrar agendamentos por dia da semana
-            const dayAppointments = filteredAppointments.filter(app => {
-                const appDate = new Date(app.date);
-                return appDate.getDay() === index;
-            });
-
-            const uniqueClients = new Set(dayAppointments.map(app => app.clientName));
-            const totalRevenue = dayAppointments.reduce((sum, app) => sum + app.price, 0);
-
-            return {
-                name: day,
-                clientes: uniqueClients.size,
-                receita: totalRevenue
-            };
-        });
-    }, [filteredAppointments]);
-
-    // Dados para o gráfico de ticket médio por período
-    const ticketData = useMemo(() => {
-        const periods = [
-            { name: 'Manhã', start: 8, end: 12 },
-            { name: 'Tarde', start: 12, end: 18 },
-            { name: 'Noite', start: 18, end: 22 }
-        ];
-
-        return periods.map(period => {
-            // Filtrar agendamentos por período do dia
-            const periodAppointments = filteredAppointments.filter(app => {
-                const hour = parseInt(app.time.split(':')[0]);
-                return hour >= period.start && hour < period.end;
-            });
-
-            const totalRevenue = periodAppointments.reduce((sum, app) => sum + app.price, 0);
-            const ticketMedio = periodAppointments.length > 0 ? totalRevenue / periodAppointments.length : 0;
-
-            return {
-                name: period.name,
-                ticket: ticketMedio,
-                servicos: periodAppointments.length
-            };
-        });
-    }, [filteredAppointments]);
-
     const renderTrendsTab = () => (
         <div className="space-y-4">
-            {/* Gráfico de Tendências Semanais */}
             <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
                 <h3 className="text-lg font-medium text-white mb-3">Tendências das Últimas 12 Semanas</h3>
                 <div className="h-[250px] sm:h-[300px]">
@@ -407,7 +379,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
             </div>
 
-            {/* Gráfico de Previsão de Receita */}
             <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
                 <h3 className="text-lg font-medium text-white mb-3">Previsão de Receita (Próximas 12 Semanas)</h3>
                 <div className="h-[250px] sm:h-[300px]">
@@ -466,7 +437,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
             </div>
 
-            {/* Gráfico de Sazonalidade Semanal */}
             <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
                 <h3 className="text-lg font-medium text-white mb-3">Sazonalidade Semanal</h3>
                 <div className="h-[250px] sm:h-[300px]">
@@ -531,7 +501,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
             </div>
 
-            {/* Gráfico de Ticket Médio por Período */}
             <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
                 <h3 className="text-lg font-medium text-white mb-3">Ticket Médio por Período</h3>
                 <div className="h-[250px] sm:h-[300px]">
@@ -600,7 +569,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     const renderOverviewTab = () => (
         <div className="space-y-6">
-            {/* Cards de métricas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <motion.div
                     className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5"
@@ -651,11 +619,9 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </motion.div>
             </div>
 
-            {/* Componente de Resumo e Estratégias */}
             <div className="bg-[#1A1F2E] p-6 rounded-xl border border-white/5">
                 <h3 className="text-xl font-semibold text-white mb-4">Análise e Estratégias</h3>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Análise de Desempenho */}
                     <div className="space-y-4">
                         <h4 className="text-lg font-medium text-[#F0B35B]">Análise de Desempenho</h4>
                         <div className="space-y-3">
@@ -684,7 +650,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         </div>
                     </div>
 
-                    {/* Estratégias Recomendadas */}
                     <div className="space-y-4">
                         <h4 className="text-lg font-medium text-[#F0B35B]">Estratégias Recomendadas</h4>
                         <div className="space-y-3">
@@ -713,7 +678,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         </div>
                     </div>
 
-                    {/* Promoções Sugeridas */}
                     <div className="space-y-4">
                         <h4 className="text-lg font-medium text-[#F0B35B]">Promoções Sugeridas</h4>
                         <div className="space-y-3">
@@ -742,7 +706,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         </div>
                     </div>
 
-                    {/* Melhorias de Negócio */}
                     <div className="space-y-4">
                         <h4 className="text-lg font-medium text-[#F0B35B]">Melhorias de Negócio</h4>
                         <div className="space-y-3">
@@ -776,7 +739,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     );
 
     const renderClientsTab = () => {
-        // Filtrar clientes com base no termo de busca
         const filteredClients = clientsData.filter(client =>
             client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (client.whatsapp && client.whatsapp.includes(searchTerm))
@@ -784,8 +746,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
         return (
             <div className="space-y-6">
-                {/* Filtros e Busca */}
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className={`flex flex-col sm:flex-row gap-4 ${isClientModalOpen ? 'hidden' : ''}`}>
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
@@ -806,7 +767,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     </div>
                 </div>
 
-                {/* Lista de Clientes */}
                 <div className="bg-[#1A1F2E] rounded-xl border border-white/5 overflow-hidden">
                     {viewMode === 'table' ? (
                         <div className="overflow-x-auto">
@@ -822,7 +782,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                 </thead>
                                 <tbody>
                                     {filteredClients.map((client) => (
-                                        <tr key={client.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                        <tr
+                                            key={client.id}
+                                            onClick={() => { setSelectedClient(client); setIsClientModalOpen(true); }}
+                                            className="cursor-pointer border-b border-white/5 hover:bg-white/10 transition-colors"
+                                        >
                                             <td className="py-3 px-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-8 h-8 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
@@ -849,7 +813,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             {filteredClients.map((client) => (
                                 <motion.div
                                     key={client.id}
-                                    className="bg-[#252B3B] p-4 rounded-lg border border-white/5"
+                                    onClick={() => { setSelectedClient(client); setIsClientModalOpen(true); }}
+                                    className="bg-[#252B3B] p-4 rounded-xl border border-white/5 hover:shadow-lg cursor-pointer transition-shadow duration-200"
                                     whileHover={{ scale: 1.02 }}
                                     transition={{ duration: 0.2 }}
                                 >
@@ -874,7 +839,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                         <div>
                                             <p className="text-gray-400 text-sm">Última Visita</p>
                                             <p className="text-white font-medium">
-                                                {new Date(client.lastVisit).toLocaleDateString()}
+                                                {new Date(client.lastVisit).toLocaleDateString('pt-BR')}
                                             </p>
                                         </div>
                                         <div>
@@ -893,133 +858,58 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         );
     };
 
+    const selectedClientAppointments = useMemo(() => {
+        if (!selectedClient) return [];
+        return filteredAppointments.filter(app => app.clientName === selectedClient.name);
+    }, [filteredAppointments, selectedClient]);
+
     return (
-        <div className="w-full h-full flex flex-col">
-            {/* Modais */}
-            <AnimatePresence>
-                {isHistoryModalOpen && selectedClient && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-[#1A1F2E] rounded-xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
-                        >
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium text-white">Histórico de {selectedClient.name}</h3>
-                                <button
-                                    onClick={() => setIsHistoryModalOpen(false)}
-                                    className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                >
-                                    <X size={18} />
-                                </button>
-                            </div>
-                            <React.Suspense fallback={
-                                <div className="flex justify-center items-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#F0B35B]"></div>
-                                </div>
-                            }>
-                            </React.Suspense>
-                            <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                                <div>
-                                    <p className="text-sm text-gray-400">Total de visitas: <span className="text-white">{selectedClient.visits}</span></p>
-                                    <p className="text-sm text-gray-400">Total gasto: <span className="text-green-400">R$ {selectedClient.totalSpent.toFixed(2)}</span></p>
-                                </div>
-                                <button
-                                    onClick={() => setIsHistoryModalOpen(false)}
-                                    className="px-3 py-1.5 bg-[#252B3B] text-white rounded-lg text-sm hover:bg-[#2E354A] transition-colors"
-                                >
-                                    Fechar
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+        <div className="w-full h-full flex flex-col p-4 sm:p-6 md:p-8 space-y-6">
             <AnimatePresence>
                 {isClientModalOpen && selectedClient && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-60 flex items-start justify-center pt-20 px-2 sm:px-4 bg-black backdrop-blur-sm">
                         <motion.div
                             initial={{ opacity: 0, y: 50 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 50 }}
-                            className="bg-[#1A1F2E] rounded-xl p-4 w-full max-w-md max-h-[90vh] overflow-y-auto"
+                            className="bg-[#1A1F2E] rounded-xl p-4 sm:p-6 w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl max-h-[calc(100vh-5rem)] overflow-hidden space-y-1 sm:space-y-5"
                         >
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-medium text-white">Detalhes do Cliente</h3>
-                                <button
-                                    onClick={() => setIsClientModalOpen(false)}
-                                    className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-                                >
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-semibold text-white">Detalhes de {selectedClient.name}</h3>
+                                <button onClick={() => setIsClientModalOpen(false)} className="p-1.5 rounded-full hover:bg-white/10 text-gray-400">
                                     <X size={18} />
                                 </button>
                             </div>
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
-                                        <User className="w-6 h-6 text-[#F0B35B]" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-white font-medium">{selectedClient.name}</h4>
-                                        <p className="text-sm text-gray-400">{formatWhatsApp(selectedClient.whatsapp)}</p>
-                                    </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2  sm:gap-4">
+                                <div className="space-y-1 sm:space-y-3">
+                                    <p className="text-gray-400 text-sm">Contato</p>
+                                    <p className="text-white font-medium">{formatWhatsApp(selectedClient.whatsapp)}</p>
+                                    <p className="text-gray-400 text-sm">Visitas</p>
+                                    <p className="text-white font-medium">{selectedClient.visits}</p>
+                                    <p className="text-gray-400 text-sm">Total Gasto</p>
+                                    <p className="text-green-400 font-medium">R$ {selectedClient.totalSpent.toFixed(2)}</p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3 mt-4">
-                                    <div className="p-3 bg-white/5 rounded-lg">
-                                        <p className="text-sm text-gray-400">Visitas</p>
-                                        <p className="text-lg font-medium text-white">{selectedClient.visits}</p>
-                                    </div>
-                                    <div className="p-3 bg-white/5 rounded-lg">
-                                        <p className="text-sm text-gray-400">Total Gasto</p>
-                                        <p className="text-lg font-medium text-green-400">R$ {selectedClient.totalSpent.toFixed(2)}</p>
-                                    </div>
-                                </div>
-                                <div className="p-3 bg-white/5 rounded-lg">
-                                    <p className="text-sm text-gray-400 mb-2">Serviços Preferidos</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {Object.entries(selectedClient.services || {})
-                                            .sort(([, a]: any, [, b]: any) => b - a)
-                                            .slice(0, 3)
-                                            .map(([service, count]: [string, any]) => (
-                                                <span
-                                                    key={service}
-                                                    className="px-2 py-1 bg-[#F0B35B]/10 text-[#F0B35B] text-xs rounded-full"
-                                                >
-                                                    {service} ({count}x)
-                                                </span>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                                <div className="p-3 bg-white/5 rounded-lg">
-                                    <p className="text-sm text-gray-400 mb-2">Última Visita</p>
+                                <div className="space-y-1 sm:space-y-3">
+                                    <p className="text-gray-400 text-sm">Última Visita</p>
                                     <p className="text-white">{selectedClient.lastVisit ? new Date(selectedClient.lastVisit).toLocaleDateString('pt-BR') : '-'}</p>
+                                    <p className="text-gray-400 text-sm">Serviços Preferidos</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.entries(selectedClient.services || {}).sort(([, a], [, b]) => b - a).map(([s, c]) => (
+                                            <span key={s} className="px-2 py-1 bg-[#F0B35B]/10 text-[#F0B35B] rounded-full text-xs">{s} ({c}x)</span>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="flex justify-between mt-4 pt-4 border-t border-white/10">
-                                    <button
-                                        onClick={() => {
-                                            setIsClientModalOpen(false);
-                                        }}
-                                        className="px-3 py-2 bg-[#F0B35B]/10 text-[#F0B35B] rounded-lg text-sm hover:bg-[#F0B35B]/20 transition-colors flex items-center gap-2"
-                                    >
-                                        <History size={16} />
-                                        Ver Histórico
-                                    </button>
-                                    <button
-                                        onClick={() => setIsClientModalOpen(false)}
-                                        className="px-3 py-2 bg-[#252B3B] text-white rounded-lg text-sm hover:bg-[#2E354A] transition-colors"
-                                    >
-                                        Fechar
-                                    </button>
-                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-gray-400 text-sm mb-2">Histórico de Agendamentos</h4>
+                                <AppointmentHistory appointments={selectedClientAppointments} />
                             </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
-            {/* Tabs de navegação */}
-            <div className="space-y-6">
-                <div className="flex flex-wrap justify-center gap-2 bg-[#1A1F2E] p-1 rounded-lg">
+            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
+                <nav className="flex justify-center md:justify-start flex-wrap md:flex-col gap-2 bg-[#1A1F2E] p-3 rounded-xl md:w-1/4">
                     {[
                         { id: 'overview', label: 'Visão Geral', icon: BarChart2 },
                         { id: 'clients', label: 'Clientes', icon: Users },
@@ -1043,22 +933,23 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             </motion.button>
                         );
                     })}
+                </nav>
+                <div className="flex-1">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {activeTab === 'overview' && renderOverviewTab()}
+                            {activeTab === 'clients' && renderClientsTab()}
+                            {activeTab === 'services' && renderServicesTab()}
+                            {activeTab === 'trends' && renderTrendsTab()}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
-                {/* Conteúdo das tabs */}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        {activeTab === 'overview' && renderOverviewTab()}
-                        {activeTab === 'clients' && renderClientsTab()}
-                        {activeTab === 'services' && renderServicesTab()}
-                        {activeTab === 'trends' && renderTrendsTab()}
-                    </motion.div>
-                </AnimatePresence>
             </div>
         </div>
     );
