@@ -294,9 +294,6 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
                 <p className="text-xs sm:text-sm text-gray-400 truncate">{appointment.service}</p>
               </div>
             </div>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(appointment.status)}`}>
-              {getStatusText(appointment.status)}
-            </span>
           </div>
 
           <div className="flex flex-wrap gap-3 mb-3 text-xs sm:text-sm text-gray-400">
@@ -372,7 +369,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
                     className="flex-1 bg-[#252B3B] hover:bg-[#2E354A] text-white transition-colors rounded-md py-2 text-xs flex items-center justify-center gap-1.5"
                   >
                     <Eye size={14} />
-                    <span>Detalhes</span>
+                    <span>Contato</span>
               </button>
               <button
                 onClick={(e) => {

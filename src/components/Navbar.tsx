@@ -197,16 +197,18 @@ const Navbar: React.FC<NavbarProps> = ({
                             <Calendar className="w-4 h-4 text-[#F0B35B]" />
                             Gerenciar Horários
                           </button>
-                          <button
-                            onClick={() => {
-                              navigate('/register');
-                              setIsDropdownOpen(false);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left transition-colors"
-                          >
-                            <Users className="w-4 h-4 text-[#F0B35B]" />
-                            Gerenciar Barbeiros
-                          </button>
+                          {currentUser?.role === 'admin' && (
+                            <button
+                              onClick={() => {
+                                navigate('/register');
+                                setIsDropdownOpen(false);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-white hover:bg-[#252B3B] w-full text-left transition-colors"
+                            >
+                              <Users className="w-4 h-4 text-[#F0B35B]" />
+                              Gerenciar Barbeiros
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -340,21 +342,23 @@ const Navbar: React.FC<NavbarProps> = ({
                         Horários
                       </motion.span>
                     </button>
-                    <button
-                      onClick={() => {
-                        navigate('/register');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
-                    >
-                      <motion.span
-                        whileHover={{ x: 5 }}
-                        className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                    {currentUser?.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          navigate('/register');
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"
                       >
-                        <Users size={20} className="flex-shrink-0" />
-                        Barbeiros
-                      </motion.span>
-                    </button>
+                        <motion.span
+                          whileHover={{ x: 5 }}
+                          className="flex items-center gap-3 text-[#F0B35B] text-lg"
+                        >
+                          <Users size={20} className="flex-shrink-0" />
+                          Barbeiros
+                        </motion.span>
+                      </button>
+                    )}
                     <button
                       onClick={handleChangePassword}
                       className="flex items-center w-full text-left px-4 py-3 rounded-lg hover:bg-[#F0B35B]/10 transition-colors"

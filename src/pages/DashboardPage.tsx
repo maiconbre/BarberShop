@@ -33,7 +33,6 @@ const DashboardPage: React.FC = () => {
   const currentUser = getCurrentUser();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isChartExpanded, setIsChartExpanded] = useState(true);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('today');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -362,34 +361,34 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-8 xl:px-0 relative z-10">
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto hide-scrollbar">
+        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6 w-full">
+          <div className="grid grid-cols-3 w-full gap-1 xs:gap-2 sm:gap-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('painel')}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Painel</span>
+              <LayoutDashboard className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
+              <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Painel</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('agenda')}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Agenda</span>
+              <Calendar className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
+              <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Agenda</span>
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('analytics')}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center gap-1 sm:gap-2 flex-shrink-0 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
             >
-              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm whitespace-nowrap">Relatório</span>
+              <Users className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
+              <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Relatório</span>
             </motion.button>
           </div>
         </div>
@@ -415,7 +414,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="w-full xl:w-4/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg flex flex-col xl:sticky xl:top-24 h-[calc(100vh-12rem)] sm:h-[calc(100vh-8rem)] max-h-[900px]">
+                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg flex flex-col h-[calc(100vh-12rem)] sm:h-[calc(100vh-8rem)] max-h-[900px]">
                     <div className="flex-none p-3 sm:p-4 border-b border-white/5">
                       <div className="flex justify-between items-center">
                         <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">

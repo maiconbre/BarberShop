@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-
 const TrocaSenha: React.FC = () => {
   const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
@@ -143,42 +142,45 @@ const TrocaSenha: React.FC = () => {
             </div>
           )}
 
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="senhaAtual" className="sr-only">Senha Atual</label>
+          <div className="space-y-4">
+            <div className="flex flex-col">
+              <label htmlFor="senhaAtual" className="text-sm font-medium text-gray-300 mb-1">Senha Atual</label>
               <input
                 id="senhaAtual"
                 name="senhaAtual"
                 type="password"
+                autoComplete="current-password"
                 required
-                className="appearance-none rounded-t-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Senha Atual"
+                className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors"
+                placeholder="Digite sua senha atual"
                 value={formData.senhaAtual}
                 onChange={(e) => setFormData({ ...formData, senhaAtual: e.target.value })}
               />
             </div>
-            <div>
-              <label htmlFor="novaSenha" className="sr-only">Nova Senha</label>
+            <div className="flex flex-col">
+              <label htmlFor="novaSenha" className="text-sm font-medium text-gray-300 mb-1">Nova Senha</label>
               <input
                 id="novaSenha"
                 name="novaSenha"
                 type="password"
+                autoComplete="new-password"
                 required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Nova Senha"
+                className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors"
+                placeholder="Digite a nova senha"
                 value={formData.novaSenha}
                 onChange={(e) => setFormData({ ...formData, novaSenha: e.target.value })}
               />
             </div>
-            <div>
-              <label htmlFor="confirmarSenha" className="sr-only">Confirmar Nova Senha</label>
+            <div className="flex flex-col">
+              <label htmlFor="confirmarSenha" className="text-sm font-medium text-gray-300 mb-1">Confirmar Senha</label>
               <input
                 id="confirmarSenha"
                 name="confirmarSenha"
                 type="password"
+                autoComplete="new-password"
                 required
-                className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Confirmar Nova Senha"
+                className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors"
+                placeholder="Confirme a nova senha"
                 value={formData.confirmarSenha}
                 onChange={(e) => setFormData({ ...formData, confirmarSenha: e.target.value })}
               />
@@ -189,10 +191,10 @@ const TrocaSenha: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80 text-black font-semibold rounded-lg shadow-md transform transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isLoading ? (
-                <Loader2 className="animate-spin h-5 w-5" />
+                <Loader2 className="animate-spin h-5 w-5 mr-2 text-white" />
               ) : (
                 'Alterar Senha'
               )}

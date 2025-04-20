@@ -503,89 +503,84 @@ const RegisterPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="rounded-md shadow-sm -space-y-px">
-                <div>
-                  <label htmlFor="name" className="sr-only">Nome</label>
+              <div className="space-y-4">
+                <div className="flex flex-col">
+                  <label htmlFor="name" className="text-sm font-medium text-gray-300 mb-1">Nome</label>
                   <input
                     id="name"
                     name="name"
                     type="text"
                     required
-                    className={`appearance-none ${!isEditMode ? 'rounded-t-md' : 'rounded-t-md'} relative block w-full px-3 py-3 sm:py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 text-base sm:text-sm`}
-                    placeholder="Nome"
+                    className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors text-base sm:text-sm"
+                    placeholder="Digite o nome"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
                 {!isEditMode && (
                   <>
-                    <div>
-                      <label htmlFor="username" className="sr-only">username</label>
+                    <div className="flex flex-col">
+                      <label htmlFor="username" className="text-sm font-medium text-gray-300 mb-1">Usuário</label>
                       <input
                         id="username"
                         name="username"
-                        type="username"
+                        type="text"
                         required
-                        className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                        placeholder="Usuário"
+                        className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
+                        placeholder="Digite o usuário"
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       />
                     </div>
-                    <div>
-                      <label htmlFor="password" className="sr-only">Senha</label>
+                    <div className="flex flex-col">
+                      <label htmlFor="password" className="text-sm font-medium text-gray-300 mb-1">Senha</label>
                       <input
                         id="password"
                         name="password"
                         type="password"
                         required
-                        className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                        placeholder="Senha"
+                        className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
+                        placeholder="Digite a senha"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       />
                     </div>
                   </>
                 )}
-                <div>
-                  <label htmlFor="whatsapp" className="sr-only">WhatsApp</label>
+                <div className="flex flex-col">
+                  <label htmlFor="whatsapp" className="text-sm font-medium text-gray-300 mb-1">WhatsApp</label>
                   <input
                     id="whatsapp"
                     name="whatsapp"
-                    type="tel"
+                    type="text"
                     required
-                    className="appearance-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="WhatsApp (ex: 21999999999)"
+                    className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
+                    placeholder="Digite o WhatsApp"
                     value={formData.whatsapp}
                     onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label htmlFor="pix" className="sr-only">PIX</label>
+                <div className="flex flex-col">
+                  <label htmlFor="pix" className="text-sm font-medium text-gray-300 mb-1">PIX</label>
                   <input
                     id="pix"
                     name="pix"
                     type="text"
                     required
-                    className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                    placeholder="Chave PIX"
+                    className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
+                    placeholder="Digite a chave PIX"
                     value={formData.pix}
                     onChange={(e) => setFormData({ ...formData, pix: e.target.value })}
                   />
                 </div>
               </div>
-
               <div>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="group relative w-full flex justify-center py-3 sm:py-2 px-4 border border-transparent text-base sm:text-sm font-medium rounded-md text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80 text-black font-semibold rounded-lg shadow-md transform transition-transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  {isLoading ? (
-                    <Loader2 className="animate-spin h-5 w-5" />
-                  ) : (
-                    isEditMode ? 'Atualizar barbeiro' : 'Criar conta'
-                  )}
+                  {isLoading ? <Loader2 className="animate-spin h-5 w-5 mr-2 text-white" /> : isEditMode ? 'Atualizar Barbeiro' : 'Cadastrar Barbeiro'}
                 </button>
               </div>
 
