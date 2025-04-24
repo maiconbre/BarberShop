@@ -39,5 +39,5 @@ O projeto ja entá disponível no Vercel somente clicando aqui: [BarberGR no Ver
 
 ## Licença
 
-Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE] para mais detalhes.
+Este projeto está licenciado sob a MIT License .
 
