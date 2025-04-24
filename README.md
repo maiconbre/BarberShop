@@ -34,28 +34,25 @@ O projeto ja entá disponível no Vercel somente clicando aqui: [BarberGR no Ver
 
 ## 📸 Capturas de Tela
 
-As imagens estão na raiz do projeto, no mesmo nível do `README.md`. Para inseri-las no README, basta usar o caminho relativo ao arquivo:
-
-
-## 📸 Capturas de Tela
-
 ### Tela Inicial
-![Tela Inicial](./Img1.PNG)
+<img src="./Img1.PNG" alt="Tela Inicial" width="200px" />
+
 
 ### Lista de horarios disponiveis 
-![Login](./Img2.PNG)
+
+<img src="./Img2.PNG" alt="Horarios disponiveis" width="200px" />
 
 ### Dashboard inicial
-![Escolha de Barbeiro](./Img3.PNG)
+<img src="./Img3.PNG" alt="Dashboard" width="200px" />
 
 ### Cards de agendamento
-![Lista de Serviços](./Img4.PNG)
+<img src="./Img4.PNG" alt="agendamento" width="200px" />
 
 ### Agenda do barbeiro
-![Agendamento](./Img5.PNG)
+<img src="./Img5.PNG" alt="Agenda" width="200px" />
 
 ### Metricas
-![Confirmação](./Img6.PNG)
+<img src="./Img6.PNG" alt="Metricas" width="200px" />
 
 
 ## Licença
