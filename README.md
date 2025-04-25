@@ -35,7 +35,8 @@ botao de "area do barbeiro" leva pra login
 credenciais teste: admin/123123; gabrielle/123123, marcos/123123
 
 O projeto ja entá disponível e responsivo para mobiles no Vercel somente clicando aqui: [BarberGR no Vercel](https://barber.targetweb.tech/).
-projeto ainda em desenvolvimento para melhor experiencia desktops
+
+
 
 ## 📸 Capturas de Tela
 
@@ -50,6 +51,8 @@ projeto ainda em desenvolvimento para melhor experiencia desktops
 ### Cards de agendamento                 Agenda do barbeiro                 Métricas
 <img src="./Img4.PNG" alt="agendamento" width="200px" />                    <img src="./Img5.PNG" alt="Agenda" width="200px" />                    <img src="./Img6.PNG" alt="Metricas" width="200px" />
 
+
+### (Projeto ainda em desenvolvimento para melhor experiencia desktops)
 
 
 ## Licença
