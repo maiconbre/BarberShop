@@ -39,24 +39,17 @@ projeto ainda em desenvolvimento para melhor experiencia desktops
 
 ## 📸 Capturas de Tela
 
-### Tela Inicial
-<img src="./Img1.PNG" alt="Tela Inicial" width="200px" />
+### Tela Inicial                               Lista de horarios disponiveis              Dashboard inicial                               
+<img src="./Img1.PNG" alt="Tela Inicial" width="200px" />                     <img src="./Img2.PNG" alt="Horarios disponiveis" width="200px" />                     <img src="./Img3.PNG" alt="Dashboard" width="200px" />
 
-### Lista de horarios disponiveis 
+ 
 
-<img src="./Img2.PNG" alt="Horarios disponiveis" width="200px" />
+   
 
-### Dashboard inicial
-<img src="./Img3.PNG" alt="Dashboard" width="200px" />
 
-### Cards de agendamento
-<img src="./Img4.PNG" alt="agendamento" width="200px" />
+### Cards de agendamento                 Agenda do barbeiro                 Métricas
+<img src="./Img4.PNG" alt="agendamento" width="200px" />                    <img src="./Img5.PNG" alt="Agenda" width="200px" />                    <img src="./Img6.PNG" alt="Metricas" width="200px" />
 
-### Agenda do barbeiro
-<img src="./Img5.PNG" alt="Agenda" width="200px" />
-
-### Metricas
-<img src="./Img6.PNG" alt="Metricas" width="200px" />
 
 
 ## Licença
