@@ -39,7 +39,7 @@ projeto ainda em desenvolvimento para melhor experiencia desktops
 
 ## 📸 Capturas de Tela
 
-### Tela Inicial                               Lista de horarios disponiveis              Dashboard inicial                               
+### Tela Inicial                                      Horarios disponiveis                   Dashboard                               
 <img src="./Img1.PNG" alt="Tela Inicial" width="200px" />                     <img src="./Img2.PNG" alt="Horarios disponiveis" width="200px" />                     <img src="./Img3.PNG" alt="Dashboard" width="200px" />
 
  
