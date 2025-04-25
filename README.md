@@ -34,7 +34,7 @@ No final da pagina no rodape tem um
 botao de "area do barbeiro" leva pra login 
 credenciais teste: admin/123123; gabrielle/123123, marcos/123123
 
-O projeto ja entá disponível e responsivo para mobiles no Vercel somente clicando aqui: [BarberGR no Vercel](https://barber-gr.vercel.app/).
+O projeto ja entá disponível e responsivo para mobiles no Vercel somente clicando aqui: [BarberGR no Vercel](https://barber.targetweb.tech/).
 projeto ainda em desenvolvimento para melhor experiencia desktops
 
 ## 📸 Capturas de Tela
