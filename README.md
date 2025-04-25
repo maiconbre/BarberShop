@@ -30,13 +30,17 @@ Para rodar o projeto localmente, siga os seguintes passos:
    npm run dev
    ```
 
-O projeto ja entá disponível no Vercel somente clicando aqui: [BarberGR no Vercel](https://barber-gr.vercel.app/).
+No final da pagina no rodape tem um
+botao de "area do barbeiro" leva pra login 
+credenciais teste: admin/123123; gabrielle/123123, marcos/123123
+
+O projeto ja entá disponível e responsivo para mobiles no Vercel somente clicando aqui: [BarberGR no Vercel](https://barber-gr.vercel.app/).
+projeto ainda em desenvolvimento para melhor experiencia desktops
 
 ## 📸 Capturas de Tela
 
 ### Tela Inicial
 <img src="./Img1.PNG" alt="Tela Inicial" width="200px" />
-
 
 ### Lista de horarios disponiveis 
 
