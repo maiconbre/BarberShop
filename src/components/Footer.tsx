@@ -93,14 +93,6 @@ const Footer = () => {
             >
               Área do Barbeiro
             </Link>
-            <motion.button
-              onClick={() => navigate('/vendapage2')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="text-[#F0B35B] text-sm hover:bg-[#F0B35B]/10 px-3 py-1 rounded-md transition-colors"
-            >
-              Página de Venda
-            </motion.button>
           </div>
         </div>
 
