@@ -14,7 +14,6 @@ import DashboardPage from './pages/DashboardPage';
 // CalendarPage removido pois sua funcionalidade foi migrada para o Dashboard
 import TrocaSenha from './pages/TrocaSenha';
 import ProtectedRoute from './components/ProtectedRoute';
-import VendaPage2 from './pages/VendaPage2';
 import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
 
@@ -81,7 +80,6 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="/vendapage2" element={<VendaPage2 />} />
             <Route path="/gerenciar-comentarios" element={
               <ProtectedRoute>
                 <CommentManagementPage />
