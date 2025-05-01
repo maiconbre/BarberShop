@@ -33,6 +33,7 @@
     "react-lazy-load-image-component": "^1.6.3",
     "react-router-dom": "^7.1.5",
     "react-tooltip": "^5.28.0",
+    "react-window": "^1.8.11",
     "recharts": "^2.15.1",
     "sequelize": "^6.37.5",
     "sqlite3": "^5.1.7"

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FixedSizeList, ListChildComponentProps } from 'react-window';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
 import AppointmentCardNew from '../components/AppointmentCardNew';
@@ -54,7 +55,7 @@ const DashboardPage: React.FC = () => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -137,10 +138,30 @@ const DashboardPage: React.FC = () => {
   const indexOfLastAppointment = currentPage * appointmentsPerPage;
   const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
   const visibleAppointments = filteredAppointments.filter(app => !app.isBlocked);
-  const currentAppointments = visibleAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
   const totalPages = Math.ceil(visibleAppointments.length / appointmentsPerPage);
-  const calendarCurrentAppointments = calendarFilteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
   const calendarTotalPages = Math.ceil(calendarFilteredAppointments.length / appointmentsPerPage);
+
+  const AppointmentCardRow = useMemo(() => React.memo(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const appointment = visibleAppointments[index];
+    return (
+      <AnimatePresence>
+        <motion.div
+          style={style}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+        >
+          <AppointmentCardNew
+            key={appointment.id}
+            appointment={appointment}
+            onAction={handleAppointmentAction}
+            isMobile={isMobile}
+          />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }), [visibleAppointments, isMobile]);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
@@ -213,7 +234,7 @@ const DashboardPage: React.FC = () => {
         if (response.ok) {
           // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
           setAppointments(prevAppointments => prevAppointments.filter(app => app.id !== appointmentId));
-          
+
           if (selectedAppointment?.id === appointmentId) {
             setIsViewModalOpen(false);
             setSelectedAppointment(null);
@@ -243,8 +264,8 @@ const DashboardPage: React.FC = () => {
 
         if (response.ok) {
           // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
-          setAppointments(prevAppointments => 
-            prevAppointments.map(app => 
+          setAppointments(prevAppointments =>
+            prevAppointments.map(app =>
               app.id === appointmentId ? { ...app, status: newStatus } : app
             )
           );
@@ -385,7 +406,7 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-8 xl:px-0 relative z-10">
-      <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6 w-full md:hidden">
+        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6 w-full md:hidden">
           <div className="grid grid-cols-3 w-full gap-1 xs:gap-2 sm:gap-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -471,7 +492,7 @@ const DashboardPage: React.FC = () => {
                     </div>
 
                     <div className="flex-1 flex flex-col overflow-hidden">
-                      {currentAppointments.length === 0 ? (
+                      {visibleAppointments.length === 0 ? (
                         <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
                           <p className="text-gray-400 text-sm">
                             {filterMode === 'today'
@@ -484,16 +505,16 @@ const DashboardPage: React.FC = () => {
                       ) : (
                         <>
                           <div className="flex-1 p-3 sm:p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 lg:gap-4 auto-rows-max overflow-y-auto max-h-[calc(100vh-15rem)] md:max-h-[calc(100vh-12rem)] custom-scrollbar hide-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
-                              {currentAppointments.slice(0, 15).map((appointment) => (
-                                <AppointmentCardNew
-                                  key={`appointment-${appointment.id}-${appointment.status}`}
-                                  appointment={appointment}
-                                  onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                                  onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                                  onView={() => handleAppointmentAction(appointment.id, 'view')}
-                                />
-                              ))}
+                            <div className="w-full h-full custom-scrollbar hide-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
+                              <FixedSizeList
+                                height={isMobile ? 500 : 600}
+                                width="100%"
+                                itemCount={visibleAppointments.length}
+                                itemSize={isMobile ? 180 : 200}
+                                overscanCount={3}
+                              >
+                                {AppointmentCardRow}
+                              </FixedSizeList>
                             </div>
                           </div>
                           {totalPages > 1 && (
@@ -519,16 +540,15 @@ const DashboardPage: React.FC = () => {
                                     } else {
                                       pageNumber = currentPage - 2 + idx;
                                     }
-                                    
+
                                     return (
                                       <button
                                         key={idx}
                                         onClick={() => paginate(pageNumber)}
-                                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                                          currentPage === pageNumber
+                                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-medium transition-all ${currentPage === pageNumber
                                             ? 'bg-[#F0B35B] text-black'
                                             : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'
-                                        }`}
+                                          }`}
                                       >
                                         {pageNumber}
                                       </button>
@@ -635,7 +655,7 @@ const DashboardPage: React.FC = () => {
                               onView={() => handleAppointmentAction(appointment.id, 'view')}
                             />
                           ))}
-                          {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 && 
+                          {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 &&
                             Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
                               <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
                             ))
