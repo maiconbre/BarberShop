@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import BookingModal from './components/BookingModal';
 import Home from './pages/Home';
 import AboutPage from './pages/AboutPage';
@@ -31,16 +32,18 @@ const AppContent = () => {
     transition: { duration: 0.3, ease: "easeInOut" }
   };
   return (
-    <div className="min-h-screen bg-[#0D121E] text-white">
-      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && (
-        <Navbar 
-        isModalOpen={isModalOpen}
-        setIsModalOpen={setIsModalOpen}
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-      )}
-      <AnimatePresence mode="wait" initial={false}>
+    <div className="min-h-screen bg-[#0D121E] text-white relative">
+      {location.pathname !== '/login' && location.pathname !== '/vendapage2' && <Sidebar />}
+      <div className="md:pl-64">
+        {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && (
+          <Navbar 
+          isModalOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
+        )}
+        <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={location.pathname}
           className="w-full"
@@ -102,6 +105,7 @@ const AppContent = () => {
         </motion.div>
       </AnimatePresence>
       <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      </div>
     </div>
   );
 };

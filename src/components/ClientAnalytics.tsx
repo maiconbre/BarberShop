@@ -53,7 +53,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'services' | 'trends'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'services' | 'trends'>(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        return (searchParams.get('report') as 'overview' | 'clients' | 'services' | 'trends') || 'overview';
+    });
     interface ClientData {
         id: string;
         name: string;
@@ -863,6 +866,19 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         return filteredAppointments.filter(app => app.clientName === selectedClient.name);
     }, [filteredAppointments, selectedClient]);
 
+    useEffect(() => {
+        const handleReportViewChange = (event: CustomEvent) => {
+            const { view } = event.detail;
+            setActiveTab(view);
+        };
+
+        window.addEventListener('reportViewChange', handleReportViewChange as EventListener);
+
+        return () => {
+            window.removeEventListener('reportViewChange', handleReportViewChange as EventListener);
+        };
+    }, []);
+
     return (
         <div className="w-full h-full flex flex-col p-4 sm:p-6 md:p-8 space-y-6">
             <AnimatePresence>
@@ -908,48 +924,21 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     </div>
                 )}
             </AnimatePresence>
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
-                <nav className="flex justify-center md:justify-start flex-wrap md:flex-col gap-2 bg-[#1A1F2E] p-3 rounded-xl md:w-1/4">
-                    {[
-                        { id: 'overview', label: 'Visão Geral', icon: BarChart2 },
-                        { id: 'clients', label: 'Clientes', icon: Users },
-                        { id: 'services', label: 'Serviços', icon: PieChart },
-                        { id: 'trends', label: 'Tendências', icon: LineChart }
-                    ].map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                            <motion.button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${activeTab === tab.id
-                                        ? 'bg-[#F0B35B] text-black font-medium'
-                                        : 'text-white hover:bg-[#F0B35B]/20'
-                                    }`}
-                            >
-                                <Icon className="w-4 h-4" />
-                                <span className="text-sm">{tab.label}</span>
-                            </motion.button>
-                        );
-                    })}
-                </nav>
-                <div className="flex-1">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            {activeTab === 'overview' && renderOverviewTab()}
-                            {activeTab === 'clients' && renderClientsTab()}
-                            {activeTab === 'services' && renderServicesTab()}
-                            {activeTab === 'trends' && renderTrendsTab()}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
+            <div className="flex-1">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        {activeTab === 'overview' && renderOverviewTab()}
+                        {activeTab === 'clients' && renderClientsTab()}
+                        {activeTab === 'services' && renderServicesTab()}
+                        {activeTab === 'trends' && renderTrendsTab()}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </div>
     );

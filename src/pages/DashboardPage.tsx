@@ -337,6 +337,19 @@ const DashboardPage: React.FC = () => {
   }, [appointments]);
 
   useEffect(() => {
+    const handleDashboardViewChange = (event: CustomEvent) => {
+      const { view } = event.detail;
+      handleViewChange(view);
+    };
+
+    window.addEventListener('dashboardViewChange', handleDashboardViewChange as EventListener);
+
+    return () => {
+      window.removeEventListener('dashboardViewChange', handleDashboardViewChange as EventListener);
+    };
+  }, [handleViewChange]);
+
+  useEffect(() => {
     if (revenueDisplayMode === 'day') {
       setFilterMode('today');
     } else if (revenueDisplayMode === 'week') {
@@ -346,6 +359,17 @@ const DashboardPage: React.FC = () => {
     }
     setCurrentPage(1);
   }, [revenueDisplayMode]);
+
+  // Sincronizar a visualização inicial com a URL
+  useEffect(() => {
+    if (location.pathname === '/dashboard') {
+      const searchParams = new URLSearchParams(location.search);
+      const view = searchParams.get('view') as 'painel' | 'agenda' | 'analytics';
+      if (view) {
+        handleViewChange(view);
+      }
+    }
+  }, [location]);
 
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
@@ -361,7 +385,7 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <main className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-8 xl:px-0 relative z-10">
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6 w-full">
+      <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6 w-full md:hidden">
           <div className="grid grid-cols-3 w-full gap-1 xs:gap-2 sm:gap-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -460,7 +484,7 @@ const DashboardPage: React.FC = () => {
                       ) : (
                         <>
                           <div className="flex-1 p-3 sm:p-4">
-                            <div className="grid grid-cols-1 gap-2 auto-rows-max overflow-y-auto max-h-[calc(100vh-15rem)] custom-scrollbar hide-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 lg:gap-4 auto-rows-max overflow-y-auto max-h-[calc(100vh-15rem)] md:max-h-[calc(100vh-12rem)] custom-scrollbar hide-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
                               {currentAppointments.slice(0, 15).map((appointment) => (
                                 <AppointmentCardNew
                                   key={`appointment-${appointment.id}-${appointment.status}`}
