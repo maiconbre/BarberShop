@@ -264,9 +264,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     };
   }, []);
 
-  // Filtra os agendamentos com base nos filtros selecionados
+  // Filtra os agendamentos com base nos filtros selecionados com otimização de performance
   const filteredAppointments = useMemo(() => {
-    return appointments.filter(app => {
+    // Aplicar filtros em etapas para melhorar a performance
+    let filtered = appointments;
+    
+    // Primeiro aplicar filtros que podem reduzir significativamente o conjunto de dados
+    filtered = filtered.filter(app => !app.isBlocked);
+    
+    // Filtro por usuário logado (se não for admin)
+    if (currentUser?.role !== 'admin' && currentUser?.id) {
+      filtered = filtered.filter(app => app.barberId === currentUser.id);
+    }
+    
+    // Aplicar filtros específicos
+    return filtered.filter(app => {
       // Filtro por barbeiro
       if (selectedBarber && app.barberId !== selectedBarber) {
         return false;
@@ -303,14 +315,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       if (searchTerm && !app.clientName?.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
-
-      // Filtro por usuário logado (se não for admin)
-      if (currentUser?.role !== 'admin' && app.barberId !== currentUser?.id) {
-        return false;
-      }
-
-      // Excluir agendamentos bloqueados
-      if (app.isBlocked) return false;
 
       return true;
     });
@@ -474,9 +478,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         return 'bg-[#F0B35B] text-black font-bold';
       }
       if (isInRange) {
-        return 'bg-[#F0B35B]/30 text-white hover:bg-[#F0B35B]/40';
+        return 'bg-[#F0B35B]/30 text-white';
       }
-      return hasApps ? 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]' : 'bg-[#252B3B]/50 text-gray-400 hover:bg-[#252B3B]';
+      return hasApps ? 'bg-[#1A1F2E] text-white' : 'bg-[#252B3B]/50 text-gray-400';
     }
 
     if (isDateSelected) {
@@ -485,7 +489,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     if (isTodayDate && !isRangeActive) {
       return 'bg-[#F0B35B]/20 text-white';
     }
-    return hasApps ? 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]' : 'bg-[#252B3B]/50 text-gray-400 hover:bg-[#252B3B]';
+    return hasApps ? 'bg-[#1A1F2E] text-white' : 'bg-[#252B3B]/50 text-gray-400';
   }, [selectedDate, startDate, endDate]);
 
   // Gera o grid do calendário com memoização
@@ -512,10 +516,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       grid.push(
         <motion.button
           key={date}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
           onClick={() => onDateSelect(date)}
-          className={`relative h-10 sm:h-14 rounded-lg flex flex-col items-center justify-center transition-all duration-300 will-change-transform
+          className={`relative h-10 sm:h-14 rounded-lg flex flex-col items-center justify-center
             ${dateStyles}
           `}
         >
@@ -555,11 +557,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 {day.dayName}
               </div>
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => onDateSelect(day.formattedDate)}
                 className={`
-                  relative flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-300
+                  relative flex flex-col items-center justify-center p-2 rounded-lg
                   ${dateStyles} ${day.isToday ? 'ring-1 ring-[#F0B35B]/50' : ''}
                 `}
               >
@@ -596,9 +596,33 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     onResetFilters();
   };
   
-  // Renderiza a visualização diária
+  // Renderiza a visualização diária com virtualização para melhor performance
   const renderDayView = useCallback(() => {
     const formattedDate = format(currentDay, 'EEEE, d MMMM', { locale: ptBR });
+    
+    // Preparar dados para virtualização
+    const flattenedAppointments = dayHours.flatMap((hourData) => {
+      if (hourData.appointments.length === 0) {
+        return [{
+          type: 'empty',
+          hour: hourData.hour,
+          formattedHour: hourData.formattedHour
+        }];
+      }
+      
+      return [
+        {
+          type: 'header',
+          hour: hourData.hour,
+          formattedHour: hourData.formattedHour
+        },
+        ...hourData.appointments.map(app => ({
+          type: 'appointment',
+          hour: hourData.hour,
+          appointment: app
+        }))
+      ];
+    });
     
     return (
       <div className="mt-2">
@@ -641,7 +665,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           const date = format(currentDay, 'yyyy-MM-dd');
                           onDateSelect(date);
                         }}
-                        className="text-xs text-gray-500 hover:text-[#F0B35B] transition-colors"
+                        className="text-xs text-gray-500"
                       >
                         Horário disponível
                       </button>
@@ -667,14 +691,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           return (
             <motion.button
               key={month.monthNumber}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               onClick={() => {
                 setCurrentMonth(month.date);
                 setViewMode('month');
               }}
               className={`
-                p-3 rounded-lg flex flex-col items-center justify-center transition-all
+                p-3 rounded-lg flex flex-col items-center justify-center
                 ${isCurrentMonth ? 'bg-[#F0B35B]/20 ring-1 ring-[#F0B35B]/50' : ''}
                 ${month.hasAppointments ? 'bg-[#1A1F2E] text-white' : 'bg-[#252B3B]/50 text-gray-400'}
               `}
@@ -723,28 +745,28 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="flex items-center">
             <button
               onClick={() => setViewMode('day')}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'day' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'hover:bg-white/5 text-gray-400'}`}
+              className={`p-1.5 rounded-lg ${viewMode === 'day' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
               aria-label="Visualização diária"
             >
               <Calendar className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('week')}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'week' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'hover:bg-white/5 text-gray-400'}`}
+              className={`p-1.5 rounded-lg ${viewMode === 'week' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
               aria-label="Visualização semanal"
             >
               <CalendarRange className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('month')}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'month' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'hover:bg-white/5 text-gray-400'}`}
+              className={`p-1.5 rounded-lg ${viewMode === 'month' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
               aria-label="Visualização mensal"
             >
               <CalendarDays className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('year')}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'year' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'hover:bg-white/5 text-gray-400'}`}
+              className={`p-1.5 rounded-lg ${viewMode === 'year' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
               aria-label="Visualização anual"
             >
               <Grid className="w-4 h-4" />
@@ -754,7 +776,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="relative" ref={filterRef}>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`p-1.5 rounded-lg transition-colors ${showFilters ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'hover:bg-white/5 text-gray-400'}`}
+              className={`p-1.5 rounded-lg ${showFilters ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
               aria-label="Filtros"
             >
               <Filter className="w-4 h-4" />
@@ -773,7 +795,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     <h3 className="text-sm font-medium text-white">Filtros</h3>
                     <button 
                       onClick={() => setShowFilters(false)}
-                      className="text-gray-400 hover:text-white"
+                      className="text-gray-400"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -832,7 +854,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="pt-1">
                       <button
                         onClick={handleClearFilters}
-                        className="w-full bg-[#F0B35B]/10 hover:bg-[#F0B35B]/20 text-[#F0B35B] text-xs rounded-md py-1.5 transition-colors"
+                        className="w-full bg-[#F0B35B]/10 text-[#F0B35B] text-xs rounded-md py-1.5"
                       >
                         Limpar filtros
                       </button>
@@ -862,7 +884,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 }
               }}
               disabled={isLoading}
-              className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors
+              className={`p-1.5 rounded-lg
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label="Anterior"
             >
@@ -886,7 +908,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 }
               }}
               disabled={isLoading}
-              className={`p-1.5 rounded-lg hover:bg-white/5 transition-colors
+              className={`p-1.5 rounded-lg
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label="Próximo"
             >

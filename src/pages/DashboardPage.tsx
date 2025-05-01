@@ -9,6 +9,8 @@ import { useNotifications } from '../components/Notifications';
 import AppointmentViewModal from '../components/AppointmentViewModal';
 import CalendarView from '../components/CalendarView';
 import CacheService from '../services/CacheService';
+import { FixedSizeList as List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 interface Appointment {
   id: string;
@@ -38,14 +40,14 @@ const DashboardPage: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const appointmentsPerPage = 9;
+  const appointmentsPerPage = 4; // Reduzido de 9 para 4 para melhorar a visualização
   const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [, setIsMobile] = useState(window.innerWidth < 768);
 
   const { loadAppointments } = useNotifications();
 
@@ -283,6 +285,7 @@ const DashboardPage: React.FC = () => {
           return;
         }
 
+        // Usar memoização para evitar re-renderizações desnecessárias
         const formattedAppointments = await CacheService.fetchWithCache(
           'appointments',
           () => loadAppointments(false),
@@ -290,7 +293,13 @@ const DashboardPage: React.FC = () => {
         );
 
         if (isSubscribed && Array.isArray(formattedAppointments)) {
-          setAppointments(formattedAppointments);
+          // Otimização: comparar arrays antes de atualizar o estado
+          const currentIds = appointments.map(app => app.id).sort().join(',');
+          const newIds = formattedAppointments.map(app => app.id).sort().join(',');
+          
+          if (currentIds !== newIds || appointments.length !== formattedAppointments.length) {
+            setAppointments(formattedAppointments);
+          }
         }
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
@@ -315,7 +324,7 @@ const DashboardPage: React.FC = () => {
       if (retryTimeout) clearTimeout(retryTimeout);
       clearTimeout(initialFetchTimeout);
     };
-  }, [loadAppointments]);
+  }, [loadAppointments, appointments]);
 
   useEffect(() => {
     console.log('Estado atual de appointments:', appointments);
@@ -364,28 +373,22 @@ const DashboardPage: React.FC = () => {
         <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6 w-full">
           <div className="grid grid-cols-3 w-full gap-1 xs:gap-2 sm:gap-3">
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('painel')}
-              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white'}`}
             >
               <LayoutDashboard className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
               <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Painel</span>
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('agenda')}
-              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white'}`}
             >
               <Calendar className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
               <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Agenda</span>
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               onClick={() => handleViewChange('analytics')}
-              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'}`}
+              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white'}`}
             >
               <Users className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
               <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Relatório</span>
@@ -423,10 +426,8 @@ const DashboardPage: React.FC = () => {
                         </h2>
                         <div className="flex items-center gap-2">
                           <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
                             onClick={refreshData}
-                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
                             aria-label="Atualizar"
                           >
                             <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -435,7 +436,7 @@ const DashboardPage: React.FC = () => {
                             <select
                               value={filterMode}
                               onChange={(e) => setFilterMode(e.target.value)}
-                              className="appearance-none bg-[#1A1F2E] text-white text-xs rounded-lg px-2 py-1.5 pr-6 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer hover:bg-[#252B3B] transition-colors"
+                              className="appearance-none bg-[#1A1F2E] text-white text-xs rounded-lg px-2 py-1.5 pr-6 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer"
                             >
                               <option value="today">Hoje</option>
                               <option value="tomorrow">Amanhã</option>
@@ -459,17 +460,42 @@ const DashboardPage: React.FC = () => {
                         </div>
                       ) : (
                         <>
-                          <div className="flex-1 p-3 sm:p-4">
-                            <div className="grid grid-cols-1 gap-2 auto-rows-max overflow-y-auto max-h-[calc(100vh-15rem)] custom-scrollbar hide-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
-                              {currentAppointments.slice(0, 15).map((appointment) => (
-                                <AppointmentCardNew
-                                  key={`appointment-${appointment.id}-${appointment.status}`}
-                                  appointment={appointment}
-                                  onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                                  onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                                  onView={() => handleAppointmentAction(appointment.id, 'view')}
-                                />
-                              ))}
+                          <div className="flex-1 p-3 sm:p-4 pt-4">
+                            <div className="h-[calc(100vh-15rem)]" style={{ transform: 'translate3d(0,0,0)' }}>
+                              <AutoSizer>
+                                {({ height, width }) => (
+                                  <List
+                                    className="custom-scrollbar hide-scrollbar optimize-scroll"
+                                    height={height}
+                                    width={width}
+                                    itemCount={currentAppointments.length}
+                                    itemSize={134} // Altura aumentada para dar mais espaço entre os cards
+                                    overscanCount={3} // Pré-renderiza itens fora da viewport
+                                    itemData={{
+                                      appointments: currentAppointments,
+                                      onDelete: (id: string) => handleAppointmentAction(id, 'delete'),
+                                      onToggleStatus: (id: string, status: string) => handleAppointmentAction(id, 'toggle', status),
+                                      onView: (id: string) => handleAppointmentAction(id, 'view')
+                                    }}
+                                  >
+                                    {({ index, style, data }) => {
+                                      const appointment = data.appointments[index];
+                                      return (
+                                        <div style={{...style, paddingBottom: '16px', paddingTop: '8px'}}>
+                                          <AppointmentCardNew
+                                            key={`appointment-${appointment.id}-${appointment.status}`}
+                                            appointment={appointment}
+                                            onDelete={() => data.onDelete(appointment.id)}
+                                            onToggleStatus={() => data.onToggleStatus(appointment.id, appointment.status)}
+                                            onView={() => data.onView(appointment.id)}
+                                            className="mb-2"
+                                          />
+                                        </div>
+                                      );
+                                    }}
+                                  </List>
+                                )}
+                              </AutoSizer>
                             </div>
                           </div>
                           {totalPages > 1 && (

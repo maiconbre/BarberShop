@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, DollarSign, MoreVertical, Trash2, CheckCircle2, XCircle, Eye, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Calendar, Clock, DollarSign, MoreVertical, Trash2, CheckCircle2, XCircle, Eye, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -25,6 +25,7 @@ interface Props {
   onDelete: () => void;
   onToggleStatus: () => void;
   onView: () => void;
+  className?: string;
 }
 
 const ConfirmationModal = memo<{
@@ -68,16 +69,13 @@ const ConfirmationModal = memo<{
 
 ConfirmationModal.displayName = 'ConfirmationModal';
 
-const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus, onView }) => {
+const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus, onView, className = '' }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const touchStartY = useRef<number | null>(null);
-  const touchEndY = useRef<number | null>(null);
 
   // Fechar o menu quando clicar fora dele
   useEffect(() => {
@@ -92,28 +90,6 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  // Manipuladores de toque para gestos em dispositivos móveis
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartY.current) return;
-    touchEndY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartY.current && touchEndY.current) {
-      const diff = touchStartY.current - touchEndY.current;
-      if (Math.abs(diff) > 50) {
-        // Swipe para cima expande, para baixo retrai
-        setIsExpanded(diff > 0);
-      }
-    }
-    touchStartY.current = null;
-    touchEndY.current = null;
-  };
 
   const handleAction = async (action: () => void) => {
     if (isProcessing) return;
@@ -195,24 +171,20 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
           opacity: 1, 
           y: 0,
           height: 'auto',
-          boxShadow: isExpanded ? '0 10px 25px -5px rgba(0, 0, 0, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
         }}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.2 }}
-        className={`bg-[#1A1F2E] rounded-xl border border-white/5 border-l-4 ${getStatusBorderColor(appointment.status)} p-3 sm:p-4 relative group will-change-transform ${isExpanded ? getStatusGlowColor(appointment.status) : ''} mb-3`}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        className={`bg-[#1A1F2E] rounded-xl border border-white/5 border-l-4 ${getStatusBorderColor(appointment.status)} p-3 sm:p-4 relative group will-change-transform mb-3 ${className}`}
         style={{ 
           transform: 'translate3d(0, 0, 0)',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
           overflowY: 'visible', 
           overflowX: 'hidden',
-          maxHeight: isExpanded ? '1000px' : '500px',
-          transitionProperty: 'transform, box-shadow, max-height',
+          transitionProperty: 'transform, box-shadow',
           transitionDuration: '0.2s',
           transitionTimingFunction: 'ease-out'
         }}
@@ -296,7 +268,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 mb-3 text-xs sm:text-sm text-gray-400">
+          <div className="flex flex-wrap gap-3 text-xs sm:text-sm text-gray-400">
             <div className="flex items-center gap-1.5 bg-[#252B3B]/70 px-2 py-1 rounded-md">
               <Calendar className="w-3.5 h-3.5 text-[#F0B35B]" />
               <span>{formatDate(appointment.date)}</span>
@@ -309,94 +281,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
               <DollarSign className="w-3.5 h-3.5 text-[#F0B35B]" />
               <span>R$ {appointment.price.toFixed(2)}</span>
             </div>
-            </div>
-            
-          {/* Toggle details button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-            className="w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-white transition-colors bg-[#252B3B]/50 py-1.5 rounded-md mt-1"
-          >
-            {isExpanded ? (
-              <>
-                <span>Recolher</span>
-                <ChevronUp size={14} />
-              </>
-            ) : (
-              <>
-                <span>Expandir</span>
-                <ChevronDown size={14} />
-              </>
-            )}
-          </button>
-          
-          {/* Expanded details */}
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mt-3 pt-3 border-t border-white/5"
-              >
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-[#252B3B]/50 rounded-md p-2">
-                    <p className="text-gray-400 mb-1">Barbeiro</p>
-                    <p className="text-white">{appointment.barberName}</p>
-                  </div>
-                  <div className="bg-[#252B3B]/50 rounded-md p-2">
-                    <p className="text-gray-400 mb-1">Status</p>
-                    <p className={appointment.status === 'completed' ? 'text-green-400' : appointment.status === 'confirmed' ? 'text-blue-400' : 'text-yellow-400'}>
-                      {getStatusText(appointment.status)}
-                    </p>
-                  </div>
-                  {appointment.createdAt && (
-                    <div className="col-span-2 bg-[#252B3B]/50 rounded-md p-2">
-                      <p className="text-gray-400 mb-1">Agendado em</p>
-                      <p className="text-white">{new Date(appointment.createdAt).toLocaleString('pt-BR')}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onView();
-                    }}
-                    className="flex-1 bg-[#252B3B] hover:bg-[#2E354A] text-white transition-colors rounded-md py-2 text-xs flex items-center justify-center gap-1.5"
-                  >
-                    <Eye size={14} />
-                    <span>Contato</span>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                      handleAction(() => setShowStatusModal(true));
-                    }}
-                    className={`flex-1 transition-colors rounded-md py-2 text-xs flex items-center justify-center gap-1.5
-                      ${appointment.status === 'completed' 
-                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                        : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}`}
-                  >
-                    {appointment.status === 'completed' ? (
-                      <>
-                        <XCircle size={14} />
-                        <span>Reverter</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 size={14} />
-                        <span>Concluir</span>
-                      </>
-                    )}
-              </button>
-            </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          </div>
         </div>
       </motion.div>
 
