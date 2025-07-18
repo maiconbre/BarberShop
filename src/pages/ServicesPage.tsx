@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import Services from '../components/Services';
-import Footer from '../components/Footer';
-import Navbar from '../components/Navbar';
-import BookingModal from '../components/BookingModal';
+import Services from '../components/feature/Services';
+import Footer from '../components/ui/Footer';
+import Navbar from '../components/ui/Navbar';
+import BookingModal from '../components/feature/BookingModal';
 import { useState } from 'react';
 
 const ServicesPage = () => {
@@ -39,7 +39,11 @@ const ServicesPage = () => {
           setIsMobileMenuOpen={() => {}}
         />
         <main className="flex-grow">
-          <Services onSchedule={handleOpenModal} onScheduleMultiple={handleOpenModalMultiple} />
+          <Services 
+            onSchedule={handleOpenModal} 
+            onScheduleMultiple={handleOpenModalMultiple} 
+            isShowcase={false} 
+          />
         </main>
         <Footer />
         <BookingModal 

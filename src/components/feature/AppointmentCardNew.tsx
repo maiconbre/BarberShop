@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, memo } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, DollarSign, MoreVertical, Trash2, CheckCircle2, XCircle, Eye, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ConfirmationModal from '../ui/ConfirmationModal';
 
 interface Appointment {
   id: string;
@@ -28,46 +29,7 @@ interface Props {
   className?: string;
 }
 
-const ConfirmationModal = memo<{
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title: string;
-  message: string;
-}>(({ isOpen, onClose, onConfirm, title, message }) => {
-  if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative bg-[#1A1F2E] rounded-xl p-4 sm:p-6 w-full max-w-xs sm:max-w-sm shadow-xl border border-white/10"
-      >
-        <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">{title}</h3>
-        <p className="text-sm text-gray-300 mb-4">{message}</p>
-        <div className="flex justify-end gap-2 sm:gap-3">
-            <button
-              onClick={onClose}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] transition-colors text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={onConfirm}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm"
-            >
-              Confirmar
-            </button>
-          </div>
-        </motion.div>
-    </div>
-  );
-});
-
-ConfirmationModal.displayName = 'ConfirmationModal';
 
 const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus, onView, className = '' }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -118,16 +80,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'confirmed':
-        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      default:
-        return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-    }
-  };
+
 
   const getStatusBorderColor = (status: string) => {
     switch (status) {
@@ -140,27 +93,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
     }
   };
 
-  const getStatusGlowColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'shadow-[0_0_15px_rgba(34,197,94,0.2)]';
-      case 'confirmed':
-        return 'shadow-[0_0_15px_rgba(59,130,246,0.2)]';
-      default:
-        return 'shadow-[0_0_15px_rgba(234,179,8,0.2)]';
-    }
-  };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Concluído';
-      case 'confirmed':
-        return 'Confirmado';
-      default:
-        return 'Pendente';
-    }
-  };
 
   return (
     <>

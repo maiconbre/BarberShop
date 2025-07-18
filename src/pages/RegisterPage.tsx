@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Trash2, Edit, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
-import EditConfirmationModal from '../components/EditConfirmationModal';
+import EditConfirmationModal from '../components/ui/EditConfirmationModal';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;

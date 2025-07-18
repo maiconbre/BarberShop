@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Menu, X, Scissors, User, Calendar, Home, Settings, Users, LogOut, Key, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import Notifications from '../components/ui/Notifications';
-import { useCache } from '../hooks/useCache';
+import { useAuth } from '../../contexts/AuthContext';
+import Notifications from './Notifications';
+import { useCache } from '../../hooks/useCache';
 
 interface NavbarProps {
   isModalOpen: boolean;

@@ -2,12 +2,12 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
-import AppointmentCardNew from '../components/AppointmentCardNew';
-import Stats from '../components/Stats';
-import ClientAnalytics from '../components/ClientAnalytics';
-import { useNotifications } from '../components/Notifications';
-import AppointmentViewModal from '../components/AppointmentViewModal';
-import CalendarView from '../components/CalendarView';
+import AppointmentCardNew from '../components/feature/AppointmentCardNew';
+import Stats from '../components/feature/Stats';
+import ClientAnalytics from '../components/feature/ClientAnalytics';
+import { useNotifications } from '../components/ui/Notifications';
+import AppointmentViewModal from '../components/feature/AppointmentViewModal';
+import CalendarView from '../components/feature/CalendarView';
 import CacheService from '../services/CacheService';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -100,10 +100,10 @@ const DashboardPage: React.FC = () => {
   const refreshData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const lastUpdate = await CacheService.getLastUpdateTime('appointments');
+      const lastUpdate = await CacheService.get('appointments_last_update');
       const now = new Date().getTime();
 
-      if (lastUpdate && (now - new Date(lastUpdate).getTime()) < CACHE_DURATION) {
+      if (lastUpdate && (now - (typeof lastUpdate === 'string' ? new Date(lastUpdate).getTime() : 0)) < CACHE_DURATION) {
         console.log('Usando dados em cache');
         return;
       }
@@ -111,7 +111,7 @@ const DashboardPage: React.FC = () => {
       const newAppointments = await loadAppointments(true);
       if (newAppointments && Array.isArray(newAppointments)) {
         setAppointments(newAppointments);
-        await CacheService.setLastUpdateTime('appointments', new Date().getTime());
+await CacheService.set('appointments_last_update', new Date().getTime().toString());
       }
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
@@ -201,7 +201,7 @@ const DashboardPage: React.FC = () => {
           return;
         }
 
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -232,7 +232,7 @@ const DashboardPage: React.FC = () => {
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
-        const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -289,7 +289,7 @@ const DashboardPage: React.FC = () => {
         const formattedAppointments = await CacheService.fetchWithCache(
           'appointments',
           () => loadAppointments(false),
-          false
+{ forceRefresh: false }
         );
 
         if (isSubscribed && Array.isArray(formattedAppointments)) {

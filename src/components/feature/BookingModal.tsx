@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ApiService from '../services/ApiService';
+import ApiService from '../../services/ApiService';
 import { X, MessageCircle, ArrowRight, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
-import { adjustToBrasilia } from '../utils/DateTimeUtils'; // Adicionar esta importação
+import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 
-// Constante com horários disponíveis
-export const AVAILABLE_TIME_SLOTS = [
-  '09:00', '10:00', '11:00', '14:00', '15:00',
-  '16:00', '17:00', '18:00', '19:00', '20:00'
-];
+// Importando constantes e funções do serviço de agendamentos
+import { 
+  isTimeSlotAvailable,
+  loadAppointments,
+  createAppointment,
+  formatWhatsappMessage,
+  formatDisplayDate
+} from '../../services/AppointmentService';
 
 // Interface para as props do componente
 interface BookingModalProps {
@@ -133,9 +136,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     const fetchBarbers = async () => {
       try {
         const result = await ApiService.getBarbers();
-        if ((result as any).success && (result as any).data) {
-          setBarbers((result as any).data);
-        }
+        // O método getBarbers já retorna o array de barbeiros diretamente
+        setBarbers(result);
       } catch (error) {
         console.error('Erro ao buscar barbeiros:', error);
       }
@@ -151,51 +153,17 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     }
   }, [preloadedAppointments]);
 
-  // Função atualizada para verificar disponibilidade de horário
-  const isTimeSlotAvailable = useCallback((date: string, time: string, barberId: string): boolean => {
-    if (!cachedAppointments || !Array.isArray(cachedAppointments)) return true;
-    
-    return !cachedAppointments.some(appointment => 
-      appointment.date === date && 
-      appointment.time === time && 
-      appointment.barberId === barberId &&
-      !appointment.isCancelled && 
-      !appointment.isRemoved
-    );
-  }, [cachedAppointments]);
+  // A função isTimeSlotAvailable foi movida para AppointmentService.ts e agora é importada
 
-  // Função para carregar os horários disponíveis com retry e cache
-  const loadAppointments = async (retryCount = 0) => {
+  // Função para carregar os horários disponíveis usando o serviço importado
+  const fetchAppointmentsData = async () => {
     if (cachedAppointments.length > 0) return;
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const jsonData = await response.json();
-      if (!jsonData.success) {
-        throw new Error('Erro na resposta da API');
-      }
-
-      // Filtrar apenas agendamentos válidos e não cancelados
-      const validAppointments = jsonData.data.filter((apt: any) => 
-        apt && apt.date && apt.time && !apt.isCancelled
-      );
+      // Usar a função importada do AppointmentService
+      const validAppointments = await loadAppointments();
       
       setCachedAppointments(validAppointments);
-      
-      // Atualizar cache local
-      localStorage.setItem('appointments', JSON.stringify(validAppointments));
       
     } catch (err) {
       console.error('Erro ao carregar agendamentos:', err);
@@ -204,12 +172,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       const localCache = localStorage.getItem('appointments');
       if (localCache) {
         setCachedAppointments(JSON.parse(localCache));
-        return;
-      }
-      
-      // Retry lógico em caso de falha
-      if (retryCount < 3) {
-        setTimeout(() => loadAppointments(retryCount + 1), 1000 * Math.pow(2, retryCount));
       }
     }
   };
@@ -217,7 +179,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Efeito para sincronizar mudanças nos agendamentos
   useEffect(() => {
     if (isOpen) {
-      loadAppointments();
+      fetchAppointmentsData();
       
       // Listener para atualização em tempo real
       const handleStorageChange = () => {
@@ -290,6 +252,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
   // Atualizar função handleTimeSelect do Calendar
   const handleTimeSelect = useCallback((date: Date, time: string) => {
+    // Formatar a data usando o formato yyyy-MM-dd para armazenamento
     const formattedDate = format(adjustToBrasilia(date), 'yyyy-MM-dd');
     
     if (!formData.barberId) {
@@ -309,7 +272,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Efeito para carregar os horários quando o modal for aberto e não houver pré-carregados
   useEffect(() => {
     if (isOpen && cachedAppointments.length === 0) {
-      loadAppointments();
+      fetchAppointmentsData();
     }
   }, [isOpen, cachedAppointments.length]);
 
@@ -378,7 +341,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     try {
       // Verificar novamente a disponibilidade antes de confirmar
-      const isStillAvailable = isTimeSlotAvailable(formData.date, formData.time, formData.barberId);
+      const isStillAvailable = isTimeSlotAvailable(formData.date, formData.time, formData.barberId, cachedAppointments);
       if (!isStillAvailable) {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
       }
@@ -403,37 +366,29 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         detail: tempAppointment
       }));
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          clientName: formData.name,
-          wppclient: formData.whatsapp,
-          serviceName: formData.services.join(', '),
-          date: formData.date,
-          time: formData.time,
-          barberId: formData.barberId,
-          barberName: formData.barber,
-          price: formData.services.reduce((total, service) => total + getServicePrice(service), 0)
-        })
-      });
+      // Usar a função createAppointment importada do AppointmentService
+      const appointmentData = {
+        clientName: formData.name,
+        wppclient: formData.whatsapp,
+        serviceName: formData.services.join(', '),
+        date: formData.date,
+        time: formData.time,
+        barberId: formData.barberId,
+        barberName: formData.barber,
+        price: formData.services.reduce((total, service) => total + getServicePrice(service), 0)
+      };
+      
+      const result = await createAppointment(appointmentData);
 
-      if (!response.ok) {
+      if (!result.success) {
         // Reverter atualização otimista em caso de erro
         setCachedAppointments(prev => prev.filter(app => app.id !== tempAppointment.id));
         window.dispatchEvent(new CustomEvent('timeSlotUnblocked', {
           detail: tempAppointment
         }));
         
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao criar agendamento');
+        throw new Error(result.message || 'Erro ao criar agendamento');
       }
-
-      const result = await response.json();
 
       // Atualizar o appointment com o ID real
       const confirmedAppointment = {
@@ -469,28 +424,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
   };
 
-  // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo todos os serviços selecionados
+  // Função que monta a mensagem com os dados do agendamento para o WhatsApp usando o serviço importado
   const getWhatsappMessage = () => {
-    const formattedDate = formData.date
-      ? format(new Date(formData.date), 'dd/MM/yyyy')
-      : format(new Date(), 'dd/MM/yyyy');
-
     // Calcula o preço total dos serviços selecionados
     const totalPrice = formData.services.reduce((total, service) => {
       return total + getServicePrice(service);
     }, 0);
 
-    const message = `Olá, segue meu agendamento:
-Nome: ${formData.name}
-WhatsApp: ${formData.whatsapp}
-Barbeiro: ${formData.barber}
-Serviços: ${formData.services.join(', ')}
-Valor: R$ ${totalPrice.toFixed(2)}
-Data: ${formattedDate}
-Horário: ${formData.time}
-  
-Aguardo a confirmação.`;
-    return encodeURIComponent(message);
+    // Usa a função formatWhatsappMessage importada do AppointmentService
+    return formatWhatsappMessage({
+      name: formData.name,
+      whatsapp: formData.whatsapp,
+      barber: formData.barber,
+      services: formData.services,
+      date: formData.date,
+      time: formData.time,
+      totalPrice: totalPrice
+    });
   };
 
   // Função para copiar o PIX para a área de transferência
@@ -832,7 +782,7 @@ Aguardo a confirmação.`;
                         <CalendarIcon size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
                         <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Data:</span>
                         <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">
-                          {formData.date ? format(adjustToBrasilia(new Date(new Date(formData.date).setDate(new Date(formData.date).getDate() + 1))), 'dd/MM/yyyy') : ''}
+                          {formData.date ? formatDisplayDate(formData.date) : ''}
                         </span>
                       </li>
                       <li className="flex items-center">

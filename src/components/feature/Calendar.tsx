@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { format, addDays, isSameDay, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
+import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
-import { adjustToBrasilia } from '../utils/DateTimeUtils';
+import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 
 interface CalendarProps {
   selectedBarber: string;
@@ -30,8 +30,7 @@ const timeSlots = [
 const Calendar: React.FC<CalendarProps> = ({
   selectedBarber,
   onTimeSelect,
-  preloadedAppointments = [],
-  onAppointmentConfirmed
+  preloadedAppointments = []
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);

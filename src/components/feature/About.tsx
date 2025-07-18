@@ -1,6 +1,6 @@
 import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import ApiService from '../services/ApiService';
+import ApiService from '../../services/ApiService';
 
 
 const About = () => {
@@ -94,18 +94,58 @@ const About = () => {
       setCommentsError('');
 
       try {
-        // Usar ApiService em vez de fetch diretamente
-        const data = await ApiService.getApprovedComments();
+        // Usar ApiService com retry
+        const fetchWithRetry = async (retries = 3, delay = 1000) => {
+          try {
+            const data = await ApiService.getApprovedComments();
+            
+            if (Array.isArray(data)) {
+              return data;
+            } else {
+              throw new Error('Formato de resposta inválido');
+            }
+          } catch (error) {
+            if (retries > 0) {
+              // Espera com backoff exponencial antes de tentar novamente
+              const backoffDelay = delay * Math.pow(2, 3 - retries);
+              console.log(`Tentando novamente em ${backoffDelay}ms. Tentativas restantes: ${retries}`);
+              await new Promise(resolve => setTimeout(resolve, backoffDelay));
+              return fetchWithRetry(retries - 1, delay);
+            }
+            throw error;
+          }
+        };
 
-        if ((data as { success: boolean }).success) {
-          setApprovedComments((data as { data: any[] }).data);
-          setTotalPages(Math.ceil((data as { data: any[] }).data.length / commentsPerPage));
-        } else {
-          throw new Error((data as { message?: string }).message || 'Erro ao carregar comentários');
+        const data = await fetchWithRetry();
+        setApprovedComments(data);
+        setTotalPages(Math.ceil(data.length / commentsPerPage));
+        
+        // Armazena os comentários no localStorage para uso offline
+        try {
+          localStorage.setItem('approvedComments', JSON.stringify(data));
+          localStorage.setItem('approvedCommentsTimestamp', Date.now().toString());
+        } catch (e) {
+          console.error('Erro ao armazenar comentários no cache local:', e);
         }
       } catch (error) {
         console.error('Erro ao buscar comentários:', error);
         setCommentsError('Não foi possível carregar os comentários. Tente novamente mais tarde.');
+        
+        // Tenta usar dados em cache local se disponíveis
+        const cachedComments = localStorage.getItem('approvedComments');
+        if (cachedComments) {
+          try {
+            const parsedComments = JSON.parse(cachedComments);
+            if (Array.isArray(parsedComments) && parsedComments.length > 0) {
+              console.log('Usando comentários em cache local');
+              setApprovedComments(parsedComments);
+              setTotalPages(Math.ceil(parsedComments.length / commentsPerPage));
+              setCommentsError('Exibindo comentários em cache. Atualize a página para tentar novamente.');
+            }
+          } catch (e) {
+            console.error('Erro ao processar cache local:', e);
+          }
+        }
       } finally {
         setIsLoadingComments(false);
       }

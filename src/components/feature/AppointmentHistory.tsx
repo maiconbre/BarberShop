@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { formatFriendlyDateTime } from '../utils/DateTimeUtils';
+import { formatFriendlyDateTime } from '../../utils/DateTimeUtils';
 
 interface Appointment {
   id: string;
@@ -76,4 +76,4 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ appointments })
   );
 };
 
-export default AppointmentHistory; 
+export default AppointmentHistory;

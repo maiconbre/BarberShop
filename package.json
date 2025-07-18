@@ -8,6 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "dev:local": "cross-env NODE_ENV=development vite",
+    "test:supabase": "ts-node src/scripts/test-supabase.ts",
+    "start:dev": "powershell -File ./start-dev.ps1",
     "prisma": {
       "seed": "node --loader ts-node/esm prisma/seed.ts"
     }
@@ -37,7 +40,9 @@
     "react-window": "^1.8.11",
     "recharts": "^2.15.1",
     "sequelize": "^6.37.5",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "zod": "^4.0.5",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
