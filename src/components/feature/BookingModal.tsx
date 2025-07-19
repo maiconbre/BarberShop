@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ApiService from '../../services/ApiService';
 import { logger } from '../../utils/logger';
-import { X, MessageCircle, ArrowRight, CheckCircle } from 'lucide-react';
+import { X, MessageCircle, ArrowRight, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
@@ -30,6 +30,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [error, setError] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
 
   // Estado para armazenar os dados do formulário (agora com suporte a múltiplos serviços)
   const [formData, setFormData] = useState({
@@ -964,8 +965,8 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                   Confirme seus dados
                 </h3>
                 
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between items-center py-2 border-b border-white/10">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center py-1.5 border-b border-white/10">
                     <span className="text-gray-400">Nome:</span>
                     <span className="text-white font-medium">{formData.name}</span>
                   </div>
@@ -975,7 +976,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                     <span className="text-white font-medium">{formData.whatsapp}</span>
                   </div>
                   
-                  <div className="flex justify-between items-start py-2 border-b border-white/10">
+                  <div className="flex justify-between items-start py-1.5 border-b border-white/10">
                     <span className="text-gray-400">Serviços:</span>
                     <div className="text-right">
                       <div className="text-white font-medium">{formData.services.join(", ")}</div>
@@ -993,88 +994,122 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                     <span className="text-white font-medium">{formData.date ? formatDisplayDate(formData.date) : ''}</span>
                   </div>
                   
-                  <div className="flex justify-between items-center py-2">
+                  <div className="flex justify-between items-center py-1.5">
                     <span className="text-gray-400">Horário:</span>
                     <span className="text-white font-medium">{formData.time}</span>
                   </div>
                 </div>
 
-                {/* QR Code PIX */}
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="w-32 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
-                      {formData.barber ? (
-                        <>
-                          <div className="text-xs text-gray-500 mb-1 font-medium">PIX para pagamento</div>
-                          <img
-                            src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
-                            alt={`QR Code de ${formData.barber}`}
-                            className="w-24 h-24 object-contain hover:scale-105 transition-transform duration-200"
-                          />
-                          <div className="mt-2 flex items-center text-xs">
-                            <span className="text-gray-700 font-bold text-xs truncate max-w-[70px]">
-                              {getSelectedBarberInfo().pix}
-                            </span>
-                            <button
-                              onClick={handleCopyPix}
-                              className="ml-1 text-xs bg-green-400 text-black px-2 py-0.5 rounded hover:shadow-md hover:scale-105 transition-all duration-200 font-medium"
-                            >
-                              Copiar
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-gray-700 text-xs">QR Code não disponível</div>
-                      )}
+                {/* PIX Payment Section */}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-300 mb-1">Pagamento via PIX</p>
+                    <p className="text-base font-bold text-green-400">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
+                  </div>
+                  
+                  <div className="bg-[#1A1F2E] p-2.5 rounded-lg border border-[#F0B35B]/10">
+                    <p className="text-xs text-gray-400 mb-1.5">Chave PIX:</p>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-xs text-white font-mono bg-[#0D121E] px-2 py-1.5 rounded border border-[#F0B35B]/20 flex-1 truncate">
+                        {formData.barber ? getSelectedBarberInfo().pix : 'N/A'}
+                      </span>
+                      <button
+                        onClick={handleCopyPix}
+                        className="text-xs bg-[#F0B35B] text-black px-2 py-1.5 rounded hover:shadow-md hover:scale-105 transition-all duration-200 font-medium whitespace-nowrap"
+                      >
+                        Copiar
+                      </button>
+                      <button
+                        onClick={() => setShowQRModal(true)}
+                        className="p-1.5 bg-[#F0B35B]/20 text-[#F0B35B] rounded hover:bg-[#F0B35B]/30 transition-all duration-200 border border-[#F0B35B]/30"
+                        title="Ver QR Code"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <a
+                        href={`https://wa.me/${getSelectedBarberInfo().whatsapp}?text=${getWhatsappMessage()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 transition-all duration-200 border border-green-500/30"
+                        title="WhatsApp"
+                      >
+                        <MessageCircle size={14} />
+                      </a>
                     </div>
                     
-                    <div className="flex-1 text-center sm:text-left">
-                      <p className="text-sm text-gray-300 mb-2">Escaneie o QR Code ou use a chave PIX para pagamento</p>
-                      <p className="text-lg font-bold text-green-400">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
-                    </div>
+                    <p className="text-xs text-gray-400 text-center leading-tight">
+                      👁️ QR Code • 💬 WhatsApp
+                    </p>
                   </div>
                 </div>
-              </div>
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold transition-all duration-300 hover:bg-gray-500"
-                  >
-                    Voltar
-                  </button>
-                  
-                  <button
-                    onClick={handleNextStep}
-                    disabled={isLoading}
-                    className={`flex-1 ${getPrimaryButtonClasses()}`}
-                  >
-                    <span className="relative z-10 flex items-center justify-center">
-                      {isLoading ? (
-                        <span className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Processando...
-                        </span>
-                      ) : 'Confirmar Agendamento'}
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
-                  </button>
-                </div>
                 
-                <a
-                   href={`https://wa.me/${getSelectedBarberInfo().whatsapp}?text=${getWhatsappMessage()}`}
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="relative overflow-hidden group w-full flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-3 px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-sm border border-green-500/20 hover:border-green-500/40"
-                 >
-                   <MessageCircle size={16} />
-                   <span>Confirmar via WhatsApp</span>
-                   <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 via-white/10 to-green-500/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine"></div>
-                 </a>
+                {/* QR Code Modal */}
+                {showQRModal && (
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 relative animate-in fade-in zoom-in duration-300">
+                      <button
+                        onClick={() => setShowQRModal(false)}
+                        className="absolute top-3 right-3 p-1 text-gray-500 hover:text-gray-700 transition-colors"
+                      >
+                        <X size={20} />
+                      </button>
+                      
+                      <div className="text-center">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">QR Code PIX</h3>
+                        
+                        {formData.barber ? (
+                          <div className="space-y-4">
+                            <div className="bg-gray-50 p-4 rounded-xl">
+                              <img
+                                src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
+                                alt={`QR Code de ${formData.barber}`}
+                                className="w-48 h-48 mx-auto object-contain"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-600">Barbeiro: <span className="font-medium">{formData.barber}</span></p>
+                              <p className="text-lg font-bold text-green-600">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
+                              <p className="text-xs text-gray-500">Escaneie o código ou use a chave PIX</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 py-8">
+                            <p>QR Code não disponível</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="flex-1 bg-gray-600 text-white py-2.5 rounded-lg font-medium transition-all duration-300 hover:bg-gray-500 text-sm"
+                >
+                  Voltar
+                </button>
+                
+                <button
+                  onClick={handleNextStep}
+                  disabled={isLoading}
+                  className={`flex-1 ${getPrimaryButtonClasses()} py-2.5 text-sm`}
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    {isLoading ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processando...
+                      </span>
+                    ) : 'Confirmar'}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
+                </button>
               </div>
             </div>
 
