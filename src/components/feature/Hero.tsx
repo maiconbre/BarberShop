@@ -98,8 +98,21 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
       <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 "></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3  delay-1000"></div>
 
-      {/* Imagem de fundo com efeito parallax */}
+      {/* Imagem de fundo com efeito parallax e carregamento otimizado */}
       <div ref={parallaxRef} className="absolute inset-0 w-full h-full overflow-hidden">
+        {/* Fundo temporário enquanto a imagem carrega */}
+        <div className="absolute inset-0 bg-[#0D121E] transition-opacity duration-500 ease-in-out"
+             style={{ opacity: isImageLoading ? 1 : 0 }}>
+          {/* Gradiente decorativo para melhorar a experiência inicial */}
+          <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
+          
+          {/* Indicador de carregamento */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="w-12 h-12 text-[#F0B35B] animate-spin" />
+          </div>
+        </div>
+        
         <picture>
           {/* Formato AVIF para navegadores que suportam */}
           <source srcSet="/img/fotohero-optimized.avif" type="image/avif" />
@@ -111,20 +124,16 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
             alt="Barbearia GR - Ambiente profissional e moderno"
             effect="blur"
             afterLoad={handleImageLoad}
-            className="w-full h-full object-cover scale-110"
+            className="w-full h-full object-cover scale-110 transition-opacity duration-500"
             wrapperClassName="w-full h-full"
             style={{
-              filter: 'brightness(0.25)'
+              filter: 'brightness(0.25)',
+              opacity: isImageLoading ? 0 : 1
             }}
             loading="eager"
             placeholderSrc="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E"
           />
         </picture>
-        {isImageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#0D121E]">
-            <Loader2 className="w-12 h-12 text-[#F0B35B] animate-spin" />
-          </div>
-        )}
 
         {/* Padrão de linhas decorativas */}
         <div className="absolute inset-0 opacity-5">

@@ -567,28 +567,44 @@ class ApiService {
   }
 
   /**
-   * Pré-carrega dados críticos de forma inteligente
+   * Pré-carrega dados críticos de forma inteligente com suporte a lazy loading
    */
   async preloadCriticalData(): Promise<void> {
-    if (!this.isOnline) return;
-
+    // Mesmo offline, tentamos carregar do cache
     const criticalEndpoints = [
-      { endpoint: '/api/services', method: 'getServices' },
-      { endpoint: '/api/barbers', method: 'getBarbers' },
-      { endpoint: '/api/comments?status=approved', method: 'getApprovedComments' }
+      { endpoint: '/api/services', method: 'getServices', priority: 'high' },
+      { endpoint: '/api/barbers', method: 'getBarbers', priority: 'high' },
+      { endpoint: '/api/comments?status=approved', method: 'getApprovedComments', priority: 'low' }
     ];
 
-    logger.apiInfo('Pré-carregando dados críticos...');
+    logger.apiInfo('Pré-carregando dados críticos com lazy loading...');
+    
+    // Primeiro carrega dados de alta prioridade
+    const highPriorityEndpoints = criticalEndpoints.filter(ep => ep.priority === 'high');
     
     // Executa em paralelo mas não bloqueia se algum falhar
-    const results = await Promise.allSettled(
-      criticalEndpoints.map(({ method }) => 
+    const highPriorityResults = await Promise.allSettled(
+      highPriorityEndpoints.map(({ method }) => 
         (this as any)[method]()
       )
     );
 
-    const successful = results.filter(r => r.status === 'fulfilled').length;
-    logger.apiInfo(`Pré-carregamento concluído: ${successful}/${criticalEndpoints.length} sucessos`);
+    const highPrioritySuccessful = highPriorityResults.filter(r => r.status === 'fulfilled').length;
+    logger.apiInfo(`Pré-carregamento de alta prioridade: ${highPrioritySuccessful}/${highPriorityEndpoints.length} sucessos`);
+    
+    // Depois carrega dados de baixa prioridade em segundo plano
+    setTimeout(() => {
+      const lowPriorityEndpoints = criticalEndpoints.filter(ep => ep.priority === 'low');
+      
+      Promise.allSettled(
+        lowPriorityEndpoints.map(({ method }) => 
+          (this as any)[method]()
+        )
+      ).then(results => {
+        const lowPrioritySuccessful = results.filter(r => r.status === 'fulfilled').length;
+        logger.apiInfo(`Pré-carregamento de baixa prioridade: ${lowPrioritySuccessful}/${lowPriorityEndpoints.length} sucessos`);
+      });
+    }, 2000); // Atrasa o carregamento de baixa prioridade
   }
 
   /**
