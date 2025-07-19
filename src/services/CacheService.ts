@@ -201,7 +201,8 @@ class CacheService implements ICacheService, ICacheFetcher {
         return cachedData;
       }
     }
-
+    
+    // Busca dados frescos
     try {
       const data = await fetchFn();
       await this.set(key, data, options);
@@ -232,10 +233,19 @@ class CacheService implements ICacheService, ICacheFetcher {
   }
 
   /**
-   * Gets expired cache data (for fallback purposes)
+   * Checks if a cache item is expired
+   */
+  private isExpired(cacheItem: CacheItem<unknown>): boolean {
+    const now = Date.now();
+    return (now - cacheItem.timestamp) > cacheItem.ttl;
+  }
+
+  /**
+   * Gets expired cache data as fallback
    */
   private async getExpiredCache<T>(key: string): Promise<T | null> {
     try {
+      // Try to get from persistent storage even if expired
       const persistentData = this.persistentStorage.getItem(key);
       if (!persistentData) return null;
 
@@ -245,14 +255,6 @@ class CacheService implements ICacheService, ICacheFetcher {
       console.error('Error getting expired cache:', error);
       return null;
     }
-  }
-
-  /**
-   * Checks if a cache item is expired
-   */
-  private isExpired(cacheItem: CacheItem<unknown>): boolean {
-    const now = Date.now();
-    return (now - cacheItem.timestamp) > cacheItem.ttl;
   }
 
   /**

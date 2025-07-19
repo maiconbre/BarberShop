@@ -1,19 +1,39 @@
 import { cacheService } from './CacheService';
+import { logger } from '../utils/logger';
+import { getAdaptiveConfig, DATA_TYPE_CONFIG } from '../config/apiConfig';
 
+/**
+ * ApiService otimizado com cache inteligente e redução de chamadas desnecessárias
+ * Resolve problemas de CORS e implementa cache eficiente
+ */
 class ApiService {
   private static instance: ApiService;
+  private readonly config = getAdaptiveConfig();
   private baseUrl: string;
-  private readonly RETRY_ATTEMPTS: number = 3; // Aumentado para 3 tentativas
-  private readonly RETRY_DELAY: number = 300; // 0,3 segundo entre tentativas
   private isOnline: boolean = navigator.onLine;
+  
+  // Cache inteligente em memória para evitar múltiplas chamadas
+  private memoryCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  
+  // Controle de requisições em andamento para evitar duplicação
+  private pendingRequests = new Map<string, Promise<any>>();
+  private debounceTimers = new Map<string, NodeJS.Timeout>();
+  private batchRequests = new Map<string, Promise<any>>();
+  private requestCounters = new Map<string, { count: number; timestamp: number }>();
   private connectionErrorTimestamp: number = 0;
-  private readonly CONNECTION_ERROR_COOLDOWN: number = 30000; // 30 segundos de cooldown entre tentativas após falha
-  private readonly MIN_REQUEST_INTERVAL: number = 2000; // 2 segundos entre requisições para o mesmo endpoint
-  private readonly CACHE_TTL: number = 10 * 60 * 1000; // 10 minutos de TTL para cache
-  private readonly COMMENTS_CACHE_TTL: number = 30 * 60 * 1000; // 30 minutos de TTL para cache de comentários
-  private readonly BATCH_WAIT: number = 50; // 50ms de espera para agrupar requisições
-  private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
-  private batchRequests: Map<string, Promise<any>> = new Map();
+  
+  // Constantes de configuração
+  private readonly CACHE_TTL: number = this.config.CACHE_TTL || 300000; // 5 minutos
+  private readonly MIN_REQUEST_INTERVAL: number = this.config.MIN_REQUEST_INTERVAL || 2000; // 2 segundos
+  private readonly REQUEST_COUNTER_RESET_TIME: number = 60000; // 1 minuto
+  private readonly MAX_IDENTICAL_REQUESTS: number = 5; // Máximo de requisições idênticas em 1 minuto
+  
+  // Métricas simplificadas
+  private metrics = {
+    totalRequests: 0,
+    cacheHits: 0,
+    networkRequests: 0
+  };
 
   private constructor() {
     let apiUrl = (import.meta as any).env.VITE_API_URL || '';
@@ -22,7 +42,7 @@ class ApiService {
     }
     this.baseUrl = apiUrl;
     this.setupOnlineListener();
-    console.log('ApiService inicializado com URL:', this.baseUrl);
+    logger.apiInfo(`ApiService otimizado inicializado com URL: ${this.baseUrl}`);
   }
 
   static getInstance() {
@@ -33,18 +53,19 @@ class ApiService {
   }
 
   private setupOnlineListener() {
-    window.addEventListener('online', () => this.isOnline = true);
-    window.addEventListener('offline', () => this.isOnline = false);
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      logger.apiInfo('Conexão online detectada');
+    });
+    
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      logger.apiWarn('Conexão offline detectada');
+    });
   }
 
-  private async fetchWithRetry(url: string, options: RequestInit, attempt: number = 1): Promise<Response> {
+  private async fetchWithRetry(url: string, options: RequestInit = {}, attempt: number = 1): Promise<Response> {
     try {
-      const now = Date.now();
-      if (this.connectionErrorTimestamp > 0 && now - this.connectionErrorTimestamp < this.CONNECTION_ERROR_COOLDOWN) {
-        console.log(`Aguardando cooldown após falha de conexão (${Math.round((now - this.connectionErrorTimestamp) / 1000)}s de ${Math.round(this.CONNECTION_ERROR_COOLDOWN / 1000)}s)`);
-        throw new Error('Servidor temporariamente indisponível. Tentando usar dados em cache.');
-      }
-
       const response = await fetch(url, options);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
@@ -56,9 +77,9 @@ class ApiService {
         console.error('Erro de conexão detectado, usando cooldown:', error);
       }
       
-      if (attempt < this.RETRY_ATTEMPTS) {
-        const backoffTime = this.RETRY_DELAY * Math.pow(2, attempt - 1);
-        console.log(`Tentativa ${attempt}/${this.RETRY_ATTEMPTS} falhou. Tentando novamente em ${backoffTime}ms`);
+      if (attempt < this.config.MAX_RETRIES) {
+        const backoffTime = this.config.INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1);
+        console.log(`Tentativa ${attempt}/${this.config.MAX_RETRIES} falhou. Tentando novamente em ${backoffTime}ms`);
         await new Promise(resolve => setTimeout(resolve, backoffTime));
         return this.fetchWithRetry(url, options, attempt + 1);
       }
@@ -92,46 +113,68 @@ class ApiService {
       return this.batchRequests.get(key) as Promise<T>;
     }
     
-    // Cria uma nova Promise para a requisição em lote
-    const promise = new Promise<T>(async (resolve, reject) => {
-      try {
-        // Aguarda um pequeno intervalo para permitir o agrupamento de requisições similares
-        await new Promise(r => setTimeout(r, this.BATCH_WAIT));
-        
-        // Verifica se o cache já foi atualizado por outra requisição durante o intervalo de espera
-        const cachedData = await cacheService.get<T>(endpoint);
-        const cacheTimestamp = await cacheService.getTimestamp(endpoint);
-        const now = Date.now();
-        
-        // Se o cache foi atualizado recentemente (nos últimos 5 segundos), usa o cache
-        if (cachedData && cacheTimestamp && (now - cacheTimestamp) < 5000) {
-          resolve(cachedData);
-          return;
-        }
-        
-        // Executa a requisição
-        const result = await this.executeRequest<T>(endpoint, options);
-        
-        // Atualiza o cache
-        await cacheService.set(endpoint, result);
-        
-        resolve(result);
-      } catch (error) {
-        reject(error);
-      } finally {
-        // Remove a requisição do mapa de requisições em lote
+    try {
+      // Cria uma nova Promise para a requisição em lote
+      const requestPromise = this.executeRequest<T>(endpoint, options);
+      
+      // Armazena a Promise no mapa de requisições em lote
+      this.batchRequests.set(key, requestPromise);
+      
+      // Aguarda a conclusão da requisição
+      const data = await requestPromise;
+      
+      // Remove a requisição do mapa após um pequeno delay para permitir que outras requisições a reutilizem
+      setTimeout(() => {
         this.batchRequests.delete(key);
-      }
-    });
-    
-    // Armazena a Promise no mapa de requisições em lote
-    this.batchRequests.set(key, promise);
-    
-    return promise;
+      }, 100);
+      
+      return data;
+    } catch (error) {
+      // Remove a requisição do mapa em caso de erro
+      this.batchRequests.delete(key);
+      throw error;
+    }
+  }
+  
+  /**
+   * Executa uma requisição HTTP
+   */
+  private async executeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    this.metrics.networkRequests++;
+    return this.makeRequest<T>(endpoint, options);
   }
 
-  private async executeRequest<T>(endpoint: string, options: RequestInit): Promise<T> {
+  /**
+   * Cache inteligente em memória - mais rápido que localStorage
+   */
+  private setMemoryCache(key: string, data: any, ttl: number = this.config.CACHE_TTL): void {
+    this.memoryCache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl
+    });
+  }
+
+  private getMemoryCache(key: string): any | null {
+    const cached = this.memoryCache.get(key);
+    if (!cached) return null;
+    
+    const now = Date.now();
+    if (now - cached.timestamp > cached.ttl) {
+      this.memoryCache.delete(key);
+      return null;
+    }
+    
+    return cached.data;
+  }
+
+  /**
+   * Requisição otimizada com headers corretos para evitar CORS
+   */
+  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    
+    // Headers otimizados - removido x-request-id que causa CORS
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -148,8 +191,7 @@ class ApiService {
     return data;
   }
 
-  // Mapa para rastrear requisições em andamento para evitar duplicação
-  private pendingRequests: Map<string, Promise<any>> = new Map();
+  // Comentário removido pois a propriedade já foi declarada anteriormente
 
   // Método para verificar e controlar chamadas repetidas
   private checkRepeatedRequests(endpoint: string, method: string = 'GET'): boolean {
@@ -313,304 +355,249 @@ class ApiService {
       console.error(`[ApiService] Erro na requisição ${requestKey}:`, error);
       // Em caso de erro, remove a requisição do mapa de requisições pendentes
       if (isGetRequest) {
-        console.log(`[ApiService] Removendo ${requestKey} do mapa de requisições pendentes após erro`);
-        this.pendingRequests.delete(requestKey);
-        
-        // Tenta usar o cache como fallback
-        console.log(`[ApiService] Tentando usar cache como fallback para ${requestKey}`);
         const cachedData = await cacheService.get<T>(endpoint);
-        if (cachedData) {
-          console.log(`[ApiService] Cache encontrado como fallback para ${requestKey}`);
-          return cachedData;
-        }
-        console.log(`[ApiService] Nenhum cache disponível como fallback para ${requestKey}`);
+        if (cachedData) return cachedData;
       }
       throw error;
     }
   }
 
-  // Flag para controlar se o preloadCriticalData já foi executado
-  private preloadInProgress: boolean = false;
-  private preloadCompleted: boolean = false;
-  
-  async preloadCriticalData(): Promise<void> {
-    // Se estiver offline ou se o preload já estiver em andamento ou concluído, não executa novamente
-    if (!this.isOnline || this.preloadInProgress || this.preloadCompleted) return;
-
-    try {
-      // Marca que o preload está em andamento
-      this.preloadInProgress = true;
-      
-      console.log('Pré-carregando dados críticos...');
-      
-      // Verifica se os dados já estão em cache antes de fazer as requisições
-      const endpoints = [
-        '/api/barbers',
-        '/api/appointments',
-        '/api/comments?status=approved',
-        '/api/services'
-      ];
-      
-      // Filtra apenas os endpoints que não estão em cache
-      const endpointsToLoad = [];
-      for (const endpoint of endpoints) {
-        const cachedData = await cacheService.get(endpoint);
-        if (!cachedData) {
-          endpointsToLoad.push(endpoint);
-        }
-      }
-      
-      // Se houver endpoints para carregar, faz as requisições
-      if (endpointsToLoad.length > 0) {
-        await Promise.allSettled(
-          endpointsToLoad.map(endpoint => 
-            this.request(endpoint, { method: 'GET' })
-          )
-        );
-      }
-      
-      console.log('Dados críticos pré-carregados com sucesso');
-      
-      // Marca que o preload foi concluído
-      this.preloadCompleted = true;
-    } catch (error) {
-      console.warn('Erro ao pré-carregar dados críticos:', error);
-      // Ignora erros no preload, dados serão carregados sob demanda
-    } finally {
-      // Marca que o preload não está mais em andamento
-      this.preloadInProgress = false;
+  /**
+   * Normaliza resposta da API para formato consistente
+   */
+  private normalizeResponse(data: any, dataType: string = 'dados'): any[] {
+    // Se já é um array, retorna diretamente
+    if (Array.isArray(data)) {
+      return data;
     }
+
+    // Se é null/undefined, retorna array vazio
+    if (data === null || data === undefined) {
+      return [];
+    }
+
+    // Se tem formato {success: boolean, data: array}
+    if (data && typeof data === 'object' && 'data' in data) {
+      if (Array.isArray(data.data)) {
+        return data.data;
+      }
+    }
+
+    // Se é um objeto único, transforma em array
+    if (data && typeof data === 'object') {
+      return [data];
+    }
+
+    logger.apiWarn(`Formato inesperado para ${dataType}:`, data);
+    return [];
   }
 
+  /**
+   * Método principal otimizado para requisições GET com cache inteligente
+   */
+  async get<T>(endpoint: string, options: { ttl?: number; forceRefresh?: boolean } = {}): Promise<T> {
+    const cacheKey = `GET-${endpoint}`;
+    this.metrics.totalRequests++;
+
+    // Se forceRefresh não está ativo, verifica cache
+    if (!options.forceRefresh) {
+      // 1. Verifica cache em memória primeiro (mais rápido)
+      const memoryData = this.getMemoryCache(cacheKey);
+      if (memoryData) {
+        this.metrics.cacheHits++;
+        logger.apiDebug(`Cache hit (memória): ${endpoint}`);
+        return memoryData;
+      }
+
+      // 2. Verifica cache persistente
+      const persistentData = await cacheService.get<T>(endpoint);
+      if (persistentData) {
+        this.metrics.cacheHits++;
+        // Atualiza cache em memória para próximas consultas
+        this.setMemoryCache(cacheKey, persistentData, options.ttl);
+        logger.apiDebug(`Cache hit (persistente): ${endpoint}`);
+        return persistentData;
+      }
+    }
+
+    // 3. Verifica se já existe requisição em andamento
+    if (this.pendingRequests.has(cacheKey)) {
+      logger.apiDebug(`Reutilizando requisição em andamento: ${endpoint}`);
+      return this.pendingRequests.get(cacheKey) as Promise<T>;
+    }
+
+    // 4. Se offline e não tem cache, lança erro
+    if (!this.isOnline) {
+      throw new Error('Offline e sem dados em cache disponíveis');
+    }
+
+    // 5. Faz nova requisição
+    const requestPromise = this.makeRequest<T>(endpoint)
+      .then(async (data) => {
+        // Salva nos dois caches
+        this.setMemoryCache(cacheKey, data, options.ttl);
+        await cacheService.set(endpoint, data, { ttl: options.ttl });
+        
+        logger.apiDebug(`Dados atualizados: ${endpoint}`);
+        return data;
+      })
+      .finally(() => {
+        // Remove da lista de requisições pendentes
+        this.pendingRequests.delete(cacheKey);
+      });
+
+    // Armazena a Promise para evitar requisições duplicadas
+    this.pendingRequests.set(cacheKey, requestPromise);
+    
+    return requestPromise;
+  }
+
+  /**
+   * Método para requisições POST otimizado
+   */
+  async post<T>(endpoint: string, data: any): Promise<T> {
+    if (!this.isOnline) {
+      throw new Error('Não é possível enviar dados offline');
+    }
+
+    const result = await this.makeRequest<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+
+    // Invalida caches relacionados após POST
+    this.invalidateRelatedCaches(endpoint);
+    
+    return result;
+  }
+
+  /**
+   * Invalida caches relacionados após operações de escrita
+   */
+  private invalidateRelatedCaches(endpoint: string): void {
+    const relatedKeys = Array.from(this.memoryCache.keys())
+      .filter(key => {
+        // Remove cache de endpoints relacionados
+        if (endpoint.includes('appointments')) {
+          return key.includes('appointments') || key.includes('barbers');
+        }
+        if (endpoint.includes('services')) {
+          return key.includes('services');
+        }
+        return false;
+      });
+
+    relatedKeys.forEach(key => {
+      this.memoryCache.delete(key);
+      logger.apiDebug(`Cache invalidado: ${key}`);
+    });
+  }
+
+  // Métodos específicos otimizados
   async getApprovedComments() {
     const endpoint = '/api/comments?status=approved';
-    
     try {
-      // Verifica se há dados em cache válidos com TTL específico para comentários
-      const cachedData = await cacheService.get<any[]>(endpoint);
-      const cacheTimestamp = await cacheService.getTimestamp(endpoint);
-      const now = Date.now();
-      
-      // Verifica se o cache é válido usando o TTL específico para comentários
-      if (cachedData && cacheTimestamp && (now - cacheTimestamp) < this.COMMENTS_CACHE_TTL) {
-        console.log('Usando dados em cache para comentários');
-        
-        // Se o cache estiver próximo de expirar, atualiza em segundo plano
-        if ((now - cacheTimestamp) > this.COMMENTS_CACHE_TTL / 2) {
-          this.debounce(endpoint, 
-            () => this.fetchComments(endpoint), 
-            this.MIN_REQUEST_INTERVAL * 2 // Intervalo maior para reduzir carga no servidor
-          ).catch(() => {});
-        }
-        
-        return cachedData;
-      }
-      
-      // Se não houver cache válido, busca novos dados
-      return await this.fetchComments(endpoint);
+      const response = await this.get<any>(endpoint, { 
+        ttl: this.config.COMMENTS_CACHE_TTL 
+      });
+      return this.normalizeResponse(response, 'comentários');
     } catch (error) {
-      console.error('Erro ao buscar comentários aprovados:', error);
-      
-      // Tenta recuperar do cache mesmo que esteja expirado
-      const cachedData = await cacheService.get<any[]>(endpoint);
-      if (cachedData) {
-        console.log('Usando dados em cache expirado para comentários');
-        return cachedData;
-      }
-      
-      throw error;
-    }
-  }
-  
-  private async fetchComments(endpoint: string): Promise<any[]> {
-    try {
-      const response = await this.request<{success: boolean, data: any[]}>(endpoint);
-      
-      // Verifica se a resposta tem o formato esperado e retorna apenas o array de dados
-      if (response && response.success && Array.isArray(response.data)) {
-        // Armazena no cache com TTL específico para comentários
-        await cacheService.set(endpoint, response.data, { ttl: this.COMMENTS_CACHE_TTL });
-        return response.data;
-      }
-      
-      // Se a resposta já for um array, retorna diretamente
-      if (Array.isArray(response)) {
-        // Armazena no cache com TTL específico para comentários
-        await cacheService.set(endpoint, response, { ttl: this.COMMENTS_CACHE_TTL });
-        return response;
-      }
-      
-      // Caso contrário, lança um erro
-      throw new Error('Formato de resposta inválido');
-    } catch (error) {
-      console.error('Erro ao buscar comentários:', error);
-      throw error;
+      logger.apiError('Erro ao buscar comentários:', error);
+      return [];
     }
   }
 
   async getBarbers() {
+    const endpoint = '/api/barbers';
     try {
-      const response = await this.request<{success: boolean, data: any[]}>('/api/barbers');
-      
-      // Verifica se a resposta tem o formato esperado e retorna apenas o array de dados
-      if (response && response.success && Array.isArray(response.data)) {
-        return response.data;
-      }
-      
-      // Se a resposta já for um array, retorna diretamente
-      if (Array.isArray(response)) {
-        return response;
-      }
-      
-      // Caso contrário, lança um erro
-      throw new Error('Formato de resposta inválido para barbeiros');
+      const response = await this.get<any>(endpoint);
+      return this.normalizeResponse(response, 'barbeiros');
     } catch (error) {
-      console.error('Erro ao buscar barbeiros:', error);
+      logger.apiError('Erro ao buscar barbeiros:', error);
       throw error;
     }
   }
 
   async getAppointments() {
+    const endpoint = '/api/appointments';
     try {
-      const response = await this.request<{success: boolean, data: any[]}>('/api/appointments');
-      
-      // Verifica se a resposta tem o formato esperado e retorna apenas o array de dados
-      if (response && response.success && Array.isArray(response.data)) {
-        return response.data;
-      }
-      
-      // Se a resposta já for um array, retorna diretamente
-      if (Array.isArray(response)) {
-        return response;
-      }
-      
-      // Caso contrário, lança um erro
-      throw new Error('Formato de resposta inválido para agendamentos');
+      const response = await this.get<any>(endpoint, {
+        ttl: DATA_TYPE_CONFIG.appointments.cacheTTL
+      });
+      return this.normalizeResponse(response, 'agendamentos');
     } catch (error) {
-      console.error('Erro ao buscar agendamentos:', error);
+      logger.apiError('Erro ao buscar agendamentos:', error);
       throw error;
     }
   }
-  
-  // Flag para controlar se já existe uma requisição em andamento para serviços
-  private servicesRequestInProgress: Promise<any> | null = null;
-  private cachedServices: any[] | null = null;
-  private lastServicesRequestTime: number = 0;
-  private readonly SERVICES_CACHE_DURATION: number = 5 * 60 * 1000; // 5 minutos
-  
-  // Contador para limitar chamadas repetidas idênticas
-  private requestCounters: Map<string, {count: number, timestamp: number}> = new Map();
-  private readonly MAX_IDENTICAL_REQUESTS: number = 3; // Máximo de 3 chamadas idênticas repetidas
-  private readonly REQUEST_COUNTER_RESET_TIME: number = 60 * 1000; // Reset do contador após 1 minuto
 
   async getServices() {
+    const endpoint = '/api/services';
     try {
-      const now = Date.now();
-      const requestId = `services-${now}`;
-      const requestKey = 'GET-/api/services';
-      console.warn(`[ApiService][${requestId}] getServices() chamado`);
-      
-      // Verificar se excedeu o limite de chamadas repetidas
-      if (this.checkRepeatedRequests('/api/services', 'GET')) {
-        // Se excedeu o limite e temos cache, retorna o cache mesmo que expirado
-        if (this.cachedServices) {
-          const cacheAge = Math.round((now - this.lastServicesRequestTime) / 1000);
-          
-          // Calcular tempo restante para reset do contador
-          const counterInfo = this.requestCounters.get(requestKey);
-          const timeRemaining = counterInfo ? 
-            Math.max(0, this.REQUEST_COUNTER_RESET_TIME - (now - counterInfo.timestamp)) : 
-            this.REQUEST_COUNTER_RESET_TIME;
-          const resetInSeconds = Math.ceil(timeRemaining / 1000);
-          
-          console.warn(`[ApiService][${requestId}] Limite de chamadas repetidas excedido. Usando cache forçado (idade: ${cacheAge}s). Reset em ${resetInSeconds}s`);
-          return this.cachedServices;
-        }
-        
-        // Se não temos cache, lançar erro específico
-        const errorMessage = `Limite de ${this.MAX_IDENTICAL_REQUESTS} chamadas repetidas excedido para serviços em ${this.REQUEST_COUNTER_RESET_TIME/1000}s. Por favor, aguarde antes de tentar novamente.`;
-        console.error(`[ApiService][${requestId}] ${errorMessage}`);
-        
-        // Criar um objeto de erro com informações adicionais
-        const error = new Error(errorMessage);
-        (error as any).isRateLimitError = true;
-        (error as any).retryAfter = this.REQUEST_COUNTER_RESET_TIME / 1000;
-        (error as any).endpoint = '/api/services';
-        (error as any).requestKey = requestKey;
-        (error as any).requestId = requestId;
-        throw error;
-      }
-      
-      // Se temos dados em cache e eles ainda são válidos, retorna o cache
-      if (this.cachedServices && (now - this.lastServicesRequestTime) < this.SERVICES_CACHE_DURATION) {
-        const cacheAge = Math.round((now - this.lastServicesRequestTime) / 1000);
-        console.warn(`[ApiService][${requestId}] Retornando serviços do cache em memória (idade: ${cacheAge}s)`);
-        return this.cachedServices;
-      }
-      
-      // Se já existe uma requisição em andamento, aguarda e retorna o resultado
-      if (this.servicesRequestInProgress) {
-        console.warn(`[ApiService][${requestId}] Aguardando requisição de serviços em andamento`);
-        return this.servicesRequestInProgress;
-      }
-      
-      console.warn(`[ApiService][${requestId}] Iniciando nova requisição de serviços`);
-      // Iniciar nova requisição
-      this.servicesRequestInProgress = this.request<{success: boolean, data: any[]}>('/api/services', {
-        method: 'GET',
-        // Adicionar um parâmetro de cache-busting para evitar cache do navegador
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      })
-        .then(response => {
-          // Verifica se a resposta tem o formato esperado e atualiza o cache
-          if (response && response.success && Array.isArray(response.data)) {
-            console.warn(`[ApiService][${requestId}] Requisição de serviços concluída com sucesso`);
-            this.cachedServices = response.data;
-            this.lastServicesRequestTime = now;
-            return response.data;
-          }
-          
-          // Se a resposta já for um array, atualiza o cache e retorna diretamente
-          if (Array.isArray(response)) {
-            console.warn(`[ApiService][${requestId}] Requisição de serviços concluída com sucesso`);
-            this.cachedServices = response;
-            this.lastServicesRequestTime = now;
-            return response;
-          }
-          
-          // Caso contrário, lança um erro
-          throw new Error('Formato de resposta inválido para serviços');
-        })
-        .catch(error => {
-          console.error(`[ApiService][${requestId}] Erro ao obter serviços:`, error);
-          // Em caso de erro, retorna o cache se disponível
-          if (this.cachedServices) {
-            console.warn(`[ApiService][${requestId}] Retornando serviços do cache após erro`);
-            return this.cachedServices;
-          }
-          throw error;
-        })
-        .finally(() => {
-          // Limpar a promessa de requisição em andamento
-          console.warn(`[ApiService][${requestId}] Finalizando requisição de serviços`);
-          this.servicesRequestInProgress = null;
-        });
-      
-      return this.servicesRequestInProgress;
+      const response = await this.get<any>(endpoint, {
+        ttl: this.config.SERVICES_CACHE_DURATION
+      });
+      return this.normalizeResponse(response, 'serviços');
     } catch (error) {
-      console.error('[ApiService] Erro ao processar requisição de serviços:', error);
-      
-      // Em caso de erro, retorna o cache se disponível
-      if (this.cachedServices) {
-        return this.cachedServices;
-      }
-      
+      logger.apiError('Erro ao buscar serviços:', error);
       throw error;
     }
+  }
+
+  /**
+   * Pré-carrega dados críticos de forma inteligente
+   */
+  async preloadCriticalData(): Promise<void> {
+    if (!this.isOnline) return;
+
+    const criticalEndpoints = [
+      { endpoint: '/api/services', method: 'getServices' },
+      { endpoint: '/api/barbers', method: 'getBarbers' },
+      { endpoint: '/api/comments?status=approved', method: 'getApprovedComments' }
+    ];
+
+    logger.apiInfo('Pré-carregando dados críticos...');
+    
+    // Executa em paralelo mas não bloqueia se algum falhar
+    const results = await Promise.allSettled(
+      criticalEndpoints.map(({ method }) => 
+        (this as any)[method]()
+      )
+    );
+
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    logger.apiInfo(`Pré-carregamento concluído: ${successful}/${criticalEndpoints.length} sucessos`);
+  }
+
+  /**
+   * Limpa todos os caches
+   */
+  async clearAllCaches(): Promise<void> {
+    this.memoryCache.clear();
+    await cacheService.clear();
+    logger.apiInfo('Todos os caches foram limpos');
+  }
+
+  /**
+   * Retorna métricas de uso
+   */
+  getMetrics() {
+    const cacheHitRate = this.metrics.totalRequests > 0 
+      ? (this.metrics.cacheHits / this.metrics.totalRequests * 100).toFixed(1)
+      : '0';
+    
+    return {
+      ...this.metrics,
+      cacheHitRate: `${cacheHitRate}%`,
+      memoryCacheSize: this.memoryCache.size
+    };
   }
 }
 
 export default ApiService.getInstance();
+
+// Exporta métricas para debug
+export const getApiMetrics = () => {
+  const instance = ApiService.getInstance();
+  return instance.getMetrics();
+};

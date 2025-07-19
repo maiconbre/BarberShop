@@ -32,83 +32,14 @@ O BarberGR é um sistema completo de agendamento para barbearias, desenvolvido c
 
 ## 🛠️ Tecnologias Utilizadas
 
-### Frontend
-- **React.js** - Biblioteca para construção de interfaces
-- **TypeScript** - Superset tipado de JavaScript
-- **Tailwind CSS** - Framework CSS utilitário
-- **Framer Motion** - Biblioteca para animações
-- **Zustand** - Gerenciamento de estado global
-- **React Router** - Roteamento da aplicação
-- **Zod** - Validação de dados
-- **Recharts** - Biblioteca para visualização de dados
-- **React Window** - Virtualização para listas de alta performance
+- React.js
+- TypeScript
+- Tailwind CSS
+- Lucide Icons
 
-### Ferramentas de Build
-- **Vite** - Ferramenta de build rápida
-- **ESLint** - Linter para JavaScript/TypeScript
-- **PostCSS** - Processador CSS
+## Instalação
 
-## 🏗️ Arquitetura
-
-O BarberGR segue uma arquitetura modular baseada em princípios SOLID, com separação clara de responsabilidades:
-
-### Estrutura de Diretórios
-
-```
-src/
-├── components/     # Componentes React reutilizáveis
-├── constants/      # Constantes e configurações
-├── contexts/       # Contextos React (AuthContext)
-├── hooks/          # Hooks personalizados
-├── models/         # Modelos de domínio
-├── pages/          # Componentes de página
-├── services/       # Serviços (API, Cache)
-├── stores/         # Gerenciamento de estado (Zustand)
-├── types/          # Definições de tipos TypeScript
-├── utils/          # Funções utilitárias
-└── validation/     # Esquemas de validação (Zod)
-```
-
-### Padrões Implementados
-
-#### Sistema de Cache
-O BarberGR implementa um sistema de cache sofisticado para melhorar o desempenho e reduzir chamadas desnecessárias à API:
-
-- **CacheService**: Implementação seguindo princípios SOLID com estratégias de armazenamento intercambiáveis
-- **useCache**: Hook personalizado para gerenciar dados em cache com suporte a invalidação e atualização
-- **Estratégias de Armazenamento**: Suporte para cache em memória e localStorage
-
-#### Autenticação
-Sistema de autenticação baseado em tokens com suporte para diferentes níveis de acesso:
-
-- **AuthContext**: Contexto React para gerenciar estado de autenticação
-- **Proteção de Rotas**: Componente ProtectedRoute para controle de acesso
-- **Persistência de Sessão**: Suporte para "lembrar-me" e renovação automática de tokens
-
-#### Gerenciamento de Estado
-Utilização do Zustand para gerenciamento de estado global com stores específicas para diferentes domínios:
-
-- **appointmentStore**: Gerenciamento de agendamentos
-- **authStore**: Estado de autenticação
-
-## 📊 Recursos Avançados
-
-### Sistema de Notificações
-Implementação de um sistema de notificações em tempo real para alertar sobre novos agendamentos e comentários pendentes.
-
-### Virtualização de Listas
-Utilização de técnicas de virtualização para renderizar listas longas de forma eficiente, melhorando o desempenho em dispositivos com recursos limitados.
-
-### Análise de Dados
-Painéis analíticos com gráficos e métricas para acompanhamento de desempenho, tendências de agendamento e satisfação de clientes.
-
-## 🚀 Instalação e Uso
-
-### Pré-requisitos
-- Node.js (v16 ou superior)
-- npm ou yarn
-
-### Passos para Instalação
+Para rodar o projeto localmente, siga os seguintes passos:
 
 1. Clone o repositório:
    ```sh

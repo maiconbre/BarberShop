@@ -2,9 +2,16 @@ import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader
 import { useState, useEffect, FormEvent, useRef } from 'react';
 import ApiService from '../../services/ApiService';
 
+interface Comment {
+  id: number;
+  name: string;
+  comment: string;
+  created_at: string;
+}
 
 const About = () => {
-  // Estados para visibilidade de cada seção
+  // Estados para animações
+  const [isVisible, setIsVisible] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(false);
   const [leftColVisible, setLeftColVisible] = useState(false);
   const [rightColVisible, setRightColVisible] = useState(false);
@@ -14,26 +21,34 @@ const About = () => {
   const [reviewsVisible, setReviewsVisible] = useState(false);
   const [commentFormVisible, setCommentFormVisible] = useState(false);
   
-  // Valores estáticos para o About
-  const about_title = 'Sobre Nossa';
-  const about_description = 'Com mais de 10 anos de experiência, nossa barbearia é referência em cortes modernos e clássicos.';
-  const business_hours_weekdays = '09:00 - 20:00';
-  const business_hours_saturday = '09:00 - 18:00';
-  const business_hours_sunday = 'Fechado';
+  // Estados para comentários
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [approvedComments, setApprovedComments] = useState<Comment[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentsError, setCommentsError] = useState('');
+  const [totalPages, setTotalPages] = useState(1);
   
+  // Estados para formulário
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  // Estados para os comentários aprovados
-  const [approvedComments, setApprovedComments] = useState<any[]>([]);
-  const [isLoadingComments, setIsLoadingComments] = useState(false);
-  const [commentsError, setCommentsError] = useState('');
+  
   // Estados para paginação
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const commentsPerPage = 5;
+  const commentsPerPage = 3;
+  
+  // Dados estáticos
+  const aboutData = {
+    title: 'Sobre Nossa',
+    description: 'Com mais de 10 anos de experiência, nossa barbearia é referência em cortes modernos e clássicos.',
+    hours: {
+      weekdays: '09:00 - 20:00',
+      saturday: '09:00 - 18:00',
+      sunday: 'Fechado'
+    }
+  };
   
   // Referências para cada seção
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -117,7 +132,8 @@ const About = () => {
         };
 
         const data = await fetchWithRetry();
-        setApprovedComments(data);
+        setComments(data); // Atualiza comments para exibição na interface
+        setApprovedComments(data); // Mantém approvedComments para compatibilidade
         setTotalPages(Math.ceil(data.length / commentsPerPage));
         
         // Armazena os comentários no localStorage para uso offline
@@ -138,7 +154,8 @@ const About = () => {
             const parsedComments = JSON.parse(cachedComments);
             if (Array.isArray(parsedComments) && parsedComments.length > 0) {
               console.log('Usando comentários em cache local');
-              setApprovedComments(parsedComments);
+              setComments(parsedComments); // Atualiza comments para exibição na interface
+              setApprovedComments(parsedComments); // Mantém approvedComments para compatibilidade
               setTotalPages(Math.ceil(parsedComments.length / commentsPerPage));
               setCommentsError('Exibindo comentários em cache. Atualize a página para tentar novamente.');
             }
@@ -165,23 +182,125 @@ const About = () => {
       description: "Utilizamos produtos de alta qualidade para garantir o melhor resultado para nossos clientes."
     }
   ];
-
+  
+  // Efeito para animação inicial
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Não precisamos deste efeito pois já temos o fetchApprovedComments no efeito de observadores de interseção
+  // useEffect(() => {
+  //   loadComments();
+  // }, []);
+  
+  const loadComments = async () => {
+    setIsLoadingComments(true);
+    setCommentsError('');
+    
+    try {
+      const response = await ApiService.getApprovedComments();
+      
+      // Normalizar resposta da API
+      let commentsData: Comment[] = [];
+      
+      if (Array.isArray(response)) {
+        commentsData = response;
+      } else if (response && typeof response === 'object' && 'data' in response) {
+        commentsData = Array.isArray(response.data) ? response.data : [];
+      }
+      
+      setComments(commentsData);
+      setApprovedComments(commentsData);
+      setTotalPages(Math.ceil(commentsData.length / commentsPerPage));
+      
+      // Armazenar em cache local
+      try {
+        localStorage.setItem('approvedComments', JSON.stringify(commentsData));
+        localStorage.setItem('approvedCommentsTimestamp', Date.now().toString());
+      } catch (e) {
+        console.error('Erro ao armazenar comentários no cache local:', e);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar comentários:', error);
+      setCommentsError('Não foi possível carregar os comentários.');
+      
+      // Tentar usar cache local
+      const cachedComments = localStorage.getItem('approvedComments');
+      if (cachedComments) {
+        try {
+          const parsed = JSON.parse(cachedComments);
+          if (Array.isArray(parsed)) {
+            setComments(parsed);
+            setApprovedComments(parsed);
+            setTotalPages(Math.ceil(parsed.length / commentsPerPage));
+            setCommentsError('Exibindo comentários salvos.');
+          }
+        } catch (e) {
+          console.error('Erro ao processar cache:', e);
+        }
+      }
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+  
+  const handleSubmitComment = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    if (!name.trim() || !comment.trim()) {
+      setSubmitError('Por favor, preencha todos os campos.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setSubmitError('');
+    setSubmitSuccess(false);
+    
+    try {
+      await ApiService.submitComment({ name: name.trim(), comment: comment.trim() });
+      setSubmitSuccess(true);
+      setName('');
+      setComment('');
+      
+      // Recarregar comentários após envio
+      setTimeout(() => {
+        loadComments();
+        setSubmitSuccess(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Erro ao enviar comentário:', error);
+      setSubmitError('Erro ao enviar comentário. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Paginação
+  const startIndex = (currentPage - 1) * commentsPerPage;
+  const currentComments = comments.slice(startIndex, startIndex + commentsPerPage);
+  
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
   return (
-    <div ref={sectionRef} id="about-section" className="py-20 px-4 bg-[#0D121E] relative overflow-hidden">
+    <div id="about-section" className="py-20 px-4 bg-[#0D121E] relative overflow-hidden">
       {/* Elementos decorativos */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-
-      {/* Padrão de linhas decorativas */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }}></div>
-      </div>
-
+      
       <div className="max-w-7xl mx-auto relative z-10">
-        <div ref={headerRef} className={`text-center mb-16 transition-all duration-300 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        {/* Header */}
+        <div className={`text-center mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="inline-block mb-3">
             <div className="flex items-center justify-center space-x-2 text-[#F0B35B]">
               <div className="h-px w-8 bg-[#F0B35B]"></div>
@@ -190,22 +309,24 @@ const About = () => {
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-white">
-            {about_title} <span className="text-[#F0B35B]">Barbearia</span>
+            {aboutData.title} <span className="text-[#F0B35B]">Barbearia</span>
           </h2>
           <p className="text-gray-300 max-w-3xl mx-auto text-lg">
-            {about_description}
+            {aboutData.description}
           </p>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div ref={leftColRef} className={`transition-all duration-300 delay-150 ${leftColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
-            <p className="text-gray-300 mb-8 text-lg leading-relaxed">
+        
+        <div className="grid md:grid-cols-2 gap-12 items-start">
+          {/* Coluna Esquerda */}
+          <div className={`space-y-8 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
+            <p className="text-gray-300 text-lg leading-relaxed">
               Oferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
               qualificados cuidam do seu visual. Nossa missão é proporcionar uma experiência única de cuidado pessoal,
               combinando técnicas tradicionais com tendências contemporâneas.
             </p>
-
-            <div ref={featuresRef} className={`grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 transition-all duration-300 ${featuresVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            
+            {/* Features */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {features.map((feature, index) => (
                 <div
                   key={index}
@@ -221,39 +342,41 @@ const About = () => {
                 </div>
               ))}
             </div>
-
-            <div ref={hoursRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/20 shadow-lg mb-6 transition-all duration-300 ${hoursVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            
+            {/* Horário de Funcionamento */}
+            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="text-[#F0B35B]" />
-                <h3 className="text-xl font-semibold">Horário de Funcionamento</h3>
+                <h3 className="text-xl font-semibold text-white">Horário de Funcionamento</h3>
               </div>
               <ul className="space-y-3">
                 <li className="flex justify-between items-center border-b border-gray-700/30 pb-2">
-                  <span className="font-medium">Segunda - Sexta</span>
+                  <span className="font-medium text-gray-300">Segunda - Sexta</span>
                   <span className="bg-[#F0B35B]/10 text-[#F0B35B] px-3 py-1 rounded-full text-sm font-medium">
-                    {business_hours_weekdays}
+                    {aboutData.hours.weekdays}
                   </span>
                 </li>
                 <li className="flex justify-between items-center border-b border-gray-700/30 pb-2">
-                  <span className="font-medium">Sábado</span>
+                  <span className="font-medium text-gray-300">Sábado</span>
                   <span className="bg-[#F0B35B]/10 text-[#F0B35B] px-3 py-1 rounded-full text-sm font-medium">
-                    {business_hours_saturday}
+                    {aboutData.hours.saturday}
                   </span>
                 </li>
                 <li className="flex justify-between items-center">
-                  <span className="font-medium">Domingo</span>
+                  <span className="font-medium text-gray-300">Domingo</span>
                   <span className="bg-red-500/10 text-red-400 px-3 py-1 rounded-full text-sm font-medium">
-                    {business_hours_sunday}
+                    {aboutData.hours.sunday}
                   </span>
                 </li>
               </ul>
             </div>
-
-            <div ref={locationRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mb-6 transition-all duration-300 ${locationVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            
+            {/* Localização */}
+            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10">
+              <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
                 <MapPin className="text-[#F0B35B]" /> Localização
-              </h2>
-              <div className="w-full h-[300px] sm:h-[400px] rounded-lg overflow-hidden">
+              </h3>
+              <div className="w-full h-[300px] rounded-lg overflow-hidden">
                 <iframe
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3675.356219553567!2d-43.46652532378739!3d-22.90456623858615!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9be15839e68c4f%3A0x588a284ae162bc38!2sBangu%2C%20Rio%20de%20Janeiro%20-%20RJ!5e0!3m2!1spt-BR!2sbr!4v1699564511297!5m2!1spt-BR!2sbr"
                   width="100%"
@@ -267,9 +390,11 @@ const About = () => {
                 ></iframe>
               </div>
             </div>
-          </div> {/* Fechamento da div leftColRef que estava faltando */}
-
-          <div ref={rightColRef} className={`space-y-6 transition-all duration-300 delay-150 ${rightColVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+          </div>
+          
+          {/* Coluna Direita */}
+          <div className={`space-y-6 transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+            {/* Imagem */}
             <div className="relative group overflow-hidden rounded-lg shadow-xl">
               <img
                 src="https://images.unsplash.com/photo-1572663459735-75425e957ab9?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
@@ -282,172 +407,115 @@ const About = () => {
                 <p className="text-gray-300 text-sm">Um espaço pensado para seu conforto e bem-estar</p>
               </div>
             </div>
-
-            <div ref={reviewsRef} className={`bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10 transition-all duration-300 ${reviewsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Star className="text-[#F0B35B] w-4 h-4" /> Avaliações
+            
+            {/* Seção de Avaliações */}
+            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10">
+              <h3 className="text-lg font-semibold flex items-center gap-2 mb-4 text-white">
+                <Star className="text-[#F0B35B] w-5 h-5" /> Avaliações dos Clientes
               </h3>
-              <div className="space-y-3">
-                {isLoadingComments ? (
-                  <div className="flex justify-center items-center py-6">
-                    <Loader2 className="w-6 h-6 text-[#F0B35B] animate-spin" />
-                    <span className="ml-2 text-gray-400">Carregando comentários...</span>
-                  </div>
-                ) : commentsError ? (
-                  <div className="p-3 bg-red-500/10 text-red-400 rounded-lg text-sm">
-                    {commentsError}
-                  </div>
-                ) : approvedComments.length === 0 ? (
-                  <div className="p-3 bg-[#0D121E]/50 rounded-lg text-center">
-                    <p className="text-gray-400 text-sm">Nenhum comentário aprovado ainda.</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Comentários paginados */}
-                    {approvedComments
-                      .slice((currentPage - 1) * commentsPerPage, currentPage * commentsPerPage)
-                      .map((comment) => (
-                        <div key={comment.id} className="p-3 bg-[#0D121E]/50 rounded-lg hover:bg-[#0D121E] transition-colors duration-300">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex text-[#F0B35B] gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} className="w-3 h-3 fill-current" />
-                              ))}
-                            </div>
-                            <span className="text-xs text-gray-400">
-                              {new Date(comment.createdAt).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: '2-digit'
-                              })}
-                            </span>
+              
+              {isLoadingComments ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="w-6 h-6 text-[#F0B35B] animate-spin" />
+                  <span className="ml-2 text-gray-400">Carregando comentários...</span>
+                </div>
+              ) : commentsError ? (
+                <div className="p-4 rounded-lg bg-yellow-500/10 text-yellow-400 text-sm">
+                  {commentsError}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {currentComments.length > 0 ? (
+                    currentComments.map((comment) => (
+                      <div key={comment.id} className="bg-[#0D121E] p-4 rounded-lg border border-[#F0B35B]/5">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-semibold text-[#F0B35B]">{comment.name}</h4>
+                          <div className="flex text-[#F0B35B]">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className="w-4 h-4 fill-current" />
+                            ))}
                           </div>
-                          <p className="text-gray-300 text-xs italic leading-relaxed">"{comment.comment}"</p>
-                          <p className="text-[#F0B35B] text-xs mt-1.5 font-medium">- {comment.name}</p>
                         </div>
-                      ))}
-
-                    {/* Controles de paginação */}
-                    {totalPages > 1 && (
-                      <div className="flex justify-center items-center space-x-4 mt-4">
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          disabled={currentPage === 1}
-                          className="p-1 rounded-full bg-[#0D121E] text-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
-                          aria-label="Página anterior"
-                        >
-                          <ChevronLeft className="w-5 h-5" />
-                        </button>
-
-                        <span className="text-sm text-gray-300">
-                          {currentPage} de {totalPages}
-                        </span>
-
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                          disabled={currentPage === totalPages}
-                          className="p-1 rounded-full bg-[#0D121E] text-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
-                          aria-label="Próxima página"
-                        >
-                          <ChevronRight className="w-5 h-5" />
-                        </button>
+                        <p className="text-gray-300 text-sm">{comment.comment}</p>
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-center py-4">Nenhum comentário disponível.</p>
+                  )}
+                  
+                  {/* Paginação */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-4">
+                      <button
+                        onClick={prevPage}
+                        disabled={currentPage === 1}
+                        className="flex items-center gap-2 px-3 py-2 bg-[#F0B35B]/10 text-[#F0B35B] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#F0B35B]/20 transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" /> Anterior
+                      </button>
+                      <span className="text-gray-400 text-sm">
+                        {currentPage} de {totalPages}
+                      </span>
+                      <button
+                        onClick={nextPage}
+                        disabled={currentPage === totalPages}
+                        className="flex items-center gap-2 px-3 py-2 bg-[#F0B35B]/10 text-[#F0B35B] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#F0B35B]/20 transition-colors"
+                      >
+                        Próximo <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-
-            {/* Seção de Comentários */}
-            <div ref={commentFormRef} className={`bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10 mt-6 transition-all duration-300 ${commentFormVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Star className="text-[#F0B35B] w-4 h-4" /> Deixe seu comentário
-              </h3>
-              <form className="space-y-4" onSubmit={async (e: FormEvent) => {
-                e.preventDefault();
-                setIsSubmitting(true);
-                setSubmitError('');
-
-                // Prevent multiple submissions within 20 seconds
-                const lastSubmitTime = localStorage.getItem('lastCommentSubmit');
-                const now = Date.now();
-                if (lastSubmitTime && now - parseInt(lastSubmitTime) < 20000) {
-                  setSubmitError('Por favor, aguarde 20 segundos entre os comentários.');
-                  setIsSubmitting(false);
-                  return;
-                }
-
-                try {
-                  const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/comments`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json'
-                      // Removido o token de autorização, pois a rota é pública
-                    },
-                    body: JSON.stringify({
-                      name,
-                      comment,
-                      status: 'pending'
-                    })
-                  });
-
-                  if (!response.ok) {
-                    throw new Error('Erro ao enviar comentário');
-                  }
-
-                  // Store submission timestamp
-                  localStorage.setItem('lastCommentSubmit', now.toString());
-
-                  setSubmitSuccess(true);
-                  setName('');
-                  setComment('');
-                } catch (error) {
-                  console.error(error);
-                  setSubmitError('Erro ao enviar comentário. Tente novamente.');
-                } finally {
-                  setIsSubmitting(false);
-                }
-              }}>
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Seu nome"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="w-full bg-[#0D121E] border border-[#F0B35B]/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-[#F0B35B]/50 transition-colors"
-                  />
+            
+            {/* Formulário de Comentário */}
+            <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10">
+              <h3 className="text-lg font-semibold mb-4 text-white">Deixe sua Avaliação</h3>
+              
+              {submitSuccess && (
+                <div className="mb-4 p-3 rounded-lg bg-green-500/10 text-green-400 text-sm">
+                  Comentário enviado com sucesso! Aguarde aprovação.
                 </div>
-                <div>
-                  <textarea
-                    placeholder="Seu comentário"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    required
-                    rows={4}
-                    className="w-full bg-[#0D121E] border border-[#F0B35B]/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-[#F0B35B]/50 transition-colors resize-none"
-                  ></textarea>
+              )}
+              
+              {submitError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 text-red-400 text-sm">
+                  {submitError}
                 </div>
+              )}
+              
+              <form onSubmit={handleSubmitComment} className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Seu nome"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 bg-[#0D121E] border border-[#F0B35B]/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#F0B35B] transition-colors"
+                  disabled={isSubmitting}
+                />
+                <textarea
+                  placeholder="Seu comentário"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 bg-[#0D121E] border border-[#F0B35B]/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#F0B35B] transition-colors resize-none"
+                  disabled={isSubmitting}
+                />
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="bg-[#F0B35B] text-black px-6 py-2 rounded-lg font-semibold hover:bg-[#F0B35B]/90 transition-colors w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || !name.trim() || !comment.trim()}
+                  className="w-full px-6 py-3 bg-[#F0B35B] text-black font-semibold rounded-lg hover:bg-[#F0B35B]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? 'Enviando...' : 'Enviar Comentário'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    'Enviar Comentário'
+                  )}
                 </button>
-
-                {submitSuccess && (
-                  <div className="mt-3 p-3 bg-green-500/20 text-green-400 rounded-lg text-sm">
-                    Comentário enviado com sucesso! Aguardando aprovação do administrador.
-                    <p className="mt-1 text-xs">Seu comentário será exibido após aprovação.</p>
-                  </div>
-                )}
-
-                {submitError && (
-                  <div className="mt-3 p-3 bg-red-500/20 text-red-400 rounded-lg text-sm">
-                    {submitError}
-                  </div>
-                )}
               </form>
             </div>
           </div>
@@ -456,7 +524,5 @@ const About = () => {
     </div>
   );
 };
-
-
 
 export default About;

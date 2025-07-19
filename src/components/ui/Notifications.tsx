@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, MessageCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import CacheService from '../../services/CacheService';
+import { cacheService } from '../../services/CacheService';
 
 interface Appointment {
   id: string;
@@ -107,7 +107,7 @@ export const useNotifications = () => {
       // Registrar o momento da tentativa de busca
       const fetchStartTime = Date.now();
       
-      return await CacheService.fetchWithCache('appointments', async () => {
+      return await cacheService.fetchWithCache('appointments', async () => {
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

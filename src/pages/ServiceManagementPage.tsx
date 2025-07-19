@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Scissors, Edit, Trash2 } from 'lucide-react';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import ApiService from '../services/ApiService';
+import { logger } from '../utils/logger';
 
 interface Service {
   id: string;
@@ -33,25 +35,27 @@ const ServiceManagementPage: React.FC = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services`);
-      const data = await response.json();
-      if (data.success) {
-        setServices(data.data);
+      logger.componentDebug('Carregando serviços no ServiceManagementPage');
+      const result = await ApiService.getServices();
+      if (result && Array.isArray(result)) {
+        setServices(result);
+        logger.componentDebug(`Carregados ${result.length} serviços`);
       }
     } catch (err) {
-      console.error('Erro ao buscar serviços:', err);
+      logger.componentError('Erro ao buscar serviços:', err);
     }
   };
 
   const fetchBarbers = async () => {
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`);
-      const data = await response.json();
-      if (data.success) {
-        setBarbers(data.data);
+      logger.componentDebug('Carregando barbeiros no ServiceManagementPage');
+      const result = await ApiService.getBarbers();
+      if (result && Array.isArray(result)) {
+        setBarbers(result);
+        logger.componentDebug(`Carregados ${result.length} barbeiros`);
       }
     } catch (err) {
-      console.error('Erro ao buscar barbeiros:', err);
+      logger.componentError('Erro ao buscar barbeiros:', err);
     }
   };
 

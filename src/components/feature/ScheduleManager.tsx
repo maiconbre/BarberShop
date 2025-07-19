@@ -4,8 +4,9 @@ import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, Calendar as CalendarIcon, X, AlertCircle, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import CacheService from '../../services/CacheService';
+import { cacheService } from '../../services/CacheService';
 import { adjustToBrasilia, formatToISODate } from '../../utils/DateTimeUtils';
+
 
 interface ScheduleManagerProps {
   barbers: Array<{ id: string; name: string }>;
@@ -73,7 +74,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   const fetchAppointments = async () => {
     try {
       const cacheKey = `schedule_appointments_${selectedBarber}`;
-      const response = await CacheService.fetchWithCache(
+      const response = await cacheService.fetchWithCache(
         cacheKey,
         async () => {
           const response = await fetch(
@@ -112,7 +113,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       setError('Erro ao carregar agendamentos. Tente novamente mais tarde.');
       
       // Tentar usar cache em caso de erro
-      const cachedData = await CacheService.get(`schedule_appointments_${selectedBarber}`);
+      const cachedData = await cacheService.get(`schedule_appointments_${selectedBarber}`);
       if (cachedData) {
         setAppointments(Array.isArray(cachedData) ? cachedData : []);
       }
@@ -288,12 +289,12 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         
         // Atualizar o cache após uma exclusão bem-sucedida
         const cacheKey = `schedule_appointments_${selectedBarber}`;
-        const cachedData = await CacheService.get(cacheKey);
+        const cachedData = await cacheService.get(cacheKey);
         if (cachedData) {
           const updatedCache = Array.isArray(cachedData) 
             ? cachedData.filter(app => app.id !== deletedAppointment.id)
             : [];
-          await CacheService.set(cacheKey, updatedCache);
+          await cacheService.set(cacheKey, updatedCache);
         }
         
         // Recarregar os agendamentos

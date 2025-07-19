@@ -1,6 +1,7 @@
 import { Scissors, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import ApiService from '../../services/ApiService';
+import { logger } from '../../utils/logger';
 
 // Dados estáticos para fallback
 const staticServices = [
@@ -66,11 +67,11 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
   // Carregar serviços do backend apenas se não for vitrine
   useEffect(() => {
     const componentId = `services-${Date.now()}`;
-    console.warn(`[Services][${componentId}] useEffect iniciado, isShowcase: ${isShowcase}`);
+    logger.componentDebug(`useEffect iniciado, isShowcase: ${isShowcase}`);
     
     // Se for vitrine, usar apenas os serviços estáticos
     if (isShowcase) {
-      console.warn(`[Services][${componentId}] Modo vitrine, usando serviços estáticos`);
+      logger.componentDebug(`Modo vitrine, usando serviços estáticos`);
       setServices(staticServices);
       setCardsVisible(staticServices.map(() => true));
       cardRefs.current = staticServices.map(() => null);
@@ -79,7 +80,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
     
     // Flag para controlar se o componente está montado
     let isMounted = true;
-    console.warn(`[Services][${componentId}] Iniciando carregamento de serviços do backend`);
+    logger.componentDebug(`Iniciando carregamento de serviços do backend`);
     
     // Variável para controlar tentativas de carregamento
     let retryTimeout: NodeJS.Timeout | null = null;
@@ -88,18 +89,18 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
       try {
         // Se não for vitrine, carregar do backend sem bloquear a interface
         if (isMounted) {
-          console.warn(`[Services][${componentId}] Definindo estado de carregamento`);
+          logger.componentDebug(`Definindo estado de carregamento`);
           setIsLoading(true);
           // Limpar mensagem de erro anterior
           setError('');
         }
         
         // Chamar diretamente o método getServices do ApiService que já implementa cache
-        console.warn(`[Services][${componentId}] Chamando ApiService.getServices()`);
+        logger.componentDebug(`Chamando ApiService.getServices()`);
         const startTime = Date.now();
         const response = await ApiService.getServices();
         const endTime = Date.now();
-        console.warn(`[Services][${componentId}] Resposta recebida de ApiService.getServices() em ${endTime - startTime}ms: ${response ? 'dados recebidos' : 'sem dados'}`);
+        logger.componentDebug(`Resposta recebida de ApiService.getServices() em ${endTime - startTime}ms: ${response ? 'dados recebidos' : 'sem dados'}`);
         
         if (isMounted && response) {
           // Formatar os dados da API
@@ -107,29 +108,29 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
           
           if (Array.isArray(response)) {
             // Se já for um array, usar diretamente
-            console.warn(`[Services][${componentId}] Resposta é um array com ${response.length} itens, formatando serviços`);
+            logger.componentDebug(`Resposta é um array com ${response.length} itens, formatando serviços`);
             formattedServices = formatServices(response as Service[]);
           } else if (response && typeof response === 'object' && 'data' in (response as { data: unknown }) && Array.isArray((response as { data: unknown }).data)) {
             // Se for um objeto com propriedade data que é um array
-            console.warn(`[Services][${componentId}] Resposta é um objeto com propriedade data contendo ${((response as { data: unknown }).data as any[]).length} itens, formatando serviços`);
+            logger.componentDebug(`Resposta é um objeto com propriedade data contendo ${((response as { data: unknown }).data as any[]).length} itens, formatando serviços`);
             formattedServices = formatServices((response as { data: Service[] }).data);
           }
           
           if (formattedServices && formattedServices.length > 0) {
-            console.warn(`[Services][${componentId}] Atualizando estado com serviços formatados, quantidade: ${formattedServices.length}`);
+            logger.componentDebug(`Atualizando estado com serviços formatados, quantidade: ${formattedServices.length}`);
             setServices(formattedServices);
             setCardsVisible(formattedServices.map(() => true));
             cardRefs.current = formattedServices.map(() => null);
           }
         }
       } catch (err: any) {
-        console.error(`[Services][${componentId}] Erro ao carregar serviços:`, err);
+        logger.componentError(`Erro ao carregar serviços:`, err);
         
         // Verificar se é um erro de limite de chamadas repetidas
         if (err.isRateLimitError) {
           const retryAfter = err.retryAfter || 60; // Padrão de 60 segundos se não especificado
           const errorMessage = `Muitas requisições em um curto período. Aguarde ${retryAfter} segundos ou use os dados em cache.`;
-          console.warn(`[Services][${componentId}] ${errorMessage}`);
+          logger.componentWarn(`${errorMessage}`);
           
           if (isMounted) {
             // Desabilitar o botão de recarregar e iniciar o contador regressivo
@@ -180,11 +181,11 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
             
             // Configurar uma tentativa automática de recarregar após o período de limitação
             const retryDelayMs = (retryAfter + 2) * 1000; // Adiciona 2 segundos de margem
-            console.warn(`[Services][${componentId}] Agendando nova tentativa automática em ${retryAfter + 2}s`);
+            logger.componentDebug(`Agendando nova tentativa automática em ${retryAfter + 2}s`);
             
             retryTimeout = setTimeout(() => {
               if (isMounted) {
-                console.warn(`[Services][${componentId}] Executando tentativa automática após período de limitação`);
+                logger.componentDebug(`Executando tentativa automática após período de limitação`);
                 loadServices();
               }
             }, retryDelayMs);
@@ -201,7 +202,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
         }
       } finally {
         if (isMounted) {
-          console.warn(`[Services][${componentId}] Finalizando carregamento de serviços`);
+          logger.componentDebug(`Finalizando carregamento de serviços`);
           setIsLoading(false);
         }
       }
@@ -214,19 +215,19 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
     
     // Cleanup function para evitar memory leaks
     return () => {
-      console.warn(`[Services][${componentId}] Componente desmontado, limpando recursos`);
+      logger.componentDebug(`Componente desmontado, limpando recursos`);
       isMounted = false;
       
       // Limpar qualquer timeout pendente
       if (retryTimeout) {
-        console.warn(`[Services][${componentId}] Limpando timeout de retry pendente`);
+        logger.componentDebug(`Limpando timeout de retry pendente`);
         clearTimeout(retryTimeout);
         retryTimeout = null;
       }
       
       // Limpar intervalo de contagem regressiva
       if (countdownInterval) {
-        console.warn(`[Services][${componentId}] Limpando intervalo de contagem regressiva`);
+        logger.componentDebug(`Limpando intervalo de contagem regressiva`);
         clearInterval(countdownInterval);
         countdownInterval = null;
       }
@@ -305,7 +306,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
   // Função para recarregar os serviços manualmente
   const handleReload = () => {
     if (!retryDisabled) {
-      console.warn(`[Services] Recarregando serviços manualmente`);
+      logger.componentDebug(`Recarregando serviços manualmente`);
       setError('');
       setIsLoading(true);
       ApiService.getServices()
@@ -328,7 +329,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
           }
         })
         .catch(err => {
-          console.error('Erro ao recarregar serviços:', err);
+          logger.componentError('Erro ao recarregar serviços:', err);
           setError('Erro ao recarregar serviços. Por favor, tente novamente mais tarde.');
         })
         .finally(() => {

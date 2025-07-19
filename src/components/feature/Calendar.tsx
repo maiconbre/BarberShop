@@ -3,13 +3,12 @@ import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
+import { loadAppointments } from '../../services/AppointmentService';
 
 interface CalendarProps {
   selectedBarber: string;
   onTimeSelect?: (date: Date, time: string) => void;
-  onTimeRemove?: (date: string, time: string) => void;
   preloadedAppointments?: Appointment[];
-  onAppointmentConfirmed?: (appointment: Appointment) => void;
 }
 
 interface Appointment {
@@ -34,11 +33,11 @@ const Calendar: React.FC<CalendarProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [appointmentsCache, setAppointmentsCache] = useState<Appointment[]>(preloadedAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingSelection, setPendingSelection] = useState<{date: string, time: string} | null>(null);
 
+  // Gerar datas disponíveis (próximos 15 dias)
   const availableDates = useMemo(() => {
     const today = adjustToBrasilia(new Date());
     today.setHours(0, 0, 0, 0);
@@ -49,45 +48,44 @@ const Calendar: React.FC<CalendarProps> = ({
     });
   }, []);
 
+  // Carregar agendamentos
   const fetchAppointments = useCallback(async () => {
+    if (!selectedBarber) return;
+    
     setIsLoading(true);
     setError(null);
+    
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': localStorage.getItem('token') ? 'Bearer ' + localStorage.getItem('token') : ''
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await loadAppointments();
+      
+      // Garantir que sempre seja um array
+      let appointmentsArray: Appointment[] = [];
+      
+      if (Array.isArray(data)) {
+        appointmentsArray = data;
+      } else if (data && typeof data === 'object' && 'data' in data) {
+        appointmentsArray = Array.isArray((data as any).data) ? (data as any).data : [];
       }
-      const jsonData = await response.json();
-      if (!jsonData.success) {
-        throw new Error('Erro na resposta da API');
-      }
-      setAppointmentsCache(jsonData.data);
+      
+      setAppointments(appointmentsArray);
     } catch (err) {
-      console.error('Erro ao buscar agendamentos:', err);
-      setError('Não foi possível carregar os horários. Tente novamente.');
+      console.error('Erro ao carregar agendamentos:', err);
+      setError('Não foi possível carregar os horários.');
+      setAppointments([]); // Garantir array vazio em caso de erro
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedBarber]);
 
+  // Carregar agendamentos quando barbeiro for selecionado
   useEffect(() => {
-    if (selectedBarber) {
-      fetchAppointments();
-      const interval = setInterval(fetchAppointments, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedBarber, fetchAppointments]);
+    fetchAppointments();
+  }, [fetchAppointments]);
 
+  // Atualizar com agendamentos pré-carregados
   useEffect(() => {
-    if (preloadedAppointments?.length > 0) {
-      setAppointmentsCache(prev => {
+    if (preloadedAppointments && Array.isArray(preloadedAppointments)) {
+      setAppointments(prev => {
         const existingIds = new Set(prev.map(app => app.id));
         const newAppointments = preloadedAppointments.filter(app => !existingIds.has(app.id));
         return [...prev, ...newAppointments];
@@ -95,69 +93,35 @@ const Calendar: React.FC<CalendarProps> = ({
     }
   }, [preloadedAppointments]);
 
-  useEffect(() => {
-    const handleAppointmentUpdate = (event: CustomEvent) => {
-      const updatedAppointment = event.detail;
-      if (updatedAppointment.isRemoved) {
-        setAppointmentsCache(prev => prev.filter(app => 
-          !(app.date === updatedAppointment.date && 
-            app.time === updatedAppointment.time && 
-            app.barberId === updatedAppointment.barberId)
-        ));
-      } else {
-        setAppointmentsCache(prev => {
-          const filtered = prev.filter(app => 
-            !(app.date === updatedAppointment.date && 
-              app.time === updatedAppointment.time && 
-              app.barberId === updatedAppointment.barberId)
-          );
-          return [...filtered, updatedAppointment];
-        });
-      }
-    };
-
-    window.addEventListener('appointmentUpdate', handleAppointmentUpdate as EventListener);
-    window.addEventListener('timeSlotBlocked', handleAppointmentUpdate as EventListener);
-    window.addEventListener('timeSlotUnblocked', handleAppointmentUpdate as EventListener);
-
-    return () => {
-      window.removeEventListener('appointmentUpdate', handleAppointmentUpdate as EventListener);
-      window.removeEventListener('timeSlotBlocked', handleAppointmentUpdate as EventListener);
-      window.removeEventListener('timeSlotUnblocked', handleAppointmentUpdate as EventListener);
-    };
-  }, []);
-
+  // Verificar se horário está disponível
   const isTimeSlotAvailable = useCallback((date: Date, time: string): boolean => {
-    if (!selectedBarber || !date) return false;
+    if (!selectedBarber || !date || !Array.isArray(appointments)) return false;
     
     const dateInBrasilia = adjustToBrasilia(date);
     const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
     
-    return !appointmentsCache.some(appointment => 
+    return !appointments.some(appointment => 
       appointment.date === formattedDate && 
       appointment.time === time && 
       (appointment.barberId === selectedBarber || appointment.barberName === selectedBarber) && 
       !appointment.isRemoved
     );
-  }, [selectedBarber, appointmentsCache]);
+  }, [selectedBarber, appointments]);
 
+  // Selecionar data
   const handleDateClick = useCallback((date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
   }, []);
 
+  // Selecionar horário
   const handleTimeClick = useCallback((time: string) => {
-    if (!selectedDate) return;
-
-    const dateInBrasilia = adjustToBrasilia(selectedDate);
-    const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
-
-    if (!isTimeSlotAvailable(selectedDate, time)) {
+    if (!selectedDate || !isTimeSlotAvailable(selectedDate, time)) {
       return;
     }
 
+    const dateInBrasilia = adjustToBrasilia(selectedDate);
     setSelectedTime(time);
-    setPendingSelection({ date: formattedDate, time });
     
     if (onTimeSelect) {
       onTimeSelect(dateInBrasilia, time);
@@ -165,78 +129,90 @@ const Calendar: React.FC<CalendarProps> = ({
   }, [selectedDate, onTimeSelect, isTimeSlotAvailable]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex overflow-x-auto pb-2 hide-scrollbar">
-        <div className="flex space-x-2">
-          {availableDates.map(date => (
-            <button
-              type="button"
-              key={date.toISOString()}
-              onClick={() => handleDateClick(date)}
-              className={`
-                flex flex-col items-center justify-center p-3 rounded-lg min-w-[80px]
-                transition-all duration-200 transform hover:scale-105 relative overflow-hidden
-                ${selectedDate && isSameDay(date, selectedDate)
-                  ? 'bg-[#F0B35B] text-black'
-                  : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'}
-              `}
-            >
-              <span className="text-xs opacity-75 relative z-10">
-                {format(date, 'EEE', { locale: ptBR })}
-              </span>
-              <span className="text-lg font-bold relative z-10">
-                {format(date, 'd')}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/20 to-[#F0B35B]/0 -skew-x-45 opacity-0 group-hover:animate-shine"></div>
-            </button>
-          ))}
+    <div className="flex flex-col h-full space-y-2 overflow-hidden">
+      {/* Seleção de Data */}
+      <div className="flex-shrink-0">
+        <div className="flex overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div className="flex space-x-1 px-1">
+            {availableDates.slice(0, 7).map(date => (
+              <button
+                type="button"
+                key={date.toISOString()}
+                onClick={() => handleDateClick(date)}
+                className={`
+                  flex flex-col items-center justify-center p-1.5 rounded-md min-w-[60px] flex-shrink-0
+                  transition-all duration-200
+                  ${
+                    selectedDate && isSameDay(date, selectedDate)
+                      ? 'bg-[#F0B35B] text-black'
+                      : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
+                  }
+                `}
+              >
+                <span className="text-xs opacity-75">
+                  {format(date, 'EEE', { locale: ptBR })}
+                </span>
+                <span className="text-sm font-bold">
+                  {format(date, 'd')}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Seleção de Horário */}
       {selectedDate && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-          {isLoading ? (
-            <div className="col-span-full flex justify-center py-4">
-              <Loader2 className="w-6 h-6 animate-spin text-[#F0B35B]" />
-            </div>
-          ) : error ? (
-            <div className="col-span-full text-center text-red-500 py-4">
-              {error}
-            </div>
-          ) : (
-            timeSlots.map(time => {
-              const isPending = pendingSelection?.time === time && 
-                              pendingSelection?.date === format(adjustToBrasilia(selectedDate), 'yyyy-MM-dd');
-              const isAvailable = isTimeSlotAvailable(selectedDate, time);
-              const isSelected = selectedTime === time;
-              
-              return (
-                <button
-                  type="button"
-                  key={time}
-                  onClick={() => handleTimeClick(time)}
-                  disabled={!isAvailable}
-                  className={`
-                    py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300
-                    ${!isAvailable 
-                      ? 'bg-red-500/20 text-red-300 cursor-not-allowed border border-red-500/30' 
-                      : isPending
-                        ? 'bg-[#F0B35B] text-black transform scale-105 shadow-md shadow-[#F0B35B]/20' 
-                        : isSelected
-                          ? 'bg-[#F0B35B]/80 text-black border border-[#F0B35B]'
-                          : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 hover:border-[#F0B35B]/30 border border-transparent'}
-                  `}
+        <div className="flex-1 overflow-hidden">
+          <div className="grid grid-cols-3 gap-1 h-full">
+            {isLoading ? (
+              <div className="col-span-full flex justify-center items-center py-2">
+                <Loader2 className="w-4 h-4 animate-spin text-[#F0B35B]" />
+                <span className="ml-2 text-xs text-gray-400">Carregando...</span>
+              </div>
+            ) : error ? (
+              <div className="col-span-full text-center text-red-500 py-2">
+                <span className="text-xs">{error}</span>
+                <button 
+                  onClick={fetchAppointments}
+                  className="block mx-auto mt-1 px-2 py-1 text-xs bg-[#F0B35B] text-black rounded-md hover:bg-[#F0B35B]/90 transition-colors"
                 >
-                  <span className="relative z-10">{time}</span>
-                  {!isAvailable && (
-                    <span className="text-xs block mt-1">
-                      Ocupado
-                    </span>
-                  )}
+                  Tentar Novamente
                 </button>
-              );
-            })
-          )}
+              </div>
+            ) : (
+              timeSlots.map(time => {
+                const isAvailable = isTimeSlotAvailable(selectedDate, time);
+                const isSelected = selectedTime === time;
+                
+                return (
+                  <button
+                    type="button"
+                    key={time}
+                    onClick={() => handleTimeClick(time)}
+                    disabled={!isAvailable}
+                    className={`
+                      py-1.5 px-2 rounded-md text-xs font-medium transition-all duration-200 h-fit
+                      ${
+                        !isAvailable 
+                          ? 'bg-red-500/20 text-red-300 cursor-not-allowed border border-red-500/30' 
+                          : isSelected
+                            ? 'bg-[#F0B35B] text-black border border-[#F0B35B]'
+                            : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:border-[#F0B35B]/30 border border-transparent'
+                      }
+                    `}
+                  >
+                    <span>{time}</span>
+                    {!isAvailable && (
+                      <span className="text-xs block">
+                        Ocupado
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
     </div>

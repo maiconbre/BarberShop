@@ -8,7 +8,7 @@ import ClientAnalytics from '../components/feature/ClientAnalytics';
 import { useNotifications } from '../components/ui/Notifications';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
-import CacheService from '../services/CacheService';
+import { cacheService } from '../services/CacheService';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
@@ -100,7 +100,7 @@ const DashboardPage: React.FC = () => {
   const refreshData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const lastUpdate = await CacheService.get('appointments_last_update');
+      const lastUpdate = await cacheService.get('appointments_last_update');
       const now = new Date().getTime();
 
       if (lastUpdate && (now - (typeof lastUpdate === 'string' ? new Date(lastUpdate).getTime() : 0)) < CACHE_DURATION) {
@@ -111,7 +111,7 @@ const DashboardPage: React.FC = () => {
       const newAppointments = await loadAppointments(true);
       if (newAppointments && Array.isArray(newAppointments)) {
         setAppointments(newAppointments);
-await CacheService.set('appointments_last_update', new Date().getTime().toString());
+await cacheService.set('appointments_last_update', new Date().getTime().toString());
       }
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
@@ -286,7 +286,7 @@ await CacheService.set('appointments_last_update', new Date().getTime().toString
         }
 
         // Usar memoização para evitar re-renderizações desnecessárias
-        const formattedAppointments = await CacheService.fetchWithCache(
+        const formattedAppointments = await cacheService.fetchWithCache(
           'appointments',
           () => loadAppointments(false),
 { forceRefresh: false }
