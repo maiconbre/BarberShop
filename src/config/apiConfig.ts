@@ -2,7 +2,7 @@
 
 export const API_CONFIG = {
   // URLs e endpoints
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:6543',
+  BASE_URL: import.meta.env.VITE_API_URL || 'https://chemical-penelopa-soma-8513fd0f.koyeb.app',
   
   // Timeouts e intervalos
   REQUEST_TIMEOUT: 30000, // 30 segundos
