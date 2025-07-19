@@ -83,7 +83,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
   // Valores estáticos para o Hero
   const heroTitle = 'ESTILO É UM REFLEXO DA SUA ATITUDE E PERSONALIDADE';
   const heroSubtitle = 'Transforme seu visual com os melhores profissionais de Bangu';
-  const heroCta = 'Agende Agora';
+  const heroCta = 'Agendar Agora';
   
   return (
     <section

@@ -1107,6 +1107,29 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
                 </button>
+                
+                {/* Loading Overlay */}
+                {isLoading && (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[10000] animate-in fade-in duration-300">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl animate-in zoom-in duration-300">
+                      <div className="flex flex-col items-center space-y-4">
+                        <div className="relative">
+                          <div className="w-16 h-16 border-4 border-[#F0B35B]/20 rounded-full animate-pulse"></div>
+                          <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-[#F0B35B] rounded-full animate-spin"></div>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold text-gray-800">Processando Agendamento</h3>
+                          <p className="text-sm text-gray-600">Aguarde enquanto confirmamos seus dados...</p>
+                        </div>
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
