@@ -27,8 +27,45 @@ const MAX_BACKOFF = 5 * 60 * 1000; // 5 minutos máximo de backoff
 
 /**
  * Verifica se um horário está disponível para agendamento
+ * Verifica tanto no cache local quanto no cache global
  */
-export const isTimeSlotAvailable = (date: string, time: string, barberId: string, appointments: any[]): boolean => {
+export const isTimeSlotAvailable = async (date: string, time: string, barberId: string, appointments: any[]): Promise<boolean> => {
+  // Verificar no cache local primeiro (para feedback imediato)
+  const isLocallyAvailable = checkLocalAvailability(date, time, barberId, appointments);
+  
+  // Se já está ocupado localmente, não precisamos verificar mais
+  if (!isLocallyAvailable) return false;
+  
+  try {
+    // Verificar no cache global específico do barbeiro
+    const cacheService = (await import('./CacheService')).default;
+    const barberCacheKey = `schedule_appointments_${barberId}`;
+    const barberCache = await cacheService.get<any[]>(barberCacheKey) || [];
+    
+    const isAvailableInBarberCache = checkLocalAvailability(date, time, barberId, barberCache);
+    if (!isAvailableInBarberCache) return false;
+    
+    // Verificar no cache global geral de agendamentos
+    const allAppointmentsKey = '/api/appointments';
+    const allAppointments = await cacheService.get<any[]>(allAppointmentsKey) || [];
+    
+    return checkLocalAvailability(date, time, barberId, allAppointments);
+  } catch (error) {
+    // Em caso de erro na verificação do cache global, confiar apenas no cache local
+    logger.apiWarn('Erro ao verificar disponibilidade no cache global:', error);
+    return isLocallyAvailable;
+  }
+};
+
+/**
+ * Alias para isTimeSlotAvailable para manter compatibilidade com o código existente
+ */
+export const checkTimeSlotAvailability = isTimeSlotAvailable;
+
+/**
+ * Verifica disponibilidade apenas no cache local fornecido
+ */
+export const checkLocalAvailability = (date: string, time: string, barberId: string, appointments: any[]): boolean => {
   if (!appointments || !Array.isArray(appointments)) return true;
   
   return !appointments.some(appointment => 

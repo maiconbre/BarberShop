@@ -5,10 +5,10 @@ import { X, MessageCircle, ArrowRight, CheckCircle } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
+import { cacheService } from '../../services/CacheService';
 
 // Importando constantes e funções do serviço de agendamentos
 import { 
-  isTimeSlotAvailable,
   loadAppointments,
   createAppointment,
   formatWhatsappMessage,
@@ -364,10 +364,42 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     setError('');
 
     try {
-      // Verificar novamente a disponibilidade antes de confirmar
-      const isStillAvailable = isTimeSlotAvailable(formData.date, formData.time, formData.barberId, cachedAppointments);
-      if (!isStillAvailable) {
+      // Primeiro, tentar obter os dados mais recentes do cache global
+      const cacheKey = `schedule_appointments_${formData.barberId}`;
+      
+      // Verificar disponibilidade usando dados do cache global e local de forma assíncrona
+      const { isTimeSlotAvailable, checkLocalAvailability } = await import('../../services/AppointmentService');
+      
+      // Verificar disponibilidade no cache local para feedback imediato
+      const isStillAvailableInLocalCache = checkLocalAvailability(formData.date, formData.time, formData.barberId, cachedAppointments);
+      
+      if (!isStillAvailableInLocalCache) {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
+      }
+      
+      // Verificar disponibilidade em todos os caches de forma assíncrona
+      const isStillAvailableInAllCaches = await isTimeSlotAvailable(formData.date, formData.time, formData.barberId, cachedAppointments);
+      
+      // Se o horário não estiver disponível em qualquer um dos caches, impedir o agendamento
+      if (!isStillAvailableInAllCaches) {
+        throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
+      }
+      
+      // Tentar buscar dados mais recentes da API para garantir disponibilidade
+      try {
+        const freshAppointments = await loadAppointments();
+        const { isTimeSlotAvailable } = await import('../../services/AppointmentService');
+        const isStillAvailableInAPI = await isTimeSlotAvailable(formData.date, formData.time, formData.barberId, freshAppointments);
+        
+        if (!isStillAvailableInAPI) {
+          // Atualizar caches com os dados mais recentes
+          setCachedAppointments(freshAppointments);
+          await cacheService.set(cacheKey, freshAppointments);
+          throw new Error('Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.');
+        }
+      } catch (apiError) {
+        // Se não conseguir verificar na API, continuar com os dados do cache
+        logger.componentWarn('Não foi possível verificar disponibilidade na API, usando dados em cache:', apiError);
       }
 
       // Criar o appointment temporário para atualização otimista
@@ -382,13 +414,51 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         price: calculateTotalPrice()
       };
 
-      // Atualização otimista do cache
+      // Atualização otimista do cache local
       setCachedAppointments(prev => Array.isArray(prev) ? [...prev, tempAppointment] : [tempAppointment]);
+      
+      // Atualizar o cache global para garantir que outros componentes vejam a mudança
+      // Reutilizando as variáveis já declaradas acima
+      const cachedData = await cacheService.get(cacheKey) || [];
+      
+      // Verificar novamente se o horário já não foi ocupado por outro cliente
+      const isStillAvailable = !Array.isArray(cachedData) ? true : !cachedData.some((app: any) =>
+        app.date === formData.date && 
+        app.time === formData.time && 
+        app.barberId === formData.barberId && 
+        app.id !== tempAppointment.id && // Ignorar o appointment temporário que acabamos de criar
+        !app.isCancelled && 
+        !app.isRemoved
+      );
+      
+      if (!isStillAvailable) {
+        throw new Error('Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.');
+      }
+      
+await cacheService.set(cacheKey, Array.isArray(cachedData) ? [...cachedData, tempAppointment] : [tempAppointment]);
+      
+      // Atualizar também o cache global geral de agendamentos
+      try {
+        const allAppointmentsKey = '/api/appointments';
+        const allAppointments = await cacheService.get(allAppointmentsKey) || [];
+await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...allAppointments, tempAppointment] : [tempAppointment]);
+      } catch (cacheErr) {
+        logger.componentWarn('Erro ao atualizar cache global de agendamentos:', cacheErr);
+      }
 
       // Disparar evento de bloqueio temporário
       window.dispatchEvent(new CustomEvent('timeSlotBlocked', {
         detail: tempAppointment
       }));
+      
+      // Atualizar o localStorage para compatibilidade com componentes que usam esse método
+      try {
+        const localStorageData = localStorage.getItem('appointments');
+        const parsedData = localStorageData ? JSON.parse(localStorageData) : [];
+        localStorage.setItem('appointments', JSON.stringify([...parsedData, tempAppointment]));
+      } catch (err) {
+        logger.componentError('Erro ao atualizar localStorage:', err);
+      }
 
       // Usar a função createAppointment importada do AppointmentService
       const appointmentData = {
@@ -408,6 +478,34 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       if (!result || (result.success === false)) {
         // Reverter atualização otimista em caso de erro
         setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => app.id !== tempAppointment.id) : []);
+        
+        // Reverter o cache global
+        try {
+          // Reutilizando o cacheService já importado acima
+          
+          // Reverter o cache específico do barbeiro
+          const barberCacheKey = `schedule_appointments_${formData.barberId}`;
+          const barberCachedData = await cacheService.get(barberCacheKey) || [];
+await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberCachedData.filter((app: any) => app.id !== tempAppointment.id) : []);
+          
+          // Reverter também o cache global geral de agendamentos
+          const allAppointmentsKey = '/api/appointments';
+          const allAppointments = await cacheService.get(allAppointmentsKey) || [];
+          await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? allAppointments.filter((app: any) => app.id !== tempAppointment.id) : []);
+          
+          // Reverter o localStorage
+          const localStorageData = localStorage.getItem('appointments');
+          if (localStorageData) {
+            const parsedData = JSON.parse(localStorageData);
+            localStorage.setItem('appointments', JSON.stringify(parsedData.filter((app: any) => app.id !== tempAppointment.id)));
+          }
+          
+          // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
+          await cacheService.forceCleanup();
+        } catch (err) {
+          logger.componentError('Erro ao reverter cache:', err);
+        }
+        
         window.dispatchEvent(new CustomEvent('timeSlotUnblocked', {
           detail: tempAppointment
         }));
@@ -420,6 +518,64 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         ...tempAppointment,
         id: result.data?.id || (result as any).id || tempAppointment.id
       };
+
+      // Atualizar o cache global com o ID real
+      try {
+        // Reutilizando o cacheService já importado acima
+        
+        // Atualizar o cache específico do barbeiro
+        const barberCacheKey = `schedule_appointments_${formData.barberId}`;
+        const barberCachedData = await cacheService.get(barberCacheKey) || [];
+        
+        // Remover o appointment temporário e adicionar o confirmado
+        const updatedBarberCache = (Array.isArray(barberCachedData) ? barberCachedData : [])
+          .filter((app: any) => app.id !== tempAppointment.id)
+          .concat(confirmedAppointment);
+          
+        await cacheService.set(barberCacheKey, updatedBarberCache);
+        
+        // Atualizar também o cache global geral de agendamentos
+        const allAppointmentsKey = '/api/appointments';
+        const allAppointments = await cacheService.get(allAppointmentsKey) || [];
+        const updatedAllAppointments = (Array.isArray(allAppointments) ? allAppointments : [])
+          .filter((app: any) => app.id !== tempAppointment.id)
+          .concat(confirmedAppointment);
+        await cacheService.set(allAppointmentsKey, updatedAllAppointments);
+        
+        // Atualizar o localStorage
+        const localStorageData = localStorage.getItem('appointments');
+        if (localStorageData) {
+          const parsedData = JSON.parse(localStorageData);
+          const updatedLocalStorage = parsedData
+            .filter((app: any) => app.id !== tempAppointment.id)
+            .concat(confirmedAppointment);
+          localStorage.setItem('appointments', JSON.stringify(updatedLocalStorage));
+        }
+        
+        // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
+        await cacheService.forceCleanup();
+        
+        // Forçar uma atualização dos dados de agendamentos para todos os componentes
+        setTimeout(async () => {
+          try {
+            // Recarregar agendamentos da API para atualizar o cache global
+            const { loadAppointments } = await import('../../services/AppointmentService');
+            await loadAppointments();
+            
+            // Disparar evento personalizado para notificar outros componentes sobre a atualização do cache
+            window.dispatchEvent(new CustomEvent('cacheUpdated', {
+              detail: {
+                keys: [barberCacheKey, allAppointmentsKey],
+                timestamp: Date.now()
+              }
+            }));
+          } catch (refreshErr) {
+            logger.componentWarn('Erro ao recarregar agendamentos após confirmação:', refreshErr);
+          }
+        }, 500);
+      } catch (err) {
+        logger.componentError('Erro ao atualizar cache com ID real:', err);
+      }
 
       // Disparar evento de atualização com o ID real
       window.dispatchEvent(new CustomEvent('appointmentUpdate', {
@@ -434,8 +590,37 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     } catch (err) {
       // Reverter atualização otimista em caso de erro
-// Remove the temporary appointment from cached appointments
-setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => app.id !== `temp-${Date.now()}`) : []);
+      // Remove the temporary appointment from cached appointments
+      setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => !app.id.startsWith('temp-')) : []);
+      
+      // Reverter o cache global
+      try {
+        // Reutilizando o cacheService já importado acima
+        
+        // Reverter o cache específico do barbeiro
+        const barberCacheKey = `schedule_appointments_${formData.barberId}`;
+        const barberCachedData = await cacheService.get(barberCacheKey) || [];
+        await cacheService.set(barberCacheKey, (Array.isArray(barberCachedData) ? barberCachedData : []).filter((app: any) => !app.id.startsWith('temp-')));
+        
+        // Reverter também o cache global geral de agendamentos
+        const allAppointmentsKey = '/api/appointments';
+        const allAppointments = await cacheService.get(allAppointmentsKey) || [];
+        await cacheService.set(allAppointmentsKey, (Array.isArray(allAppointments) ? allAppointments : []).filter((app: any) => !app.id.startsWith('temp-')));
+        
+        // Reverter o localStorage
+        const localStorageData = localStorage.getItem('appointments');
+        if (localStorageData) {
+          const parsedData = JSON.parse(localStorageData);
+          localStorage.setItem('appointments', JSON.stringify(parsedData.filter((app: any) => !app.id.startsWith('temp-'))));
+        }
+        
+        // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
+        await cacheService.forceCleanup();
+      } catch (cacheErr) {
+        logger.componentError('Erro ao reverter cache:', cacheErr);
+      }
+      
+      // Disparar evento para desbloquear o horário
       window.dispatchEvent(new CustomEvent('timeSlotUnblocked', {
         detail: {
           date: formData.date,
@@ -444,6 +629,7 @@ setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => app.id !=
         }
       }));
       
+      // Tratamento mais específico de erros
       logger.componentError('Error saving appointment:', err);
       
       // Tratamento mais específico de erros

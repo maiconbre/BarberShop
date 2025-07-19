@@ -484,6 +484,9 @@ class ApiService {
         if (endpoint.includes('services')) {
           return key.includes('services');
         }
+        if (endpoint.includes('comments')) {
+          return key.includes('comments');
+        }
         return false;
       });
 
@@ -540,6 +543,25 @@ class ApiService {
       return this.normalizeResponse(response, 'serviços');
     } catch (error) {
       logger.apiError('Erro ao buscar serviços:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submete um novo comentário para aprovação
+   */
+  async submitComment(commentData: { name: string; comment: string }) {
+    const endpoint = '/api/comments';
+    try {
+      const response = await this.post<any>(endpoint, commentData);
+      logger.apiInfo('Comentário enviado com sucesso');
+      
+      // Invalida cache de comentários para forçar atualização
+      this.invalidateRelatedCaches('/api/comments');
+      
+      return response;
+    } catch (error) {
+      logger.apiError('Erro ao enviar comentário:', error);
       throw error;
     }
   }

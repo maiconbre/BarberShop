@@ -12,18 +12,9 @@ interface Comment {
 const About = () => {
   // Estados para animações
   const [isVisible, setIsVisible] = useState(false);
-  const [headerVisible, setHeaderVisible] = useState(false);
-  const [leftColVisible, setLeftColVisible] = useState(false);
-  const [rightColVisible, setRightColVisible] = useState(false);
-  const [featuresVisible, setFeaturesVisible] = useState(false);
-  const [hoursVisible, setHoursVisible] = useState(false);
-  const [locationVisible, setLocationVisible] = useState(false);
-  const [reviewsVisible, setReviewsVisible] = useState(false);
-  const [commentFormVisible, setCommentFormVisible] = useState(false);
   
   // Estados para comentários
   const [comments, setComments] = useState<Comment[]>([]);
-  const [approvedComments, setApprovedComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentsError, setCommentsError] = useState('');
   const [totalPages, setTotalPages] = useState(1);
@@ -50,126 +41,109 @@ const About = () => {
     }
   };
   
-  // Referências para cada seção
+  // Referência para animação
   const sectionRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const leftColRef = useRef<HTMLDivElement>(null);
-  const rightColRef = useRef<HTMLDivElement>(null);
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const hoursRef = useRef<HTMLDivElement>(null);
-  const locationRef = useRef<HTMLDivElement>(null);
-  const reviewsRef = useRef<HTMLDivElement>(null);
-  const commentFormRef = useRef<HTMLDivElement>(null);
-  // Efeito para detectar quando cada seção entra na viewport
+  // Efeito para detectar quando a seção entra na viewport
   useEffect(() => {
-    // Função para criar um observer para cada elemento
-    const createObserver = (ref: React.RefObject<HTMLDivElement>, setVisible: React.Dispatch<React.SetStateAction<boolean>>) => {
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setVisible(true);
-            observer.disconnect();
-          }
-        },
-        {
-          threshold: 0.2, // Quando pelo menos 20% do componente estiver visível
-          rootMargin: '0px 0px -10% 0px' // Aciona um pouco antes para melhorar a experiência
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
         }
-      );
-
-      if (ref.current) {
-        observer.observe(ref.current);
+      },
+      {
+        threshold: 0.2, // Quando pelo menos 20% do componente estiver visível
+        rootMargin: '0px 0px -10% 0px' // Aciona um pouco antes para melhorar a experiência
       }
+    );
 
-      return observer;
-    };
-
-    // Criar observers para cada seção
-    const observers = [
-      createObserver(headerRef, setHeaderVisible),
-      createObserver(leftColRef, setLeftColVisible),
-      createObserver(rightColRef, setRightColVisible),
-      createObserver(featuresRef, setFeaturesVisible),
-      createObserver(hoursRef, setHoursVisible),
-      createObserver(locationRef, setLocationVisible),
-      createObserver(reviewsRef, setReviewsVisible),
-      createObserver(commentFormRef, setCommentFormVisible)
-    ];
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
 
     // Cleanup function
     return () => {
-      observers.forEach(observer => observer.disconnect());
+      observer.disconnect();
     };
   }, []);
 
   // Efeito para carregar os comentários aprovados
   useEffect(() => {
-    const fetchApprovedComments = async () => {
+    // Função para buscar comentários com retry e backoff exponencial
+    const fetchApprovedComments = async (retryCount = 0, delay = 1000) => {
       setIsLoadingComments(true);
       setCommentsError('');
-
+      
       try {
-        // Usar ApiService com retry
-        const fetchWithRetry = async (retries = 3, delay = 1000) => {
-          try {
-            const data = await ApiService.getApprovedComments();
-            
-            if (Array.isArray(data)) {
-              return data;
-            } else {
-              throw new Error('Formato de resposta inválido');
-            }
-          } catch (error) {
-            if (retries > 0) {
-              // Espera com backoff exponencial antes de tentar novamente
-              const backoffDelay = delay * Math.pow(2, 3 - retries);
-              console.log(`Tentando novamente em ${backoffDelay}ms. Tentativas restantes: ${retries}`);
-              await new Promise(resolve => setTimeout(resolve, backoffDelay));
-              return fetchWithRetry(retries - 1, delay);
-            }
-            throw error;
-          }
-        };
-
-        const data = await fetchWithRetry();
-        setComments(data); // Atualiza comments para exibição na interface
-        setApprovedComments(data); // Mantém approvedComments para compatibilidade
-        setTotalPages(Math.ceil(data.length / commentsPerPage));
+        const response = await ApiService.getApprovedComments();
         
-        // Armazena os comentários no localStorage para uso offline
+        // Normalizar resposta da API
+        let commentsData: Comment[] = [];
+        
+        if (Array.isArray(response)) {
+          commentsData = response;
+        } else if (response && typeof response === 'object' && 'data' in response) {
+          commentsData = Array.isArray((response as { data: Comment[] }).data) ? (response as { data: Comment[] }).data : [];
+        }
+        
+        setComments(commentsData);
+        setTotalPages(Math.ceil(commentsData.length / commentsPerPage));
+        
+        // Armazenar em cache local
         try {
-          localStorage.setItem('approvedComments', JSON.stringify(data));
+          localStorage.setItem('approvedComments', JSON.stringify(commentsData));
           localStorage.setItem('approvedCommentsTimestamp', Date.now().toString());
         } catch (e) {
           console.error('Erro ao armazenar comentários no cache local:', e);
         }
       } catch (error) {
-        console.error('Erro ao buscar comentários:', error);
-        setCommentsError('Não foi possível carregar os comentários. Tente novamente mais tarde.');
+        console.error(`Erro ao carregar comentários (tentativa ${retryCount + 1}):`, error);
         
-        // Tenta usar dados em cache local se disponíveis
+        // Tentar usar cache local
         const cachedComments = localStorage.getItem('approvedComments');
-        if (cachedComments) {
+        const cachedTimestamp = localStorage.getItem('approvedCommentsTimestamp');
+        
+        if (cachedComments && cachedTimestamp) {
           try {
-            const parsedComments = JSON.parse(cachedComments);
-            if (Array.isArray(parsedComments) && parsedComments.length > 0) {
-              console.log('Usando comentários em cache local');
-              setComments(parsedComments); // Atualiza comments para exibição na interface
-              setApprovedComments(parsedComments); // Mantém approvedComments para compatibilidade
-              setTotalPages(Math.ceil(parsedComments.length / commentsPerPage));
-              setCommentsError('Exibindo comentários em cache. Atualize a página para tentar novamente.');
+            const timestamp = parseInt(cachedTimestamp, 10);
+            const now = Date.now();
+            const cacheAge = now - timestamp;
+            const maxCacheAge = 24 * 60 * 60 * 1000; // 24 horas
+            
+            if (cacheAge < maxCacheAge) {
+              const parsedComments = JSON.parse(cachedComments);
+              if (Array.isArray(parsedComments) && parsedComments.length > 0) {
+                setComments(parsedComments);
+                setTotalPages(Math.ceil(parsedComments.length / commentsPerPage));
+                setCommentsError('Exibindo comentários em cache. Atualize a página para tentar novamente.');
+                setIsLoadingComments(false);
+                return;
+              }
             }
           } catch (e) {
             console.error('Erro ao processar cache local:', e);
           }
         }
-      } finally {
-        setIsLoadingComments(false);
+        
+        // Implementar retry com backoff exponencial
+        const maxRetries = 3;
+        if (retryCount < maxRetries) {
+          const nextDelay = delay * 2;
+          console.log(`Tentando novamente em ${nextDelay}ms...`);
+          setTimeout(() => fetchApprovedComments(retryCount + 1, nextDelay), nextDelay);
+        } else {
+          setCommentsError('Não foi possível carregar os comentários. Tente novamente mais tarde.');
+          setIsLoadingComments(false);
+        }
+        return;
       }
+      
+      setIsLoadingComments(false);
     };
-
+    
     fetchApprovedComments();
-  }, []);
+  }, [commentsPerPage]);
   const features = [
     {
       icon: <Scissors className="w-6 h-6" />,
@@ -189,60 +163,10 @@ const About = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  // Não precisamos deste efeito pois já temos o fetchApprovedComments no efeito de observadores de interseção
-  // useEffect(() => {
-  //   loadComments();
-  // }, []);
-  
-  const loadComments = async () => {
-    setIsLoadingComments(true);
-    setCommentsError('');
-    
-    try {
-      const response = await ApiService.getApprovedComments();
-      
-      // Normalizar resposta da API
-      let commentsData: Comment[] = [];
-      
-      if (Array.isArray(response)) {
-        commentsData = response;
-      } else if (response && typeof response === 'object' && 'data' in response) {
-        commentsData = Array.isArray(response.data) ? response.data : [];
-      }
-      
-      setComments(commentsData);
-      setApprovedComments(commentsData);
-      setTotalPages(Math.ceil(commentsData.length / commentsPerPage));
-      
-      // Armazenar em cache local
-      try {
-        localStorage.setItem('approvedComments', JSON.stringify(commentsData));
-        localStorage.setItem('approvedCommentsTimestamp', Date.now().toString());
-      } catch (e) {
-        console.error('Erro ao armazenar comentários no cache local:', e);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar comentários:', error);
-      setCommentsError('Não foi possível carregar os comentários.');
-      
-      // Tentar usar cache local
-      const cachedComments = localStorage.getItem('approvedComments');
-      if (cachedComments) {
-        try {
-          const parsed = JSON.parse(cachedComments);
-          if (Array.isArray(parsed)) {
-            setComments(parsed);
-            setApprovedComments(parsed);
-            setTotalPages(Math.ceil(parsed.length / commentsPerPage));
-            setCommentsError('Exibindo comentários salvos.');
-          }
-        } catch (e) {
-          console.error('Erro ao processar cache:', e);
-        }
-      }
-    } finally {
-      setIsLoadingComments(false);
-    }
+  // Função para recarregar comentários
+  const reloadComments = () => {
+    // Recarregar a página para buscar novos comentários
+    window.location.reload();
   };
   
   const handleSubmitComment = async (e: FormEvent) => {
@@ -265,7 +189,7 @@ const About = () => {
       
       // Recarregar comentários após envio
       setTimeout(() => {
-        loadComments();
+        reloadComments();
         setSubmitSuccess(false);
       }, 2000);
     } catch (error) {
@@ -293,7 +217,7 @@ const About = () => {
   };
   
   return (
-    <div id="about-section" className="py-20 px-4 bg-[#0D121E] relative overflow-hidden">
+    <div id="about-section" className="py-20 px-4 bg-[#0D121E] relative overflow-hidden" ref={sectionRef}>
       {/* Elementos decorativos */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
