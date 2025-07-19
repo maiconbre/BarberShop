@@ -1,18 +1,17 @@
 import ApiService from './ApiService';
+import { logger } from '../utils/logger';
 
-/**
- * Inicializa os serviços da aplicação e pré-carrega dados críticos
- */
+// Função para inicializar todos os serviços da aplicação
 export const initializeServices = async (): Promise<void> => {
   try {
-    console.log('Inicializando serviços da aplicação...');
+    logger.apiInfo('Inicializando serviços da aplicação...');
     
     // Pré-carregar dados críticos
     await ApiService.preloadCriticalData();
     
-    console.log('Serviços da aplicação inicializados com sucesso');
+    logger.apiInfo('Serviços da aplicação inicializados com sucesso');
   } catch (error) {
-    console.warn('Erro ao inicializar serviços da aplicação:', error);
+    logger.apiWarn('Erro ao inicializar serviços da aplicação:', error);
     // Não propaga o erro para não bloquear a inicialização da aplicação
   }
 };

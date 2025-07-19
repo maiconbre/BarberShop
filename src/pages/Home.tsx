@@ -27,6 +27,12 @@ const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
     setIsBookingModalOpen(true);
   };
 
+  const handleHeroBookingClick = () => {
+    setSelectedService('');
+    setSelectedServices([]);
+    setIsBookingModalOpen(true);
+  };
+
   
 
   return (
@@ -37,7 +43,7 @@ const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
       transition={{ duration: 0.3 }} // Acelerando a animação inicial
       className="flex flex-col min-h-screen bg-[#0D121E]"
     >
-      <Hero setIsModalOpen={setIsModalOpen} />
+      <Hero setIsModalOpen={handleHeroBookingClick} />
 
       {/* Garantindo que o Services seja renderizado com uma altura mínima */}
       <section className="min-h-screen w-full">
