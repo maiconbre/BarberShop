@@ -320,7 +320,7 @@ const About = () => {
           {/* Coluna Esquerda */}
           <div className={`space-y-8 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
             <p className="text-gray-300 text-lg leading-relaxed">
-              Oferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
+              sOferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
               qualificados cuidam do seu visual. Nossa missão é proporcionar uma experiência única de cuidado pessoal,
               combinando técnicas tradicionais com tendências contemporâneas.
             </p>
