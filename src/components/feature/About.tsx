@@ -207,7 +207,7 @@ const About = () => {
       if (Array.isArray(response)) {
         commentsData = response;
       } else if (response && typeof response === 'object' && 'data' in response) {
-        commentsData = Array.isArray(response.data) ? response.data : [];
+        commentsData = Array.isArray((response as { data: Comment[] }).data) ? (response as { data: Comment[] }).data : [];
       }
       
       setComments(commentsData);
