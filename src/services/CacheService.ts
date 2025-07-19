@@ -1,220 +1,330 @@
-interface CacheData<T> {
-  data: T;
-  timestamp: number;
-  size?: number;
-}
+import type { 
+  ICacheService, 
+  ICacheStorage, 
+  ICacheCleanup, 
+  ICacheFetcher 
+} from '@/services/interfaces/ICacheService';
+import type { CacheItem, CacheOptions } from '@/types';
+import { CACHE_CONFIG } from '@/constants';
+import { LocalStorageStrategy } from '@/services/cache/LocalStorageStrategy';
+import { MemoryStorageStrategy } from '@/services/cache/MemoryStorageStrategy';
+import { CacheCleanupStrategy } from '@/services/cache/CacheCleanupStrategy';
 
-class CacheService {
-  private static CACHE_PREFIX = 'barbergr_';
-  private static CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
-  private static MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB
-  private static memoryCache = new Map<string, CacheData<any>>();
-  private static lastCleanup = Date.now();
-  private static CLEANUP_INTERVAL = 60 * 1000; // 1 minuto
+/**
+ * Modern cache service implementation following SOLID principles
+ */
+class CacheService implements ICacheService, ICacheFetcher {
+  private readonly memoryStorage: ICacheStorage;
+  private readonly persistentStorage: ICacheStorage;
+  private readonly cleanup: ICacheCleanup;
+  private readonly defaultTTL: number;
 
-  private static cleanupIfNeeded(): void {
-    const now = Date.now();
-    if (now - this.lastCleanup > this.CLEANUP_INTERVAL) {
-      this.cleanup();
-      this.lastCleanup = now;
+  constructor(
+    memoryStorage?: ICacheStorage,
+    persistentStorage?: ICacheStorage,
+    cleanup?: ICacheCleanup,
+    defaultTTL: number = CACHE_CONFIG.DEFAULT_TTL
+  ) {
+    this.memoryStorage = memoryStorage || new MemoryStorageStrategy();
+    this.persistentStorage = persistentStorage || new LocalStorageStrategy();
+    this.cleanup = cleanup || new CacheCleanupStrategy(this.persistentStorage);
+    this.defaultTTL = defaultTTL;
+  }
+
+  /**
+   * Performs cleanup if needed
+   */
+  private async cleanupIfNeeded(): Promise<void> {
+    if (this.cleanup.shouldCleanup()) {
+      await this.cleanup.cleanup();
     }
   }
 
-  private static cleanup(): void {
-    // Limpa cache expirado da memória
-    for (const [key, value] of this.memoryCache.entries()) {
-      if (this.isExpired(value.timestamp)) {
-        this.memoryCache.delete(key);
-      }
-    }
-
-    // Limpa localStorage se necessário
-    try {
-      let totalSize = 0;
-      const entries: [string, number][] = [];
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith(this.CACHE_PREFIX)) {
-          const value = localStorage.getItem(key);
-          if (value) {
-            const size = value.length * 2; // Aproximação do tamanho em bytes
-            totalSize += size;
-            entries.push([key, size]);
-          }
-        }
-      }
-
-      if (totalSize > this.MAX_CACHE_SIZE) {
-        entries.sort((a, b) => a[1] - b[1]);
-        for (const [key] of entries) {
-          if (totalSize <= this.MAX_CACHE_SIZE) break;
-          const value = localStorage.getItem(key);
-          if (value) {
-            totalSize -= value.length * 2;
-            localStorage.removeItem(key);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Erro durante limpeza do cache:', error);
-    }
-  }
-
-  static async setCache<T>(key: string, data: T): Promise<void> {
-    this.cleanupIfNeeded();
+  /**
+   * Sets data in cache with optional TTL
+   */
+  async set<T>(key: string, data: T, options?: CacheOptions): Promise<void> {
+    await this.cleanupIfNeeded();
 
     try {
-      const cacheData: CacheData<T> = {
+      const ttl = options?.ttl ?? this.defaultTTL;
+      const useLocalStorage = options?.useLocalStorage ?? true;
+      
+      const cacheItem: CacheItem<T> = {
         data,
         timestamp: Date.now(),
-        size: JSON.stringify(data).length * 2
+        ttl,
       };
 
-      // Salva na memória primeiro
-      this.memoryCache.set(this.CACHE_PREFIX + key, cacheData);
+      const serializedData = JSON.stringify(cacheItem);
 
-      // Tenta salvar no localStorage
-      try {
-        localStorage.setItem(this.CACHE_PREFIX + key, JSON.stringify(cacheData));
-      } catch (storageError) {
-        // Se falhar por falta de espaço, tenta limpar e salvar novamente
-        this.cleanup();
-        localStorage.setItem(this.CACHE_PREFIX + key, JSON.stringify(cacheData));
+      // Always save to memory cache
+      this.memoryStorage.setItem(key, serializedData);
+
+      // Optionally save to persistent storage
+      if (useLocalStorage) {
+        try {
+          this.persistentStorage.setItem(key, serializedData);
+        } catch (storageError) {
+          // If storage fails, try cleanup and retry
+          await this.cleanup.cleanup();
+          this.persistentStorage.setItem(key, serializedData);
+        }
       }
     } catch (error) {
-      console.error('Erro ao salvar no cache:', error);
+      console.error('Error setting cache:', error);
+      throw new Error('Failed to set cache data');
     }
   }
 
-  static async getCacheTimestamp(key: string): Promise<number> {
-    try {
-      const cached = localStorage.getItem(this.CACHE_PREFIX + key);
-      if (!cached) return 0;
-
-      const cacheData: CacheData<any> = JSON.parse(cached);
-      return cacheData.timestamp;
-    } catch (error) {
-      console.error('Erro ao recuperar timestamp do cache:', error);
-      return 0;
-    }
-  }
-
-  static async getCache<T>(key: string): Promise<T | null> {
-    this.cleanupIfNeeded();
+  /**
+   * Gets data from cache
+   */
+  async get<T>(key: string): Promise<T | null> {
+    await this.cleanupIfNeeded();
 
     try {
-      // Tenta recuperar da memória primeiro
-      const memoryData = this.memoryCache.get(this.CACHE_PREFIX + key);
-      if (memoryData && !this.isExpired(memoryData.timestamp)) {
-        return memoryData.data;
+      // Try memory cache first
+      const memoryData = this.memoryStorage.getItem(key);
+      if (memoryData) {
+        const cacheItem: CacheItem<T> = JSON.parse(memoryData);
+        if (!this.isExpired(cacheItem)) {
+          return cacheItem.data;
+        }
+        // Remove expired item from memory
+        this.memoryStorage.removeItem(key);
       }
 
-      // Se não estiver na memória ou estiver expirado, tenta localStorage
-      const cached = localStorage.getItem(this.CACHE_PREFIX + key);
-      if (!cached) return null;
+      // Try persistent storage
+      const persistentData = this.persistentStorage.getItem(key);
+      if (persistentData) {
+        const cacheItem: CacheItem<T> = JSON.parse(persistentData);
+        
+        if (this.isExpired(cacheItem)) {
+          // Remove expired item
+          this.persistentStorage.removeItem(key);
+          return null;
+        }
 
-      const cacheData: CacheData<T> = JSON.parse(cached);
-      
-      if (this.isExpired(cacheData.timestamp)) {
-        this.memoryCache.delete(this.CACHE_PREFIX + key);
-        localStorage.removeItem(this.CACHE_PREFIX + key);
-        return null;
+        // Update memory cache with fresh data
+        this.memoryStorage.setItem(key, persistentData);
+        return cacheItem.data;
       }
 
-      // Atualiza o cache em memória
-      this.memoryCache.set(this.CACHE_PREFIX + key, cacheData);
-      return cacheData.data;
+      return null;
     } catch (error) {
-      console.error('Erro ao recuperar do cache:', error);
+      console.error('Error getting cache:', error);
       return null;
     }
   }
 
-  static async fetchWithCache<T>(
+  /**
+   * Checks if key exists in cache and is not expired
+   */
+  async has(key: string): Promise<boolean> {
+    const data = await this.get(key);
+    return data !== null;
+  }
+
+  /**
+   * Removes specific key from cache
+   */
+  async delete(key: string): Promise<void> {
+    try {
+      this.memoryStorage.removeItem(key);
+      this.persistentStorage.removeItem(key);
+    } catch (error) {
+      console.error('Error deleting cache:', error);
+    }
+  }
+
+  /**
+   * Clears all cache data
+   */
+  async clear(): Promise<void> {
+    try {
+      this.memoryStorage.clear();
+      this.persistentStorage.clear();
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+    }
+  }
+
+  /**
+   * Gets cache timestamp for a key
+   */
+  async getTimestamp(key: string): Promise<number | null> {
+    try {
+      const persistentData = this.persistentStorage.getItem(key);
+      if (!persistentData) return null;
+
+      const cacheItem: CacheItem<unknown> = JSON.parse(persistentData);
+      return cacheItem.timestamp;
+    } catch (error) {
+      console.error('Error getting cache timestamp:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Updates cache timestamp for a key
+   */
+  async updateTimestamp(key: string, timestamp: number): Promise<void> {
+    try {
+      const persistentData = this.persistentStorage.getItem(key);
+      if (!persistentData) return;
+
+      const cacheItem: CacheItem<unknown> = JSON.parse(persistentData);
+      cacheItem.timestamp = timestamp;
+      
+      const updatedData = JSON.stringify(cacheItem);
+      this.persistentStorage.setItem(key, updatedData);
+      this.memoryStorage.setItem(key, updatedData);
+    } catch (error) {
+      console.error('Error updating cache timestamp:', error);
+    }
+  }
+
+  /**
+   * Fetches data with cache fallback
+   */
+  async fetchWithCache<T>(
     key: string,
     fetchFn: () => Promise<T>,
-    forceRefresh = false,
-    customDuration?: number
+    options?: CacheOptions & { forceRefresh?: boolean }
   ): Promise<T> {
-    if (!forceRefresh) {
-      const cachedData = await this.getCache<T>(key);
-      if (cachedData) return cachedData;
-    }
+    const forceRefresh = options?.forceRefresh ?? false;
 
+    if (!forceRefresh) {
+      const cachedData = await this.get<T>(key);
+      if (cachedData !== null) {
+        return cachedData;
+      }
+    }
+    
+    // Busca dados frescos
     try {
       const data = await fetchFn();
-      await this.setCache(key, data);
+      await this.set(key, data, options);
       return data;
     } catch (error) {
-      // Em caso de erro, tenta usar cache expirado como fallback
-      const cachedData = await this.getCache<T>(key);
-      if (cachedData) {
-        console.warn('Usando cache expirado como fallback devido a erro na requisição');
-        return cachedData;
+      // Try to use expired cache as fallback
+      const fallbackData = await this.getExpiredCache<T>(key);
+      if (fallbackData !== null) {
+        console.warn('Using expired cache as fallback due to fetch error');
+        return fallbackData;
       }
       throw error;
     }
   }
 
-  static getLastUpdateTime(key: string): number | null {
+  /**
+   * Updates cache with new data
+   */
+  async updateCache<T>(key: string, updateFn: (prev: T | null) => T): Promise<void> {
     try {
-      const cached = localStorage.getItem(this.CACHE_PREFIX + key);
-      if (!cached) return null;
-      
-      const cacheData: CacheData<any> = JSON.parse(cached);
-      return cacheData.timestamp;
-    } catch {
+      const currentData = await this.get<T>(key);
+      const updatedData = updateFn(currentData);
+      await this.set(key, updatedData);
+    } catch (error) {
+      console.error('Error updating cache:', error);
+      throw new Error('Failed to update cache');
+    }
+  }
+
+  /**
+   * Checks if a cache item is expired
+   */
+  private isExpired(cacheItem: CacheItem<unknown>): boolean {
+    const now = Date.now();
+    return (now - cacheItem.timestamp) > cacheItem.ttl;
+  }
+
+  /**
+   * Gets expired cache data as fallback
+   */
+  private async getExpiredCache<T>(key: string): Promise<T | null> {
+    try {
+      // Try to get from persistent storage even if expired
+      const persistentData = this.persistentStorage.getItem(key);
+      if (!persistentData) return null;
+
+      const cacheItem: CacheItem<T> = JSON.parse(persistentData);
+      return cacheItem.data;
+    } catch (error) {
+      console.error('Error getting expired cache:', error);
       return null;
     }
   }
 
-  static setLastUpdateTime(key: string, timestamp: number): void {
-    const cacheKey = this.CACHE_PREFIX + key;
+  /**
+   * Gets cache statistics
+   */
+  async getCacheStats(): Promise<{
+    memorySize: number;
+    persistentSize: number;
+    itemCount: number;
+  }> {
     try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const cacheData: CacheData<any> = JSON.parse(cached);
-        cacheData.timestamp = timestamp;
-        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-      }
+      const persistentKeys = this.persistentStorage.getAllKeys();
+      
+      return {
+        memorySize: await this.calculateStorageSize(this.memoryStorage),
+        persistentSize: await this.calculateStorageSize(this.persistentStorage),
+        itemCount: persistentKeys.length,
+      };
     } catch (error) {
-      console.error('Erro ao atualizar timestamp:', error);
+      console.error('Error getting cache stats:', error);
+      return { memorySize: 0, persistentSize: 0, itemCount: 0 };
     }
   }
 
-  static clearCache(): void {
-    try {
-      // Limpa memória
-      this.memoryCache.clear();
-
-      // Limpa localStorage
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if (key?.startsWith(this.CACHE_PREFIX)) {
-          localStorage.removeItem(key);
-        }
+  /**
+   * Calculates storage size
+   */
+  private async calculateStorageSize(storage: ICacheStorage): Promise<number> {
+    let totalSize = 0;
+    const keys = storage.getAllKeys();
+    
+    keys.forEach(key => {
+      const value = storage.getItem(key);
+      if (value) {
+        totalSize += value.length * 2; // Approximate size in bytes
       }
-    } catch (error) {
-      console.error('Erro ao limpar cache:', error);
-    }
+    });
+    
+    return totalSize;
   }
 
-  static isExpired(timestamp: number): boolean {
-    return Date.now() - timestamp > this.CACHE_DURATION;
-  }
-
-  static async updateCache(key: string, updateFn: (prev: any) => any): Promise<void> {
-    try {
-      const currentData = await this.getCache(key);
-      if (currentData) {
-        const updatedData = updateFn(currentData);
-        await this.setCache(key, updatedData);
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar cache:', error);
-    }
+  /**
+   * Forces cleanup
+   */
+  async forceCleanup(): Promise<void> {
+    await this.cleanup.cleanup();
   }
 }
 
-export default CacheService;
+// Create and export singleton instance
+const cacheService = new CacheService();
+
+// Legacy static methods for backward compatibility
+export const LegacyCacheService = {
+  setCache: <T>(key: string, data: T) => cacheService.set(key, data),
+  getCache: <T>(key: string) => cacheService.get<T>(key),
+  getCacheTimestamp: (key: string) => cacheService.getTimestamp(key),
+  clearCache: () => cacheService.clear(),
+  fetchWithCache: <T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    forceRefresh = false
+  ) => cacheService.fetchWithCache(key, fetchFn, { forceRefresh }),
+  updateCache: <T>(key: string, updateFn: (prev: T | null) => T) => 
+    cacheService.updateCache(key, updateFn),
+  getLastUpdateTime: (key: string) => cacheService.getTimestamp(key),
+  setLastUpdateTime: (key: string, timestamp: number) => 
+    cacheService.updateTimestamp(key, timestamp),
+};
+
+// Export both the class and singleton for flexibility
+export { CacheService, cacheService };
+export default cacheService;

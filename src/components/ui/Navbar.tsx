@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Menu, X, Scissors, User, Calendar, Home, Settings, Users, LogOut, Key, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Notifications from './Notifications';
+import { useCache } from '../../hooks/useCache';
 
 interface NavbarProps {
   isModalOpen: boolean;
@@ -25,7 +26,14 @@ const Navbar: React.FC<NavbarProps> = ({
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
-  const currentUser = getCurrentUser();
+  
+  // Usando o hook useCache para armazenar o usuário atual
+  const { data: currentUser, updateCache } = useCache<any>(
+    'currentUser',
+    async () => getCurrentUser(),
+    { ttl: 5 * 60 * 1000 } // 5 minutos de TTL
+  );
+  
   const isAuthenticated = !!currentUser;
 
   useEffect(() => {
@@ -52,6 +60,8 @@ const Navbar: React.FC<NavbarProps> = ({
 
   const handleLogout = () => {
     logout();
+    // Invalidar o cache do usuário ao fazer logout
+    updateCache(() => null);
     navigate('/');
   };
 

@@ -7,6 +7,50 @@
 export const BRASILIA_TIMEZONE = 'America/Sao_Paulo';
 
 /**
+ * Classe utilitária para operações de data e hora
+ */
+export class DateTimeUtils {
+  /**
+   * Obtém a data atual no fuso horário de Brasília
+   */
+  static getCurrentBrasiliaDate(): Date {
+    return getBrasiliaDate();
+  }
+
+  /**
+   * Formata uma data para exibição amigável
+   */
+  static formatFriendlyDate(date: Date): string {
+    const brasiliaDate = adjustToBrasilia(date);
+    return brasiliaDate.toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
+  /**
+   * Formata uma data e hora para exibição amigável
+   */
+  static formatFriendlyDateTime(date: Date): string {
+    const brasiliaDate = adjustToBrasilia(date);
+    const dateStr = formatToISODate(brasiliaDate);
+    const timeStr = brasiliaDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return formatFriendlyDateTime(dateStr, timeStr);
+  }
+
+  /**
+   * Verifica se duas datas são o mesmo dia
+   */
+  static isSameDay(date1: Date, date2: Date): boolean {
+    return isSameDayInBrasilia(date1, date2);
+  }
+}
+
+/**
  * Ajusta uma data para o fuso horário de Brasília
  * @param date Data a ser ajustada
  * @returns Data ajustada para o fuso horário de Brasília

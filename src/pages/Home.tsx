@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Hero from '../components/Hero';
-import Services from '../components/Services';
-import About from '../components/About';
-import Footer from '../components/Footer';
-import BookingModal from '../components/BookingModal';
+import Hero from '../components/feature/Hero';
+import Services from '../components/feature/Services';
+import About from '../components/feature/About';
+import Footer from '../components/ui/Footer';
+import BookingModal from '../components/feature/BookingModal';
 
 interface HomeProps {
   setIsModalOpen: (open: boolean) => void;
@@ -27,6 +27,12 @@ const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
     setIsBookingModalOpen(true);
   };
 
+  const handleHeroBookingClick = () => {
+    setSelectedService('');
+    setSelectedServices([]);
+    setIsBookingModalOpen(true);
+  };
+
   
 
   return (
@@ -37,13 +43,14 @@ const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
       transition={{ duration: 0.3 }} // Acelerando a animação inicial
       className="flex flex-col min-h-screen bg-[#0D121E]"
     >
-      <Hero setIsModalOpen={setIsModalOpen} />
+      <Hero setIsModalOpen={handleHeroBookingClick} />
 
       {/* Garantindo que o Services seja renderizado com uma altura mínima */}
       <section className="min-h-screen w-full">
         <Services 
           onSchedule={handleOpenBookingModal}
           onScheduleMultiple={handleOpenBookingModalMultiple}
+          isShowcase={true}
         />
       </section>
 

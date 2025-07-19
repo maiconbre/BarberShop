@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, Check, X, ChevronLeft, ChevronRight, Loader2, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import ConfirmationModal from '../components/ConfirmationModal';
+import ConfirmationModal from '../components/ui/ConfirmationModal';
 
 interface Comment {
   id: string;

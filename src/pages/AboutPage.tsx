@@ -1,5 +1,5 @@
-import About from '../components/About';
-import Footer from '../components/Footer';
+import About from '../components/feature/About';
+import Footer from '../components/ui/Footer';
 
 const AboutPage = () => {
   return (
