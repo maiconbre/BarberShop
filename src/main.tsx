@@ -43,14 +43,20 @@ window.addEventListener('unhandledrejection', (event) => {
   logger.componentError('Promise rejeitada:', reason);
 });
 
-// Inicializar serviços antes de renderizar a aplicação
-initializeServices().finally(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <AuthProvider>
-        <App />
-        <Toaster position="top-right" />
-      </AuthProvider>
-    </StrictMode>
-  );
-});
+// Renderizar a aplicação imediatamente para melhorar a experiência do usuário
+const root = createRoot(document.getElementById('root')!);
+root.render(
+  <StrictMode>
+    <AuthProvider>
+      <App />
+      <Toaster position="top-right" />
+    </AuthProvider>
+  </StrictMode>
+);
+
+// Inicializar serviços em segundo plano após a renderização
+setTimeout(() => {
+  initializeServices().catch(error => {
+    logger.apiWarn('Erro ao inicializar serviços em segundo plano:', error);
+  });
+}, 100);
