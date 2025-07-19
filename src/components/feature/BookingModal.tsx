@@ -960,10 +960,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
           ) : step === 3 ? (
             <div className="space-y-4">
               <div className="bg-[#0D121E] p-4 rounded-lg border border-[#F0B35B]/10">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                  <CheckCircle size={18} className="text-[#F0B35B] mr-2" />
-                  Confirme seus dados
-                </h3>
+               
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center py-1.5 border-b border-white/10">
