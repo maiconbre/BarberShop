@@ -1,10 +1,10 @@
-# 💈 BarberGR - Sistema de Agendamento para Barbearias
+# 💈 BarberShop - Sistema de Agendamento para Barbearias
 
 <p align="center">
-  <img src="./public/screenshots/Img1.PNG" alt="BarberGR" width="300px" />
+  <img src="./public/screenshots/Img1.PNG" alt="BarberShop" width="300px" />
 </p>
 
-O **BarberGR** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
+O **BarberShop** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
 
 Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sistema aplica os princípios SOLID, boas práticas de engenharia de software e tecnologias modernas do ecossistema React.
 
@@ -66,3 +66,166 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 - **DIP** – Módulos de alto nível dependem de abstrações
 
 ### Estrutura de Diretórios
+
+```
+src/
+├── components/
+│   ├── feature/
+│   └── ui/
+├── contexts/
+├── hooks/
+├── models/
+├── pages/
+├── services/
+├── stores/
+├── types/
+├── utils/
+└── validation/
+```
+
+---
+
+## 🧠 Padrões de Projeto
+
+- **Repository Pattern**
+- **Strategy Pattern**
+- **Observer Pattern**
+- **Factory Pattern**
+- **Decorator Pattern**
+
+---
+
+## 🔐 Sistemas Internos
+
+### ✅ Autenticação
+
+```ts
+interface AuthContextType {
+  isAuthenticated: boolean
+  login(credentials: LoginCredentials): Promise<boolean>
+  logout(): void
+  getCurrentUser(): User | null
+}
+```
+
+### 📦 Sistema de Cache
+
+```ts
+interface CacheStrategy {
+  get(key: string): any
+  set(key: string, value: any): void
+}
+```
+
+### 🔎 Validação Tipada
+
+```ts
+export const UserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(2),
+  email: z.string().email(),
+  role: z.enum(['client', 'barber', 'admin'])
+})
+```
+
+---
+
+## 📈 Recursos Avançados
+
+- Notificações em tempo real
+- Virtualização de listas para alta performance
+- Painel com gráficos e métricas
+- Interface responsiva e mobile-first
+
+---
+
+## 🚀 Instalação e Execução Local
+
+### Requisitos
+- Node.js (v16+)
+- npm ou yarn
+
+### Passo a passo
+
+```bash
+# Clone o repositório
+git clone https://github.com/maiconbre/BarberShop.git
+
+# Acesse o diretório
+cd BarberShop
+
+# Instale as dependências
+npm install
+# ou
+yarn install
+
+# Inicie o servidor
+npm run dev
+# ou
+yarn dev
+```
+
+Abra [http://localhost:5173](http://localhost:5173) no navegador.
+
+---
+
+### 🔑 Credenciais de Teste
+
+| Função       | Usuário     | Senha     |
+|--------------|-------------|-----------|
+| Admin        | `admin`     | `123123`  |
+| Barbeiro 1   | `gabrielle` | `123123`  |
+| Barbeiro 2   | `marcos`    | `123123`  |
+
+---
+
+## 📱 Demonstração
+
+Acesse a versão online:  
+🔗 [https://barber.targetweb.tech/](https://barber.targetweb.tech/)
+
+---
+
+## 📸 Capturas de Tela
+
+<div align="center">
+  <h4>Página Inicial | Escolha de Horário | Dashboard</h4>
+  <img src="./public/screenshots/Img1.PNG" width="200px" />
+  <img src="./public/screenshots/Img2.PNG" width="200px" />
+  <img src="./public/screenshots/Img3.PNG" width="200px" />
+
+  <h4>Cards de Agendamento | Agenda do Barbeiro | Métricas</h4>
+  <img src="./public/screenshots/Img4.PNG" width="200px" />
+  <img src="./public/screenshots/Img5.PNG" width="200px" />
+  <img src="./public/screenshots/Img6.PNG" width="200px" />
+</div>
+
+---
+
+## 🔄 Roadmap
+
+- [ ] PWA (Progressive Web App)
+- [ ] Integração com sistemas de pagamento
+- [ ] Notificações por e-mail e SMS
+- [ ] Aplicativo mobile (iOS e Android)
+- [ ] Suporte a múltiplas unidades
+
+---
+
+## 🤝 Contribuindo
+
+1. Faça um fork do projeto  
+2. Crie sua branch (`git checkout -b feature/nome-da-feature`)  
+3. Commit suas alterações (`git commit -m 'feat: nova funcionalidade'`)  
+4. Push para o seu fork (`git push origin feature/nome-da-feature`)  
+5. Crie um Pull Request 🚀
+
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a [MIT License](LICENSE).
+
+---
+
+Desenvolvido com ❤️ por [Maicon Brendon](https://github.com/maiconbre)
