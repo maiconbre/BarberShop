@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, MessageCircle, Calendar as CalendarIcon } from 'lucide-react';
+<<<<<<< Updated upstream:src/components/Notifications.tsx
 import { useAuth } from '../contexts/AuthContext';
 import CacheService from '../services/CacheService';
+=======
+import { useAuth } from '../../contexts/AuthContext';
+import { cacheService } from '../../services/CacheService';
+>>>>>>> Stashed changes:src/components/ui/Notifications.tsx
 
 interface Appointment {
   id: string;
@@ -104,7 +109,14 @@ export const useNotifications = () => {
       setIsLoading(true);
       const currentUser = getCurrentUser();
       
+<<<<<<< Updated upstream:src/components/Notifications.tsx
       return await CacheService.fetchWithCache('appointments', async () => {
+=======
+      // Registrar o momento da tentativa de busca
+      const fetchStartTime = Date.now();
+      
+      return await cacheService.fetchWithCache('appointments', async () => {
+>>>>>>> Stashed changes:src/components/ui/Notifications.tsx
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

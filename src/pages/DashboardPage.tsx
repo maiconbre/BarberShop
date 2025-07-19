@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
+<<<<<<< Updated upstream
 import AppointmentCardNew from '../components/AppointmentCardNew';
 import Stats from '../components/Stats';
 import ClientAnalytics from '../components/ClientAnalytics';
@@ -9,6 +10,15 @@ import { useNotifications } from '../components/Notifications';
 import AppointmentViewModal from '../components/AppointmentViewModal';
 import CalendarView from '../components/CalendarView';
 import CacheService from '../services/CacheService';
+=======
+import AppointmentCardNew from '../components/feature/AppointmentCardNew';
+import Stats from '../components/feature/Stats';
+import ClientAnalytics from '../components/feature/ClientAnalytics';
+import { useNotifications } from '../components/ui/Notifications';
+import AppointmentViewModal from '../components/feature/AppointmentViewModal';
+import CalendarView from '../components/feature/CalendarView';
+import { cacheService } from '../services/CacheService';
+>>>>>>> Stashed changes
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 
@@ -100,7 +110,11 @@ const DashboardPage: React.FC = () => {
   const refreshData = useCallback(async () => {
     setIsRefreshing(true);
     try {
+<<<<<<< Updated upstream
       const lastUpdate = await CacheService.getLastUpdateTime('appointments');
+=======
+      const lastUpdate = await cacheService.get('appointments_last_update');
+>>>>>>> Stashed changes
       const now = new Date().getTime();
 
       if (lastUpdate && (now - new Date(lastUpdate).getTime()) < CACHE_DURATION) {
@@ -111,7 +125,11 @@ const DashboardPage: React.FC = () => {
       const newAppointments = await loadAppointments(true);
       if (newAppointments && Array.isArray(newAppointments)) {
         setAppointments(newAppointments);
+<<<<<<< Updated upstream
         await CacheService.setLastUpdateTime('appointments', new Date().getTime());
+=======
+await cacheService.set('appointments_last_update', new Date().getTime().toString());
+>>>>>>> Stashed changes
       }
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
@@ -286,7 +304,7 @@ const DashboardPage: React.FC = () => {
         }
 
         // Usar memoização para evitar re-renderizações desnecessárias
-        const formattedAppointments = await CacheService.fetchWithCache(
+        const formattedAppointments = await cacheService.fetchWithCache(
           'appointments',
           () => loadAppointments(false),
           false
