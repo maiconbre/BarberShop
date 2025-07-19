@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ScheduleManager from '../components/ScheduleManager';
+import ScheduleManager from '../components/feature/ScheduleManager';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

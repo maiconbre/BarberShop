@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import Navbar from './components/Navbar';
-import BookingModal from './components/BookingModal';
+import Navbar from './components/ui/Navbar';
+import BookingModal from './components/feature/BookingModal';
 import Home from './pages/Home';
 import AboutPage from './pages/AboutPage';
 import ServicesPage from './pages/ServicesPage';
@@ -13,7 +13,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 // CalendarPage removido pois sua funcionalidade foi migrada para o Dashboard
 import TrocaSenha from './pages/TrocaSenha';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './components/ui/ProtectedRoute';
 import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
 

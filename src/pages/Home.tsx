@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import Hero from '../components/Hero';
-import Services from '../components/Services';
-import About from '../components/About';
-import Footer from '../components/Footer';
-import BookingModal from '../components/BookingModal';
+import Hero from '../components/feature/Hero';
+import Services from '../components/feature/Services';
+import About from '../components/feature/About';
+import Footer from '../components/ui/Footer';
+import BookingModal from '../components/feature/BookingModal';
 
 interface HomeProps {
   setIsModalOpen: (open: boolean) => void;
@@ -50,6 +50,7 @@ const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
         <Services 
           onSchedule={handleOpenBookingModal}
           onScheduleMultiple={handleOpenBookingModalMultiple}
+          isShowcase={true}
         />
       </section>
 

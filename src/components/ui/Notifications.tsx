@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, MessageCircle, Calendar as CalendarIcon } from 'lucide-react';
-<<<<<<< Updated upstream:src/components/Notifications.tsx
-import { useAuth } from '../contexts/AuthContext';
-import CacheService from '../services/CacheService';
-=======
 import { useAuth } from '../../contexts/AuthContext';
 import { cacheService } from '../../services/CacheService';
->>>>>>> Stashed changes:src/components/ui/Notifications.tsx
 
 interface Appointment {
   id: string;
@@ -78,7 +73,7 @@ export const useNotifications = () => {
       }
       
       const response = await fetch(
-        `${(import.meta as any).env.VITE_API_URL}/api/comments?status=pending`,
+        `${import.meta.env.VITE_API_URL}/api/comments?status=pending`,
         {
           method: 'GET',
           headers,
@@ -109,14 +104,10 @@ export const useNotifications = () => {
       setIsLoading(true);
       const currentUser = getCurrentUser();
       
-<<<<<<< Updated upstream:src/components/Notifications.tsx
-      return await CacheService.fetchWithCache('appointments', async () => {
-=======
       // Registrar o momento da tentativa de busca
       const fetchStartTime = Date.now();
       
       return await cacheService.fetchWithCache('appointments', async () => {
->>>>>>> Stashed changes:src/components/ui/Notifications.tsx
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -124,7 +115,7 @@ export const useNotifications = () => {
         };
 
         const response = await fetch(
-          `${(import.meta as any).env.VITE_API_URL}/api/appointments`,
+          `${import.meta.env.VITE_API_URL}/api/appointments`,
           { method: 'GET', headers, mode: 'cors' }
         );
 
@@ -153,10 +144,23 @@ export const useNotifications = () => {
         const newApps = formattedAppointments.filter((app: Appointment) => !app.viewed);
         setNewAppointments(newApps);
         
+        // Atualizar o cache e o timestamp
+        setCachedAppointments(formattedAppointments);
+        setLastFetchTime(fetchStartTime);
+        setHasError(false);
+        
         return formattedAppointments;
-      }, forceRefresh);
+      }, { forceRefresh });
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
+      setHasError(true);
+      
+      // Se temos dados em cache, usamos como fallback
+      if (cachedAppointments.length > 0) {
+        console.log(`Usando ${cachedAppointments.length} agendamentos em cache devido a erro na requisição`);
+        return cachedAppointments;
+      }
+      
       return [];
     } finally {
       setIsLoading(false);
@@ -168,7 +172,7 @@ export const useNotifications = () => {
 
     try {
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/comments/${commentId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comments/${commentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -256,6 +260,28 @@ export const useNotifications = () => {
     setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
   };
 
+  // Função para verificar se o cache está desatualizado (mais de 30 minutos)
+  const isCacheStale = useCallback(() => {
+    if (lastFetchTime === 0) return false;
+    const thirtyMinutesMs = 30 * 60 * 1000;
+    return Date.now() - lastFetchTime > thirtyMinutesMs;
+  }, [lastFetchTime]);
+
+  // Função para formatar o tempo desde a última atualização
+  const getLastUpdateText = useCallback(() => {
+    if (lastFetchTime === 0) return 'Nunca atualizado';
+    
+    const minutesAgo = Math.floor((Date.now() - lastFetchTime) / 60000);
+    
+    if (minutesAgo < 1) return 'Atualizado agora';
+    if (minutesAgo === 1) return 'Atualizado há 1 minuto';
+    if (minutesAgo < 60) return `Atualizado há ${minutesAgo} minutos`;
+    
+    const hoursAgo = Math.floor(minutesAgo / 60);
+    if (hoursAgo === 1) return 'Atualizado há 1 hora';
+    return `Atualizado há ${hoursAgo} horas`;
+  }, [lastFetchTime]);
+
   return {
     pendingComments,
     newAppointments,
@@ -265,12 +291,30 @@ export const useNotifications = () => {
     handleCommentAction,
     handleAppointmentAction,
     toggleNotificationDropdown,
-    loadAppointments
+    loadAppointments,
+    hasError,
+    cachedAppointments,
+    lastFetchTime,
+    isCacheStale,
+    getLastUpdateText
   };
 };
 
 const Notifications: React.FC = () => {
-  const { pendingComments, newAppointments, isNotificationDropdownOpen, notificationTab, setNotificationTab, toggleNotificationDropdown, handleCommentAction, handleAppointmentAction } = useNotifications();
+  const { 
+    pendingComments, 
+    newAppointments, 
+    isNotificationDropdownOpen, 
+    notificationTab, 
+    setNotificationTab, 
+    toggleNotificationDropdown, 
+    handleCommentAction, 
+    handleAppointmentAction,
+    hasError,
+    isCacheStale,
+    getLastUpdateText,
+    loadAppointments
+  } = useNotifications();
 
   const totalNotifications = pendingComments.length + newAppointments.length;
 
@@ -293,14 +337,30 @@ const Notifications: React.FC = () => {
             onClick={toggleNotificationDropdown}
           />
           <div className="fixed sm:absolute top-[20%] sm:top-full left-[50%] sm:left-auto right-auto sm:right-0 transform-gpu -translate-x-1/2 sm:translate-x-0 -translate-y-0 sm:-translate-y-0 mt-0 sm:mt-4 w-[90vw] sm:w-[450px] md:w-[500px] max-h-[70vh] xs:max-h-[75vh] sm:max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1A1F2E] ring-1 ring-[#F0B35B]/20 z-50 animate-fade-in-up">
-            <div className="sticky top-0 flex justify-between items-center p-3 sm:p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
-              <h3 className="text-lg sm:text-xl font-semibold text-white">Notificações</h3>
-              <button
-                onClick={toggleNotificationDropdown}
-                className="text-gray-400 hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-gray-700/30 rounded-lg"
-              >
-                ✕
-              </button>
+            <div className="sticky top-0 flex flex-col p-3 sm:p-4 border-b border-gray-700/30 bg-[#1A1F2E] z-10">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg sm:text-xl font-semibold text-white">Notificações</h3>
+                <button
+                  onClick={toggleNotificationDropdown}
+                  className="text-gray-400 hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-gray-700/30 rounded-lg"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              {/* Status do cache e botão de atualização */}
+              <div className="flex justify-between items-center mt-2 text-xs">
+                <div className="flex items-center">
+                  <span className={`w-2 h-2 rounded-full mr-1.5 ${hasError ? 'bg-red-500' : isCacheStale() ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
+                  <span className="text-gray-400">{getLastUpdateText()}</span>
+                </div>
+                <button 
+                  onClick={() => loadAppointments(true)}
+                  className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-xs px-2 py-1 rounded-md bg-[#F0B35B]/10 hover:bg-[#F0B35B]/20 transition-colors"
+                >
+                  Atualizar
+                </button>
+              </div>
             </div>
 
             <div className="flex border-b border-gray-700/30 sticky top-[60px] sm:top-[65px] bg-[#1A1F2E] z-10">
@@ -330,6 +390,17 @@ const Notifications: React.FC = () => {
               </button>
             </div>
 
+            {/* Alerta de erro ou cache desatualizado */}
+            {(hasError || isCacheStale()) && (
+              <div className={`mx-3 sm:mx-4 my-2 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${hasError ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
+                {hasError ? (
+                  <p>Ocorreu um erro ao buscar os dados mais recentes. Estamos exibindo dados em cache.</p>
+                ) : (
+                  <p>Os dados podem estar desatualizados. Clique em "Atualizar" para obter as informações mais recentes.</p>
+                )}
+              </div>
+            )}
+            
             <div className="divide-y divide-gray-700/30" role="menu">
               {notificationTab === 'comments' ? (
                 pendingComments.length > 0 ? (

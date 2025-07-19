@@ -4,6 +4,7 @@ import { cacheService } from './CacheService';
 import { logger } from '../utils/logger';
 import ApiService from './ApiService';
 
+
 // Constante com horários disponíveis
 export const AVAILABLE_TIME_SLOTS = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
@@ -13,7 +14,6 @@ export const AVAILABLE_TIME_SLOTS = [
 // Configurações de cache para agendamentos
 const APPOINTMENTS_CACHE_KEY = '/api/appointments';
 const APPOINTMENTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutos (aumentado para reduzir requisições)
-const APPOINTMENTS_STALE_TTL = 60 * 60 * 1000; // 60 minutos (dados obsoletos - aumentado)
 
 // Variável para controlar requisições em andamento
 let appointmentsPromise: Promise<any[]> | null = null;

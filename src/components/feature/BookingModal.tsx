@@ -1,21 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-import ApiService from '../services/ApiService';
-import { X, MessageCircle, ArrowRight, Calendar as CalendarIcon, Clock, CheckCircle } from 'lucide-react';
-=======
 import ApiService from '../../services/ApiService';
 import { logger } from '../../utils/logger';
 import { X, MessageCircle, ArrowRight, CheckCircle } from 'lucide-react';
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
 import Calendar from './Calendar';
 import { format } from 'date-fns';
-import { adjustToBrasilia } from '../utils/DateTimeUtils'; // Adicionar esta importação
+import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 
-// Constante com horários disponíveis
-export const AVAILABLE_TIME_SLOTS = [
-  '09:00', '10:00', '11:00', '14:00', '15:00',
-  '16:00', '17:00', '18:00', '19:00', '20:00'
-];
+// Importando constantes e funções do serviço de agendamentos
+import { 
+  isTimeSlotAvailable,
+  loadAppointments,
+  createAppointment,
+  formatWhatsappMessage,
+  formatDisplayDate
+} from '../../services/AppointmentService';
 
 // Interface para as props do componente
 interface BookingModalProps {
@@ -147,9 +145,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     const fetchBarbers = async () => {
       try {
         const result = await ApiService.getBarbers();
-        if ((result as any).success && (result as any).data) {
-          setBarbers((result as any).data);
-        }
+        // O método getBarbers já retorna o array de barbeiros diretamente
+        setBarbers(result);
       } catch (error) {
         logger.componentError('Erro ao buscar barbeiros:', error);
       }
@@ -165,24 +162,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     }
   }, [preloadedAppointments]);
 
-  // Função atualizada para verificar disponibilidade de horário
-  const isTimeSlotAvailable = useCallback((date: string, time: string, barberId: string): boolean => {
-    if (!cachedAppointments || !Array.isArray(cachedAppointments)) return true;
-    
-    return !cachedAppointments.some(appointment => 
-      appointment.date === date && 
-      appointment.time === time && 
-      appointment.barberId === barberId &&
-      !appointment.isCancelled && 
-      !appointment.isRemoved
-    );
-  }, [cachedAppointments]);
+  // A função isTimeSlotAvailable foi movida para AppointmentService.ts e agora é importada
 
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-  // Função para carregar os horários disponíveis com retry e cache
-  const loadAppointments = async (retryCount = 0) => {
-    if (cachedAppointments.length > 0) return;
-=======
   // Função para carregar os horários disponíveis usando o serviço importado
   const fetchAppointmentsData = useCallback(async () => {
     // Não recarregar se já temos dados em cache, a menos que seja forçado
@@ -190,43 +171,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       logger.componentDebug('BookingModal: Usando cache local de agendamentos');
       return;
     }
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
 
     logger.componentDebug('BookingModal: Buscando agendamentos via AppointmentService');
     try {
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const jsonData = await response.json();
-      if (!jsonData.success) {
-        throw new Error('Erro na resposta da API');
-      }
-
-      // Filtrar apenas agendamentos válidos e não cancelados
-      const validAppointments = jsonData.data.filter((apt: any) => 
-        apt && apt.date && apt.time && !apt.isCancelled
-      );
-=======
       // Usar a função importada do AppointmentService que agora usa cache centralizado
       const validAppointments = await loadAppointments();
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
       
       logger.componentDebug(`BookingModal: ${validAppointments.length} agendamentos carregados`);
       setCachedAppointments(Array.isArray(validAppointments) ? validAppointments : []);
-      
-      // Atualizar cache local
-      localStorage.setItem('appointments', JSON.stringify(validAppointments));
       
     } catch (err) {
       logger.componentError('BookingModal: Erro ao carregar agendamentos:', err);
@@ -234,15 +186,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       // Tentar recuperar do cache local em caso de falha
       const localCache = localStorage.getItem('appointments');
       if (localCache) {
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-        setCachedAppointments(JSON.parse(localCache));
-        return;
-      }
-      
-      // Retry lógico em caso de falha
-      if (retryCount < 3) {
-        setTimeout(() => loadAppointments(retryCount + 1), 1000 * Math.pow(2, retryCount));
-=======
         try {
           const parsedCache = JSON.parse(localCache);
           logger.componentWarn('BookingModal: Usando cache local após falha na API');
@@ -250,7 +193,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         } catch (parseError) {
           logger.componentError('BookingModal: Erro ao parsear cache local:', parseError);
         }
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
       }
     }
   }, [cachedAppointments.length]);
@@ -266,10 +208,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
   // Efeito consolidado para sincronizar mudanças nos agendamentos e eventos em tempo real
   useEffect(() => {
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-    if (isOpen) {
-      loadAppointments();
-=======
     if (!isOpen) return;
 
     // Carregar dados iniciais
@@ -299,7 +237,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     // Listener para atualização de agendamento
     const handleAppointmentUpdate = (event: CustomEvent) => {
       const updatedAppointment = event.detail;
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
       
       setCachedAppointments(prev => {
         if (!Array.isArray(prev)) return [];
@@ -330,6 +267,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
   // Atualizar função handleTimeSelect do Calendar
   const handleTimeSelect = useCallback((date: Date, time: string) => {
+    // Formatar a data usando o formato yyyy-MM-dd para armazenamento
     const formattedDate = format(adjustToBrasilia(date), 'yyyy-MM-dd');
     
     if (!formData.barberId) {
@@ -349,7 +287,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Efeito para carregar os horários quando o modal for aberto e não houver pré-carregados
   useEffect(() => {
     if (isOpen && cachedAppointments.length === 0) {
-      loadAppointments();
+      fetchAppointmentsData();
     }
   }, [isOpen]); // Removida dependência cachedAppointments.length para evitar loops
 
@@ -427,7 +365,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     try {
       // Verificar novamente a disponibilidade antes de confirmar
-      const isStillAvailable = isTimeSlotAvailable(formData.date, formData.time, formData.barberId);
+      const isStillAvailable = isTimeSlotAvailable(formData.date, formData.time, formData.barberId, cachedAppointments);
       if (!isStillAvailable) {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
       }
@@ -452,28 +390,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         detail: tempAppointment
       }));
 
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/appointments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          clientName: formData.name,
-          wppclient: formData.whatsapp,
-          serviceName: formData.services.join(', '),
-          date: formData.date,
-          time: formData.time,
-          barberId: formData.barberId,
-          barberName: formData.barber,
-          price: formData.services.reduce((total, service) => total + getServicePrice(service), 0)
-        })
-      });
-
-      if (!response.ok) {
-=======
       // Usar a função createAppointment importada do AppointmentService
       const appointmentData = {
         clientName: formData.name,
@@ -490,22 +406,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
       // Verificar se a resposta é válida
       if (!result || (result.success === false)) {
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
         // Reverter atualização otimista em caso de erro
         setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => app.id !== tempAppointment.id) : []);
         window.dispatchEvent(new CustomEvent('timeSlotUnblocked', {
           detail: tempAppointment
         }));
         
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao criar agendamento');
-=======
-        throw new Error('Erro ao criar agendamento');
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
+        throw new Error((result as { error?: string }).error || 'Erro ao criar agendamento');
       }
-
-      const result = await response.json();
 
       // Atualizar o appointment com o ID real
       const confirmedAppointment = {
@@ -587,30 +495,8 @@ setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => app.id !=
     };
   };
 
-  // Função que monta a mensagem com os dados do agendamento para o WhatsApp, incluindo todos os serviços selecionados
+  // Função que monta a mensagem com os dados do agendamento para o WhatsApp usando o serviço importado
   const getWhatsappMessage = () => {
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-    const formattedDate = formData.date
-      ? format(new Date(formData.date), 'dd/MM/yyyy')
-      : format(new Date(), 'dd/MM/yyyy');
-
-    // Calcula o preço total dos serviços selecionados
-    const totalPrice = formData.services.reduce((total, service) => {
-      return total + getServicePrice(service);
-    }, 0);
-
-    const message = `Olá, segue meu agendamento:
-Nome: ${formData.name}
-WhatsApp: ${formData.whatsapp}
-Barbeiro: ${formData.barber}
-Serviços: ${formData.services.join(', ')}
-Valor: R$ ${totalPrice.toFixed(2)}
-Data: ${formattedDate}
-Horário: ${formData.time}
-  
-Aguardo a confirmação.`;
-    return encodeURIComponent(message);
-=======
     // Usa a função formatWhatsappMessage importada do AppointmentService
     return formatWhatsappMessage({
       name: formData.name,
@@ -621,7 +507,6 @@ Aguardo a confirmação.`;
       time: formData.time,
       totalPrice: calculateTotalPrice()
     });
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
   };
 
   // Função para copiar o PIX para a área de transferência
@@ -964,98 +849,12 @@ Aguardo a confirmação.`;
                   </div>
                 </div>
               </div>
-<<<<<<< Updated upstream:src/components/BookingModal.tsx
-
-              <div className="bg-[#0D121E] p-2 sm:p-5 rounded-lg mb-3 sm:mb-4 shadow-lg border border-[#F0B35B]/10">
-                {/* Seção do QR Code e Detalhes */}
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6 mb-3 sm:mb-4">
-                  {/* QR Code */}
-                  <div className="w-32 sm:w-40 bg-white p-2 rounded-lg flex flex-col items-center justify-center shadow-md">
-                    {formData.barber ? (
-                      <>
-                        <div className="text-xs text-gray-500 mb-1 font-medium">PIX para pagamento</div>
-                        <img
-                          src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
-                          alt={`QR Code de ${formData.barber}`}
-                          className="w-24 h-24 sm:w-32 sm:h-32 object-contain hover:scale-105 transition-transform duration-200"
-                        />
-                        <div className="mt-1 sm:mt-2 flex items-center text-xs">
-                          <span className="text-gray-700 font-bold text-xs truncate max-w-[70px] sm:max-w-full">
-                            {getSelectedBarberInfo().pix}
-                          </span>
-                          <button
-                            onClick={handleCopyPix}
-                            className="ml-1 text-xs bg-green-400 text-black px-2 py-0.5 rounded hover:shadow-md hover:scale-105 transition-all duration-200 font-medium"
-                          >
-                            Copiar
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-gray-700 text-xs">QR Code não disponível</div>
-                    )}
-                  </div>
-
-                  {/* Detalhes do Agendamento */}
-                  <div className="flex-1 text-left bg-[#1A1F2E] p-2 sm:p-4 rounded-lg border border-[#F0B35B]/5 shadow-inner">
-                    <h3 className="text-sm sm:text-lg font-semibold text-white mx-4 sm:mx-6 mb-2 sm:mb-3 flex items-center">
-                      Detalhes do Agendamento
-                    </h3>
-                    <ul className="space-y-2 sm:space-y-2.5 text-xs sm:text-sm">
-                      <li className="flex items-center">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Cliente:</span>
-                        <span className="ml-1 text-white font-medium">{formData.name}</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Barbeiro:</span>
-                        <span className="ml-1 text-white font-medium">{formData.barber}</span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Serviços:</span>
-                        <span className="ml-1 text-white font-medium">
-                          {formData.services.join(", ")}
-                        </span>
-                      </li>
-                      <li className="flex items-center">
-                        <CalendarIcon size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Data:</span>
-                        <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">
-                          {formData.date ? format(adjustToBrasilia(new Date(new Date(formData.date).setDate(new Date(formData.date).getDate() + 1))), 'dd/MM/yyyy') : ''}
-                        </span>
-                      </li>
-                      <li className="flex items-center">
-                        <Clock size={14} className="text-[#F0B35B] mr-2 flex-shrink-0" />
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Horário:</span>
-                        <span className="ml-1 text-white font-medium bg-[#F0B35B]/10 px-2 py-0.5 rounded">{formData.time}</span>
-                      </li>
-                      <li className="flex items-center mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-white/10">
-                        <span className="text-gray-400 w-16 sm:w-20 flex-shrink-0">Valor Total:</span>
-                        <span className="ml-1 text-green-400 font-bold text-base sm:text-lg">
-                          R$ {formData.services.reduce((total, service) => {
-                            return total + getServicePrice(service);
-                          }, 0).toFixed(2)}
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Botões de Ação */}
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-white/10">
-                  <a
-                    href={`https://wa.me/${getSelectedBarberInfo().whatsapp}?text=${getWhatsappMessage()}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative overflow-hidden group flex-1 flex items-center justify-center gap-2 bg-green-500/20 text-green-400 py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-medium transition-all duration-300 hover:bg-green-500/30 hover:shadow-lg text-xs sm:text-sm border border-green-500/20 hover:border-green-500/40"
-=======
-              
               <div className="flex flex-col gap-3">
                 <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={() => setStep(2)}
                     className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold transition-all duration-300 hover:bg-gray-500"
->>>>>>> Stashed changes:src/components/feature/BookingModal.tsx
                   >
                     Voltar
                   </button>

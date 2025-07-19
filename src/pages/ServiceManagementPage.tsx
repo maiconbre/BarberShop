@@ -2,13 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, Scissors, Edit, Trash2 } from 'lucide-react';
-<<<<<<< Updated upstream
-import ConfirmationModal from '../components/ConfirmationModal';
-=======
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import ApiService from '../services/ApiService';
 import { logger } from '../utils/logger';
->>>>>>> Stashed changes
 
 interface Service {
   id: string;

@@ -1,11 +1,6 @@
 import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-<<<<<<< Updated upstream:src/components/About.tsx
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import ApiService from '../services/ApiService';
-=======
-import { useState, useEffect, FormEvent } from 'react';
 import ApiService from '../../services/ApiService';
->>>>>>> Stashed changes:src/components/feature/About.tsx
 
 interface Comment {
   id: number;
@@ -17,11 +12,21 @@ interface Comment {
 const About = () => {
   // Estados para animações
   const [isVisible, setIsVisible] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(false);
+  const [leftColVisible, setLeftColVisible] = useState(false);
+  const [rightColVisible, setRightColVisible] = useState(false);
+  const [featuresVisible, setFeaturesVisible] = useState(false);
+  const [hoursVisible, setHoursVisible] = useState(false);
+  const [locationVisible, setLocationVisible] = useState(false);
+  const [reviewsVisible, setReviewsVisible] = useState(false);
+  const [commentFormVisible, setCommentFormVisible] = useState(false);
   
   // Estados para comentários
   const [comments, setComments] = useState<Comment[]>([]);
+  const [approvedComments, setApprovedComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentsError, setCommentsError] = useState('');
+  const [totalPages, setTotalPages] = useState(1);
   
   // Estados para formulário
   const [name, setName] = useState('');
@@ -45,7 +50,6 @@ const About = () => {
     }
   };
   
-<<<<<<< Updated upstream:src/components/About.tsx
   // Referências para cada seção
   const sectionRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -105,18 +109,60 @@ const About = () => {
       setCommentsError('');
 
       try {
-        // Usar ApiService em vez de fetch diretamente
-        const data = await ApiService.getApprovedComments();
+        // Usar ApiService com retry
+        const fetchWithRetry = async (retries = 3, delay = 1000) => {
+          try {
+            const data = await ApiService.getApprovedComments();
+            
+            if (Array.isArray(data)) {
+              return data;
+            } else {
+              throw new Error('Formato de resposta inválido');
+            }
+          } catch (error) {
+            if (retries > 0) {
+              // Espera com backoff exponencial antes de tentar novamente
+              const backoffDelay = delay * Math.pow(2, 3 - retries);
+              console.log(`Tentando novamente em ${backoffDelay}ms. Tentativas restantes: ${retries}`);
+              await new Promise(resolve => setTimeout(resolve, backoffDelay));
+              return fetchWithRetry(retries - 1, delay);
+            }
+            throw error;
+          }
+        };
 
-        if ((data as { success: boolean }).success) {
-          setApprovedComments((data as { data: any[] }).data);
-          setTotalPages(Math.ceil((data as { data: any[] }).data.length / commentsPerPage));
-        } else {
-          throw new Error((data as { message?: string }).message || 'Erro ao carregar comentários');
+        const data = await fetchWithRetry();
+        setComments(data); // Atualiza comments para exibição na interface
+        setApprovedComments(data); // Mantém approvedComments para compatibilidade
+        setTotalPages(Math.ceil(data.length / commentsPerPage));
+        
+        // Armazena os comentários no localStorage para uso offline
+        try {
+          localStorage.setItem('approvedComments', JSON.stringify(data));
+          localStorage.setItem('approvedCommentsTimestamp', Date.now().toString());
+        } catch (e) {
+          console.error('Erro ao armazenar comentários no cache local:', e);
         }
       } catch (error) {
         console.error('Erro ao buscar comentários:', error);
         setCommentsError('Não foi possível carregar os comentários. Tente novamente mais tarde.');
+        
+        // Tenta usar dados em cache local se disponíveis
+        const cachedComments = localStorage.getItem('approvedComments');
+        if (cachedComments) {
+          try {
+            const parsedComments = JSON.parse(cachedComments);
+            if (Array.isArray(parsedComments) && parsedComments.length > 0) {
+              console.log('Usando comentários em cache local');
+              setComments(parsedComments); // Atualiza comments para exibição na interface
+              setApprovedComments(parsedComments); // Mantém approvedComments para compatibilidade
+              setTotalPages(Math.ceil(parsedComments.length / commentsPerPage));
+              setCommentsError('Exibindo comentários em cache. Atualize a página para tentar novamente.');
+            }
+          } catch (e) {
+            console.error('Erro ao processar cache local:', e);
+          }
+        }
       } finally {
         setIsLoadingComments(false);
       }
@@ -124,8 +170,6 @@ const About = () => {
 
     fetchApprovedComments();
   }, []);
-=======
->>>>>>> Stashed changes:src/components/feature/About.tsx
   const features = [
     {
       icon: <Scissors className="w-6 h-6" />,
@@ -145,10 +189,10 @@ const About = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  // Efeito para carregar comentários
-  useEffect(() => {
-    loadComments();
-  }, []);
+  // Não precisamos deste efeito pois já temos o fetchApprovedComments no efeito de observadores de interseção
+  // useEffect(() => {
+  //   loadComments();
+  // }, []);
   
   const loadComments = async () => {
     setIsLoadingComments(true);
@@ -167,6 +211,16 @@ const About = () => {
       }
       
       setComments(commentsData);
+      setApprovedComments(commentsData);
+      setTotalPages(Math.ceil(commentsData.length / commentsPerPage));
+      
+      // Armazenar em cache local
+      try {
+        localStorage.setItem('approvedComments', JSON.stringify(commentsData));
+        localStorage.setItem('approvedCommentsTimestamp', Date.now().toString());
+      } catch (e) {
+        console.error('Erro ao armazenar comentários no cache local:', e);
+      }
     } catch (error) {
       console.error('Erro ao carregar comentários:', error);
       setCommentsError('Não foi possível carregar os comentários.');
@@ -178,6 +232,8 @@ const About = () => {
           const parsed = JSON.parse(cachedComments);
           if (Array.isArray(parsed)) {
             setComments(parsed);
+            setApprovedComments(parsed);
+            setTotalPages(Math.ceil(parsed.length / commentsPerPage));
             setCommentsError('Exibindo comentários salvos.');
           }
         } catch (e) {
@@ -221,7 +277,6 @@ const About = () => {
   };
   
   // Paginação
-  const totalPages = Math.ceil(comments.length / commentsPerPage);
   const startIndex = (currentPage - 1) * commentsPerPage;
   const currentComments = comments.slice(startIndex, startIndex + commentsPerPage);
   
@@ -265,7 +320,7 @@ const About = () => {
           {/* Coluna Esquerda */}
           <div className={`space-y-8 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
             <p className="text-gray-300 text-lg leading-relaxed">
-              Oferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
+              sOferecemos um ambiente acolhedor onde você pode relaxar enquanto nossos profissionais altamente
               qualificados cuidam do seu visual. Nossa missão é proporcionar uma experiência única de cuidado pessoal,
               combinando técnicas tradicionais com tendências contemporâneas.
             </p>
