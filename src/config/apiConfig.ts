@@ -1,8 +1,16 @@
 // Configurações centralizadas para o gerenciamento da API
 
+// Detectar ambiente
+const isLocalDev = import.meta.env.VITE_API_URL?.includes('localhost') || false;
+const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV;
+const isDebugEnabled = import.meta.env.VITE_DEBUG_API === 'true' || isDevMode;
+
 export const API_CONFIG = {
   // URLs e endpoints
   BASE_URL: import.meta.env.VITE_API_URL || 'https://chemical-penelopa-soma-8513fd0f.koyeb.app',
+  IS_LOCAL_DEV: isLocalDev,
+  IS_DEV_MODE: isDevMode,
+  IS_DEBUG_ENABLED: isDebugEnabled,
   
   // Timeouts e intervalos
   REQUEST_TIMEOUT: 30000, // 30 segundos
@@ -72,24 +80,40 @@ export const API_CONFIG = {
 export const getAdaptiveConfig = () => {
   const isProduction = import.meta.env.PROD;
   const isDevelopment = import.meta.env.DEV;
+  const isLocalDev = API_CONFIG.IS_LOCAL_DEV;
   
   return {
     ...API_CONFIG,
     
-    // Em produção, usar timeouts mais longos
-    REQUEST_TIMEOUT: isProduction ? 45000 : API_CONFIG.REQUEST_TIMEOUT,
+    // Timeouts adaptativos
+    REQUEST_TIMEOUT: isLocalDev ? 10000 : (isProduction ? 45000 : API_CONFIG.REQUEST_TIMEOUT),
+    CONNECTION_COOLDOWN: isLocalDev ? 1000 : API_CONFIG.CONNECTION_COOLDOWN,
     
-    // Em desenvolvimento, cache mais curto para ver mudanças rapidamente
-    CACHE_TTL: isDevelopment ? 2 * 60 * 1000 : API_CONFIG.CACHE_TTL,
+    // Cache adaptativo
+    CACHE_TTL: isLocalDev ? 30 * 1000 : (isDevelopment ? 2 * 60 * 1000 : API_CONFIG.CACHE_TTL),
+    COMMENTS_CACHE_TTL: isLocalDev ? 1 * 60 * 1000 : API_CONFIG.COMMENTS_CACHE_TTL,
+    SERVICES_CACHE_DURATION: isLocalDev ? 1 * 60 * 1000 : API_CONFIG.SERVICES_CACHE_DURATION,
     
-    // Em produção, mais tentativas de retry
-    MAX_RETRIES: isProduction ? 5 : API_CONFIG.MAX_RETRIES,
+    // Retry adaptativo
+    MAX_RETRIES: isLocalDev ? 1 : (isProduction ? 5 : API_CONFIG.MAX_RETRIES),
+    INITIAL_RETRY_DELAY: isLocalDev ? 500 : API_CONFIG.INITIAL_RETRY_DELAY,
     
-    // Debug apenas em desenvolvimento
+    // Debug configurável
     DEBUG: {
       ...API_CONFIG.DEBUG,
-      ENABLED: isDevelopment
-    }
+      ENABLED: API_CONFIG.IS_DEBUG_ENABLED,
+      LOG_REQUESTS: isLocalDev || API_CONFIG.IS_DEBUG_ENABLED,
+      LOG_CACHE_OPERATIONS: isLocalDev || API_CONFIG.IS_DEBUG_ENABLED,
+      LOG_HEALTH_METRICS: isLocalDev || API_CONFIG.IS_DEBUG_ENABLED
+    },
+    
+    // Configurações específicas para desenvolvimento local
+    LOCAL_DEV_CONFIG: isLocalDev ? {
+      DISABLE_CACHE: false, // Manter cache mas com TTL baixo
+      VERBOSE_ERRORS: true,
+      MOCK_SLOW_REQUESTS: false,
+      AUTO_RETRY_ON_FAIL: true
+    } : null
   };
 };
 
