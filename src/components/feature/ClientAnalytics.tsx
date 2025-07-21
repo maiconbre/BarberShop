@@ -250,10 +250,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     }, [filteredAppointments]);
 
     const renderServicesTab = () => (
-        <div className="space-y-6">
-            <div className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5">
-                <h3 className="text-lg font-medium text-white mb-4">Serviços por Barbeiro</h3>
-                <div className="h-[300px]">
+        <div className="space-y-3 sm:space-y-4 h-full overflow-y-auto">
+            <div className="bg-[#1A1F2E] p-3 sm:p-4 rounded-xl border border-white/5">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-2 sm:mb-3">Serviços por Barbeiro</h3>
+                <div className="h-[200px] sm:h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={servicesData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -284,9 +284,9 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
             </div>
 
-            <div className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5">
-                <h3 className="text-lg font-medium text-white mb-4">Satisfação por Serviço</h3>
-                <div className="h-[300px]">
+            <div className="bg-[#1A1F2E] p-3 sm:p-4 rounded-xl border border-white/5">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-2 sm:mb-3">Satisfação por Serviço</h3>
+                <div className="h-[200px] sm:h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <RadarChart data={servicesData}>
                             <PolarGrid stroke="rgba(255,255,255,0.1)" />
@@ -312,10 +312,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     );
 
     const renderTrendsTab = () => (
-        <div className="space-y-4">
-            <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                <h3 className="text-lg font-medium text-white mb-3">Tendências das Últimas 12 Semanas</h3>
-                <div className="h-[250px] sm:h-[300px]">
+        <div className="space-y-3 h-full overflow-y-auto">
+            <div className="bg-[#1A1F2E] p-2 sm:p-3 rounded-xl border border-white/5">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-2">Tendências das Últimas 12 Semanas</h3>
+                <div className="h-[180px] sm:h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <RechartsLineChart
                             data={weeklyData}
@@ -379,9 +379,9 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
             </div>
 
-            <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                <h3 className="text-lg font-medium text-white mb-3">Previsão de Receita (Próximas 12 Semanas)</h3>
-                <div className="h-[250px] sm:h-[300px]">
+            <div className="bg-[#1A1F2E] p-2 sm:p-3 rounded-xl border border-white/5">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-2">Previsão de Receita (Próximas 12 Semanas)</h3>
+                <div className="h-[180px] sm:h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
                             data={forecastData}
@@ -501,9 +501,9 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
             </div>
 
-            <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                <h3 className="text-lg font-medium text-white mb-3">Ticket Médio por Período</h3>
-                <div className="h-[250px] sm:h-[300px]">
+            <div className="bg-[#1A1F2E] p-2 sm:p-3 rounded-xl border border-white/5">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-2">Ticket Médio por Período</h3>
+                <div className="h-[180px] sm:h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart
                             data={ticketData}
@@ -568,81 +568,81 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     );
 
     const renderOverviewTab = () => (
-        <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3 sm:space-y-4 h-full overflow-y-auto w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 w-full">
                 <motion.div
-                    className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5"
-                    whileHover={{ scale: 1.02 }}
+                    className="bg-[#1A1F2E] p-3 rounded-xl border border-white/5"
+                    whileHover={{ scale: 1.01 }}
                     transition={{ duration: 0.2 }}
                 >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-gray-400 text-sm">Receita Total</p>
-                            <h3 className="text-2xl font-bold text-[#F0B35B]">R$ {metricsData.totalRevenue.toFixed(2)}</h3>
+                            <p className="text-gray-400 text-xs sm:text-sm">Receita Total</p>
+                            <h3 className="text-lg sm:text-xl font-bold text-[#F0B35B]">R$ {metricsData.totalRevenue.toFixed(2)}</h3>
                         </div>
-                        <div className="bg-[#F0B35B]/10 p-2 rounded-lg">
-                            <DollarSign className="w-6 h-6 text-[#F0B35B]" />
+                        <div className="bg-[#F0B35B]/10 p-1.5 rounded-lg">
+                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-[#F0B35B]" />
                         </div>
                     </div>
                 </motion.div>
 
                 <motion.div
-                    className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5"
-                    whileHover={{ scale: 1.02 }}
+                    className="bg-[#1A1F2E] p-3 rounded-xl border border-white/5"
+                    whileHover={{ scale: 1.01 }}
                     transition={{ duration: 0.2 }}
                 >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-gray-400 text-sm">Total de Clientes</p>
-                            <h3 className="text-2xl font-bold text-white">{metricsData.totalClients}</h3>
+                            <p className="text-gray-400 text-xs sm:text-sm">Total de Clientes</p>
+                            <h3 className="text-lg sm:text-xl font-bold text-white">{metricsData.totalClients}</h3>
                         </div>
-                        <div className="bg-blue-500/10 p-2 rounded-lg">
-                            <Users className="w-6 h-6 text-blue-500" />
+                        <div className="bg-blue-500/10 p-1.5 rounded-lg">
+                            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                         </div>
                     </div>
                 </motion.div>
 
                 <motion.div
-                    className="bg-[#1A1F2E] p-4 rounded-xl border border-white/5"
-                    whileHover={{ scale: 1.02 }}
+                    className="bg-[#1A1F2E] p-3 rounded-xl border border-white/5"
+                    whileHover={{ scale: 1.01 }}
                     transition={{ duration: 0.2 }}
                 >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-gray-400 text-sm">Ticket Médio</p>
-                            <h3 className="text-2xl font-bold text-green-400">R$ {metricsData.ticketMedio.toFixed(2)}</h3>
+                            <p className="text-gray-400 text-xs sm:text-sm">Ticket Médio</p>
+                            <h3 className="text-lg sm:text-xl font-bold text-green-400">R$ {metricsData.ticketMedio.toFixed(2)}</h3>
                         </div>
-                        <div className="bg-green-500/10 p-2 rounded-lg">
-                            <TrendingUp className="w-6 h-6 text-green-500" />
+                        <div className="bg-green-500/10 p-1.5 rounded-lg">
+                            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                         </div>
                     </div>
                 </motion.div>
             </div>
 
-            <div className="bg-[#1A1F2E] p-6 rounded-xl border border-white/5">
-                <h3 className="text-xl font-semibold text-white mb-4">Análise e Estratégias</h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <h4 className="text-lg font-medium text-[#F0B35B]">Análise de Desempenho</h4>
-                        <div className="space-y-3">
-                            <div className="flex items-start gap-3">
-                                <div className="bg-[#F0B35B]/10 p-2 rounded-lg">
-                                    <TrendingUp className="w-5 h-5 text-[#F0B35B]" />
+            <div className="bg-[#1A1F2E] p-3 sm:p-4 rounded-xl border border-white/5 w-full">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Análise e Estratégias</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 w-full">
+                    <div className="space-y-2 sm:space-y-3">
+                        <h4 className="text-sm sm:text-base font-medium text-[#F0B35B]">Análise de Desempenho</h4>
+                        <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                                <div className="bg-[#F0B35B]/10 p-1.5 rounded-lg">
+                                    <TrendingUp className="w-4 h-4 text-[#F0B35B]" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Crescimento de Clientes</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Crescimento de Clientes</p>
+                                    <p className="text-gray-400 text-xs">
                                         {metricsData.newClients} novos clientes nos últimos 30 dias
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <div className="bg-green-500/10 p-2 rounded-lg">
-                                    <Repeat className="w-5 h-5 text-green-500" />
+                            <div className="flex items-start gap-2">
+                                <div className="bg-green-500/10 p-1.5 rounded-lg">
+                                    <Repeat className="w-4 h-4 text-green-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Taxa de Retorno</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Taxa de Retorno</p>
+                                    <p className="text-gray-400 text-xs">
                                         {metricsData.returnRate.toFixed(1)}% dos clientes retornam
                                     </p>
                                 </div>
@@ -650,27 +650,27 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <h4 className="text-lg font-medium text-[#F0B35B]">Estratégias Recomendadas</h4>
-                        <div className="space-y-3">
-                            <div className="flex items-start gap-3">
-                                <div className="bg-blue-500/10 p-2 rounded-lg">
-                                    <Gift className="w-5 h-5 text-blue-500" />
+                    <div className="space-y-2 sm:space-y-3">
+                        <h4 className="text-sm sm:text-base font-medium text-[#F0B35B]">Estratégias Recomendadas</h4>
+                        <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                                <div className="bg-blue-500/10 p-1.5 rounded-lg">
+                                    <Gift className="w-4 h-4 text-blue-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Programa de Fidelidade</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Programa de Fidelidade</p>
+                                    <p className="text-gray-400 text-xs">
                                         Implementar um sistema de pontos para clientes frequentes
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <div className="bg-purple-500/10 p-2 rounded-lg">
-                                    <Calendar className="w-5 h-5 text-purple-500" />
+                            <div className="flex items-start gap-2">
+                                <div className="bg-purple-500/10 p-1.5 rounded-lg">
+                                    <Calendar className="w-4 h-4 text-purple-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Horários de Pico</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Horários de Pico</p>
+                                    <p className="text-gray-400 text-xs">
                                         Oferecer descontos em horários com menor movimento
                                     </p>
                                 </div>
@@ -678,27 +678,27 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <h4 className="text-lg font-medium text-[#F0B35B]">Promoções Sugeridas</h4>
-                        <div className="space-y-3">
-                            <div className="flex items-start gap-3">
-                                <div className="bg-red-500/10 p-2 rounded-lg">
-                                    <Percent className="w-5 h-5 text-red-500" />
+                    <div className="space-y-2 sm:space-y-3">
+                        <h4 className="text-sm sm:text-base font-medium text-[#F0B35B]">Promoções Sugeridas</h4>
+                        <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                                <div className="bg-red-500/10 p-1.5 rounded-lg">
+                                    <Percent className="w-4 h-4 text-red-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Pacote Mensal</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Pacote Mensal</p>
+                                    <p className="text-gray-400 text-xs">
                                         Oferecer desconto para clientes que agendam serviços mensais
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <div className="bg-yellow-500/10 p-2 rounded-lg">
-                                    <Users className="w-5 h-5 text-yellow-500" />
+                            <div className="flex items-start gap-2">
+                                <div className="bg-yellow-500/10 p-1.5 rounded-lg">
+                                    <Users className="w-4 h-4 text-yellow-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Indicação Premium</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Indicação Premium</p>
+                                    <p className="text-gray-400 text-xs">
                                         Bônus para clientes que indicarem novos clientes
                                     </p>
                                 </div>
@@ -706,27 +706,27 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <h4 className="text-lg font-medium text-[#F0B35B]">Melhorias de Negócio</h4>
-                        <div className="space-y-3">
-                            <div className="flex items-start gap-3">
-                                <div className="bg-green-500/10 p-2 rounded-lg">
-                                    <Clock className="w-5 h-5 text-green-500" />
+                    <div className="space-y-2 sm:space-y-3">
+                        <h4 className="text-sm sm:text-base font-medium text-[#F0B35B]">Melhorias de Negócio</h4>
+                        <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                                <div className="bg-green-500/10 p-1.5 rounded-lg">
+                                    <Clock className="w-4 h-4 text-green-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Gestão de Tempo</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Gestão de Tempo</p>
+                                    <p className="text-gray-400 text-xs">
                                         Otimizar agendamentos para reduzir tempos de espera
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <div className="bg-pink-500/10 p-2 rounded-lg">
-                                    <MessageSquare className="w-5 h-5 text-pink-500" />
+                            <div className="flex items-start gap-2">
+                                <div className="bg-pink-500/10 p-1.5 rounded-lg">
+                                    <MessageSquare className="w-4 h-4 text-pink-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">Feedback Contínuo</p>
-                                    <p className="text-gray-400 text-sm">
+                                    <p className="text-white text-sm font-medium">Feedback Contínuo</p>
+                                    <p className="text-gray-400 text-xs">
                                         Implementar sistema de avaliação pós-serviço
                                     </p>
                                 </div>
@@ -864,7 +864,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     }, [filteredAppointments, selectedClient]);
 
     return (
-        <div className="w-full h-full flex flex-col p-4 sm:p-6 md:p-8 space-y-6">
+        <div className="w-full h-full flex flex-col p-2 sm:p-3 space-y-3 sm:space-y-4 overflow-hidden">
             <AnimatePresence>
                 {isClientModalOpen && selectedClient && (
                     <div className="fixed inset-0 z-60 flex items-start justify-center pt-20 px-2 sm:px-4 bg-black backdrop-blur-sm">
@@ -908,8 +908,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     </div>
                 )}
             </AnimatePresence>
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
-                <nav className="flex justify-center md:justify-start flex-wrap md:flex-col gap-2 bg-[#1A1F2E] p-3 rounded-xl md:w-1/4">
+            <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 flex-1 overflow-hidden">
+                <nav className="grid grid-cols-2 md:flex md:justify-start md:flex-col gap-1 sm:gap-2 bg-[#1A1F2E] p-2 sm:p-3 rounded-xl md:w-1/4 md:min-w-[180px]">
                     {[
                         { id: 'overview', label: 'Visão Geral', icon: BarChart2 },
                         { id: 'clients', label: 'Clientes', icon: Users },
@@ -921,20 +921,20 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             <motion.button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${activeTab === tab.id
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all duration-200 ${activeTab === tab.id
                                         ? 'bg-[#F0B35B] text-black font-medium'
                                         : 'text-white hover:bg-[#F0B35B]/20'
                                     }`}
                             >
-                                <Icon className="w-4 h-4" />
-                                <span className="text-sm">{tab.label}</span>
+                                <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <span className="text-xs sm:text-sm">{tab.label}</span>
                             </motion.button>
                         );
                     })}
                 </nav>
-                <div className="flex-1">
+                <div className="flex-1 overflow-hidden w-full">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}
@@ -942,6 +942,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.2 }}
+                            className="w-full h-full"
                         >
                             {activeTab === 'overview' && renderOverviewTab()}
                             {activeTab === 'clients' && renderClientsTab()}

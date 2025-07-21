@@ -1,7 +1,27 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Calendar, ChevronLeft, ChevronRight, LayoutDashboard, RefreshCw, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Calendar,
+  LayoutDashboard,
+  RefreshCw,
+  Users,
+  Scissors,
+  UserCog,
+  Lock,
+  MessageSquare,
+  Clock,
+  X,
+  LogOut,
+  Home,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3,
+  ArrowLeft,
+  ArrowRight,
+  User
+} from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
@@ -9,8 +29,6 @@ import { useNotifications } from '../components/ui/Notifications';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
 import { cacheService } from '../services/CacheService';
-import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
 
 interface Appointment {
   id: string;
@@ -29,10 +47,12 @@ interface Appointment {
 }
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em millisegundos
+const APPOINTMENTS_PER_PAGE = 6; // Número de agendamentos por página
 
 const DashboardPage: React.FC = () => {
-  const { getCurrentUser } = useAuth();
+  const { getCurrentUser, logout } = useAuth();
   const currentUser = getCurrentUser();
+  const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
@@ -40,26 +60,68 @@ const DashboardPage: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const appointmentsPerPage = 4; // Reduzido de 9 para 4 para melhorar a visualização
+
+  // Removido sistema de páginas carregadas - agora mostra apenas 2 botões por vez
   const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { loadAppointments } = useNotifications();
 
-  // Detectar mudanças no tamanho da tela
+  // Detectar mudanças no tamanho da tela com breakpoints otimizados
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const width = window.innerWidth;
+      const mobile = width < 768;
+      const tablet = width >= 768 && width < 1024;
+
+      setIsMobile(mobile);
+      setIsTablet(tablet);
+
+      if (mobile) {
+        setIsSidebarOpen(false);
+        setIsSidebarCollapsed(false);
+      } else {
+        setIsSidebarOpen(true);
+        // Auto-collapse sidebar em telas médias para mais espaço
+        setIsSidebarCollapsed(tablet);
+      }
     };
-    
+
+    // Configuração inicial
+    handleResize();
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Funções de navegação
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const navigateToPage = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setIsSidebarOpen(!isSidebarOpen);
+    } else {
+      setIsSidebarCollapsed(!isSidebarCollapsed);
+    }
+  };
 
   const filteredAppointments = useMemo(() => {
     if (!appointments.length) return [];
@@ -111,7 +173,7 @@ const DashboardPage: React.FC = () => {
       const newAppointments = await loadAppointments(true);
       if (newAppointments && Array.isArray(newAppointments)) {
         setAppointments(newAppointments);
-await cacheService.set('appointments_last_update', new Date().getTime().toString());
+        await cacheService.set('appointments_last_update', new Date().getTime().toString());
       }
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
@@ -128,7 +190,11 @@ await cacheService.set('appointments_last_update', new Date().getTime().toString
       setEndDate(null);
     }
     setActiveView(view);
-  }, []);
+    // Fechar sidebar em mobile ao clicar nos itens do menu
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [isMobile]);
 
   const calculateTotalValue = (apps: Appointment[]) => {
     return apps.reduce((total, app) => total + (app.price || 0), 0);
@@ -136,15 +202,23 @@ await cacheService.set('appointments_last_update', new Date().getTime().toString
 
   const totalValue = calculateTotalValue(calendarFilteredAppointments);
 
-  const indexOfLastAppointment = currentPage * appointmentsPerPage;
-  const indexOfFirstAppointment = indexOfLastAppointment - appointmentsPerPage;
+  const indexOfLastAppointment = currentPage * APPOINTMENTS_PER_PAGE;
+  const indexOfFirstAppointment = indexOfLastAppointment - APPOINTMENTS_PER_PAGE;
   const visibleAppointments = filteredAppointments.filter(app => !app.isBlocked);
   const currentAppointments = visibleAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
-  const totalPages = Math.ceil(visibleAppointments.length / appointmentsPerPage);
+  const totalPages = Math.ceil(visibleAppointments.length / APPOINTMENTS_PER_PAGE);
   const calendarCurrentAppointments = calendarFilteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
-  const calendarTotalPages = Math.ceil(calendarFilteredAppointments.length / appointmentsPerPage);
+  const calendarTotalPages = Math.ceil(calendarFilteredAppointments.length / APPOINTMENTS_PER_PAGE);
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  // Sistema de paginação simplificado
+  const paginate = useCallback((pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  }, []);
+
+  // Resetar página quando mudar de view
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeView, filterMode]);
 
   const handleDateSelection = (date: string) => {
     if (!isRangeFilterActive) {
@@ -215,7 +289,7 @@ await cacheService.set('appointments_last_update', new Date().getTime().toString
         if (response.ok) {
           // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
           setAppointments(prevAppointments => prevAppointments.filter(app => app.id !== appointmentId));
-          
+
           if (selectedAppointment?.id === appointmentId) {
             setIsViewModalOpen(false);
             setSelectedAppointment(null);
@@ -245,8 +319,8 @@ await cacheService.set('appointments_last_update', new Date().getTime().toString
 
         if (response.ok) {
           // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
-          setAppointments(prevAppointments => 
-            prevAppointments.map(app => 
+          setAppointments(prevAppointments =>
+            prevAppointments.map(app =>
               app.id === appointmentId ? { ...app, status: newStatus } : app
             )
           );
@@ -289,14 +363,14 @@ await cacheService.set('appointments_last_update', new Date().getTime().toString
         const formattedAppointments = await cacheService.fetchWithCache(
           'appointments',
           () => loadAppointments(false),
-{ forceRefresh: false }
+          { forceRefresh: false }
         );
 
         if (isSubscribed && Array.isArray(formattedAppointments)) {
           // Otimização: comparar arrays antes de atualizar o estado
           const currentIds = appointments.map(app => app.id).sort().join(',');
           const newIds = formattedAppointments.map(app => app.id).sort().join(',');
-          
+
           if (currentIds !== newIds || appointments.length !== formattedAppointments.length) {
             setAppointments(formattedAppointments);
           }
@@ -357,7 +431,86 @@ await cacheService.set('appointments_last_update', new Date().getTime().toString
   }, [revenueDisplayMode]);
 
   return (
-    <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0D121E] relative overflow-hidden">
+      {/* Custom Styles */}
+      <style>{`
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #F0B35B20 transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #F0B35B30;
+          border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #F0B35B50;
+        }
+        .optimize-scroll {
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+        .card-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 1rem;
+        }
+        @media (min-width: 768px) {
+          .card-grid {
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
+          }
+        }
+        @media (min-width: 1024px) {
+          .card-grid {
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+          }
+        }
+        .glass-effect {
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        .card-hover {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(240, 179, 91, 0.15);
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .loading-shimmer {
+          background: linear-gradient(90deg, #1A1F2E 25%, #252B3B 50%, #1A1F2E 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
+      `}</style>
+      {/* Background elements */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
       <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl opacity-30"></div>
@@ -369,326 +522,671 @@ await cacheService.set('appointments_last_update', new Date().getTime().toString
         }}></div>
       </div>
 
-      <main className="max-w-7xl mx-auto py-4 sm:py-8 px-2 sm:px-4 lg:px-8 xl:px-0 relative z-10">
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-2 sm:p-4 mb-4 sm:mb-6 w-full">
-          <div className="grid grid-cols-3 w-full gap-1 xs:gap-2 sm:gap-3">
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center">
+                <Scissors className="w-3 h-3 text-black" />
+              </div>
+              <h1 className="text-base font-semibold text-white">
+                {activeView === 'painel' ? 'Painel' : activeView === 'agenda' ? 'Agenda' : 'Relatórios'}
+              </h1>
+            </div>
             <motion.button
-              onClick={() => handleViewChange('painel')}
-              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'painel' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white'}`}
+              onClick={toggleSidebar}
+              className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <LayoutDashboard className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
-              <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Painel</span>
-            </motion.button>
-            <motion.button
-              onClick={() => handleViewChange('agenda')}
-              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'agenda' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white'}`}
-            >
-              <Calendar className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
-              <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Agenda</span>
-            </motion.button>
-            <motion.button
-              onClick={() => handleViewChange('analytics')}
-              className={`w-full px-2 xs:px-2.5 sm:px-4 py-1.5 xs:py-2 sm:py-2.5 rounded-lg flex items-center justify-center sm:justify-start gap-1 xs:gap-1.5 sm:gap-2 ${activeView === 'analytics' ? 'bg-[#F0B35B] text-black font-medium shadow-lg' : 'bg-[#252B3B] text-white'}`}
-            >
-              <Users className="w-3.5 xs:w-4 sm:w-5 h-3.5 xs:h-4 sm:h-5" />
-              <span className="text-[10px] xs:text-xs sm:text-sm whitespace-nowrap">Relatório</span>
+              <User className="w-4 h-4" />
             </motion.button>
           </div>
         </div>
+      )}
 
-        <AnimatePresence mode="wait">
-          {activeView === 'painel' ? (
+      {/* Sidebar */}
+      <AnimatePresence>
+        {(isSidebarOpen || !isMobile) && (
+          <>
+            {/* Mobile Overlay */}
+            {isMobile && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+                onClick={() => setIsSidebarOpen(false)}
+              />
+            )}
+
+            {/* Sidebar */}
             <motion.div
-              key="painel-view"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
+              initial={{ 
+                opacity: 0,
+                x: isMobile ? 288 : 0 // 72 * 4 = 288px (w-72)
+              }}
+              animate={{ 
+                opacity: 1,
+                x: 0
+              }}
+              exit={{ 
+                opacity: 0,
+                x: isMobile ? 288 : 0
+              }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${
+                isMobile 
+                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl' 
+                  : isSidebarCollapsed 
+                    ? 'left-0 w-16 border-r border-[#F0B35B]/20' 
+                    : 'left-0 w-64 border-r border-[#F0B35B]/20'
+              } transition-all duration-300`}
             >
-              <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 min-h-screen">
-                <div className="w-full xl:w-8/12 flex flex-col gap-4 sm:gap-6">
-                  <div className="flex-none">
+              {/* Sidebar Header */}
+              <div className="p-4 border-b border-[#F0B35B]/20">
+                {isMobile ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#F0B35B] to-[#E6A555] rounded-full flex items-center justify-center shadow-lg">
+                        <User className="w-5 h-5 text-black" />
+                      </div>
+                      <div>
+                        <h2 className="text-white font-semibold text-base">Perfil</h2>
+                        <p className="text-gray-300 text-sm">{currentUser?.name || 'Usuário'}</p>
+                      </div>
+                    </div>
+                    <motion.button
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="p-2 rounded-full bg-[#252B3B] text-gray-400 hover:text-white hover:bg-[#2E354A] transition-colors"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <X className="w-5 h-5" />
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    {!isSidebarCollapsed && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg">
+                          <Scissors className="w-4 h-4 text-black" />
+                        </div>
+                        <div>
+                          <h2 className="text-white font-semibold text-sm">BarberGR</h2>
+                          <p className="text-gray-400 text-xs">{currentUser?.name || 'Usuário'}</p>
+                        </div>
+                      </div>
+                    )}
+                    {isSidebarCollapsed && (
+                      <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg mx-auto">
+                        <Scissors className="w-4 h-4 text-black" />
+                      </div>
+                    )}
+                    <motion.button
+                      onClick={toggleSidebar}
+                      className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] transition-colors duration-200 shadow-sm flex-shrink-0"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {isSidebarCollapsed ? (
+                        <ArrowRight className="w-4 h-4" />
+                      ) : (
+                        <ArrowLeft className="w-4 h-4" />
+                      )}
+                    </motion.button>
+                  </div>
+                )}
+              </div>
+
+              {/* Navigation Menu */}
+              <div className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar min-h-0">
+                {/* Dashboard Views */}
+                <div className="space-y-1">
+                  {!isSidebarCollapsed && (
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Dashboard</p>
+                  )}
+
+                  <motion.button
+                    onClick={() => handleViewChange('painel')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'painel'
+                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg transform scale-[1.02]'
+                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Painel Principal' : ''}
+                  >
+                    <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Painel Principal</span>}
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => handleViewChange('agenda')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'agenda'
+                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg transform scale-[1.02]'
+                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Agenda' : ''}
+                  >
+                    <Calendar className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Agenda</span>}
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => handleViewChange('analytics')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'analytics'
+                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg transform scale-[1.02]'
+                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Relatórios' : ''}
+                  >
+                    <Users className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Relatórios</span>}
+                  </motion.button>
+                </div>
+
+                {/* Management Section */}
+                <div className="space-y-1 pt-4">
+                  {!isSidebarCollapsed && (
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Gerenciamento</p>
+                  )}
+
+                  <motion.button
+                    onClick={() => navigateToPage('/servicos')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Serviços' : ''}
+                  >
+                    <Scissors className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => navigateToPage('/register')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Barbeiros' : ''}
+                  >
+                    <UserCog className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => navigateToPage('/gerenciar-horarios')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Horários' : ''}
+                  >
+                    <Clock className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Horários</span>}
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => navigateToPage('/gerenciar-comentarios')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Comentários' : ''}
+                  >
+                    <MessageSquare className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Comentários</span>}
+                  </motion.button>
+                </div>
+
+                {/* Settings Section */}
+                <div className="space-y-1 pt-4">
+                  {!isSidebarCollapsed && (
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Configurações</p>
+                  )}
+
+                  <motion.button
+                    onClick={() => navigateToPage('/trocar-senha')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Alterar Senha' : ''}
+                  >
+                    <Lock className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Alterar Senha</span>}
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => navigateToPage('/')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    title={isSidebarCollapsed ? 'Ir para Site' : ''}
+                  >
+                    <Home className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Ir para Site</span>}
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* User Profile Section */}
+              {!isSidebarCollapsed && (
+                <div className="p-4 border-t border-[#F0B35B]/20 flex-shrink-0">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-[#252B3B]/50">
+                    <div className="w-8 h-8 bg-gradient-to-br from-[#F0B35B] to-[#E6A555] rounded-full flex items-center justify-center shadow-lg">
+                      <UserCog className="w-4 h-4 text-black" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">
+                        {currentUser?.name || 'Usuário'}
+                      </p>
+                      <p className="text-xs text-gray-400">Barbeiro</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Logout Button */}
+              <div className="p-4 border-t border-[#F0B35B]/20 flex-shrink-0">
+                <motion.button
+                  onClick={handleLogout}
+                  className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors duration-200 shadow-sm`}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  title={isSidebarCollapsed ? 'Sair' : ''}
+                >
+                  <LogOut className="w-5 h-5 flex-shrink-0" />
+                  {!isSidebarCollapsed && <span className="text-sm font-medium">Sair</span>}
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <main className={`relative z-10 transition-all duration-300 ${isMobile
+          ? 'pt-16 px-3'
+          : isSidebarCollapsed
+            ? 'ml-16 p-4 lg:p-6'
+            : 'ml-64 p-4 lg:p-6'
+        }`}>
+
+        <div className="max-w-[1600px] mx-auto">
+          <AnimatePresence mode="wait">
+            {activeView === 'painel' ? (
+              <motion.div
+                key="painel-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="h-full flex flex-col"
+              >
+                {/* Layout Desktop Otimizado */}
+                <div className={`flex-1 flex ${isMobile ? 'flex-col gap-4' : 'gap-6 h-full'}`}>
+                  {/* Seção Esquerda - Stats */}
+                  <div className={`${isMobile ? 'w-full' : 'w-1/2 flex flex-col'}`}>
                     <Stats
                       appointments={appointments}
                       revenueDisplayMode={revenueDisplayMode}
                       setRevenueDisplayMode={setRevenueDisplayMode}
                     />
                   </div>
+
+                  {/* Seção Direita - Agendamentos */}
+                  <div className={`${isMobile ? 'w-full' : 'w-1/2 flex flex-col'}`}>
+                    <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                          <Calendar className="w-5 h-5 text-[#F0B35B]" />
+                          Agendamentos Recentes
+                        </h2>
+                        <div className="flex items-center gap-3">
+                          <motion.button
+                            onClick={refreshData}
+                            className={`p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            aria-label="Atualizar"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </motion.button>
+                          <select
+                            value={filterMode}
+                            onChange={(e) => setFilterMode(e.target.value)}
+                            className="appearance-none bg-[#252B3B] text-white text-xs sm:text-sm rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 pr-6 sm:pr-8 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] cursor-pointer"
+                          >
+                            <option value="today">Hoje</option>
+                            <option value="tomorrow">Amanhã</option>
+                            <option value="all">Todos</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 flex flex-col">
+                        {currentAppointments.length === 0 ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-center py-8 flex-1 flex flex-col justify-center"
+                          >
+                            <div className="w-20 h-20 bg-[#252B3B] rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Calendar className="w-10 h-10 text-gray-400" />
+                            </div>
+                            <p className="text-gray-400 text-lg mb-2">
+                              {filterMode === 'today'
+                                ? 'Nenhum agendamento para hoje'
+                                : filterMode === 'tomorrow'
+                                  ? 'Nenhum agendamento para amanhã'
+                                  : 'Nenhum agendamento encontrado'}
+                            </p>
+                            <p className="text-gray-500 text-sm">
+                              {filterMode === 'today' ? 'Aproveite para organizar sua agenda!' : 'Tente ajustar os filtros'}
+                            </p>
+                          </motion.div>
+                        ) : (
+                          <div className={`flex-1 overflow-y-auto ${isMobile ? 'card-grid' : 'space-y-3 pr-2'}`}>
+                            {currentAppointments.map((appointment) => (
+                              <AppointmentCardNew
+                                key={`appointment-${appointment.id}-${appointment.status}`}
+                                appointment={appointment}
+                                onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                                onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                                onView={() => handleAppointmentAction(appointment.id, 'view')}
+                                className={isMobile ? '' : 'h-fit'}
+                              />
+                            ))}
+
+                            {totalPages > 1 && (
+                              <div className={`${isMobile ? 'mt-8 pt-6 border-t border-[#F0B35B]/10' : 'mt-4 pt-4 border-t border-[#F0B35B]/10'}`}>
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="flex justify-center items-center gap-2"
+                                >
+                                  {/* Botão página anterior */}
+                                  <motion.button
+                                    onClick={() => {
+                                      const prevPage = currentPage - 1;
+                                      if (prevPage >= 1) {
+                                        paginate(prevPage);
+                                      }
+                                    }}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </motion.button>
+
+                                  {/* Páginas limitadas a 2 botões */}
+                                  {(() => {
+                                    const startPage = Math.max(1, currentPage - 1);
+                                    const endPage = Math.min(totalPages, startPage + 1);
+                                    const pages = [];
+                                    for (let i = startPage; i <= endPage; i++) {
+                                      pages.push(i);
+                                    }
+                                    return pages.map((number) => (
+                                      <motion.button
+                                        key={number}
+                                        onClick={() => paginate(number)}
+                                        className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${currentPage === number
+                                            ? 'bg-[#F0B35B] text-black shadow-lg'
+                                            : 'bg-[#252B3B] text-white hover:bg-[#2E354A] hover:shadow-md'
+                                          }`}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                      >
+                                        {number}
+                                      </motion.button>
+                                    ));
+                                  })()}
+
+                                  {/* Indicador de mais páginas */}
+                                  {currentPage + 1 < totalPages && (
+                                    <span className="text-gray-400 px-2 text-sm">...</span>
+                                  )}
+
+                                  {/* Botão próxima página */}
+                                  <motion.button
+                                    onClick={() => {
+                                      const nextPage = currentPage + 1;
+                                      if (nextPage <= totalPages) {
+                                        paginate(nextPage);
+                                      }
+                                    }}
+                                    disabled={currentPage === totalPages}
+                                    className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </motion.button>
+                                </motion.div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-full xl:w-4/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg flex flex-col h-[calc(100vh-12rem)] sm:h-[calc(100vh-8rem)] max-h-[900px]">
-                    <div className="flex-none p-3 sm:p-4 border-b border-white/5">
-                      <div className="flex justify-between items-center">
+              </motion.div>
+            ) : activeView === 'agenda' ? (
+              <motion.div
+                key="agenda-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h1 className="text-2xl font-bold text-white">Agenda</h1>
+                  <div className="text-sm text-gray-400">
+                    {new Date().toLocaleDateString('pt-BR', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+
+                <div className={`flex flex-col gap-4 ${isMobile ? '' : isTablet ? 'lg:flex-row lg:gap-6' : 'xl:flex-row xl:gap-8'
+                  }`}>
+                  <div className={`w-full ${isMobile ? '' : isTablet ? 'lg:w-7/12' : 'xl:w-8/12'
+                    }`}>
+                    <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
+                      <CalendarView
+                        appointments={appointments}
+                        selectedDate={selectedDate}
+                        onDateSelect={handleDateSelection}
+                        startDate={startDate}
+                        endDate={endDate}
+                        currentUser={currentUser}
+                        isRangeFilterActive={isRangeFilterActive}
+                        onToggleRangeFilter={() => {
+                          setIsRangeFilterActive(!isRangeFilterActive);
+                          setStartDate(null);
+                          setEndDate(null);
+                          setCurrentPage(1);
+                        }}
+                        onResetFilters={resetFilters}
+                        totalValue={totalValue}
+                      />
+                    </div>
+                  </div>
+                  <div className={`w-full ${isMobile ? '' : isTablet ? 'lg:w-5/12' : 'xl:w-4/12'
+                    }`}>
+                    <div className={`bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 ${isMobile ? '' : 'sticky top-24'
+                      }`}>
+                      <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
                           <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#F0B35B]" />
                           Agendamentos
                         </h2>
                         <div className="flex items-center gap-2">
                           <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={refreshData}
-                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
                             aria-label="Atualizar"
                           >
                             <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           </motion.button>
-                          <div className="relative">
-                            <select
-                              value={filterMode}
-                              onChange={(e) => setFilterMode(e.target.value)}
-                              className="appearance-none bg-[#1A1F2E] text-white text-xs rounded-lg px-2 py-1.5 pr-6 focus:outline-none focus:ring-1 focus:ring-[#F0B35B] cursor-pointer"
-                            >
-                              <option value="today">Hoje</option>
-                              <option value="tomorrow">Amanhã</option>
-                              <option value="all">Todos</option>
-                            </select>
-                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                      {currentAppointments.length === 0 ? (
-                        <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                          <span className="text-gray-400 mr-1 sm:mr-2">Total:</span>
+                          <span>{calendarFilteredAppointments.length}</span>
+                        </div>
+                        <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
+                          <span className="text-gray-400 mr-1 sm:mr-2">Valor:</span>
+                          <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
+                        </div>
+                      </div>
+
+                      {calendarFilteredAppointments.length === 0 ? (
+                        <div className="bg-[#0D121E] rounded-lg p-4 sm:p-6 text-center flex-grow flex items-center justify-center">
                           <p className="text-gray-400 text-sm">
-                            {filterMode === 'today'
-                              ? 'Nenhum agendamento para hoje'
-                              : filterMode === 'tomorrow'
-                                ? 'Nenhum agendamento para amanhã'
-                                : 'Nenhum agendamento encontrado'}
+                            {isRangeFilterActive
+                              ? 'Nenhum agendamento no período selecionado'
+                              : 'Nenhum agendamento para esta data'}
                           </p>
                         </div>
                       ) : (
-                        <>
-                          <div className="flex-1 p-3 sm:p-4 pt-4">
-                            <div className="h-[calc(100vh-15rem)]" style={{ transform: 'translate3d(0,0,0)' }}>
-                              <AutoSizer>
-                                {({ height, width }) => (
-                                  <List
-                                    className="custom-scrollbar hide-scrollbar optimize-scroll"
-                                    height={height}
-                                    width={width}
-                                    itemCount={currentAppointments.length}
-                                    itemSize={134} // Altura aumentada para dar mais espaço entre os cards
-                                    overscanCount={3} // Pré-renderiza itens fora da viewport
-                                    itemData={{
-                                      appointments: currentAppointments,
-                                      onDelete: (id: string) => handleAppointmentAction(id, 'delete'),
-                                      onToggleStatus: (id: string, status: string) => handleAppointmentAction(id, 'toggle', status),
-                                      onView: (id: string) => handleAppointmentAction(id, 'view')
-                                    }}
-                                  >
-                                    {({ index, style, data }) => {
-                                      const appointment = data.appointments[index];
-                                      return (
-                                        <div style={{...style, paddingBottom: '16px', paddingTop: '8px'}}>
-                                          <AppointmentCardNew
-                                            key={`appointment-${appointment.id}-${appointment.status}`}
-                                            appointment={appointment}
-                                            onDelete={() => data.onDelete(appointment.id)}
-                                            onToggleStatus={() => data.onToggleStatus(appointment.id, appointment.status)}
-                                            onView={() => data.onView(appointment.id)}
-                                            className="mb-2"
-                                          />
-                                        </div>
-                                      );
-                                    }}
-                                  </List>
-                                )}
-                              </AutoSizer>
-                            </div>
+                        <div className="flex flex-col flex-grow">
+                          <div className={`grid grid-cols-1 gap-3 sm:gap-4 ${isMobile
+                              ? 'max-h-[60vh]'
+                              : 'max-h-[calc(100vh-20rem)]'
+                            } overflow-y-auto pr-1 custom-scrollbar optimize-scroll`} style={{ transform: 'translate3d(0,0,0)' }}>
+                            {calendarCurrentAppointments.map((appointment) => (
+                              <AppointmentCardNew
+                                key={`calendar-appointment-${appointment.id}-${appointment.status}`}
+                                appointment={appointment}
+                                onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                                onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                                onView={() => handleAppointmentAction(appointment.id, 'view')}
+                              />
+                            ))}
+                            {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 &&
+                              Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
+                                <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
+                              ))
+                            }
                           </div>
-                          {totalPages > 1 && (
-                            <div className="flex-none p-3 sm:p-4 border-t border-white/10 bg-[#1A1F2E]/80 backdrop-blur-sm">
-                              <div className="flex items-center justify-between">
-                                <button
-                                  onClick={() => paginate(currentPage - 1)}
-                                  disabled={currentPage === 1}
-                                  className="p-1.5 sm:p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 sm:gap-2"
-                                >
-                                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  <span className="text-xs sm:text-sm hidden sm:inline">Anterior</span>
-                                </button>
-                                <div className="flex items-center gap-1 sm:gap-1.5">
-                                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
-                                    let pageNumber;
-                                    if (totalPages <= 5) {
-                                      pageNumber = idx + 1;
-                                    } else if (currentPage <= 3) {
-                                      pageNumber = idx + 1;
-                                    } else if (currentPage >= totalPages - 2) {
-                                      pageNumber = totalPages - (4 - idx);
-                                    } else {
-                                      pageNumber = currentPage - 2 + idx;
-                                    }
-                                    
-                                    return (
-                                      <button
-                                        key={idx}
-                                        onClick={() => paginate(pageNumber)}
-                                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                                          currentPage === pageNumber
-                                            ? 'bg-[#F0B35B] text-black'
-                                            : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'
-                                        }`}
-                                      >
-                                        {pageNumber}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                                <button
-                                  onClick={() => paginate(currentPage + 1)}
-                                  disabled={currentPage === totalPages}
-                                  className="p-1.5 sm:p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 sm:gap-2"
-                                >
-                                  <span className="text-xs sm:text-sm hidden sm:inline">Próximo</span>
-                                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                                </button>
-                              </div>
+                          {calendarTotalPages > 1 && (
+                            <div className="flex justify-center items-center gap-2 mt-4 pt-3 border-t border-white/10">
+                              {/* Botão página anterior */}
+                              <motion.button
+                                onClick={() => {
+                                  const prevPage = currentPage - 1;
+                                  if (prevPage >= 1) {
+                                    paginate(prevPage);
+                                  }
+                                }}
+                                disabled={currentPage === 1}
+                                className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <ChevronLeft className="w-3 h-3" />
+                              </motion.button>
+
+                              {/* Páginas limitadas a 2 botões */}
+                              {(() => {
+                                const startPage = Math.max(1, currentPage - 1);
+                                const endPage = Math.min(calendarTotalPages, startPage + 1);
+                                const pages = [];
+                                for (let i = startPage; i <= endPage; i++) {
+                                  pages.push(i);
+                                }
+                                return pages.map((number) => (
+                                  <motion.button
+                                    key={number}
+                                    onClick={() => paginate(number)}
+                                    className={`px-2 py-1.5 rounded-lg transition-all text-xs sm:text-sm ${currentPage === number
+                                        ? 'bg-[#F0B35B] text-black font-medium'
+                                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
+                                      }`}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    {number}
+                                  </motion.button>
+                                ));
+                              })()}
+
+                              {/* Indicador de mais páginas */}
+                              {currentPage + 1 < calendarTotalPages && (
+                                <span className="text-gray-400 px-1 text-xs">...</span>
+                              )}
+
+                              {/* Botão próxima página */}
+                              <motion.button
+                                onClick={() => {
+                                  const nextPage = currentPage + 1;
+                                  if (nextPage <= calendarTotalPages) {
+                                    paginate(nextPage);
+                                  }
+                                }}
+                                disabled={currentPage === calendarTotalPages}
+                                className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <ChevronRight className="w-3 h-3" />
+                              </motion.button>
                             </div>
                           )}
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ) : activeView === 'agenda' ? (
-            <motion.div
-              key="agenda-view"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
-            >
-              <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 xl:gap-8">
-                <div className="w-full xl:w-8/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6">
-                    <CalendarView
-                      appointments={appointments}
-                      selectedDate={selectedDate}
-                      onDateSelect={handleDateSelection}
-                      startDate={startDate}
-                      endDate={endDate}
-                      currentUser={currentUser}
-                      isRangeFilterActive={isRangeFilterActive}
-                      onToggleRangeFilter={() => {
-                        setIsRangeFilterActive(!isRangeFilterActive);
-                        setStartDate(null);
-                        setEndDate(null);
-                        setCurrentPage(1);
-                      }}
-                      onResetFilters={resetFilters}
-                      totalValue={totalValue}
-                    />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="analytics-view"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="h-full flex flex-col"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg border border-[#F0B35B]/10 flex-1 flex flex-col overflow-hidden"
+                >
+                  <div className="p-3 sm:p-4 border-b border-white/10">
+                    <h2 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-[#F0B35B]" />
+                      Dashboard Analítico
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                      Insights do seu negócio
+                    </p>
                   </div>
-                </div>
-                <div className="w-full xl:w-4/12">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 sticky top-24">
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#F0B35B]" />
-                        Agendamentos
-                      </h2>
-                      <div className="flex items-center gap-2">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={refreshData}
-                          className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
-                          aria-label="Atualizar"
-                        >
-                          <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </motion.button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
-                        <span className="text-gray-400 mr-1 sm:mr-2">Total:</span>
-                        <span>{calendarFilteredAppointments.length}</span>
-                      </div>
-                      <div className="text-xs sm:text-sm text-white bg-[#1A1F2E] px-2 sm:px-3 py-1.5 rounded-lg">
-                        <span className="text-gray-400 mr-1 sm:mr-2">Valor:</span>
-                        <span className="text-[#F0B35B] font-medium">R$ {totalValue.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    {calendarFilteredAppointments.length === 0 ? (
-                      <div className="bg-[#0D121E] rounded-lg p-4 sm:p-6 text-center flex-grow flex items-center justify-center">
-                        <p className="text-gray-400 text-sm">
-                          {isRangeFilterActive
-                            ? 'Nenhum agendamento no período selecionado'
-                            : 'Nenhum agendamento para esta data'}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col flex-grow">
-                        <div className="grid grid-cols-1 gap-3 sm:gap-4 max-h-[calc(100vh-20rem)] overflow-y-auto pr-1 custom-scrollbar optimize-scroll" style={{ transform: 'translate3d(0,0,0)' }}>
-                          {calendarCurrentAppointments.map((appointment) => (
-                            <AppointmentCardNew
-                              key={`calendar-appointment-${appointment.id}-${appointment.status}`}
-                              appointment={appointment}
-                              onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                              onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                              onView={() => handleAppointmentAction(appointment.id, 'view')}
-                            />
-                          ))}
-                          {calendarCurrentAppointments.length > 0 && calendarCurrentAppointments.length < 3 && 
-                            Array.from({ length: 3 - calendarCurrentAppointments.length }).map((_, index) => (
-                              <div key={`empty-${index}`} className="h-[104px] bg-[#1A1F2E]/30 rounded-xl border border-white/5 border-l-4 border-l-gray-700/30"></div>
-                            ))
-                          }
-                        </div>
-                        {calendarTotalPages > 1 && (
-                          <div className="flex justify-center items-center space-x-2 mt-4 pt-3 border-t border-white/10">
-                            <button
-                              onClick={() => paginate(currentPage > 1 ? currentPage - 1 : 1)}
-                              disabled={currentPage === 1}
-                              className="p-1.5 sm:p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                            <span className="text-xs sm:text-sm text-white">
-                              {currentPage} / {calendarTotalPages}
-                            </span>
-                            <button
-                              onClick={() => paginate(currentPage < calendarTotalPages ? currentPage + 1 : calendarTotalPages)}
-                              disabled={currentPage === calendarTotalPages}
-                              className="p-1.5 sm:p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                              <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="analytics-view"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
-            >
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 xl:gap-8">
-                <div className="xl:col-span-8">
-                  <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6">
+                  <div className="flex-1 overflow-hidden">
                     <ClientAnalytics appointments={appointments} />
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
 
       <AppointmentViewModal

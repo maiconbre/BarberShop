@@ -259,20 +259,20 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
       transition={{ duration: 0.3 }}
     >
       <div className="flex flex-col gap-5">
-        {/* Período de visualização */}
-        <div className="flex justify-center items-center gap-2 bg-[#252B3B]/30 p-1 rounded-lg">
+        {/* Período de visualização - Otimizado para Desktop */}
+        <div className="flex justify-center items-center gap-1 bg-[#252B3B]/30 p-0.5 rounded-lg">
           {(['month', 'week', 'day'] as const).map((mode) => (
             <motion.button
               key={mode}
               onClick={() => handleModeChange(mode)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`relative px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-300 flex-1 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`relative px-2 py-1.5 text-xs rounded-md transition-all duration-300 flex-1 min-w-0 ${
                 revenueDisplayMode === mode 
-                  ? 'bg-[#F0B35B] text-black font-medium shadow-lg' 
+                  ? 'bg-[#F0B35B] text-black font-medium shadow-md' 
                   : 'bg-[#252B3B] text-white hover:bg-[#F0B35B]/20'
               }`}
-          >
+            >
               {periodTexts[mode]}
               {revenueDisplayMode === mode && (
                 <motion.div 
@@ -284,9 +284,9 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
           ))}
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch justify-between">
           <motion.div 
-            className="flex-1 w-full"
+            className="flex-1 w-full min-h-[120px] flex"
             layout
           >
             <AnimatePresence mode="wait">
@@ -296,19 +296,19 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                   animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                className="text-center py-4 px-3 bg-[#252B3B]/20 rounded-xl border border-white/5"
+                className="text-center py-3 px-3 bg-[#252B3B]/20 rounded-xl border border-white/5 w-full flex flex-col justify-center"
               >
-                <p className="text-gray-400 text-sm sm:text-base mb-3 flex items-center justify-center gap-2">
-                  <DollarSign className="w-4 h-4" />
+                <p className="text-gray-400 text-xs mb-2 flex items-center justify-center gap-1">
+                  <DollarSign className="w-3 h-3" />
                   <span>Receita {periodTexts[revenueDisplayMode]}</span>
                   </p>
-                  <h4 className="text-3xl sm:text-4xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
+                  <h4 className="text-2xl sm:text-3xl font-bold text-[#F0B35B] flex items-center justify-center gap-2">
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleValueVisibility();
                       }}
-                    className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors bg-[#252B3B]/40 p-1.5 rounded-full"
+                    className="text-[#F0B35B] hover:text-[#F0B35B]/80 transition-colors bg-[#252B3B]/40 p-1 rounded-full"
                     >
                       <AnimatePresence mode="wait">
                         {isBlinking ? (
@@ -319,12 +319,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                             exit={{ opacity: 1 }}
                             transition={{ duration: 0.3 }}
                           >
-                            <Eye size={16} />
+                            <Eye size={14} />
                           </motion.div>
                         ) : showValues ? (
-                          <Eye size={16} />
+                          <Eye size={14} />
                         ) : (
-                          <EyeOff size={16} />
+                          <EyeOff size={14} />
                         )}
                       </AnimatePresence>
                     </button>
@@ -342,8 +342,8 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                       "R$ ******"
                     )}
                   </h4>
-                <div className="flex items-center text-sm text-green-400 mt-3 justify-center">
-                  <ArrowUpRight className="w-4 h-4 mr-1.5" />
+                <div className="flex items-center text-xs text-green-400 mt-2 justify-center">
+                  <ArrowUpRight className="w-3 h-3 mr-1" />
                   <span>
                     {revenueDisplayMode === 'day' 
                       ? `${clientesHoje} clientes hoje` 
@@ -358,13 +358,13 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
           {/* Gráfico de Pizza com melhoria visual */}
           <motion.div 
-            className="flex flex-col items-center gap-4 bg-[#252B3B]/20 p-4 rounded-xl border border-white/5"
+            className="flex flex-col items-center gap-2 bg-[#252B3B]/20 p-3 rounded-xl border border-white/5 min-h-[120px] flex-1 lg:flex-none lg:w-auto justify-center"
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
           >
-            <h3 className="text-sm text-gray-300 font-medium">Visão Geral</h3>
-            <div className="flex flex-row lg:flex-col items-center gap-6">
-              <div className="w-[120px] h-[120px] relative">
+            <h3 className="text-xs text-gray-300 font-medium">Visão Geral</h3>
+            <div className="flex flex-row lg:flex-col items-center gap-3">
+              <div className="w-[100px] h-[100px] relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -372,8 +372,8 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    outerRadius={55}
-                    innerRadius={35}
+                    outerRadius={45}
+                    innerRadius={28}
                     fill="#8884d8"
                     dataKey="value"
                     stroke="rgba(255,255,255,0.1)"
@@ -429,7 +429,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
         {/* Cards de estatísticas adicionais com design melhorado */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
           <motion.div 
-            className="bg-[#252B3B]/20 p-4 rounded-lg border border-white/5 hover:border-[#F0B35B]/20 transition-colors"
+            className="bg-[#252B3B]/20 p-4 rounded-lg border border-white/5 hover:border-[#F0B35B]/20 transition-colors min-h-[120px] flex flex-col justify-center"
             whileHover={{ scale: 1.02, backgroundColor: 'rgba(37,43,59,0.3)' }}
             transition={{ duration: 0.2 }}
           >
@@ -460,7 +460,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
             </div>
           </motion.div>
           <motion.div 
-            className="bg-[#252B3B]/20 p-4 rounded-lg border border-white/5 hover:border-[#F0B35B]/20 transition-colors"
+            className="bg-[#252B3B]/20 p-4 rounded-lg border border-white/5 hover:border-[#F0B35B]/20 transition-colors min-h-[120px] flex flex-col justify-center"
             whileHover={{ scale: 1.02, backgroundColor: 'rgba(37,43,59,0.3)' }}
             transition={{ duration: 0.2 }}
           >
