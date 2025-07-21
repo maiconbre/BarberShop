@@ -110,7 +110,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
         whileTap={{ scale: 0.99 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.2 }}
-        className={`bg-[#1A1F2E] rounded-xl border border-white/5 border-l-4 ${getStatusBorderColor(appointment.status)} p-3 sm:p-4 relative group will-change-transform mb-3 ${className}`}
+        className={`bg-[#1A1F2E] rounded-xl border border-white/5 border-l-4 ${getStatusBorderColor(appointment.status)} p-3 relative group will-change-transform ${className}`}
         style={{ 
           transform: 'translate3d(0, 0, 0)',
           backfaceVisibility: 'hidden',
@@ -189,30 +189,30 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
           className="cursor-pointer" 
           onClick={() => onView()}
         >
-          <div className="mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="mb-3 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <div className="bg-[#252B3B] rounded-full p-1.5">
-                <User className="w-4 h-4 text-[#F0B35B]" />
+              <div className="bg-[#252B3B] rounded-full p-1.5 flex-shrink-0">
+                <User className="w-3.5 h-3.5 text-[#F0B35B]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm sm:text-base font-medium text-white truncate">{appointment.clientName}</h3>
-                <p className="text-xs sm:text-sm text-gray-400 truncate">{appointment.service}</p>
+                <h3 className="text-sm font-medium text-white truncate leading-tight">{appointment.clientName}</h3>
+                <p className="text-xs text-gray-400 truncate">{appointment.service}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-xs sm:text-sm text-gray-400">
-            <div className="flex items-center gap-1.5 bg-[#252B3B]/70 px-2 py-1 rounded-md">
-              <Calendar className="w-3.5 h-3.5 text-[#F0B35B]" />
-              <span>{formatDate(appointment.date)}</span>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-1.5 text-gray-300">
+              <Calendar className="w-3 h-3 text-[#F0B35B] flex-shrink-0" />
+              <span className="truncate">{formatDate(appointment.date)}</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-[#252B3B]/70 px-2 py-1 rounded-md">
-              <Clock className="w-3.5 h-3.5 text-[#F0B35B]" />
-              <span>{formatTime(appointment.time)}</span>
+            <div className="flex items-center gap-1.5 text-gray-300">
+              <Clock className="w-3 h-3 text-[#F0B35B] flex-shrink-0" />
+              <span className="truncate">{formatTime(appointment.time)}</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-[#252B3B]/70 px-2 py-1 rounded-md">
-              <DollarSign className="w-3.5 h-3.5 text-[#F0B35B]" />
-              <span>R$ {appointment.price.toFixed(2)}</span>
+            <div className="flex items-center gap-1.5 text-gray-300 col-span-2">
+              <DollarSign className="w-3 h-3 text-[#F0B35B] flex-shrink-0" />
+              <span className="truncate font-medium text-[#F0B35B]">R$ {appointment.price.toFixed(2)}</span>
             </div>
           </div>
         </div>

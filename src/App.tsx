@@ -32,7 +32,6 @@ const ServiceManagementPage = lazy(() => import('./pages/ServiceManagementPage')
 
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
   const pageTransition = {
@@ -44,13 +43,8 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-[#0D121E] text-white">
       {/* Carrega a navbar imediatamente para melhorar a experiência do usuário */}
-      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && (
-        <Navbar 
-          isModalOpen={isModalOpen}
-          setIsModalOpen={setIsModalOpen}
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-        />
+      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && location.pathname !== '/dashboard' && (
+        <Navbar />
       )}
       
       {/* Modal de agendamento com lazy loading */}
