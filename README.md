@@ -1,7 +1,7 @@
 # 💈 BarberShop - Sistema de Agendamento para Barbearias
 
 <p align="center">
-  <img src="./public/screenshots/Img1.PNG" alt="BarberShop" width="300px" />
+  <img src="./public/img/tela-inicial.png" alt="BarberShop" />
 </p>
 
 O **BarberShop** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
