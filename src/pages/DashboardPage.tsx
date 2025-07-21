@@ -26,6 +26,7 @@ import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
 import { useNotifications } from '../components/ui/Notifications';
+import Notifications from '../components/ui/Notifications';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
 import { cacheService } from '../services/CacheService';
@@ -534,14 +535,17 @@ const DashboardPage: React.FC = () => {
                 {activeView === 'painel' ? 'Painel' : activeView === 'agenda' ? 'Agenda' : 'Relatórios'}
               </h1>
             </div>
-            <motion.button
-              onClick={toggleSidebar}
-              className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <User className="w-4 h-4" />
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <Notifications />
+              <motion.button
+                onClick={toggleSidebar}
+                className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <User className="w-4 h-4" />
+              </motion.button>
+            </div>
           </div>
         </div>
       )}
