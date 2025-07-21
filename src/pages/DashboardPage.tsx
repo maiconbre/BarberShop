@@ -26,6 +26,7 @@ import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
 import { useNotifications } from '../components/ui/Notifications';
+import Notifications from '../components/ui/Notifications';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
 import { cacheService } from '../services/CacheService';
@@ -473,8 +474,13 @@ const DashboardPage: React.FC = () => {
           }
         }
         .glass-effect {
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          background: rgba(13, 18, 30, 0.95);
+        }
+        @media (min-width: 768px) {
+          .glass-effect {
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+          }
         }
         .card-hover {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -510,10 +516,9 @@ const DashboardPage: React.FC = () => {
           }
         }
       `}</style>
-      {/* Background elements */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-      <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl opacity-30"></div>
+      {/* Background elements - Otimizado para mobile */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/8 to-transparent rounded-full blur-xl translate-x-1/2 -translate-y-1/2 hidden md:block"></div>
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-lg -translate-x-1/3 translate-y-1/3 md:w-96 md:h-96 md:blur-xl"></div>
 
       <div className="absolute inset-0 opacity-5">
         <div className="h-full w-full" style={{
@@ -534,14 +539,15 @@ const DashboardPage: React.FC = () => {
                 {activeView === 'painel' ? 'Painel' : activeView === 'agenda' ? 'Agenda' : 'Relatórios'}
               </h1>
             </div>
-            <motion.button
-              onClick={toggleSidebar}
-              className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <User className="w-4 h-4" />
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <Notifications />
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
+              >
+                <User className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -556,7 +562,7 @@ const DashboardPage: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+                className="fixed inset-0 bg-black/60 z-40"
                 onClick={() => setIsSidebarOpen(false)}
               />
             )}
@@ -597,14 +603,12 @@ const DashboardPage: React.FC = () => {
                         <p className="text-gray-300 text-sm">{currentUser?.name || 'Usuário'}</p>
                       </div>
                     </div>
-                    <motion.button
+                    <button
                       onClick={() => setIsSidebarOpen(false)}
                       className="p-2 rounded-full bg-[#252B3B] text-gray-400 hover:text-white hover:bg-[#2E354A] transition-colors"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
                     >
                       <X className="w-5 h-5" />
-                    </motion.button>
+                    </button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
@@ -624,18 +628,16 @@ const DashboardPage: React.FC = () => {
                         <Scissors className="w-4 h-4 text-black" />
                       </div>
                     )}
-                    <motion.button
+                    <button
                       onClick={toggleSidebar}
                       className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] transition-colors duration-200 shadow-sm flex-shrink-0"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
                     >
                       {isSidebarCollapsed ? (
                         <ArrowRight className="w-4 h-4" />
                       ) : (
                         <ArrowLeft className="w-4 h-4" />
                       )}
-                    </motion.button>
+                    </button>
                   </div>
                 )}
               </div>
@@ -648,47 +650,41 @@ const DashboardPage: React.FC = () => {
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Dashboard</p>
                   )}
 
-                  <motion.button
+                  <button
                     onClick={() => handleViewChange('painel')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'painel'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg transform scale-[1.02]'
+                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
                         : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Painel Principal' : ''}
                   >
                     <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm font-medium">Painel Principal</span>}
-                  </motion.button>
+                  </button>
 
-                  <motion.button
+                  <button
                     onClick={() => handleViewChange('agenda')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'agenda'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg transform scale-[1.02]'
+                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
                         : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Agenda' : ''}
                   >
                     <Calendar className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm font-medium">Agenda</span>}
-                  </motion.button>
+                  </button>
 
-                  <motion.button
+                  <button
                     onClick={() => handleViewChange('analytics')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'analytics'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg transform scale-[1.02]'
+                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
                         : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Relatórios' : ''}
                   >
                     <Users className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm font-medium">Relatórios</span>}
-                  </motion.button>
+                  </button>
                 </div>
 
                 {/* Management Section */}
@@ -697,49 +693,41 @@ const DashboardPage: React.FC = () => {
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Gerenciamento</p>
                   )}
 
-                  <motion.button
+                  <button
                     onClick={() => navigateToPage('/servicos')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Serviços' : ''}
                   >
                     <Scissors className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
-                  </motion.button>
+                  </button>
 
-                  <motion.button
+                  <button
                     onClick={() => navigateToPage('/register')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Barbeiros' : ''}
                   >
                     <UserCog className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
-                  </motion.button>
+                  </button>
 
-                  <motion.button
+                  <button
                     onClick={() => navigateToPage('/gerenciar-horarios')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Horários' : ''}
                   >
                     <Clock className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Horários</span>}
-                  </motion.button>
+                  </button>
 
-                  <motion.button
+                  <button
                     onClick={() => navigateToPage('/gerenciar-comentarios')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Comentários' : ''}
                   >
                     <MessageSquare className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Comentários</span>}
-                  </motion.button>
+                  </button>
                 </div>
 
                 {/* Settings Section */}
@@ -748,27 +736,23 @@ const DashboardPage: React.FC = () => {
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Configurações</p>
                   )}
 
-                  <motion.button
+                  <button
                     onClick={() => navigateToPage('/trocar-senha')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Alterar Senha' : ''}
                   >
                     <Lock className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Alterar Senha</span>}
-                  </motion.button>
+                  </button>
 
-                  <motion.button
+                  <button
                     onClick={() => navigateToPage('/')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                     title={isSidebarCollapsed ? 'Ir para Site' : ''}
                   >
                     <Home className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Ir para Site</span>}
-                  </motion.button>
+                  </button>
                 </div>
               </div>
 
@@ -791,16 +775,14 @@ const DashboardPage: React.FC = () => {
 
               {/* Logout Button */}
               <div className="p-4 border-t border-[#F0B35B]/20 flex-shrink-0">
-                <motion.button
+                <button
                   onClick={handleLogout}
                   className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors duration-200 shadow-sm`}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
                   title={isSidebarCollapsed ? 'Sair' : ''}
                 >
                   <LogOut className="w-5 h-5 flex-shrink-0" />
                   {!isSidebarCollapsed && <span className="text-sm font-medium">Sair</span>}
-                </motion.button>
+                </button>
               </div>
             </motion.div>
           </>
@@ -846,15 +828,13 @@ const DashboardPage: React.FC = () => {
                           Agendamentos Recentes
                         </h2>
                         <div className="flex items-center gap-3">
-                          <motion.button
+                          <button
                             onClick={refreshData}
                             className={`p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
                             aria-label="Atualizar"
                           >
                             <RefreshCw className="w-4 h-4" />
-                          </motion.button>
+                          </button>
                           <select
                             value={filterMode}
                             onChange={(e) => setFilterMode(e.target.value)}
@@ -869,11 +849,7 @@ const DashboardPage: React.FC = () => {
 
                       <div className="flex-1 flex flex-col">
                         {currentAppointments.length === 0 ? (
-                          <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="text-center py-8 flex-1 flex flex-col justify-center"
-                          >
+                          <div className="text-center py-8 flex-1 flex flex-col justify-center">
                             <div className="w-20 h-20 bg-[#252B3B] rounded-full flex items-center justify-center mx-auto mb-4">
                               <Calendar className="w-10 h-10 text-gray-400" />
                             </div>
@@ -887,7 +863,7 @@ const DashboardPage: React.FC = () => {
                             <p className="text-gray-500 text-sm">
                               {filterMode === 'today' ? 'Aproveite para organizar sua agenda!' : 'Tente ajustar os filtros'}
                             </p>
-                          </motion.div>
+                          </div>
                         ) : (
                           <div className={`flex-1 overflow-y-auto ${isMobile ? 'card-grid' : 'space-y-3 pr-2'}`}>
                             {currentAppointments.map((appointment) => (
@@ -903,13 +879,9 @@ const DashboardPage: React.FC = () => {
 
                             {totalPages > 1 && (
                               <div className={`${isMobile ? 'mt-8 pt-6 border-t border-[#F0B35B]/10' : 'mt-4 pt-4 border-t border-[#F0B35B]/10'}`}>
-                                <motion.div
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className="flex justify-center items-center gap-2"
-                                >
+                                <div className="flex justify-center items-center gap-2">
                                   {/* Botão página anterior */}
-                                  <motion.button
+                                  <button
                                     onClick={() => {
                                       const prevPage = currentPage - 1;
                                       if (prevPage >= 1) {
@@ -918,11 +890,9 @@ const DashboardPage: React.FC = () => {
                                     }}
                                     disabled={currentPage === 1}
                                     className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
                                   >
                                     <ChevronLeft className="w-4 h-4" />
-                                  </motion.button>
+                                  </button>
 
                                   {/* Páginas limitadas a 2 botões */}
                                   {(() => {
@@ -933,18 +903,16 @@ const DashboardPage: React.FC = () => {
                                       pages.push(i);
                                     }
                                     return pages.map((number) => (
-                                      <motion.button
+                                      <button
                                         key={number}
                                         onClick={() => paginate(number)}
                                         className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${currentPage === number
                                             ? 'bg-[#F0B35B] text-black shadow-lg'
                                             : 'bg-[#252B3B] text-white hover:bg-[#2E354A] hover:shadow-md'
                                           }`}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
                                       >
                                         {number}
-                                      </motion.button>
+                                      </button>
                                     ));
                                   })()}
 
@@ -954,7 +922,7 @@ const DashboardPage: React.FC = () => {
                                   )}
 
                                   {/* Botão próxima página */}
-                                  <motion.button
+                                  <button
                                     onClick={() => {
                                       const nextPage = currentPage + 1;
                                       if (nextPage <= totalPages) {
@@ -963,12 +931,10 @@ const DashboardPage: React.FC = () => {
                                     }}
                                     disabled={currentPage === totalPages}
                                     className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
                                   >
                                     <ChevronRight className="w-4 h-4" />
-                                  </motion.button>
-                                </motion.div>
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1033,15 +999,13 @@ const DashboardPage: React.FC = () => {
                           Agendamentos
                         </h2>
                         <div className="flex items-center gap-2">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                          <button
                             onClick={refreshData}
                             className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
                             aria-label="Atualizar"
                           >
                             <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                          </motion.button>
+                          </button>
                         </div>
                       </div>
 
@@ -1088,7 +1052,7 @@ const DashboardPage: React.FC = () => {
                           {calendarTotalPages > 1 && (
                             <div className="flex justify-center items-center gap-2 mt-4 pt-3 border-t border-white/10">
                               {/* Botão página anterior */}
-                              <motion.button
+                              <button
                                 onClick={() => {
                                   const prevPage = currentPage - 1;
                                   if (prevPage >= 1) {
@@ -1097,11 +1061,9 @@ const DashboardPage: React.FC = () => {
                                 }}
                                 disabled={currentPage === 1}
                                 className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
                               >
                                 <ChevronLeft className="w-3 h-3" />
-                              </motion.button>
+                              </button>
 
                               {/* Páginas limitadas a 2 botões */}
                               {(() => {
@@ -1112,18 +1074,16 @@ const DashboardPage: React.FC = () => {
                                   pages.push(i);
                                 }
                                 return pages.map((number) => (
-                                  <motion.button
+                                  <button
                                     key={number}
                                     onClick={() => paginate(number)}
                                     className={`px-2 py-1.5 rounded-lg transition-all text-xs sm:text-sm ${currentPage === number
                                         ? 'bg-[#F0B35B] text-black font-medium'
                                         : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
                                       }`}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
                                   >
                                     {number}
-                                  </motion.button>
+                                  </button>
                                 ));
                               })()}
 
@@ -1133,7 +1093,7 @@ const DashboardPage: React.FC = () => {
                               )}
 
                               {/* Botão próxima página */}
-                              <motion.button
+                              <button
                                 onClick={() => {
                                   const nextPage = currentPage + 1;
                                   if (nextPage <= calendarTotalPages) {
@@ -1142,11 +1102,9 @@ const DashboardPage: React.FC = () => {
                                 }}
                                 disabled={currentPage === calendarTotalPages}
                                 className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
                               >
                                 <ChevronRight className="w-3 h-3" />
-                              </motion.button>
+                              </button>
                             </div>
                           )}
                         </div>
