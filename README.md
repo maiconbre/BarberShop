@@ -56,15 +56,6 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 
 ---
 
-## 🏛️ Arquitetura de Projeto
-
-### Princípios SOLID aplicados
-- **SRP** – Cada módulo tem uma responsabilidade única
-- **OCP** – Código aberto para extensão, fechado para modificação
-- **LSP** – Substituições seguras de abstrações
-- **ISP** – Interfaces enxutas e específicas
-- **DIP** – Módulos de alto nível dependem de abstrações
-
 ### Estrutura de Diretórios
 
 ```
@@ -85,59 +76,6 @@ src/
 
 ---
 
-## 🧠 Padrões de Projeto
-
-- **Repository Pattern**
-- **Strategy Pattern**
-- **Observer Pattern**
-- **Factory Pattern**
-- **Decorator Pattern**
-
----
-
-## 🔐 Sistemas Internos
-
-### ✅ Autenticação
-
-```ts
-interface AuthContextType {
-  isAuthenticated: boolean
-  login(credentials: LoginCredentials): Promise<boolean>
-  logout(): void
-  getCurrentUser(): User | null
-}
-```
-
-### 📦 Sistema de Cache
-
-```ts
-interface CacheStrategy {
-  get(key: string): any
-  set(key: string, value: any): void
-}
-```
-
-### 🔎 Validação Tipada
-
-```ts
-export const UserSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(2),
-  email: z.string().email(),
-  role: z.enum(['client', 'barber', 'admin'])
-})
-```
-
----
-
-## 📈 Recursos Avançados
-
-- Notificações em tempo real
-- Virtualização de listas para alta performance
-- Painel com gráficos e métricas
-- Interface responsiva e mobile-first
-
----
 
 ## 🚀 Instalação e Execução Local
 
