@@ -31,6 +31,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [error, setError] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
+  const [isLoadingServices, setIsLoadingServices] = useState(true);
+  const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
+  const [servicesError, setServicesError] = useState('');
+  const [barbersError, setBarbersError] = useState('');
 
   // Estado para armazenar os dados do formulário (agora com suporte a múltiplos serviços)
   const [formData, setFormData] = useState({
@@ -110,6 +114,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   React.useEffect(() => {
     const fetchServices = async () => {
       try {
+        setIsLoadingServices(true);
+        setServicesError('');
         logger.componentDebug('Carregando serviços no BookingModal');
         const result = await ApiService.getServices();
         
@@ -131,11 +137,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
       } catch (error) {
         logger.componentError('Erro ao buscar serviços:', error);
+        setServicesError('Erro ao carregar serviços. Tente novamente.');
         // Se a API falhar, usar apenas os serviços iniciais como fallback
         const fallbackServices = consolidateInitialServices();
         if (fallbackServices.length > 0) {
           setServices(fallbackServices);
         }
+      } finally {
+        setIsLoadingServices(false);
       }
     };
 
@@ -145,11 +154,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   React.useEffect(() => {
     const fetchBarbers = async () => {
       try {
+        setIsLoadingBarbers(true);
+        setBarbersError('');
         const result = await ApiService.getBarbers();
         // O método getBarbers já retorna o array de barbeiros diretamente
         setBarbers(result);
       } catch (error) {
         logger.componentError('Erro ao buscar barbeiros:', error);
+        setBarbersError('Erro ao carregar barbeiros. Tente novamente.');
+      } finally {
+        setIsLoadingBarbers(false);
       }
     };
 
@@ -723,6 +737,26 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
     onClose();
   };
 
+  // Componente de Lazy Loading Horizontal
+  const LazyLoadingHorizontal = ({ message = "Carregando..." }: { message?: string }) => (
+    <div className="flex flex-col items-center justify-center py-8 px-4">
+      <div className="flex space-x-1 mb-3">
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="w-2 h-2 bg-[#F0B35B] rounded-full animate-pulse"
+            style={{
+              animationDelay: `${i * 0.2}s`,
+              animationDuration: '1s',
+              animationIterationCount: 'infinite'
+            }}
+          />
+        ))}
+      </div>
+      <p className="text-gray-400 text-sm text-center">{message}</p>
+    </div>
+  );
+
   // Não renderiza nada se o modal estiver fechado
   if (!isOpen) return null;
 
@@ -817,49 +851,66 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
               <div className="group relative">
                 <label className="block text-sm font-medium mb-1 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Serviços</label>
                 <div className="bg-[#0D121E] rounded-lg p-2.5 border border-transparent hover:border-[#F0B35B]/30 transition-all duration-300">
-                  <p className="text-xs text-gray-400 mb-1.5">Selecione um ou mais serviços:</p>
-                  <div className="max-h-32 overflow-y-auto grid grid-cols-2 gap-2 py-1">
-                    {services.map((service) => (
+                  {isLoadingServices ? (
+                    <LazyLoadingHorizontal message="Carregando serviços..." />
+                  ) : servicesError ? (
+                    <div className="text-center py-4">
+                      <p className="text-red-400 text-sm mb-2">{servicesError}</p>
                       <button
                         type="button"
-                        key={service}
-                        onClick={() => {
-                          if (formData.services.includes(service)) {
-                            setFormData({ ...formData, services: formData.services.filter(s => s !== service) });
-                          } else {
-                            setFormData({ ...formData, services: [...formData.services, service] });
-                          }
-                        }}
-                        className={`flex flex-col items-center justify-center p-2 rounded-md cursor-pointer transition-all duration-200 min-h-[60px]
-                          ${formData.services.includes(service)
-                            ? 'bg-[#F0B35B]/20 border border-[#F0B35B] shadow-sm shadow-[#F0B35B]/20 transform scale-[1.02]'
-                            : 'bg-[#1A1F2E] border border-transparent hover:border-[#F0B35B]/30'}`}
+                        onClick={() => window.location.reload()}
+                        className="text-[#F0B35B] text-xs hover:underline"
                       >
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center mb-1 transition-all duration-200 
-                          ${formData.services.includes(service) ? 'bg-[#F0B35B]' : 'border-2 border-[#F0B35B]/30'}`}>
-                          {formData.services.includes(service) && (
-                            <CheckCircle size={12} className="text-black" />
-                          )}
-                        </div>
-                        <span className={`text-xs transition-colors duration-200 text-center leading-tight ${formData.services.includes(service) ? 'text-white font-medium' : 'text-gray-300'}`}>
-                          {service}
-                        </span>
-                        <span className="text-xs font-medium text-[#F0B35B] mt-0.5">
-                          R$ {getServicePrice(service).toFixed(2)}
-                        </span>
+                        Tentar novamente
                       </button>
-                    ))}
-                  </div>
-                  {formData.services.length > 0 && (
-                    <div className="mt-2 pt-1.5 border-t border-[#F0B35B]/10">
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs text-[#F0B35B] font-medium">Serviços: {formData.services.length}</p>
-                        <p className="text-xs text-white font-medium">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
-                      </div>
                     </div>
-                  )}
-                  {formData.services.length === 0 && (
-                    <p className="text-xs text-red-400 mt-1">Por favor, selecione pelo menos um serviço</p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-400 mb-1.5">Selecione um ou mais serviços:</p>
+                      <div className="max-h-32 overflow-y-auto grid grid-cols-2 gap-2 py-1">
+                        {services.map((service) => (
+                          <button
+                            type="button"
+                            key={service}
+                            onClick={() => {
+                              if (formData.services.includes(service)) {
+                                setFormData({ ...formData, services: formData.services.filter(s => s !== service) });
+                              } else {
+                                setFormData({ ...formData, services: [...formData.services, service] });
+                              }
+                            }}
+                            className={`flex flex-col items-center justify-center p-2 rounded-md cursor-pointer transition-all duration-200 min-h-[60px]
+                              ${formData.services.includes(service)
+                                ? 'bg-[#F0B35B]/20 border border-[#F0B35B] shadow-sm shadow-[#F0B35B]/20 transform scale-[1.02]'
+                                : 'bg-[#1A1F2E] border border-transparent hover:border-[#F0B35B]/30'}`}
+                          >
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center mb-1 transition-all duration-200 
+                              ${formData.services.includes(service) ? 'bg-[#F0B35B]' : 'border-2 border-[#F0B35B]/30'}`}>
+                              {formData.services.includes(service) && (
+                                <CheckCircle size={12} className="text-black" />
+                              )}
+                            </div>
+                            <span className={`text-xs transition-colors duration-200 text-center leading-tight ${formData.services.includes(service) ? 'text-white font-medium' : 'text-gray-300'}`}>
+                              {service}
+                            </span>
+                            <span className="text-xs font-medium text-[#F0B35B] mt-0.5">
+                              R$ {getServicePrice(service).toFixed(2)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      {formData.services.length > 0 && (
+                        <div className="mt-2 pt-1.5 border-t border-[#F0B35B]/10">
+                          <div className="flex justify-between items-center">
+                            <p className="text-xs text-[#F0B35B] font-medium">Serviços: {formData.services.length}</p>
+                            <p className="text-xs text-white font-medium">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
+                          </div>
+                        </div>
+                      )}
+                      {formData.services.length === 0 && (
+                        <p className="text-xs text-red-400 mt-1">Por favor, selecione pelo menos um serviço</p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -884,7 +935,22 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
               <div className="group relative">
                 <label className="block text-sm font-medium mb-1 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Escolha seu barbeiro</label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
-                  {barbers.length > 0 ? (
+                  {isLoadingBarbers ? (
+                    <div className="col-span-2">
+                      <LazyLoadingHorizontal message="Carregando barbeiros..." />
+                    </div>
+                  ) : barbersError ? (
+                    <div className="col-span-2 text-center py-4">
+                      <p className="text-red-400 text-sm mb-2">{barbersError}</p>
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="text-[#F0B35B] text-xs hover:underline"
+                      >
+                        Tentar novamente
+                      </button>
+                    </div>
+                  ) : barbers.length > 0 ? (
                     barbers.map((barber) => (
                       <button
                         key={barber.id}
