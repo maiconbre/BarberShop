@@ -48,9 +48,9 @@ const CommentManagementPage: React.FC = () => {
 
   // Memoized total de páginas
   const totalPages = useMemo(() => {
-    return Math.ceil((comments?.length || 0) / commentsPerPage);
-  }, [comments?.length, commentsPerPage]);
-
+    if (!comments || !Array.isArray(comments)) return 0;
+    return Math.max(1, Math.ceil(comments.length / commentsPerPage));
+  }, [comments, commentsPerPage]);
   // Efeito para limpar erro quando mudar de tab
   useEffect(() => {
     clearError();
@@ -79,7 +79,7 @@ const CommentManagementPage: React.FC = () => {
       }
 
       // Verificar se precisa ajustar a página atual
-      if (comments && comments.length > 0) {
+      if (Array.isArray(comments) && comments.length > 0) {
         const remainingComments = comments.filter(comment => comment.id !== commentId);
         const displayedComments = remainingComments.slice(
           (currentPage - 1) * commentsPerPage,

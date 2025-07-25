@@ -5,6 +5,7 @@ import { ChevronLeft, Scissors, Edit, Trash2 } from 'lucide-react';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import ApiService from '../services/ApiService';
 import { logger } from '../utils/logger';
+import { CURRENT_ENV } from '../config/environmentConfig';
 
 interface Service {
   id: string;
@@ -26,11 +27,8 @@ const ServiceManagementPage: React.FC = () => {
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
-  const [barbers, setBarbers] = useState<{id: string, name: string}[]>([]);
-
   useEffect(() => {
     fetchServices();
-    fetchBarbers();
   }, []);
 
   const fetchServices = async () => {
@@ -46,18 +44,7 @@ const ServiceManagementPage: React.FC = () => {
     }
   };
 
-  const fetchBarbers = async () => {
-    try {
-      logger.componentDebug('Carregando barbeiros no ServiceManagementPage');
-      const result = await ApiService.getBarbers();
-      if (result && Array.isArray(result)) {
-        setBarbers(result);
-        logger.componentDebug(`Carregados ${result.length} barbeiros`);
-      }
-    } catch (err) {
-      logger.componentError('Erro ao buscar barbeiros:', err);
-    }
-  };
+
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +60,7 @@ const ServiceManagementPage: React.FC = () => {
         throw new Error('Por favor, informe um valor válido');
       }
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +92,7 @@ const ServiceManagementPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services/${serviceToDelete.id}`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services/${serviceToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -135,7 +122,7 @@ const ServiceManagementPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services/${serviceToEdit.id}`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services/${serviceToEdit.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

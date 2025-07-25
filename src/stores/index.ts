@@ -18,6 +18,16 @@ export {
   useCommentError,
   useCommentActions
 } from './commentStore';
+export {
+  useBarberStore,
+  useBarbers,
+  useBarberList,
+  useCurrentBarber,
+  useBarberLoading,
+  useBarberError,
+  useBarberFilters,
+  useBarberActions
+} from './barberStore';
 
 // Re-export types
 export type {
@@ -31,3 +41,7 @@ export type {
   PublicComment,
   CommentFilters
 } from '@/types';
+export type {
+  Barber,
+  BarberFilters
+} from './barberStore';

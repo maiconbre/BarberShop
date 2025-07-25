@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { PublicComment, CommentFilters, ApiResponse } from '@/types';
+import type { PublicComment, ApiResponse } from '@/types';
 
 interface CommentCache {
   [key: string]: {
@@ -314,14 +314,7 @@ export const useCommentStore = create<CommentState>()(
 
 // Selectors for better performance with proper memoization
 export const useComments = (status: 'pending' | 'approved' | 'rejected') => {
-  return useCommentStore(
-    state => state.comments[status] || [],
-    (a, b) => {
-      // Shallow equality check for arrays
-      if (a.length !== b.length) return false;
-      return a.every((item, index) => item === b[index]);
-    }
-  );
+  return useCommentStore(state => state.comments[status] || []);
 };
 
 export const useCommentLoading = () => {

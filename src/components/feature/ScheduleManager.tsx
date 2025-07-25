@@ -71,9 +71,20 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     });
   }, []);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (forceRefresh = false) => {
     try {
       const cacheKey = `schedule_appointments_${selectedBarber}`;
+      
+      // Se não for refresh forçado, tentar usar cache primeiro
+      if (!forceRefresh) {
+        const cachedData = await cacheService.get(cacheKey);
+        if (cachedData && Array.isArray(cachedData)) {
+          setAppointments(cachedData);
+          setError(null);
+          // Continuar com fetch em background para atualizar cache
+        }
+      }
+      
       const response = await cacheService.fetchWithCache(
         cacheKey,
         async () => {
@@ -100,6 +111,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
             !apt.isCancelled
           );
         },
+        { forceRefresh }
       );
 
       setAppointments(Array.isArray(response) ? response : []);
@@ -125,8 +137,24 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       setAppointments([]); // Limpa os agendamentos anteriores
       setError(null); // Limpa possíveis erros anteriores
       fetchAppointments();
-      const interval = setInterval(fetchAppointments, 30000); // Atualiza a cada 30 segundos
-      return () => clearInterval(interval);
+      const interval = setInterval(() => fetchAppointments(false), 30000); // Atualiza a cada 30 segundos
+      
+      // Listener para atualizações de cache
+      const handleCacheUpdate = (event: CustomEvent) => {
+        const { keys } = event.detail;
+        const cacheKey = `schedule_appointments_${selectedBarber}`;
+        if (keys.includes(cacheKey) || keys.includes('/api/appointments')) {
+          // Recarregar dados do cache atualizado
+          fetchAppointments(false);
+        }
+      };
+      
+      window.addEventListener('cacheUpdated', handleCacheUpdate as EventListener);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('cacheUpdated', handleCacheUpdate as EventListener);
+      };
     }
   }, [selectedBarber]);
 
@@ -180,6 +208,22 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     setIsConfirmOpen(false);
     setSelectedTime(null);
 
+    // Atualizar cache imediatamente para visualização instantânea
+    try {
+      const cacheKey = `schedule_appointments_${selectedBarber}`;
+      const cachedData = await cacheService.get(cacheKey) || [];
+      const updatedCache = Array.isArray(cachedData) ? [...cachedData, tempAppointment] : [tempAppointment];
+      await cacheService.set(cacheKey, updatedCache);
+      
+      // Atualizar também o cache global de agendamentos
+      const globalCacheKey = '/api/appointments';
+      const globalCachedData = await cacheService.get(globalCacheKey) || [];
+      const updatedGlobalCache = Array.isArray(globalCachedData) ? [...globalCachedData, tempAppointment] : [tempAppointment];
+      await cacheService.set(globalCacheKey, updatedGlobalCache);
+    } catch (cacheError) {
+      console.warn('Erro ao atualizar cache:', cacheError);
+    }
+
     // Disparar evento de bloqueio
     window.dispatchEvent(new CustomEvent('timeSlotBlocked', {
       detail: tempAppointment
@@ -213,28 +257,129 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           id: result.data.id
         };
 
-        // Atualizar o appointment com o ID real
+        // Atualizar o appointment com o ID real no estado
         setAppointments(prev => prev.map(app => 
           app.id === tempAppointment.id ? confirmedAppointment : app
         ));
+
+        // Atualizar cache com o ID real do servidor
+        try {
+          const cacheKey = `schedule_appointments_${selectedBarber}`;
+          const cachedData = await cacheService.get(cacheKey) || [];
+          const updatedCache = Array.isArray(cachedData) 
+            ? cachedData.map(app => app.id === tempAppointment.id ? confirmedAppointment : app)
+            : [confirmedAppointment];
+          await cacheService.set(cacheKey, updatedCache);
+          
+          // Atualizar também o cache global
+          const globalCacheKey = '/api/appointments';
+          const globalCachedData = await cacheService.get(globalCacheKey) || [];
+          const updatedGlobalCache = Array.isArray(globalCachedData)
+            ? globalCachedData.map(app => app.id === tempAppointment.id ? confirmedAppointment : app)
+            : [confirmedAppointment];
+          await cacheService.set(globalCacheKey, updatedGlobalCache);
+        } catch (cacheError) {
+          console.warn('Erro ao atualizar cache com ID real:', cacheError);
+        }
 
         // Disparar evento de atualização com o ID real
         window.dispatchEvent(new CustomEvent('appointmentUpdate', {
           detail: confirmedAppointment
         }));
 
-        toast.success('Horário bloqueado com sucesso!');
+        // Disparar evento para notificar outros componentes sobre a atualização do cache
+        window.dispatchEvent(new CustomEvent('cacheUpdated', {
+          detail: {
+            keys: [`schedule_appointments_${selectedBarber}`, '/api/appointments'],
+            timestamp: Date.now()
+          }
+        }));
+
+        // Notificação visual elaborada para bloqueio
+        toast.success('Horário bloqueado com sucesso!', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #F0B35B',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#F0B35B',
+            secondary: '#1A1F2E'
+          }
+        });
       } else {
-        // Reverter a atualização otimista
+        // Reverter a atualização otimista no estado
         setAppointments(prev => prev.filter(app => app.id !== tempAppointment.id));
+        
+        // Reverter também no cache
+        try {
+          const cacheKey = `schedule_appointments_${selectedBarber}`;
+          const cachedData = await cacheService.get(cacheKey) || [];
+          const revertedCache = Array.isArray(cachedData) 
+            ? cachedData.filter(app => app.id !== tempAppointment.id)
+            : [];
+          await cacheService.set(cacheKey, revertedCache);
+          
+          // Reverter também o cache global
+          const globalCacheKey = '/api/appointments';
+          const globalCachedData = await cacheService.get(globalCacheKey) || [];
+          const revertedGlobalCache = Array.isArray(globalCachedData)
+            ? globalCachedData.filter(app => app.id !== tempAppointment.id)
+            : [];
+          await cacheService.set(globalCacheKey, revertedGlobalCache);
+        } catch (cacheError) {
+          console.warn('Erro ao reverter cache:', cacheError);
+        }
+        
         const errorData = await response.json();
         throw new Error(errorData.message || 'Erro ao bloquear horário');
       }
     } catch (error) {
-      // Reverter a atualização otimista
+      // Reverter a atualização otimista no estado
       setAppointments(prev => prev.filter(app => app.id !== tempAppointment.id));
+      
+      // Reverter também no cache
+      try {
+        const cacheKey = `schedule_appointments_${selectedBarber}`;
+        const cachedData = await cacheService.get(cacheKey) || [];
+        const revertedCache = Array.isArray(cachedData) 
+          ? cachedData.filter(app => app.id !== tempAppointment.id)
+          : [];
+        await cacheService.set(cacheKey, revertedCache);
+        
+        // Reverter também o cache global
+        const globalCacheKey = '/api/appointments';
+        const globalCachedData = await cacheService.get(globalCacheKey) || [];
+        const revertedGlobalCache = Array.isArray(globalCachedData)
+          ? globalCachedData.filter(app => app.id !== tempAppointment.id)
+          : [];
+        await cacheService.set(globalCacheKey, revertedGlobalCache);
+      } catch (cacheError) {
+        console.warn('Erro ao reverter cache:', cacheError);
+      }
+      
       console.error('Erro ao bloquear horário:', error);
-      toast.error('Erro ao bloquear horário');
+      toast.error('Erro ao bloquear horário', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#1A1F2E'
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -248,7 +393,22 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     // Verificar se o agendamento existe antes de tentar excluir
     const existingAppointment = appointments.find(a => a.id === deletedAppointment.id);
     if (!existingAppointment) {
-      toast.error('Agendamento não encontrado');
+      toast.error('Agendamento não encontrado', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#1A1F2E'
+        }
+      });
       setIsDeleteConfirmOpen(false);
       setAppointmentToDelete(null);
       return;
@@ -283,9 +443,27 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       );
 
       if (response.ok) {
-        toast.success(deletedAppointment.isBlocked 
+        // Notificação visual mais elaborada para exclusão
+        const successMessage = deletedAppointment.isBlocked 
           ? 'Horário desbloqueado com sucesso!' 
-          : 'Agendamento cancelado com sucesso!');
+          : 'Agendamento cancelado com sucesso!';
+        
+        toast.success(successMessage, {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #F0B35B',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#F0B35B',
+            secondary: '#1A1F2E'
+          }
+        });
         
         // Atualizar o cache após uma exclusão bem-sucedida
         const cacheKey = `schedule_appointments_${selectedBarber}`;
@@ -296,6 +474,24 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
             : [];
           await cacheService.set(cacheKey, updatedCache);
         }
+        
+        // Atualizar também o cache global de agendamentos
+        const globalCacheKey = '/api/appointments';
+        const globalCachedData = await cacheService.get(globalCacheKey);
+        if (globalCachedData) {
+          const updatedGlobalCache = Array.isArray(globalCachedData)
+            ? globalCachedData.filter(app => app.id !== deletedAppointment.id)
+            : [];
+          await cacheService.set(globalCacheKey, updatedGlobalCache);
+        }
+        
+        // Disparar evento para notificar outros componentes sobre a atualização do cache
+        window.dispatchEvent(new CustomEvent('cacheUpdated', {
+          detail: {
+            keys: [`schedule_appointments_${selectedBarber}`, '/api/appointments'],
+            timestamp: Date.now()
+          }
+        }));
         
         // Recarregar os agendamentos
         fetchAppointments();
@@ -320,7 +516,22 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       }));
       
       console.error('Erro ao excluir agendamento:', error);
-      toast.error('Erro ao excluir agendamento');
+      toast.error('Erro ao excluir agendamento', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#1A1F2E'
+        }
+      });
     } finally {
       setIsLoading(false);
     }

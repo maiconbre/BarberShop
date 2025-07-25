@@ -32,12 +32,7 @@ const ServicesPage = () => {
         transition={{ duration: 0.5 }}
         className="min-h-screen bg-[#0D121E] flex flex-col"
       >
-        <Navbar 
-          isModalOpen={isModalOpen}
-          setIsModalOpen={setIsModalOpen}
-          isMobileMenuOpen={false}
-          setIsMobileMenuOpen={() => {}}
-        />
+        <Navbar />
         <main className="flex-grow">
           <Services 
             onSchedule={handleOpenModal} 

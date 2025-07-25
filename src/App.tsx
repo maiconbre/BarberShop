@@ -47,7 +47,7 @@ const AppContent = () => {
             transition={pageTransition.transition}
           >
             <Routes location={location}>
-              <Route path="/" element={<Home setIsModalOpen={setIsModalOpen} />} />
+              <Route path="/" element={<Home />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/contacts" element={<ContactPage />} />

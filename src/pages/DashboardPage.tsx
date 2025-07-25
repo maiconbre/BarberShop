@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   Calendar,
   LayoutDashboard,
@@ -297,6 +298,24 @@ const DashboardPage: React.FC = () => {
             setIsViewModalOpen(false);
             setSelectedAppointment(null);
           }
+
+          // Notificação visual elaborada para exclusão
+          toast.success('Agendamento excluído com sucesso!', {
+            duration: 4000,
+            style: {
+              background: '#1A1F2E',
+              color: '#fff',
+              border: '1px solid #F0B35B',
+              borderRadius: '12px',
+              padding: '16px',
+              fontSize: '12px',
+              fontWeight: '500'
+            },
+            iconTheme: {
+              primary: '#F0B35B',
+              secondary: '#1A1F2E'
+            }
+          });
         } else {
           // Se a resposta não for ok, tenta obter mais informações do erro
           const errorData = await response.json().catch(() => null);
@@ -332,6 +351,28 @@ const DashboardPage: React.FC = () => {
           if (selectedAppointment?.id === appointmentId) {
             setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
           }
+
+          // Notificação visual elaborada para mudança de status
+          const statusMessage = newStatus === 'completed'
+            ? 'Agendamento marcado como concluído!'
+            : 'Agendamento marcado como pendente!';
+
+          toast.success(statusMessage, {
+            duration: 4000,
+            style: {
+              background: '#1A1F2E',
+              color: '#fff',
+              border: '1px solid #F0B35B',
+              borderRadius: '12px',
+              padding: '16px',
+              fontSize: '12px',
+              fontWeight: '500'
+            },
+            iconTheme: {
+              primary: '#F0B35B',
+              secondary: '#1A1F2E'
+            }
+          });
         } else {
           const errorData = await response.json().catch(() => null);
           console.error('Erro ao atualizar status:', {
@@ -344,8 +385,43 @@ const DashboardPage: React.FC = () => {
       }
     } catch (error) {
       console.error(`Erro na ação ${action}:`, error);
-      // Aqui você pode adicionar uma notificação visual para o usuário
-      // Por exemplo, usando um toast ou alert
+
+      // Notificação visual de erro
+      if (action === 'delete') {
+        toast.error('Erro ao excluir agendamento', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
+      } else {
+        toast.error('Erro ao atualizar agendamento', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
+      }
     }
   };
 
@@ -578,26 +654,25 @@ const DashboardPage: React.FC = () => {
 
             {/* Sidebar */}
             <motion.div
-              initial={{ 
+              initial={{
                 opacity: 0,
                 x: isMobile ? 288 : 0 // 72 * 4 = 288px (w-72)
               }}
-              animate={{ 
+              animate={{
                 opacity: 1,
                 x: 0
               }}
-              exit={{ 
+              exit={{
                 opacity: 0,
                 x: isMobile ? 288 : 0
               }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${
-                isMobile 
-                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl' 
-                  : isSidebarCollapsed 
-                    ? 'left-0 w-16 border-r border-[#F0B35B]/20' 
+              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${isMobile
+                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl'
+                  : isSidebarCollapsed
+                    ? 'left-0 w-16 border-r border-[#F0B35B]/20'
                     : 'left-0 w-64 border-r border-[#F0B35B]/20'
-              } transition-all duration-300`}
+                } transition-all duration-300`}
             >
               {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
@@ -662,8 +737,8 @@ const DashboardPage: React.FC = () => {
                   <button
                     onClick={() => handleViewChange('painel')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'painel'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
-                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
+                      : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
                     title={isSidebarCollapsed ? 'Painel Principal' : ''}
                   >
@@ -674,8 +749,8 @@ const DashboardPage: React.FC = () => {
                   <button
                     onClick={() => handleViewChange('agenda')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'agenda'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
-                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
+                      : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
                     title={isSidebarCollapsed ? 'Agenda' : ''}
                   >
@@ -686,8 +761,8 @@ const DashboardPage: React.FC = () => {
                   <button
                     onClick={() => handleViewChange('analytics')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'analytics'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
-                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
+                      : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
                     title={isSidebarCollapsed ? 'Relatórios' : ''}
                   >
@@ -802,10 +877,10 @@ const DashboardPage: React.FC = () => {
 
       {/* Main Content */}
       <main className={`relative z-10 transition-all duration-300 ${isMobile
-          ? 'pt-16 px-3'
-          : isSidebarCollapsed
-            ? 'ml-16 p-4 lg:p-6'
-            : 'ml-64 p-4 lg:p-6'
+        ? 'pt-16 px-3'
+        : isSidebarCollapsed
+          ? 'ml-16 p-4 lg:p-6'
+          : 'ml-64 p-4 lg:p-6'
         }`}>
 
         <div className="max-w-[1600px] mx-auto">
@@ -834,9 +909,9 @@ const DashboardPage: React.FC = () => {
                   <div className={`${isMobile ? 'w-full' : 'w-1/2 flex flex-col'}`}>
                     <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 flex-1 flex flex-col">
                       <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
                           <Calendar className="w-5 h-5 text-[#F0B35B]" />
-                          Agendamentos Recentes
+                          Agendamentos
                         </h2>
                         <div className="flex items-center gap-3">
                           <button
@@ -918,8 +993,8 @@ const DashboardPage: React.FC = () => {
                                         key={number}
                                         onClick={() => paginate(number)}
                                         className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${currentPage === number
-                                            ? 'bg-[#F0B35B] text-black shadow-lg'
-                                            : 'bg-[#252B3B] text-white hover:bg-[#2E354A] hover:shadow-md'
+                                          ? 'bg-[#F0B35B] text-black shadow-lg'
+                                          : 'bg-[#252B3B] text-white hover:bg-[#2E354A] hover:shadow-md'
                                           }`}
                                       >
                                         {number}
@@ -1041,8 +1116,8 @@ const DashboardPage: React.FC = () => {
                       ) : (
                         <div className="flex flex-col flex-grow">
                           <div className={`grid grid-cols-1 gap-3 sm:gap-4 ${isMobile
-                              ? 'max-h-[60vh]'
-                              : 'max-h-[calc(100vh-20rem)]'
+                            ? 'max-h-[60vh]'
+                            : 'max-h-[calc(100vh-20rem)]'
                             } overflow-y-auto pr-1 custom-scrollbar optimize-scroll`} style={{ transform: 'translate3d(0,0,0)' }}>
                             {calendarCurrentAppointments.map((appointment) => (
                               <AppointmentCardNew
@@ -1088,8 +1163,8 @@ const DashboardPage: React.FC = () => {
                                     key={number}
                                     onClick={() => paginate(number)}
                                     className={`px-3 py-2 rounded-lg transition-all text-sm ${currentPage === number
-                                        ? 'bg-[#F0B35B] text-black font-medium'
-                                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
+                                      ? 'bg-[#F0B35B] text-black font-medium'
+                                      : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
                                       }`}
                                   >
                                     {number}

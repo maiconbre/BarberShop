@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ApiService from '../../services/ApiService';
 import { logger } from '../../utils/logger';
-import { X, MessageCircle, ArrowRight, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { X, MessageCircle, ArrowRight, CheckCircle, Eye } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 import { cacheService } from '../../services/CacheService';
+import { useBarberList, useBarberActions } from '../../stores';
 
 // Importando constantes e funções do serviço de agendamentos
 import { 
@@ -25,11 +26,14 @@ interface BookingModalProps {
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '', initialServices = [], preloadedAppointments = [] }) => {
+  // Hooks do barberStore
+  const barberList = useBarberList();
+  const { fetchBarbers } = useBarberActions();
+  
   // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [error, setError] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
@@ -91,25 +95,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const [barbers, setBarbers] = useState<Array<{ id: string, name: string, whatsapp?: string, pix?: string }>>([]);
   const [services, setServices] = useState<string[]>([]);
 
-  // Função utilitária para consolidar serviços iniciais
-  const consolidateInitialServices = useCallback((apiServices: string[] = []): string[] => {
-    const consolidatedServices = [...apiServices];
-    
-    // Adicionar serviços iniciais se não estiverem na lista da API
-    if (initialService && !consolidatedServices.includes(initialService)) {
-      consolidatedServices.push(initialService);
-    }
-    if (initialServices && initialServices.length > 0) {
-      initialServices.forEach(service => {
-        if (!consolidatedServices.includes(service)) {
-          consolidatedServices.push(service);
-        }
-      });
-    }
-    
-    return consolidatedServices;
-  }, [initialService, initialServices]);
-
   // Buscar serviços da API ao carregar o componente
   React.useEffect(() => {
     const fetchServices = async () => {
@@ -123,9 +108,22 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
           // Armazenar os nomes dos serviços
           const serviceNames = result.map((service: any) => service.name);
           
-          // Consolidar serviços usando função utilitária
-          const finalServices = consolidateInitialServices(serviceNames);
-          setServices(finalServices);
+          // Consolidar serviços diretamente no useEffect para evitar dependências desnecessárias
+          const consolidatedServices = [...serviceNames];
+          
+          // Adicionar serviços iniciais se não estiverem na lista da API
+          if (initialService && !consolidatedServices.includes(initialService)) {
+            consolidatedServices.push(initialService);
+          }
+          if (initialServices && initialServices.length > 0) {
+            initialServices.forEach(service => {
+              if (!consolidatedServices.includes(service)) {
+                consolidatedServices.push(service);
+              }
+            });
+          }
+          
+          setServices(consolidatedServices);
 
           // Armazenar os preços dos serviços em um objeto para fácil acesso
           const priceMap: { [key: string]: number } = {};
@@ -139,9 +137,22 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         logger.componentError('Erro ao buscar serviços:', error);
         setServicesError('Erro ao carregar serviços. Tente novamente.');
         // Se a API falhar, usar apenas os serviços iniciais como fallback
-        const fallbackServices = consolidateInitialServices();
-        if (fallbackServices.length > 0) {
-          setServices(fallbackServices);
+        // Create a Set to automatically handle duplicates
+        const fallbackServices = new Set<string>();
+        
+        // Add initial service if it exists
+        if (initialService) {
+          fallbackServices.add(initialService);
+        }
+        
+        // Add all initial services if they exist
+        if (initialServices?.length) {
+          initialServices.forEach(service => fallbackServices.add(service));
+        }
+        
+        // Only update services if we have fallback values
+        if (fallbackServices.size > 0) {
+          setServices(Array.from(fallbackServices));
         }
       } finally {
         setIsLoadingServices(false);
@@ -149,16 +160,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     fetchServices();
-  }, [initialService, initialServices, consolidateInitialServices]);
-  // Buscar barbeiros da API ao carregar o componente
+  }, []); // Executar apenas uma vez ao montar o componente
+  // Buscar barbeiros usando o store
   React.useEffect(() => {
-    const fetchBarbers = async () => {
+    const loadBarbers = async () => {
       try {
         setIsLoadingBarbers(true);
         setBarbersError('');
-        const result = await ApiService.getBarbers();
-        // O método getBarbers já retorna o array de barbeiros diretamente
-        setBarbers(result);
+        await fetchBarbers();
+        setBarbers(barberList);
       } catch (error) {
         logger.componentError('Erro ao buscar barbeiros:', error);
         setBarbersError('Erro ao carregar barbeiros. Tente novamente.');
@@ -167,8 +177,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       }
     };
 
-    fetchBarbers();
+    loadBarbers();
   }, []); // Executa apenas uma vez ao montar o componente
+
+  // Atualizar barbeiros quando o store mudar
+  React.useEffect(() => {
+    setBarbers(barberList);
+  }, [barberList]);
 
   // Efeito para atualizar os horários pré-carregados quando as props mudarem
   useEffect(() => {
@@ -181,12 +196,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
   // Função para carregar os horários disponíveis usando o serviço importado
   const fetchAppointmentsData = useCallback(async () => {
-    // Não recarregar se já temos dados em cache, a menos que seja forçado
-    if (cachedAppointments.length > 0) {
-      logger.componentDebug('BookingModal: Usando cache local de agendamentos');
-      return;
-    }
-
     logger.componentDebug('BookingModal: Buscando agendamentos via AppointmentService');
     try {
       // Usar a função importada do AppointmentService que agora usa cache centralizado
@@ -210,7 +219,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
       }
     }
-  }, [cachedAppointments.length]);
+  }, []);
 
   // Função utilitária para filtrar agendamentos por data, hora e barbeiro
   const filterAppointmentsBySlot = useCallback((appointments: any[], targetAppointment: any) => {
@@ -260,12 +269,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       });
     };
 
+    // Listener para atualizações de cache
+    const handleCacheUpdate = (event: CustomEvent) => {
+      const { keys } = event.detail;
+      // Verificar se alguma chave relevante foi atualizada
+      if (keys.includes('/api/appointments') || keys.some((key: string) => key.includes('schedule_appointments_'))) {
+        // Recarregar dados do cache atualizado
+        fetchAppointmentsData();
+      }
+    };
+
     // Registrar todos os listeners
     const eventListeners = [
       { event: 'storage', handler: handleStorageChange },
       { event: 'timeSlotBlocked', handler: handleTimeSlotBlocked as EventListener },
       { event: 'timeSlotUnblocked', handler: handleTimeSlotUnblocked as EventListener },
-      { event: 'appointmentUpdate', handler: handleAppointmentUpdate as EventListener }
+      { event: 'appointmentUpdate', handler: handleAppointmentUpdate as EventListener },
+      { event: 'cacheUpdated', handler: handleCacheUpdate as EventListener }
     ];
 
     eventListeners.forEach(({ event, handler }) => {
@@ -278,7 +298,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         window.removeEventListener(event, handler);
       });
     };
-  }, [isOpen, fetchAppointmentsData, filterAppointmentsBySlot]);
+  }, [isOpen]);
 
   // Atualizar função handleTimeSelect do Calendar
   const handleTimeSelect = useCallback((date: Date, time: string) => {
@@ -286,7 +306,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     const formattedDate = format(adjustToBrasilia(date), 'yyyy-MM-dd');
     
     if (!formData.barberId) {
-      setError('Por favor, selecione um barbeiro primeiro');
+      // Validação removida - barbeiro é obrigatório no formulário
       return;
     }
 
@@ -296,32 +316,24 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       date: formattedDate,
       time: time
     }));
-    setError('');
+    // Error state removido
   }, [formData.barberId]);
 
-  // Efeito para carregar os horários quando o modal for aberto e não houver pré-carregados
-  useEffect(() => {
-    if (isOpen && cachedAppointments.length === 0) {
-      fetchAppointmentsData();
-    }
-  }, [isOpen]); // Removida dependência cachedAppointments.length para evitar loops
+  // Efeito removido - lógica já está no useEffect principal acima
 
   // Adicionar useEffect para controlar o scroll
   useEffect(() => {
     if (isOpen) {
       // Bloqueia o scroll do body quando o modal abre
       document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = '15px'; // Compensa a barra de scroll
     } else {
       // Restaura o scroll quando o modal fecha
       document.body.style.overflow = 'unset';
-      document.body.style.paddingRight = '0px';
     }
 
     // Cleanup quando o componente é desmontado
     return () => {
       document.body.style.overflow = 'unset';
-      document.body.style.paddingRight = '0px';
     };
   }, [isOpen]);
 
@@ -343,7 +355,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
       }
       
-      setError('');
+      // Error state removido
       setStep(2);
       return;
     }
@@ -361,7 +373,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
       }
       
-      setError('');
+      // Error state removido
       setStep(3); // Ir para step 3 (prévia/confirmação)
       return;
     }
@@ -376,7 +388,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    // Error state removido
 
     try {
       // Primeiro, tentar obter os dados mais recentes do cache global
@@ -659,7 +671,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
         }
       }
       
-      setError(errorMessage);
+      // Error state removido - erro será logado
     } finally {
       setIsLoading(false);
     }
@@ -668,7 +680,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
   // Função utilitária para validação de campos obrigatórios
   const validateField = useCallback((_fieldName: string, value: any, errorMessage: string): boolean => {
     if (!value || (typeof value === 'string' && !value.trim()) || (Array.isArray(value) && value.length === 0)) {
-      setError(errorMessage);
+      // Error state removido - erro será logado
       return false;
     }
     return true;
@@ -733,7 +745,6 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
   // Função modificada para fechar o modal
   const handleClose = () => {
     document.body.style.overflow = 'unset';
-    document.body.style.paddingRight = '0px';
     onClose();
   };
 

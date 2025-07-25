@@ -1,0 +1,417 @@
+import { create } from 'zustand';
+import { subscribeWithSelector } from 'zustand/middleware';
+import { logger } from '../utils/logger';
+import { CacheService } from '../services/CacheService';
+import { CURRENT_ENV } from '../config/environmentConfig';
+
+// Types
+export interface Barber {
+  id: string;
+  name: string;
+  username?: string;
+  whatsapp?: string;
+  pix?: string;
+  role?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BarberFilters {
+  search?: string;
+  role?: string;
+}
+
+export interface BarberState {
+  // State
+  barbers: Barber[];
+  currentBarber: Barber | null;
+  isLoading: boolean;
+  error: string | null;
+  filters: BarberFilters;
+  lastFetch: number;
+  
+  // Rate limiting
+  requestCount: number;
+  lastRequestTime: number;
+  
+  // Actions
+  fetchBarbers: (force?: boolean) => Promise<void>;
+  getBarberById: (id: string) => Barber | null;
+  createBarber: (barberData: Partial<Barber>) => Promise<Barber>;
+  updateBarber: (id: string, barberData: Partial<Barber>) => Promise<Barber>;
+  deleteBarber: (id: string) => Promise<void>;
+  setFilters: (filters: Partial<BarberFilters>) => void;
+  clearError: () => void;
+  reset: () => void;
+}
+
+// Constants
+const CACHE_KEY = 'barbers';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minuto
+const MAX_REQUESTS_PER_WINDOW = 10; // Máximo 10 requisições por minuto
+const MIN_REQUEST_INTERVAL = 2000; // Mínimo 2 segundos entre requisições
+
+const initialFilters: BarberFilters = {
+  search: undefined,
+  role: undefined,
+};
+
+/**
+ * Barber store with caching and rate limiting
+ */
+export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, get) => {  
+  // Rate limiting helper
+  const canMakeRequest = (): boolean => {
+    const now = Date.now();
+    const { requestCount, lastRequestTime } = get();
+    
+    // Reset counter if window has passed
+    if (now - lastRequestTime > RATE_LIMIT_WINDOW) {
+      set({ requestCount: 0, lastRequestTime: now });
+      return true;
+    }
+    
+    // Check if we've exceeded the rate limit
+    if (requestCount >= MAX_REQUESTS_PER_WINDOW) {
+      const timeUntilReset = RATE_LIMIT_WINDOW - (now - lastRequestTime);
+      set({ 
+        error: `Muitas requisições. Tente novamente em ${Math.ceil(timeUntilReset / 1000)} segundos.` 
+      });
+      return false;
+    }
+    
+    // Check minimum interval between requests
+    if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
+      const timeUntilNext = MIN_REQUEST_INTERVAL - (now - lastRequestTime);
+      set({ 
+        error: `Aguarde ${Math.ceil(timeUntilNext / 1000)} segundos antes da próxima requisição.` 
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
+  return {
+    // Initial state
+    barbers: [],
+    currentBarber: null,
+    isLoading: false,
+    error: null,
+    filters: initialFilters,
+    lastFetch: 0,
+    requestCount: 0,
+    lastRequestTime: 0,
+
+    // Actions
+    fetchBarbers: async (force = false) => {
+      const { lastFetch } = get();
+      const now = Date.now();
+      
+      // Check cache first (unless forced)
+      if (!force && now - lastFetch < CACHE_TTL) {
+        try {
+          const cacheService = new CacheService();
+          const cachedData = await cacheService.get(CACHE_KEY);
+          if (cachedData && Array.isArray(cachedData)) {
+            set({ barbers: cachedData });
+            logger.componentDebug('Barbeiros carregados do cache');
+            return;
+          }
+        } catch (error) {
+          logger.componentError('Erro ao carregar cache de barbeiros:', error);
+        }
+      }
+      
+      // Rate limiting check
+      if (!canMakeRequest()) {
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        // Update request tracking
+        const { requestCount } = get();
+        set({ 
+          requestCount: requestCount + 1, 
+          lastRequestTime: now 
+        });
+        
+        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
+          }
+          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.data)) {
+          const barbers = data.data;
+          
+          // Update state
+          set({ 
+            barbers, 
+            lastFetch: now,
+            isLoading: false,
+            error: null 
+          });
+          
+          // Update cache
+          try {
+            const cacheService = new CacheService();
+            await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
+            logger.componentDebug(`${barbers.length} barbeiros carregados e salvos no cache`);
+          } catch (cacheError) {
+            logger.componentError('Erro ao salvar cache de barbeiros:', cacheError);
+          }
+        } else {
+          throw new Error('Formato de resposta inválido');
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar barbeiros';
+        set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao buscar barbeiros:', error);
+      }
+    },
+
+    getBarberById: (id: string) => {
+      const { barbers } = get();
+      return barbers.find(barber => barber.id === id) || null;
+    },
+
+    createBarber: async (barberData: Partial<Barber>) => {
+      // Rate limiting check
+      if (!canMakeRequest()) {
+        throw new Error(get().error || 'Rate limit exceeded');
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        // Update request tracking
+        const { requestCount } = get();
+        const now = Date.now();
+        set({ 
+          requestCount: requestCount + 1, 
+          lastRequestTime: now 
+        });
+        
+        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(barberData)
+        });
+        
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
+          }
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao criar barbeiro');
+        }
+        
+        const data = await response.json();
+        const newBarber = data.data;
+        
+        // Update state
+        set(state => ({ 
+          barbers: [...state.barbers, newBarber],
+          isLoading: false 
+        }));
+        
+        // Update cache
+        try {
+          const { barbers } = get();
+          const cacheService = new CacheService();
+          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
+        } catch (cacheError) {
+          logger.componentError('Erro ao atualizar cache após criação:', cacheError);
+        }
+        
+        return newBarber;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao criar barbeiro';
+        set({ error: errorMessage, isLoading: false });
+        throw error;
+      }
+    },
+
+    updateBarber: async (id: string, barberData: Partial<Barber>) => {
+      // Rate limiting check
+      if (!canMakeRequest()) {
+        throw new Error(get().error || 'Rate limit exceeded');
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        // Update request tracking
+        const { requestCount } = get();
+        const now = Date.now();
+        set({ 
+          requestCount: requestCount + 1, 
+          lastRequestTime: now 
+        });
+        
+        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(barberData)
+        });
+        
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
+          }
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao atualizar barbeiro');
+        }
+        
+        const data = await response.json();
+        const updatedBarber = data.data;
+        
+        // Update state
+        set(state => ({ 
+          barbers: state.barbers.map(barber => 
+            barber.id === id ? updatedBarber : barber
+          ),
+          isLoading: false 
+        }));
+        
+        // Update cache
+        try {
+          const { barbers } = get();
+          const cacheService = new CacheService();
+          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
+        } catch (cacheError) {
+          logger.componentError('Erro ao atualizar cache após atualização:', cacheError);
+        }
+        
+        return updatedBarber;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao atualizar barbeiro';
+        set({ error: errorMessage, isLoading: false });
+        throw error;
+      }
+    },
+
+    deleteBarber: async (id: string) => {
+      // Rate limiting check
+      if (!canMakeRequest()) {
+        throw new Error(get().error || 'Rate limit exceeded');
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        // Update request tracking
+        const { requestCount } = get();
+        const now = Date.now();
+        set({ 
+          requestCount: requestCount + 1, 
+          lastRequestTime: now 
+        });
+        
+        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
+          }
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao excluir barbeiro');
+        }
+        
+        // Update state
+        set(state => ({ 
+          barbers: state.barbers.filter(barber => barber.id !== id),
+          isLoading: false 
+        }));
+        
+        // Update cache
+        try {
+          const { barbers } = get();
+          const cacheService = new CacheService();
+          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
+        } catch (cacheError) {
+          logger.componentError('Erro ao atualizar cache após exclusão:', cacheError);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao excluir barbeiro';
+        set({ error: errorMessage, isLoading: false });
+        throw error;
+      }
+    },
+
+    setFilters: (filters: Partial<BarberFilters>) => {
+      set(state => ({ 
+        filters: { ...state.filters, ...filters } 
+      }));
+    },
+
+    clearError: () => {
+      set({ error: null });
+    },
+
+    reset: () => {
+      set({
+        barbers: [],
+        currentBarber: null,
+        isLoading: false,
+        error: null,
+        filters: initialFilters,
+        lastFetch: 0,
+        requestCount: 0,
+        lastRequestTime: 0,
+      });
+    },
+  };
+}));
+
+// Selectors
+export const useBarbers = () => {
+  const store = useBarberStore();
+  return { ...store };
+};
+
+// Specific selectors
+export const useBarberList = () => useBarberStore((state) => state.barbers);
+export const useCurrentBarber = () => useBarberStore((state) => state.currentBarber);
+export const useBarberLoading = () => useBarberStore((state) => state.isLoading);
+export const useBarberError = () => useBarberStore((state) => state.error);
+export const useBarberFilters = () => useBarberStore((state) => state.filters);
+
+// Actions
+export const useBarberActions = () => {
+  const store = useBarberStore();
+  return {
+    fetchBarbers: store.fetchBarbers,
+    getBarberById: store.getBarberById,
+    createBarber: store.createBarber,
+    updateBarber: store.updateBarber,
+    deleteBarber: store.deleteBarber,
+    setFilters: store.setFilters,
+    clearError: store.clearError,
+    reset: store.reset,
+  };
+};

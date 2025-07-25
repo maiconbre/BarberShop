@@ -120,7 +120,7 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
   return (
     <AnimatePresence mode="wait">
       {isOpen && appointment && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-hidden px-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

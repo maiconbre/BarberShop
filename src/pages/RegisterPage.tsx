@@ -4,6 +4,9 @@ import { Loader2, Trash2, Edit, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
+import { useBarbers, useBarberActions, useBarberError } from '../stores/barberStore';
+import { CURRENT_ENV } from '../config/environmentConfig';
+import toast from 'react-hot-toast';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -66,7 +69,7 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
     setIsLoading(true);
     try {
       // Verificar a senha do administrador
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/auth/verify-admin`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/auth/verify-admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,15 +165,19 @@ const RegisterPage: React.FC = () => {
     whatsapp: '',
     pix: ''
   });
-  const [users, setUsers] = useState([]);
-  const [deleteError, setDeleteError] = useState('');
-  const [deleteSuccess, setDeleteSuccess] = useState('');
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isEditConfirmModalOpen, setIsEditConfirmModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
+  
+  // Usar o store de barbeiros
+  const { barbers } = useBarbers();
+  const { fetchBarbers, createBarber, updateBarber, deleteBarber, clearError } = useBarberActions();
+
+  const barberError = useBarberError();
 
   useEffect(() => {
     // Verificar se o usuário tem permissão de admin
@@ -178,20 +185,37 @@ const RegisterPage: React.FC = () => {
       navigate('/dashboard');
       return;
     }
-    fetchUsers();
-  }, [currentUser, navigate]);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`);
-      const data = await response.json();
-      if (data.success) {
-        setUsers(data.data);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar usuários:', err);
+    
+    // Carregar barbeiros usando o store
+    fetchBarbers();
+  }, [currentUser, navigate, fetchBarbers]);
+  
+  // Limpar erros do store quando o componente for desmontado
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, [clearError]);
+  
+  // Mostrar erros do store como toast
+  useEffect(() => {
+    if (barberError) {
+      toast.error(barberError, {
+        style: {
+          fontSize: '12px',
+          fontWeight: '500',
+          borderRadius: '12px',
+          padding: '16px',
+          backgroundColor: '#FEF2F2',
+          color: '#DC2626',
+          border: '1px solid #FECACA'
+        }
+      });
+      clearError();
     }
-  };
+  }, [barberError, clearError]);
+
+  // Função removida - agora usa o store
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,30 +255,29 @@ const RegisterPage: React.FC = () => {
         return;
       }
 
-      // Criar novo barbeiro
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          username: formData.username.trim(),
-          password: formData.password,
-          whatsapp: cleanWhatsapp,
-          pix: formData.pix.trim(),
-          role: 'barber'
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erro ao criar conta');
-      }
+      // Criar novo barbeiro usando o store
+      const newBarber = {
+        name: formData.name.trim(),
+        username: formData.username.trim(),
+        password: formData.password,
+        whatsapp: cleanWhatsapp,
+        pix: formData.pix.trim(),
+        role: 'barber'
+      };
+      await createBarber(newBarber);
 
       // Mostrar mensagem de sucesso
-      setSuccess('Barbeiro cadastrado com sucesso!');
-      setTimeout(() => setSuccess(''), 3000);
+      toast.success('Barbeiro cadastrado com sucesso!', {
+        style: {
+          fontSize: '12px',
+          fontWeight: '500',
+          borderRadius: '12px',
+          padding: '16px',
+          backgroundColor: '#F0FDF4',
+          color: '#16A34A',
+          border: '1px solid #BBF7D0'
+        }
+      });
 
       // Limpar o formulário
       setFormData({
@@ -264,8 +287,6 @@ const RegisterPage: React.FC = () => {
         whatsapp: '',
         pix: ''
       });
-      // Atualizar a lista de usuários
-      fetchUsers();
     } catch (err: any) {
       console.error('Error during operation:', err);
       setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
@@ -300,7 +321,7 @@ const RegisterPage: React.FC = () => {
         return;
       }
 
-      // Atualizar barbeiro existente
+      // Atualizar barbeiro existente usando o store
       const updateData: any = {
         name: formData.name.trim(),
         whatsapp: cleanWhatsapp,
@@ -308,22 +329,19 @@ const RegisterPage: React.FC = () => {
         password: password // Usar a senha fornecida no modal
       };
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers/${selectedUser.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
-        body: JSON.stringify(updateData)
+      await updateBarber(selectedUser.id, updateData);
+
+      toast.success('Barbeiro atualizado com sucesso!', {
+        style: {
+          fontSize: '12px',
+          fontWeight: '500',
+          borderRadius: '12px',
+          padding: '16px',
+          backgroundColor: '#F0FDF4',
+          color: '#16A34A',
+          border: '1px solid #BBF7D0'
+        }
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erro ao atualizar barbeiro');
-      }
-
-      setEditSuccess('Barbeiro atualizado com sucesso!');
-      setTimeout(() => setEditSuccess(''), 3000);
 
       // Reset todos os estados
       setIsEditMode(false);
@@ -338,8 +356,7 @@ const RegisterPage: React.FC = () => {
         pix: ''
       });
 
-      // Atualizar a lista de usuários
-      await fetchUsers();
+      // A lista será atualizada automaticamente pelo store
 
     } catch (err: any) {
       console.error('Error during operation:', err);
@@ -390,33 +407,7 @@ const RegisterPage: React.FC = () => {
     setIsEditConfirmModalOpen(false);
   };
 
-  const confirmDelete = async () => {
-    if (!selectedUser) return;
 
-    try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers/${selectedUser.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        }
-      });
-
-      if (response.ok) {
-        setDeleteSuccess('Usuário e seus agendamentos foram excluídos com sucesso!');
-        fetchUsers();
-        setTimeout(() => setDeleteSuccess(''), 3000);
-      } else {
-        const data = await response.json();
-        throw new Error(data.message || 'Erro ao excluir usuário');
-      }
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir usuário');
-      setTimeout(() => setDeleteError(''), 3000);
-    } finally {
-      setSelectedUser(null);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#0D121E] py-20 px-4 sm:py-12 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -448,8 +439,37 @@ const RegisterPage: React.FC = () => {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={async () => {
-          await confirmDelete();
-          setIsDeleteModalOpen(false);
+          if (!selectedUser?.id) return;
+          
+          try {
+            await deleteBarber(selectedUser.id);
+            toast.success('Barbeiro excluído com sucesso!', {
+              style: {
+                fontSize: '12px',
+                fontWeight: '500',
+                borderRadius: '12px',
+                padding: '16px',
+                backgroundColor: '#F0FDF4',
+                color: '#16A34A',
+                border: '1px solid #BBF7D0'
+              }
+            });
+          } catch (error) {
+            toast.error('Erro ao excluir barbeiro', {
+              style: {
+                fontSize: '12px',
+                fontWeight: '500',
+                borderRadius: '12px',
+                padding: '16px',
+                backgroundColor: '#FEF2F2',
+                color: '#DC2626',
+                border: '1px solid #FECACA'
+              }
+            });
+          } finally {
+            setSelectedUser(null);
+            setIsDeleteModalOpen(false);
+          }
         }}
         barberName={selectedUser?.name || ''}
       />
@@ -625,17 +645,7 @@ const RegisterPage: React.FC = () => {
           <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
             <h2 className="text-center text-xl sm:text-2xl font-bold text-white">Barbeiros Cadastrados</h2>
 
-            {deleteSuccess && (
-              <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
-                {deleteSuccess}
-              </div>
-            )}
 
-            {deleteError && (
-              <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
-                {deleteError}
-              </div>
-            )}
 
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-700">
@@ -647,7 +657,7 @@ const RegisterPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {users.map((user: any) => (
+                  {barbers.map((user: any) => (
                     <tr key={user.id} className="hover:bg-[#252B3B] transition-colors">
                       <td className="px-6 sm:px-6 py-4 whitespace-nowrap text-white">{user.name}</td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-white">{user.username}</td>

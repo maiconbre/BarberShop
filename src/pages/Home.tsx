@@ -36,11 +36,7 @@ const SectionLoadingFallback = () => {
   );
 };
 
-interface HomeProps {
-  setIsModalOpen: (open: boolean) => void;
-}
-
-const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
+const Home: React.FC = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState('');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
