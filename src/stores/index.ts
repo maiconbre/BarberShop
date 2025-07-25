@@ -11,6 +11,13 @@ export {
   useAppointmentError,
   useAppointmentFilters
 } from './appointmentStore';
+export {
+  useCommentStore,
+  useComments,
+  useCommentLoading,
+  useCommentError,
+  useCommentActions
+} from './commentStore';
 
 // Re-export types
 export type {
@@ -20,5 +27,7 @@ export type {
   RegisterData,
   Appointment,
   BookingFormData,
-  AppointmentFilters
+  AppointmentFilters,
+  PublicComment,
+  CommentFilters
 } from '@/types';

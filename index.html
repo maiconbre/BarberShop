@@ -15,131 +15,22 @@
         overflow: hidden;
       }
       
-      .initial-loader {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: #0D121E;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        background-image: 
-          radial-gradient(circle at 20% 20%, rgba(240, 179, 91, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(240, 179, 91, 0.05) 0%, transparent 50%);
-      }
+
       
-      .loader-content {
-         display: flex;
-         flex-direction: column;
-         align-items: center;
-         gap: 1rem;
-       }
-       
-       .scissors-icon {
-         width: 60px;
-         height: 60px;
-         color: #F0B35B;
-         animation: scissorsRotate 2s ease-in-out infinite;
-       }
-       
-       .loader-logo {
-         color: #F0B35B;
-         font-size: 2.5rem;
-         font-weight: bold;
-         animation: fadeInOut 2s ease-in-out infinite;
-       }
-       
-       .loader-text {
-         color: rgba(255, 255, 255, 0.7);
-         font-size: 1rem;
-         animation: pulse 2s infinite;
-       }
+
       
-      .skeleton-navbar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 80px;
-        background: rgba(26, 31, 46, 0.8);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(240, 179, 91, 0.1);
-      }
+
       
-      .skeleton-hero {
-        position: absolute;
-        top: 80px;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, #0D121E 0%, #1A1F2E 100%);
-      }
-      
-      @keyframes pulse {
-         0%, 100% { opacity: 1; }
-         50% { opacity: 0.5; }
-       }
-       
-       @keyframes scissorsRotate {
-         0% { transform: rotate(0deg) scale(1); }
-         25% { transform: rotate(-15deg) scale(1.1); }
-         50% { transform: rotate(15deg) scale(1); }
-         75% { transform: rotate(-10deg) scale(1.05); }
-         100% { transform: rotate(0deg) scale(1); }
-       }
-       
-       @keyframes fadeInOut {
-         0%, 100% { opacity: 1; transform: translateY(0); }
-         50% { opacity: 0.8; transform: translateY(-5px); }
-       }
-      
-      /* Esconde o loader quando o React carrega */
-      #root:not(:empty) + .initial-loader {
-        display: none;
-      }
+
     </style>
   </head>
   <body>
     <div id="root"></div>
     
-    <!-- Skeleton loader que aparece instantaneamente -->
-     <div class="initial-loader">
-       <div class="skeleton-navbar"></div>
-       <div class="skeleton-hero"></div>
-       <div class="loader-content">
-         <svg class="scissors-icon" viewBox="0 0 24 24" fill="currentColor">
-           <path d="M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm0 12c-1.1 0-2-.89-2-2s.9-2 2-2 2 .89 2 2-.9 2-2 2zm6-7.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5.5.22.5.5-.22.5-.5.5zM19 3l-6 6 2 2 7-7V3z"/>
-         </svg>
-         
-         <div class="loader-text">Carregando sua experiência...</div>
-       </div>
-     </div>
+
     
     <script type="module" src="/src/main.tsx"></script>
     
-    <script>
-      // Remove o loader quando o React carrega
-      const observer = new MutationObserver(() => {
-        const root = document.getElementById('root');
-        if (root && root.children.length > 0) {
-          const loader = document.querySelector('.initial-loader');
-          if (loader) {
-            loader.style.opacity = '0';
-            loader.style.transition = 'opacity 0.3s ease-out';
-            setTimeout(() => loader.remove(), 300);
-          }
-          observer.disconnect();
-        }
-      });
-      
-      observer.observe(document.getElementById('root'), {
-        childList: true,
-        subtree: true
-      });
-    </script>
+
   </body>
 </html>

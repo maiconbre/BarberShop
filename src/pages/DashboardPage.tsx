@@ -29,6 +29,7 @@ import { useNotifications } from '../components/ui/Notifications';
 import Notifications from '../components/ui/Notifications';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
+
 import { cacheService } from '../services/CacheService';
 
 interface Appointment {
@@ -61,6 +62,7 @@ const DashboardPage: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
 
   // Removido sistema de páginas carregadas - agora mostra apenas 2 botões por vez
   const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
@@ -368,13 +370,7 @@ const DashboardPage: React.FC = () => {
         );
 
         if (isSubscribed && Array.isArray(formattedAppointments)) {
-          // Otimização: comparar arrays antes de atualizar o estado
-          const currentIds = appointments.map(app => app.id).sort().join(',');
-          const newIds = formattedAppointments.map(app => app.id).sort().join(',');
-
-          if (currentIds !== newIds || appointments.length !== formattedAppointments.length) {
-            setAppointments(formattedAppointments);
-          }
+          setAppointments(formattedAppointments);
         }
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
@@ -392,18 +388,16 @@ const DashboardPage: React.FC = () => {
       }
     };
 
-    const initialFetchTimeout = setTimeout(() => fetchData(), 500);
+    const initialFetchTimeout = setTimeout(() => fetchData(), 100);
 
     return () => {
       isSubscribed = false;
       if (retryTimeout) clearTimeout(retryTimeout);
       clearTimeout(initialFetchTimeout);
     };
-  }, [loadAppointments, appointments]);
+  }, [loadAppointments]);
 
-  useEffect(() => {
-    console.log('Estado atual de appointments:', appointments);
-  }, [appointments]);
+
 
   useEffect(() => {
     const handleOpenAppointmentModal = (event: CustomEvent) => {
@@ -430,6 +424,8 @@ const DashboardPage: React.FC = () => {
     }
     setCurrentPage(1);
   }, [revenueDisplayMode]);
+
+
 
   return (
     <div className="min-h-screen bg-[#0D121E] relative overflow-hidden">
@@ -715,14 +711,16 @@ const DashboardPage: React.FC = () => {
                     {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
                   </button>
 
-                  <button
-                    onClick={() => navigateToPage('/register')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    title={isSidebarCollapsed ? 'Barbeiros' : ''}
-                  >
-                    <UserCog className="w-5 h-5 flex-shrink-0" />
-                    {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
-                  </button>
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      onClick={() => navigateToPage('/register')}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                      title={isSidebarCollapsed ? 'Barbeiros' : ''}
+                    >
+                      <UserCog className="w-5 h-5 flex-shrink-0" />
+                      {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
+                    </button>
+                  )}
 
                   <button
                     onClick={() => navigateToPage('/gerenciar-horarios')}

@@ -1,28 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, Check, X, ChevronLeft, ChevronRight, Loader2, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-
-interface Comment {
-  id: string;
-  name: string;
-  comment: string;
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt: string;
-}
+import { useComments, useCommentLoading, useCommentError, useCommentStore } from '@/stores';
+import type { PublicComment } from '@/types';
 
 const CommentManagementPage: React.FC = () => {
   const navigate = useNavigate();
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  
+  // Store hooks
   const [activeTab, setActiveTab] = useState<'approved' | 'rejected' | 'pending'>('pending');
+  const comments = useComments(activeTab);
+  const isLoading = useCommentLoading();
+  const error = useCommentError();
+  // Get actions directly from store to prevent re-render issues
+  const fetchComments = useCommentStore.getState().fetchComments;
+  const updateCommentStatus = useCommentStore.getState().updateCommentStatus;
+  const deleteComment = useCommentStore.getState().deleteComment;
+  const clearError = useCommentStore.getState().clearError;
+  
+  // Local state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   
   // Estados para os modais de confirmação
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -31,57 +31,31 @@ const CommentManagementPage: React.FC = () => {
   
   const commentsPerPage = 10;
 
-  // Função para buscar comentários com base no status selecionado
-  const fetchComments = async (status: 'pending' | 'approved' | 'rejected') => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(
-        `${(import.meta as any).env.VITE_API_URL}/api/comments?status=${status}`,
-        {
-          method: 'GET',
-          headers,
-          mode: 'cors'
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Erro ao buscar comentários: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setComments(result.data || []);
-        setTotalPages(Math.ceil((result.data?.length || 0) / commentsPerPage));
-      } else {
-        throw new Error(result.message || 'Erro ao buscar comentários');
-      }
-    } catch (error) {
-      console.error('Erro ao buscar comentários:', error);
-      setError('Não foi possível carregar os comentários. Tente novamente mais tarde.');
-      setComments([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Efeito para carregar comentários quando a tab mudar
   useEffect(() => {
-    fetchComments(activeTab);
+    const loadComments = async () => {
+      try {
+        await fetchComments(activeTab);
+      } catch (error) {
+        console.error('Erro ao carregar comentários:', error);
+      }
+    };
+    
+    loadComments();
     setCurrentPage(1); // Reset para a primeira página ao mudar de tab
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); // fetchComments é estável do Zustand store
+
+  // Memoized total de páginas
+  const totalPages = useMemo(() => {
+    return Math.ceil((comments?.length || 0) / commentsPerPage);
+  }, [comments?.length, commentsPerPage]);
+
+  // Efeito para limpar erro quando mudar de tab
+  useEffect(() => {
+    clearError();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); // clearError é estável do Zustand store
 
   // Função para iniciar o processo de confirmação
   const initiateCommentAction = (commentId: string, action: 'approve' | 'reject' | 'delete') => {
@@ -95,89 +69,46 @@ const CommentManagementPage: React.FC = () => {
     if (!commentId) return;
     
     setActionLoading(commentId);
-    setActionSuccess(null);
-    setActionError(null);
 
     try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
       if (action === 'delete') {
-        // Excluir comentário
-        const response = await fetch(
-          `${(import.meta as any).env.VITE_API_URL}/api/comments/${commentId}`,
-          {
-            method: 'DELETE',
-            headers,
-            mode: 'cors'
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Erro ao excluir comentário: ${response.status}`);
-        }
+        await deleteComment(commentId);
       } else {
-        // Atualizar status do comentário (aprovar ou rejeitar)
         const newStatus = action === 'approve' ? 'approved' : 'rejected';
-        
-        const response = await fetch(
-          `${(import.meta as any).env.VITE_API_URL}/api/comments/${commentId}`,
-          {
-            method: 'PATCH',
-            headers,
-            mode: 'cors',
-            body: JSON.stringify({ status: newStatus })
-          }
-        );
+        await updateCommentStatus(commentId, newStatus);
+      }
 
-        if (!response.ok) {
-          throw new Error(`Erro ao ${action === 'approve' ? 'aprovar' : 'rejeitar'} comentário: ${response.status}`);
+      // Verificar se precisa ajustar a página atual
+      if (comments && comments.length > 0) {
+        const remainingComments = comments.filter(comment => comment.id !== commentId);
+        const displayedComments = remainingComments.slice(
+          (currentPage - 1) * commentsPerPage,
+          currentPage * commentsPerPage
+        );
+        
+        if (displayedComments.length === 0 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
         }
       }
-
-      // Atualizar a lista de comentários após a ação
-      setActionSuccess(commentId);
-      setComments(prev => prev.filter(comment => comment.id !== commentId));
-      
-      // Se não houver mais comentários na página atual e não for a primeira página
-      const currentComments = comments.filter(comment => comment.id !== commentId);
-      const displayedComments = currentComments.slice(
-        (currentPage - 1) * commentsPerPage,
-        currentPage * commentsPerPage
-      );
-      
-      if (displayedComments.length === 0 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      }
-      
-      // Atualizar total de páginas
-      setTotalPages(Math.ceil((currentComments.length || 0) / commentsPerPage));
       
     } catch (error) {
       console.error(`Erro na ação ${action}:`, error);
-      setActionError(commentId);
     } finally {
-      // Limpar estados de ação após um tempo
+      // Limpar estado de loading
       setTimeout(() => {
         setActionLoading(null);
-        setActionSuccess(null);
-        setActionError(null);
-      }, 3000);
+      }, 1000);
     }
   };
 
-  // Comentários paginados
-  const paginatedComments = comments.slice(
-    (currentPage - 1) * commentsPerPage,
-    currentPage * commentsPerPage
-  );
+  // Comentários paginados memoizados
+  const paginatedComments = useMemo(() => {
+    if (!Array.isArray(comments) || comments.length === 0) return [];
+    return comments.slice(
+      (currentPage - 1) * commentsPerPage,
+      currentPage * commentsPerPage
+    );
+  }, [comments, currentPage, commentsPerPage]);
 
   return (
     <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
@@ -197,20 +128,29 @@ const CommentManagementPage: React.FC = () => {
         {/* Header com navegação */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-white">Gerenciamento de Comentários</h1>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-2 font-medium border border-[#F0B35B]/30 shadow-lg"
-            title="Voltar para o Dashboard"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Voltar</span>
-          </motion.button>
+          <div className="flex items-center gap-3">
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/dashboard')}
+              className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-2 font-medium border border-[#F0B35B]/30 shadow-lg"
+              title="Voltar para o Dashboard"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>Voltar</span>
+            </motion.button>
+          </div>
         </div>
         
         <div className="mb-6">
           <p className="text-gray-400">Gerencie os comentários dos clientes que serão exibidos no seu site.</p>
+          {!isLoading && Array.isArray(comments) && comments.length > 0 && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span>Dados em cache - Atualizações automáticas a cada 5 minutos</span>
+            </div>
+          )}
         </div>
 
         {/* Tabs para filtrar comentários */}
@@ -253,7 +193,13 @@ const CommentManagementPage: React.FC = () => {
             </div>
           ) : error ? (
             <div className="p-6 bg-red-500/10 text-red-400 rounded-lg text-center">
-              {error}
+              <p>{error}</p>
+              <button 
+                onClick={() => fetchComments(activeTab, true)}
+                className="mt-3 px-4 py-2 bg-[#F0B35B] text-black rounded-lg hover:bg-[#F0B35B]/80 transition-colors"
+              >
+                Tentar novamente
+              </button>
             </div>
           ) : paginatedComments.length === 0 ? (
             <div className="p-6 bg-[#1A1F2E] rounded-lg text-center">
@@ -264,7 +210,7 @@ const CommentManagementPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            paginatedComments.map((comment) => (
+            paginatedComments.map((comment: PublicComment) => (
               <motion.div
                 key={comment.id}
                 initial={{ opacity: 0, y: 10 }}

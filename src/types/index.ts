@@ -80,6 +80,22 @@ export interface Comment {
   createdAt: Date;
 }
 
+// Public comment types for website display
+export interface PublicComment {
+  id: string;
+  name: string;
+  comment: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CommentFilters {
+  status?: 'pending' | 'approved' | 'rejected';
+  page?: number;
+  limit?: number;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data: T;

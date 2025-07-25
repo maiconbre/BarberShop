@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Trash2, Edit, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
 
 interface DeleteConfirmationModalProps {
@@ -149,6 +150,8 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { getCurrentUser } = useAuth();
+  const currentUser = getCurrentUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -170,8 +173,13 @@ const RegisterPage: React.FC = () => {
   const [editSuccess, setEditSuccess] = useState('');
 
   useEffect(() => {
+    // Verificar se o usuário tem permissão de admin
+    if (!currentUser || currentUser.role !== 'admin') {
+      navigate('/dashboard');
+      return;
+    }
     fetchUsers();
-  }, []);
+  }, [currentUser, navigate]);
 
   const fetchUsers = async () => {
     try {

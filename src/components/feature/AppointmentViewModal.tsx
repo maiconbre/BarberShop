@@ -1,4 +1,4 @@
-import React, { useState, useRef, Suspense, lazy } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCheck,
@@ -12,7 +12,7 @@ import ConfirmationModal from '../ui/ConfirmationModal';
 import { formatFriendlyDateTime } from '../../utils/DateTimeUtils';
 
 // Lazy load the appointment history component
-const AppointmentHistory = lazy(() => import('./AppointmentHistory'));
+import AppointmentHistory from './AppointmentHistory';
 
 // Função formatWhatsApp reutilizada do ClientAnalytics
 const formatWhatsApp = (whatsapp: string | undefined): string => {
@@ -224,12 +224,6 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                     
                     <AnimatePresence>
                       {showHistory && (
-                        <Suspense fallback={
-                          <div className="mt-4 p-4 bg-white/5 rounded-lg animate-pulse">
-                            <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
-                            <div className="h-4 bg-white/10 rounded w-1/2"></div>
-                          </div>
-                        }>
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
@@ -238,7 +232,6 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                           >
                             <AppointmentHistory appointments={clientHistory} />
                           </motion.div>
-                        </Suspense>
                       )}
                     </AnimatePresence>
                   </div>
