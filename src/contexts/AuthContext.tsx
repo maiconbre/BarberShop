@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authenticateUser } from '../services/auth'
+import { authenticateUser } from '../services/auth';
+import cacheService from '../services/CacheService';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -63,10 +64,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const clearUserSpecificCache = async (userId?: string) => {
+    try {
+      // Limpar cache específico do usuário anterior
+      if (userId) {
+        await cacheService.delete(`schedule_appointments_${userId}`);
+      }
+      
+      // Limpar outros caches relacionados a agendamentos
+      await cacheService.delete('/api/appointments');
+      await cacheService.delete('appointments');
+      
+      // Limpar localStorage de agendamentos
+      localStorage.removeItem('appointments');
+      
+      // Limpar todos os caches que começam com 'schedule_appointments_'
+      const allKeys = await cacheService.getAllKeys();
+      const keysToDelete = allKeys.filter(key => {
+        // Remove o prefixo para verificar a chave real
+        const keyWithoutPrefix = key.replace(/^cache_/, '');
+        return keyWithoutPrefix.startsWith('schedule_appointments_');
+      });
+      
+      for (const key of keysToDelete) {
+        // Remove o prefixo para deletar a chave correta
+        const keyWithoutPrefix = key.replace(/^cache_/, '');
+        await cacheService.delete(keyWithoutPrefix);
+      }
+      
+      console.log('Cache específico do usuário limpo com sucesso');
+    } catch (error) {
+      console.error('Erro ao limpar cache específico do usuário:', error);
+    }
+  };
+
   const login = async (username: string, password: string, rememberMe: boolean) => {
     try {
+      // Obter usuário atual antes do login para limpar seu cache
+      const currentUser = getCurrentUser();
+      const previousUserId = currentUser?.id;
+      
       const user = await authenticateUser(username, password);
       const storage = rememberMe ? localStorage : sessionStorage;
+      
+      // Limpar cache do usuário anterior se for diferente
+      if (previousUserId && previousUserId !== user.id) {
+        await clearUserSpecificCache(previousUserId.toString());
+      }
       
       // Store user in the selected storage
       storage.setItem('user', JSON.stringify(user));
@@ -87,7 +131,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Obter usuário atual antes de limpar para poder limpar seu cache
+    const currentUser = getCurrentUser();
+    const currentUserId = currentUser?.id;
+    
     setIsAuthenticated(false);
     
     // Clear all auth-related items from both storages
@@ -96,6 +144,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem(item);
       sessionStorage.removeItem(item);
     });
+    
+    // Limpar cache específico do usuário
+    if (currentUserId) {
+      await clearUserSpecificCache(currentUserId.toString());
+    }
+    
+    // Limpar todo o cache para garantir limpeza completa
+    try {
+      await cacheService.clear();
+      console.log('Cache completamente limpo no logout');
+    } catch (error) {
+      console.error('Erro ao limpar cache no logout:', error);
+    }
   };
 
   const getCurrentUser = () => {

@@ -406,7 +406,6 @@ const RegisterPage: React.FC = () => {
       setDeleteError(err instanceof Error ? err.message : 'Erro ao excluir usuário');
       setTimeout(() => setDeleteError(''), 3000);
     } finally {
-      setIsDeleteModalOpen(false);
       setSelectedUser(null);
     }
   };
@@ -440,14 +439,20 @@ const RegisterPage: React.FC = () => {
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
+        onConfirm={async () => {
+          await confirmDelete();
+          setIsDeleteModalOpen(false);
+        }}
         barberName={selectedUser?.name || ''}
       />
 
       <EditConfirmationModal
         isOpen={isEditConfirmModalOpen}
         onClose={() => setIsEditConfirmModalOpen(false)}
-        onConfirm={() => prepareEditForm(selectedUser)}
+        onConfirm={() => {
+          prepareEditForm(selectedUser);
+          setIsEditConfirmModalOpen(false);
+        }}
         barberName={selectedUser?.name || ''}
       />
 

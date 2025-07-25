@@ -276,7 +276,10 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
           <ConfirmationModal
             isOpen={deleteModalOpen}
             onClose={() => setDeleteModalOpen(false)}
-            onConfirm={() => handleAction(onDelete)}
+            onConfirm={async () => {
+              await handleAction(onDelete);
+              setDeleteModalOpen(false);
+            }}
             title="Excluir Agendamento"
             message="Tem certeza que deseja excluir este agendamento?"
           />
@@ -284,7 +287,10 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
           <ConfirmationModal
             isOpen={statusModalOpen}
             onClose={() => setStatusModalOpen(false)}
-            onConfirm={() => handleAction(onToggleStatus)}
+            onConfirm={async () => {
+              await handleAction(onToggleStatus);
+              setStatusModalOpen(false);
+            }}
             title="Alterar Status"
             message={`Deseja marcar este agendamento como ${
               appointment.status === 'completed' ? 'pendente' : 'concluído'

@@ -515,6 +515,17 @@ const DashboardPage: React.FC = () => {
             background-position: 200% 0;
           }
         }
+        .refresh-icon-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
       `}</style>
       {/* Background elements - Otimizado para mobile */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/8 to-transparent rounded-full blur-xl translate-x-1/2 -translate-y-1/2 hidden md:block"></div>
@@ -535,17 +546,19 @@ const DashboardPage: React.FC = () => {
               <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center">
                 <Scissors className="w-3 h-3 text-black" />
               </div>
-              <h1 className="text-base font-semibold text-white">
+              <h1 className="text-lg font-semibold text-white">
                 {activeView === 'painel' ? 'Painel' : activeView === 'agenda' ? 'Agenda' : 'Relatórios'}
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              <Notifications />
+              <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
+                <Notifications />
+              </div>
               <button
                 onClick={toggleSidebar}
                 className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
               >
-                <User className="w-4 h-4" />
+                <User className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -830,10 +843,10 @@ const DashboardPage: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={refreshData}
-                            className={`p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+                            className="p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors"
                             aria-label="Atualizar"
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
                           </button>
                           <select
                             value={filterMode}
@@ -953,9 +966,8 @@ const DashboardPage: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="flex items-center justify-between">
-                  <h1 className="text-2xl font-bold text-white">Agenda</h1>
-                  <div className="text-sm text-gray-400">
+                <div className="flex items-center justify-end mb-4">
+                  <div className="text-xs text-gray-400 mt-2 mr-4">
                     {new Date().toLocaleDateString('pt-BR', {
                       weekday: 'long',
                       year: 'numeric',
@@ -1001,10 +1013,10 @@ const DashboardPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={refreshData}
-                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'text-[#F0B35B]' : ''}`}
                             aria-label="Atualizar"
                           >
-                            <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
                           </button>
                         </div>
                       </div>
@@ -1060,9 +1072,9 @@ const DashboardPage: React.FC = () => {
                                   }
                                 }}
                                 disabled={currentPage === 1}
-                                className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                               >
-                                <ChevronLeft className="w-3 h-3" />
+                                <ChevronLeft className="w-4 h-4" />
                               </button>
 
                               {/* Páginas limitadas a 2 botões */}
@@ -1077,7 +1089,7 @@ const DashboardPage: React.FC = () => {
                                   <button
                                     key={number}
                                     onClick={() => paginate(number)}
-                                    className={`px-2 py-1.5 rounded-lg transition-all text-xs sm:text-sm ${currentPage === number
+                                    className={`px-3 py-2 rounded-lg transition-all text-sm ${currentPage === number
                                         ? 'bg-[#F0B35B] text-black font-medium'
                                         : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
                                       }`}
@@ -1101,9 +1113,9 @@ const DashboardPage: React.FC = () => {
                                   }
                                 }}
                                 disabled={currentPage === calendarTotalPages}
-                                className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                               >
-                                <ChevronRight className="w-3 h-3" />
+                                <ChevronRight className="w-4 h-4" />
                               </button>
                             </div>
                           )}

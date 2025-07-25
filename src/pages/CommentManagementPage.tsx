@@ -97,7 +97,6 @@ const CommentManagementPage: React.FC = () => {
     setActionLoading(commentId);
     setActionSuccess(null);
     setActionError(null);
-    setConfirmModalOpen(false);
 
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -422,9 +421,10 @@ const CommentManagementPage: React.FC = () => {
         <ConfirmationModal
           isOpen={confirmModalOpen}
           onClose={() => setConfirmModalOpen(false)}
-          onConfirm={() => {
+          onConfirm={async () => {
             if (commentToAction && confirmAction) {
-              handleCommentAction(commentToAction, confirmAction);
+              await handleCommentAction(commentToAction, confirmAction);
+              setConfirmModalOpen(false);
             }
           }}
           title={confirmAction === 'approve' ? 'Aprovar Comentário' : 

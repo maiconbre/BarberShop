@@ -119,7 +119,6 @@ const ServiceManagementPage: React.FC = () => {
 
       setSuccess('Serviço removido com sucesso!');
       setTimeout(() => setSuccess(''), 3000);
-      setIsDeleteModalOpen(false);
       setServiceToDelete(null);
       fetchServices();
     } catch (err: any) {
@@ -152,7 +151,6 @@ const ServiceManagementPage: React.FC = () => {
 
       setSuccess('Serviço atualizado com sucesso!');
       setTimeout(() => setSuccess(''), 3000);
-      setIsEditModalOpen(false);
       setServiceToEdit(null);
       fetchServices();
     } catch (err: any) {
@@ -338,7 +336,10 @@ const ServiceManagementPage: React.FC = () => {
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDeleteService}
+        onConfirm={async () => {
+          await handleDeleteService();
+          setIsDeleteModalOpen(false);
+        }}
         title="Confirmar Remoção"
         message={`Tem certeza que deseja remover o serviço "${serviceToDelete?.name}"?`}
         confirmButtonText="Remover"
@@ -349,7 +350,10 @@ const ServiceManagementPage: React.FC = () => {
       <ConfirmationModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onConfirm={handleUpdateService}
+        onConfirm={async () => {
+          await handleUpdateService();
+          setIsEditModalOpen(false);
+        }}
         title="Confirmar Edição"
         message={`Tem certeza que deseja editar o serviço "${serviceToEdit?.name}"?`}
         confirmButtonText="Editar"
