@@ -170,11 +170,7 @@ const TrocaSenha: React.FC = () => {
   };
 
   return (
-    <StandardLayout 
-      title="Alterar Senha" 
-      subtitle="Mantenha sua conta segura com uma nova senha"
-      icon={<Lock className="w-6 h-6" />}
-    >
+    <StandardLayout>
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <motion.div

@@ -20,10 +20,11 @@ import {
 } from 'lucide-react';
 import { useNotifications } from '../ui/Notifications';
 import Notifications from '../ui/Notifications';
+import { usePageConfig } from '../../hooks/usePageConfig';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
-  title: string;
+  title?: string;
   subtitle?: string;
   icon?: React.ReactNode;
 }
@@ -32,6 +33,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const { getCurrentUser, logout } = useAuth();
   const currentUser = getCurrentUser();
   const navigate = useNavigate();
+  const pageConfig = usePageConfig();
+  
+  // Use props if provided, otherwise use dynamic page config
+  const pageTitle = title || pageConfig.title;
+  const pageSubtitle = subtitle || pageConfig.subtitle;
+  const pageIcon = icon || pageConfig.icon;
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
@@ -123,10 +130,10 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center">
-                <Scissors className="w-3 h-3 text-black" />
+              <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center text-black">
+                {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
               </div>
-              <h1 className="text-lg font-semibold text-white">{title}</h1>
+              <h1 className="text-lg font-semibold text-white">{pageTitle}</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
@@ -367,13 +374,13 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           {/* Page Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              {icon && <div className="text-[#F0B35B]">{icon}</div>}
+              {pageIcon && <div className="text-[#F0B35B]">{pageIcon}</div>}
               <h1 className="text-xl sm:text-2xl font-bold text-white">
-                {title}
+                {pageTitle}
               </h1>
             </div>
-            {subtitle && (
-              <p className="text-gray-400 text-xs sm:text-sm">{subtitle}</p>
+            {pageSubtitle && (
+              <p className="text-gray-400 text-xs sm:text-sm">{pageSubtitle}</p>
             )}
           </div>
 

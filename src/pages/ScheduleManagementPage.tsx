@@ -57,11 +57,7 @@ const ScheduleManagementPage: React.FC = () => {
   if (!currentUser) return null;
 
   return (
-    <StandardLayout 
-      title="Horários" 
-      subtitle="Gerencie sua agenda, horários e agendamentos"
-      icon={<Clock className="w-6 h-6" />}
-    >
+    <StandardLayout>
       <div className="max-w-4xl mx-auto">
         {/* Info Card */}
         <div className="mb-6">
