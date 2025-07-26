@@ -1,0 +1,390 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import {
+  Calendar,
+  LayoutDashboard,
+  Users,
+  Scissors,
+  UserCog,
+  Lock,
+  MessageSquare,
+  Clock,
+  X,
+  LogOut,
+  Home,
+  ArrowLeft,
+  ArrowRight,
+  User
+} from 'lucide-react';
+import { useNotifications } from '../ui/Notifications';
+import Notifications from '../ui/Notifications';
+
+interface StandardLayoutProps {
+  children: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  icon?: React.ReactNode;
+}
+
+const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon }) => {
+  const { getCurrentUser, logout } = useAuth();
+  const currentUser = getCurrentUser();
+  const navigate = useNavigate();
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Detectar mudanças no tamanho da tela
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const mobile = width < 768;
+      const tablet = width >= 768 && width < 1024;
+
+      setIsMobile(mobile);
+      setIsTablet(tablet);
+
+      if (mobile) {
+        setIsSidebarOpen(false);
+        setIsSidebarCollapsed(false);
+      } else {
+        setIsSidebarOpen(true);
+        setIsSidebarCollapsed(tablet);
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const navigateToPage = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setIsSidebarOpen(!isSidebarOpen);
+    } else {
+      setIsSidebarCollapsed(!isSidebarCollapsed);
+    }
+  };
+
+  if (!currentUser) return null;
+
+  return (
+    <div className="min-h-screen bg-[#0D121E] relative overflow-hidden">
+      <style>{`
+        .glass-effect {
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(240, 179, 91, 0.5);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(240, 179, 91, 0.7);
+        }
+      `}</style>
+
+      {/* Background elements */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/8 to-transparent rounded-full blur-xl translate-x-1/2 -translate-y-1/2 hidden md:block"></div>
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-lg -translate-x-1/3 translate-y-1/3 md:w-96 md:h-96 md:blur-xl"></div>
+
+      <div className="absolute inset-0 opacity-5">
+        <div className="h-full w-full" style={{
+          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}></div>
+      </div>
+
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center">
+                <Scissors className="w-3 h-3 text-black" />
+              </div>
+              <h1 className="text-lg font-semibold text-white">{title}</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
+                <Notifications />
+              </div>
+              <button
+                onClick={toggleSidebar}
+                className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
+              >
+                <User className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar */}
+      <AnimatePresence>
+        {(isSidebarOpen || !isMobile) && (
+          <>
+            {/* Mobile Overlay */}
+            {isMobile && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 z-40"
+                onClick={() => setIsSidebarOpen(false)}
+              />
+            )}
+
+            {/* Sidebar */}
+            <motion.div
+              initial={{
+                opacity: 0,
+                x: isMobile ? 288 : 0
+              }}
+              animate={{
+                opacity: 1,
+                x: 0
+              }}
+              exit={{
+                opacity: 0,
+                x: isMobile ? 288 : 0
+              }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${
+                isMobile
+                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl'
+                  : isSidebarCollapsed
+                    ? 'left-0 w-16 border-r border-[#F0B35B]/20'
+                    : 'left-0 w-64 border-r border-[#F0B35B]/20'
+              } transition-all duration-300`}
+            >
+              {/* Sidebar Header */}
+              <div className="p-4 border-b border-[#F0B35B]/20">
+                {isMobile ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#F0B35B] to-[#E6A555] rounded-full flex items-center justify-center shadow-lg">
+                        <User className="w-5 h-5 text-black" />
+                      </div>
+                      <div>
+                        <h2 className="text-white font-semibold text-base">Perfil</h2>
+                        <p className="text-gray-300 text-sm">{currentUser?.name || 'Usuário'}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="p-2 rounded-full bg-[#252B3B] text-gray-400 hover:text-white hover:bg-[#2E354A] transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    {!isSidebarCollapsed && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg">
+                          <Scissors className="w-4 h-4 text-black" />
+                        </div>
+                        <div>
+                          <h2 className="text-white font-semibold text-sm">BarberGR</h2>
+                          <p className="text-gray-400 text-xs">{currentUser?.name || 'Usuário'}</p>
+                        </div>
+                      </div>
+                    )}
+                    {isSidebarCollapsed && (
+                      <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg mx-auto">
+                        <Scissors className="w-4 h-4 text-black" />
+                      </div>
+                    )}
+                    <button
+                      onClick={toggleSidebar}
+                      className="p-2 rounded-lg bg-[#252B3B] text-white hover:bg-[#2E354A] transition-colors duration-200 shadow-sm flex-shrink-0"
+                    >
+                      {isSidebarCollapsed ? (
+                        <ArrowRight className="w-4 h-4" />
+                      ) : (
+                        <ArrowLeft className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Navigation Menu */}
+              <div className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar min-h-0">
+                {/* Dashboard Views */}
+                <div className="space-y-1">
+                  {!isSidebarCollapsed && (
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Dashboard</p>
+                  )}
+
+                  <button
+                    onClick={() => navigateToPage('/dashboard')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    title={isSidebarCollapsed ? 'Dashboard' : ''}
+                  >
+                    <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Dashboard</span>}
+                  </button>
+                </div>
+
+                {/* Management Section */}
+                <div className="space-y-1 pt-4">
+                  {!isSidebarCollapsed && (
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Gerenciamento</p>
+                  )}
+
+                  <button
+                    onClick={() => navigateToPage('/servicos')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    title={isSidebarCollapsed ? 'Serviços' : ''}
+                  >
+                    <Scissors className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
+                  </button>
+
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      onClick={() => navigateToPage('/register')}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                      title={isSidebarCollapsed ? 'Barbeiros' : ''}
+                    >
+                      <UserCog className="w-5 h-5 flex-shrink-0" />
+                      {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => navigateToPage('/gerenciar-horarios')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    title={isSidebarCollapsed ? 'Horários' : ''}
+                  >
+                    <Clock className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Horários</span>}
+                  </button>
+
+                  <button
+                    onClick={() => navigateToPage('/gerenciar-comentarios')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    title={isSidebarCollapsed ? 'Comentários' : ''}
+                  >
+                    <MessageSquare className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Comentários</span>}
+                  </button>
+                </div>
+
+                {/* Settings Section */}
+                <div className="space-y-1 pt-4">
+                  {!isSidebarCollapsed && (
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Configurações</p>
+                  )}
+
+                  <button
+                    onClick={() => navigateToPage('/trocar-senha')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    title={isSidebarCollapsed ? 'Alterar Senha' : ''}
+                  >
+                    <Lock className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Alterar Senha</span>}
+                  </button>
+
+                  <button
+                    onClick={() => navigateToPage('/')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    title={isSidebarCollapsed ? 'Ir para Site' : ''}
+                  >
+                    <Home className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Ir para Site</span>}
+                  </button>
+                </div>
+              </div>
+
+              {/* User Profile Section */}
+              {!isSidebarCollapsed && (
+                <div className="p-4 border-t border-[#F0B35B]/20 flex-shrink-0">
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-[#252B3B]/50">
+                    <div className="w-8 h-8 bg-gradient-to-br from-[#F0B35B] to-[#E6A555] rounded-full flex items-center justify-center shadow-lg">
+                      <UserCog className="w-4 h-4 text-black" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">
+                        {currentUser?.name || 'Usuário'}
+                      </p>
+                      <p className="text-xs text-gray-400">Barbeiro</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Logout Button */}
+              <div className="p-4 border-t border-[#F0B35B]/20 flex-shrink-0">
+                <button
+                  onClick={handleLogout}
+                  className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors duration-200 shadow-sm`}
+                  title={isSidebarCollapsed ? 'Sair' : ''}
+                >
+                  <LogOut className="w-5 h-5 flex-shrink-0" />
+                  {!isSidebarCollapsed && <span className="text-sm font-medium">Sair</span>}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <main className={`relative z-10 transition-all duration-300 ${
+        isMobile
+          ? 'pt-16 px-3'
+          : isSidebarCollapsed
+            ? 'ml-16 p-4 lg:p-6'
+            : 'ml-64 p-4 lg:p-6'
+      }`}>
+        <div className="max-w-[1600px] mx-auto">
+          {/* Page Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              {icon && <div className="text-[#F0B35B]">{icon}</div>}
+              <h1 className="text-xl sm:text-2xl font-bold text-white">
+                {title}
+              </h1>
+            </div>
+            {subtitle && (
+              <p className="text-gray-400 text-xs sm:text-sm">{subtitle}</p>
+            )}
+          </div>
+
+          {/* Page Content */}
+          <div className="relative">
+            {children}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default StandardLayout;

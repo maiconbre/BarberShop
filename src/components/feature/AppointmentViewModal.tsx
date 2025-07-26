@@ -4,10 +4,9 @@ import {
   FaCheck,
   FaTrash,
   FaWhatsapp,
-  FaHistory,
-  FaTimesCircle
+  FaHistory
 } from 'react-icons/fa';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import ConfirmationModal from '../ui/ConfirmationModal';
 import { formatFriendlyDateTime } from '../../utils/DateTimeUtils';
 
@@ -138,6 +137,16 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-xl sm:rounded-xl bg-[#1A1F2E] relative z-10"
             onClick={(e) => e.stopPropagation()}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.2 }}
+            onDragEnd={(_, info) => {
+              // Fecha o modal se arrastar para baixo mais de 100px ou com velocidade > 500
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                onClose();
+              }
+            }}
+            whileDrag={{ scale: 0.98 }}
           >
             {/* Barra superior de arraste e fechamento */}
             <div className="sticky top-0 z-10 px-4 pt-3 pb-2 bg-[#1A1F2E] border-b border-white/5">
@@ -148,10 +157,10 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                 <h3 className="text-white font-medium">Detalhes do Agendamento</h3>
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                  className="p-3 sm:p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] flex items-center justify-center"
                   aria-label="Fechar"
                 >
-                  <FaTimesCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <X className="w-5 h-5 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>

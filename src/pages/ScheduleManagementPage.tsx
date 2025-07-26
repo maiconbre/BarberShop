@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import ScheduleManager from '../components/feature/ScheduleManager';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowLeft, Calendar } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Loader2, Calendar, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useBarberList, useFetchBarbers } from '../stores';
+import StandardLayout from '../components/layout/StandardLayout';
 
 const ScheduleManagementPage: React.FC = () => {
   const { getCurrentUser } = useAuth();
-  const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const [barbers, setBarbers] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,36 +57,24 @@ const ScheduleManagementPage: React.FC = () => {
   if (!currentUser) return null;
 
   return (
-    <div className="min-h-screen bg-[#0D121E] pt-24 px-4 sm:px-6 lg:px-8">
-      {/* Cabeçalho com botão de voltar */}
-      <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Voltar ao Dashboard</span>
-          </motion.button>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            Gerenciamento de <span className="text-[#F0B35B]">Horários</span>
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-3 bg-[#1A1F2E] p-3 rounded-lg border border-[#F0B35B]/20">
-          <div className="bg-[#F0B35B]/20 p-2 rounded-full">
-            <Calendar className="w-5 h-5 text-[#F0B35B]" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-400">Gerencie sua agenda</p>
-            <p className="text-white font-medium">Horários e Agendamentos</p>
+    <StandardLayout 
+      title="Horários" 
+      subtitle="Gerencie sua agenda, horários e agendamentos"
+      icon={<Clock className="w-6 h-6" />}
+    >
+      <div className="max-w-4xl mx-auto">
+        {/* Info Card */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/20">
+            <div className="bg-[#F0B35B]/20 p-2 rounded-full">
+              <Calendar className="w-5 h-5 text-[#F0B35B]" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Gerencie sua agenda</p>
+              <p className="text-white font-medium">Horários e Agendamentos</p>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto py-6">
         {isLoading ? (
           <div className="flex justify-center items-center h-64 bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20">
             <div className="flex flex-col items-center gap-3">
@@ -103,10 +90,7 @@ const ScheduleManagementPage: React.FC = () => {
           />
         )}
       </div>
-
-      {/* Espaçamento inferior */}
-      <div className="mb-16"></div>
-    </div>
+    </StandardLayout>
   );
 };
 

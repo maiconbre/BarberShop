@@ -1,0 +1,393 @@
+# 💈 BarberGR - Regras de Desenvolvimento Trae AI
+
+## 🎯 Visão Geral
+Este arquivo define as regras e diretrizes para desenvolvimento no projeto BarberGR usando Trae AI, garantindo consistência arquitetural, aderência aos princípios SOLID e qualidade de código.
+
+---
+
+## 🏗️ Arquitetura e Estrutura
+
+### 📁 Estrutura de Diretórios (OBRIGATÓRIA)
+```
+src/
+├── components/           # Componentes React organizados por responsabilidade
+│   ├── auth/            # Autenticação (login, registro, recuperação)
+│   ├── feature/         # Funcionalidades específicas (agendamento, dashboard)
+│   └── ui/              # Componentes reutilizáveis (botões, modais, inputs)
+├── config/              # Configurações do sistema
+├── contexts/            # Contextos React para estado compartilhado
+├── hooks/               # Hooks customizados reutilizáveis
+├── models/              # Modelos de domínio e entidades
+├── pages/               # Páginas da aplicação (rotas principais)
+├── services/            # Camada de serviços e APIs
+│   ├── cache/          # Estratégias de cache
+│   ├── interfaces/     # Contratos e abstrações
+│   └── container/      # Dependency Injection (a implementar)
+├── stores/              # Estados globais (Zustand)
+├── types/               # Definições de tipos TypeScript
+├── utils/               # Utilitários e helpers
+└── validation/          # Schemas de validação (Zod)
+```
+
+### 🚫 Estrutura PROIBIDA
+- Não criar pastas `shared/`, `common/` ou `misc/`
+- Não misturar componentes de UI com lógica de negócio
+- Não colocar tipos em arquivos de componentes
+- Não criar arquivos `utils.ts` genéricos
+
+---
+
+## 🧩 Princípios SOLID (OBRIGATÓRIOS)
+
+### 🎯 Single Responsibility Principle (SRP)
+**REGRA**: Cada componente/função deve ter UMA responsabilidade única
+
+```typescript
+// ✅ CORRETO - Responsabilidade única
+interface ServiceListProps {
+  services: Service[];
+  onEdit: (service: Service) => void;
+  onDelete: (id: string) => void;
+}
+
+// ❌ INCORRETO - Múltiplas responsabilidades
+interface ServiceManagementProps {
+  services: Service[];
+  onEdit: (service: Service) => void;
+  onDelete: (id: string) => void;
+  onFilter: (filter: string) => void;
+  onSort: (field: string) => void;
+  onExport: () => void;
+  onImport: (file: File) => void;
+}
+```
+
+**LIMITE**: Componentes não devem exceder 100 linhas
+**AÇÃO**: Se exceder, quebrar em componentes menores
+
+### 🔓 Open/Closed Principle (OCP)
+**REGRA**: Aberto para extensão, fechado para modificação
+
+```typescript
+// ✅ CORRETO - Extensível via Strategy Pattern
+interface ICacheStrategy {
+  get(key: string): Promise<any>;
+  set(key: string, value: any, ttl?: number): Promise<void>;
+}
+
+class MemoryCacheStrategy implements ICacheStrategy { /* ... */ }
+class LocalStorageCacheStrategy implements ICacheStrategy { /* ... */ }
+```
+
+### 🔄 Liskov Substitution Principle (LSP)
+**REGRA**: Subtipos devem ser substituíveis por seus tipos base
+
+```typescript
+// ✅ CORRETO - Implementações intercambiáveis
+interface IApiService {
+  get<T>(endpoint: string): Promise<ApiResponse<T>>;
+}
+
+class AxiosApiService implements IApiService { /* ... */ }
+class FetchApiService implements IApiService { /* ... */ }
+```
+
+### 🔧 Interface Segregation Principle (ISP)
+**REGRA**: Interfaces específicas são melhores que interfaces gerais
+
+```typescript
+// ✅ CORRETO - Interfaces específicas
+interface IReadable { read(): Promise<any>; }
+interface IWritable { write(data: any): Promise<void>; }
+interface ICacheable { cache(key: string, data: any): Promise<void>; }
+
+// ❌ INCORRETO - Interface muito ampla
+interface IDataService {
+  read(): Promise<any>;
+  write(data: any): Promise<void>;
+  cache(key: string, data: any): Promise<void>;
+  validate(data: any): boolean;
+  transform(data: any): any;
+}
+```
+
+### 🔀 Dependency Inversion Principle (DIP)
+**REGRA**: Depender de abstrações, não de implementações concretas
+
+```typescript
+// ✅ CORRETO - Depende de abstração
+class AppointmentService {
+  constructor(private apiService: IApiService) {}
+}
+
+// ❌ INCORRETO - Depende de implementação concreta
+class AppointmentService {
+  constructor(private apiService: AxiosApiService) {}
+}
+```
+
+---
+
+## 📝 Padrões de Código
+
+### 🎨 Componentes React
+
+**ESTRUTURA OBRIGATÓRIA**:
+```typescript
+// 1. Imports (externos primeiro, internos depois)
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui';
+import { useAppointments } from '@/hooks';
+
+// 2. Interface/Types
+interface ComponentProps {
+  title: string;
+  onAction?: () => void;
+}
+
+// 3. Componente
+export const Component: React.FC<ComponentProps> = ({ title, onAction }) => {
+  // 4. Hooks no topo
+  const { data, loading } = useAppointments();
+  
+  // 5. Handlers
+  const handleClick = () => {
+    onAction?.();
+  };
+  
+  // 6. Early returns
+  if (loading) return <div>Loading...</div>;
+  
+  // 7. JSX
+  return (
+    <motion.div className="p-4">
+      <h2>{title}</h2>
+      <Button onClick={handleClick}>Action</Button>
+    </motion.div>
+  );
+};
+```
+
+### 🎣 Hooks Customizados
+
+**PADRÃO OBRIGATÓRIO**:
+```typescript
+export const useFeature = (id: string) => {
+  const [data, setData] = useState<DataType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Sempre retornar objeto com propriedades nomeadas
+  return { data, loading, error, refetch };
+};
+```
+
+### 🗃️ Stores Zustand
+
+**ESTRUTURA OBRIGATÓRIA**:
+```typescript
+interface StoreState {
+  // Estado
+  data: DataType[];
+  loading: boolean;
+  error: string | null;
+  
+  // Ações
+  fetchData: () => Promise<void>;
+  addItem: (item: DataType) => void;
+  updateItem: (id: string, updates: Partial<DataType>) => void;
+  removeItem: (id: string) => void;
+  clearError: () => void;
+}
+
+export const useStore = create<StoreState>()()
+  persist(
+    (set, get) => ({
+      // Estado inicial
+      data: [],
+      loading: false,
+      error: null,
+      
+      // Implementações
+      fetchData: async () => { /* ... */ },
+      // ...
+    }),
+    {
+      name: 'store-name',
+      partialize: (state) => ({ data: state.data })
+    }
+  )
+);
+```
+
+---
+
+## 🧪 Testes (OBRIGATÓRIOS)
+
+### 📋 Cobertura Mínima
+- **Componentes**: 80% de cobertura
+- **Hooks**: 90% de cobertura
+- **Services**: 95% de cobertura
+- **Utils**: 100% de cobertura
+
+### 🏗️ Estrutura de Testes
+```typescript
+// src/components/feature/__tests__/Component.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Component } from '../Component';
+
+describe('Component', () => {
+  it('should render correctly', () => {
+    render(<Component title="Test" />);
+    expect(screen.getByText('Test')).toBeInTheDocument();
+  });
+  
+  it('should handle user interactions', () => {
+    const onAction = jest.fn();
+    render(<Component title="Test" onAction={onAction} />);
+    
+    fireEvent.click(screen.getByRole('button'));
+    expect(onAction).toHaveBeenCalled();
+  });
+});
+```
+
+---
+
+## 🛡️ Error Boundaries (IMPLEMENTAR)
+
+### 📍 Localização Obrigatória
+- `src/components/error/ErrorBoundary.tsx` (genérico)
+- `src/components/error/AsyncErrorBoundary.tsx` (async)
+- `src/components/error/RouteErrorBoundary.tsx` (rotas)
+- `src/components/error/FormErrorBoundary.tsx` (formulários)
+
+### 🎯 Uso Obrigatório
+```typescript
+// Envolver componentes críticos
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <CriticalComponent />
+</ErrorBoundary>
+```
+
+---
+
+## 🔧 Dependency Injection (IMPLEMENTAR)
+
+### 📍 Container DI
+```typescript
+// src/services/container/DIContainer.ts
+class DIContainer {
+  private services = new Map<string, any>();
+  
+  register<T>(token: string, implementation: T): void;
+  resolve<T>(token: string): T;
+  singleton<T>(token: string, factory: () => T): void;
+}
+
+// Uso
+container.register('IApiService', new AxiosApiService());
+const apiService = container.resolve<IApiService>('IApiService');
+```
+
+---
+
+## 📏 Métricas de Qualidade
+
+### 🎯 Limites Obrigatórios
+- **Componentes**: Máximo 100 linhas
+- **Hooks**: Máximo 50 linhas
+- **Funções**: Máximo 20 linhas
+- **Complexidade Ciclomática**: Máximo 10
+- **Acoplamento**: Máximo 5 dependências por módulo
+
+### 📊 Performance
+- **Bundle Size**: Máximo 500KB (gzipped)
+- **First Contentful Paint**: < 1.5s
+- **Time to Interactive**: < 3s
+- **API Response**: < 200ms
+
+---
+
+## 🚫 Práticas PROIBIDAS
+
+### ❌ Código
+- `any` type (usar `unknown` se necessário)
+- `console.log` em produção (usar logger)
+- Mutação direta de estado
+- Componentes sem TypeScript
+- Imports relativos profundos (`../../../`)
+
+### ❌ Estrutura
+- Arquivos com mais de 200 linhas
+- Componentes com múltiplas responsabilidades
+- Services acoplados a implementações concretas
+- Estado global desnecessário
+
+### ❌ Performance
+- Re-renders desnecessários
+- Fetch de dados em componentes
+- Imagens não otimizadas
+- Bundle splitting inadequado
+
+---
+
+## ✅ Checklist de Desenvolvimento
+
+### 🔍 Antes de Commit
+- [ ] Código segue princípios SOLID
+- [ ] Componentes < 100 linhas
+- [ ] Testes implementados e passando
+- [ ] TypeScript sem erros
+- [ ] ESLint sem warnings
+- [ ] Performance validada
+- [ ] Documentação atualizada
+
+### 🚀 Antes de Deploy
+- [ ] Build sem erros
+- [ ] Testes E2E passando
+- [ ] Bundle size dentro do limite
+- [ ] Lighthouse score > 90
+- [ ] Error boundaries testados
+- [ ] Logs configurados
+
+---
+
+## 🎯 Roadmap de Implementação
+
+### 🔥 Prioridade ALTA (2-4 semanas)
+1. **Error Boundaries** - Implementar em todos os componentes críticos
+2. **Abstrações ApiService** - Criar interfaces e DI container
+3. **Refatoração de Componentes** - Quebrar componentes grandes
+4. **Testes Básicos** - Cobertura mínima de 70%
+
+### 🚀 Prioridade MÉDIA (1-2 meses)
+5. **Container DI Completo** - Inversão total de dependências
+6. **Factory Patterns** - Para criação de objetos complexos
+7. **Strategy Patterns** - Para algoritmos intercambiáveis
+8. **Interface Segregation** - Refinamento de contratos
+
+### 🌟 Prioridade BAIXA (3+ meses)
+9. **Micro-frontends** - Arquitetura modular
+10. **GraphQL** - API mais eficiente
+11. **SSR** - Server-Side Rendering
+
+---
+
+## 📚 Recursos e Referências
+
+### 🔗 Links Úteis
+- [SOLID Principles](https://en.wikipedia.org/wiki/SOLID)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [Zustand Documentation](https://github.com/pmndrs/zustand)
+- [Zod Validation](https://github.com/colinhacks/zod)
+
+### 📖 Documentação Interna
+- `README.md` - Visão geral do projeto
+- `Upgrade/ALTA.md` - Roadmap detalhado
+- `Upgrade/roadmap.solid.md` - Prioridades SOLID
+
+---
+
+**🎯 Objetivo**: Manter 100% de aderência aos princípios SOLID e garantir código limpo, testável e manutenível em todas as implementações.**

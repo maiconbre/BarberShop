@@ -4,23 +4,6 @@
   <img src="./public/img/tela-inicial.png" alt="Barbershop" " />
 </p>
 
-## 📋 Índice
-
-- [Visão Geral](#-visão-geral)
-- [Funcionalidades](#️-funcionalidades)
-- [Tecnologias](#-tecnologias-utilizadas)
-- [Arquitetura](#️-arquitetura-do-projeto)
-- [Configuração de Ambiente](#-configuração-de-ambiente)
-- [Instalação](#-instalação-e-execução)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Guia de Desenvolvimento](#-guia-de-desenvolvimento)
-- [Scripts Disponíveis](#-scripts-disponíveis)
-- [Padrões e Convenções](#-padrões-e-convenções)
-- [Performance e Otimização](#-performance-e-otimização)
-- [Testes](#-testes)
-- [Deploy](#-deploy)
-- [Contribuição](#-contribuindo)
-
 ## 🎯 Visão Geral
 
 O **Barbershop** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.

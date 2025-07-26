@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, Check, X, ChevronLeft, ChevronRight, Loader2, MessageCircle, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Trash2, Check, X, ChevronLeft, ChevronRight, Loader2, MessageCircle } from 'lucide-react';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import { useComments, useCommentLoading, useCommentError, useCommentStore } from '@/stores';
 import type { PublicComment } from '@/types';
+import StandardLayout from '../components/layout/StandardLayout';
 
 const CommentManagementPage: React.FC = () => {
-  const navigate = useNavigate();
   
   // Store hooks
   const [activeTab, setActiveTab] = useState<'approved' | 'rejected' | 'pending'>('pending');
@@ -111,40 +110,13 @@ const CommentManagementPage: React.FC = () => {
   }, [comments, currentPage, commentsPerPage]);
 
   return (
-    <div className="min-h-screen bg-[#0D121E] pt-16 relative overflow-hidden">
-      {/* Elementos decorativos */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-
-      {/* Padrão de linhas decorativas */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }}></div>
-      </div>
-
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Header com navegação */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-white">Gerenciamento de Comentários</h1>
-          <div className="flex items-center gap-3">
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-2 font-medium border border-[#F0B35B]/30 shadow-lg"
-              title="Voltar para o Dashboard"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Voltar</span>
-            </motion.button>
-          </div>
-        </div>
-        
+    <StandardLayout 
+      title="Comentários" 
+      subtitle="Gerencie os comentários dos clientes que serão exibidos no seu site"
+      icon={<MessageCircle className="w-6 h-6" />}
+    >
+      <main className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <p className="text-gray-400">Gerencie os comentários dos clientes que serão exibidos no seu site.</p>
           {!isLoading && Array.isArray(comments) && comments.length > 0 && (
             <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -385,7 +357,7 @@ const CommentManagementPage: React.FC = () => {
                              'px-4 py-2 text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition-colors'}
         />
       </main>
-    </div>
+    </StandardLayout>
   );
 };
 

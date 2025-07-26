@@ -8,6 +8,7 @@ import ApiService from '../services/ApiService';
 import { logger } from '../utils/logger';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
+import StandardLayout from '../components/layout/StandardLayout';
 
 interface Service {
   id: string;
@@ -253,32 +254,25 @@ const ServiceManagementPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0D121E] pt-20 pb-10">
-      
-      {/* Background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-          backgroundPosition: 'center'
-        }}></div>
-      </div>
-      
+    <StandardLayout 
+      title="Serviços" 
+      subtitle="Gerencie os serviços oferecidos pela sua barbearia"
+      icon={<Scissors className="w-6 h-6" />}
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex items-center justify-between mb-6 border-b border-[#F0B35B]/20 pb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Gerenciamento de Serviços</h1>
-          <motion.button 
-            onClick={() => navigate('/dashboard')}
-            className="relative overflow-hidden group flex items-center  px-4 py-2 bg-[#1A1F2E] rounded-lg hover:bg-[#252B3B] transition-all duration-300 text-white border border-[#F0B35B]/20 hover:border-[#F0B35B]/40"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ChevronLeft size={18} className="text-[#F0B35B]" />
-            <span>Voltar</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/10 to-[#F0B35B]/0 opacity-0 group-hover:opacity-100 transition-opacity -skew-x-45 animate-shine" />
-          </motion.button>
+          <div className="flex items-center gap-3">
+            <motion.button
+              onClick={handleRefreshServices}
+              disabled={isRefreshing}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1A1F2E] text-white rounded-lg hover:bg-[#252B3B] transition-colors border border-[#F0B35B]/20"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
+              <span className="hidden sm:inline">Atualizar</span>
+            </motion.button>
+          </div>
         </div>
 
         {error && (
@@ -463,7 +457,7 @@ const ServiceManagementPage: React.FC = () => {
         service={serviceToEdit}
         isLoading={isLoading}
       />
-    </div>
+    </StandardLayout>
   );
 };
 

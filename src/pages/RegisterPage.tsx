@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Trash2, Edit, ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Trash2, Edit, UserCog } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
 import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError, useBarberLoading } from '../stores/barberStore';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
+import StandardLayout from '../components/layout/StandardLayout';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -152,7 +151,6 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
 };
 
 const RegisterPage: React.FC = () => {
-  const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
   const [isLoading, setIsLoading] = useState(false);
@@ -173,7 +171,7 @@ const RegisterPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
   
-  // Usar o store de barbeiros
+  // Use barber store
   const barbers = useBarberList();
   const fetchBarbers = useFetchBarbers();
   const createBarber = useCreateBarber();
@@ -181,27 +179,17 @@ const RegisterPage: React.FC = () => {
   const deleteBarber = useDeleteBarber();
   const clearError = useClearBarberError();
   const isBarberLoading = useBarberLoading();
-
   const barberError = useBarberError();
 
   useEffect(() => {
-    // Verificar se o usuário tem permissão de admin
-    if (!currentUser || currentUser.role !== 'admin') {
-      navigate('/dashboard');
-      return;
-    }
-    
-    // Carregar barbeiros usando o store apenas uma vez
     fetchBarbers();
-  }, []); // Array vazio para executar apenas uma vez
+  }, [fetchBarbers]); // Add fetchBarbers to dependency array
   
-  // Limpar erros do store quando o componente for desmontado
   useEffect(() => {
     return () => {
       clearError();
     };
-  }, []); // Removido clearError das dependências
-  
+  }, [clearError]); // Add clearError to dependency array
   // Mostrar erros do store como toast (simplificado)
   useEffect(() => {
     if (barberError) {
@@ -420,31 +408,11 @@ const RegisterPage: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-[#0D121E] py-20 px-4 sm:py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Elementos decorativos */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-
-      {/* Padrão de linhas decorativas */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }}></div>
-      </div>
-
-      {/* Logo clicável */}
-      <div onClick={() => navigate('/dashboard')} className="absolute top-8 left-1/2 -translate-x-1/2 cursor-pointer z-20">
-        <div className="transform hover:scale-110 transition-transform duration-300">
-          <div className="inline-block relative">
-            <div className="text-[#F0B35B] text-xl font-medium tracking-wider border border-[#F0B35B]/70 px-3 py-1.5 rounded">
-              BARBER<span className="text-white/90">SHOP</span>
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-full h-full border border-white/10 rounded"></div>
-          </div>
-        </div>
-      </div>
-
+    <StandardLayout 
+      title="Barbeiros" 
+      subtitle="Cadastre e gerencie os barbeiros da sua barbearia"
+      icon={<UserCog className="w-6 h-6" />}
+    >
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -500,22 +468,7 @@ const RegisterPage: React.FC = () => {
         onConfirm={handleConfirmUpdate}
       />
 
-      {/* Header com navegação */}
-      <div className="flex justify-between items-center mb-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 mt-2 relative z-10">
-        <h1 className="text-2xl font-semibold text-white">Cadastro de Barbeiros</h1>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/dashboard')}
-          className="px-4 py-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#F0B35B] hover:text-black transition-colors duration-300 flex items-center justify-center gap-1.5 text-sm font-medium border border-[#F0B35B]/30 shadow-lg"
-          title="Voltar para o Dashboard"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Voltar</span>
-        </motion.button>
-      </div>
-      
-      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto relative z-10">
+      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
         <div className="w-full md:flex-1">
           <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
             <div>
@@ -695,7 +648,7 @@ const RegisterPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </StandardLayout>
   );
 };
 
