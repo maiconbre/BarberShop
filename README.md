@@ -1,7 +1,9 @@
 # 💈 BarberGR - Sistema de Agendamento para Barbearias
 
 <p align="center">
+
   <img src="./public/screenshots/Img1.PNG" alt="BarberGR" width="300px" />
+
 </p>
 
 ## 📋 Índice
@@ -132,6 +134,8 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 
 ### Visão Geral da Arquitetura
 
+### Estrutura de Diretórios
+
 ```
 BarberGR/
 ├── 📁 public/                    # Assets estáticos
@@ -217,6 +221,7 @@ BarberGR/
 - **useFormValidation**: Validação em tempo real
 
 ---
+
 
 ## 🧠 Padrões de Projeto
 
