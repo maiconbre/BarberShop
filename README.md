@@ -1,8 +1,8 @@
-# 💈 BarberGR - Sistema de Agendamento para Barbearias
+# 💈 Barbershop - Sistema de Agendamento para Barbearias
 
 <p align="center">
 
-  <img src="./public/screenshots/Img1.PNG" alt="BarberGR" width="300px" />
+  <img src="./public/screenshots/Img1.PNG" alt="Barbershop" width="300px" />
 
 </p>
 
@@ -25,7 +25,7 @@
 
 ## 🎯 Visão Geral
 
-O **BarberGR** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
+O **Barbershop** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
 
 Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sistema aplica os princípios SOLID, boas práticas de engenharia de software e tecnologias modernas do ecossistema React.
 
@@ -137,7 +137,7 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 ### Estrutura de Diretórios
 
 ```
-BarberGR/
+Barbershop/
 ├── 📁 public/                    # Assets estáticos
 │   ├── screenshots/              # Capturas de tela
 │   └── favicon.ico
@@ -245,10 +245,10 @@ BarberGR/
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/maiconbre/BarberGR.git
+git clone https://github.com/maiconbre/Barbershop.git
 
 # 2. Acesse o diretório
-cd BarberGR
+cd Barbershop
 
 # 3. Instale as dependências
 npm install
@@ -335,7 +335,7 @@ npm run start:dev
 1. **Setup Inicial**
    ```bash
    git clone <repo>
-   cd BarberGR
+   cd Barbershop
    npm install
    npm run dev:local
    ```
@@ -683,11 +683,11 @@ Contribuições são sempre bem-vindas! Siga este guia para contribuir de forma 
 ```bash
 # Fork o repositório no GitHub
 # Clone seu fork
-git clone https://github.com/SEU_USERNAME/BarberGR.git
-cd BarberGR
+git clone https://github.com/SEU_USERNAME/Barbershop.git
+cd Barbershop
 
 # Adicione o repositório original como upstream
-git remote add upstream https://github.com/maiconbre/BarberGR.git
+git remote add upstream https://github.com/maiconbre/Barbershop.git
 ```
 
 
@@ -716,7 +716,7 @@ git push origin feature/nome-da-feature
 
 ### 🐛 Reportando Bugs
 
-Para reportar bugs, abra uma [issue](https://github.com/maiconbre/BarberGR/issues) com:
+Para reportar bugs, abra uma [issue](https://github.com/maiconbre/Barbershop/issues) com:
 
 1. **Descrição** do problema
 2. **Passos para reproduzir**
