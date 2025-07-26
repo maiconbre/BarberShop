@@ -1,9 +1,7 @@
 # 💈 Barbershop - Sistema de Agendamento para Barbearias
 
 <p align="center">
-
-  <img src="./public/screenshots/Img1.PNG" alt="Barbershop" width="300px" />
-
+  <img src="./public/img/tela-inicial.png" alt="Barbershop" " />
 </p>
 
 ## 📋 Índice
@@ -131,8 +129,6 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
   
 
 ## 📁 Estrutura do Projeto
-
-### Visão Geral da Arquitetura
 
 ### Estrutura de Diretórios
 
@@ -620,39 +616,6 @@ A: Atualmente não. PWA está no roadmap para implementação futura.
 **Q: Como contribuir com o projeto?**
 A: Siga o [Guia de Contribuição](#-contribuindo) e abra um Pull Request.
 
-### 🔧 Configurações Avançadas
-
-#### Personalizar Cache
-```typescript
-// src/config/apiConfig.ts
-export const CUSTOM_CACHE_CONFIG = {
-  comments: { ttl: 15 * 60 * 1000 },  // 15 minutos
-  services: { ttl: 10 * 60 * 1000 },  // 10 minutos
-  // ...
-};
-```
-
-#### Configurar Retry
-```typescript
-// src/config/apiConfig.ts
-export const RETRY_CONFIG = {
-  maxAttempts: 5,
-  initialDelay: 1000,
-  maxDelay: 30000,
-  backoffMultiplier: 2
-};
-```
-
-## 📊 Métricas e Analytics
-
-### 📈 Performance Atual
-
-- **Lighthouse Score**: 95+
-- **Bundle Size**: ~450KB (gzipped)
-- **First Load**: ~1.2s
-- **Cache Hit Rate**: ~85%
-
-
 ## 🔐 Segurança
 
 ### 🛡️ Práticas Implementadas
@@ -669,7 +632,6 @@ export const RETRY_CONFIG = {
 - [ ] Adicionar CSRF protection
 - [ ] Configurar CORS 
 - [ ] Implementar 2FA (Two-Factor Authentication)
-
 
 ---
 
@@ -724,24 +686,6 @@ Para reportar bugs, abra uma [issue](https://github.com/maiconbre/Barbershop/iss
 4. **Screenshots** (se aplicável)
 5. **Ambiente** (OS, browser, versão)
 
-### 💡 Sugerindo Funcionalidades
-
-Para sugerir novas funcionalidades:
-
-1. Verifique se já não existe uma issue similar
-2. Abra uma nova issue com label `enhancement`
-3. Descreva detalhadamente a funcionalidade
-4. Explique o valor que ela agregaria
-5. Considere a complexidade de implementação
-
-### 👥 Código de Conduta
-
-- 🤝 Seja respeitoso e inclusivo
-- 💬 Comunique-se de forma clara e construtiva
-- 🎯 Foque no problema, não na pessoa
-- 📚 Esteja aberto a aprender e ensinar
-- 🌟 Celebre as contribuições de outros
-
 
 ### 🎯 Áreas que Precisam de Ajuda
 
@@ -758,12 +702,6 @@ Para sugerir novas funcionalidades:
 3. **Testing** - Funcionalidade é testada
 4. **Approval** - PR é aprovado
 5. **Merge** - Código é integrado à main
-
-### 📞 Contato
-
-Dúvidas sobre contribuição?
-
-- 📧 Email: [maiconbre277@gmail.com](mailto:maiconbre277@gmail.com)
 
 ---
 
