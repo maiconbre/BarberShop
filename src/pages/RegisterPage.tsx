@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Trash2, Edit, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
-import { useBarbers, useBarberActions, useBarberError } from '../stores/barberStore';
+import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError, useBarberLoading } from '../stores/barberStore';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
 
@@ -174,8 +174,13 @@ const RegisterPage: React.FC = () => {
   const [editSuccess, setEditSuccess] = useState('');
   
   // Usar o store de barbeiros
-  const { barbers } = useBarbers();
-  const { fetchBarbers, createBarber, updateBarber, deleteBarber, clearError } = useBarberActions();
+  const barbers = useBarberList();
+  const fetchBarbers = useFetchBarbers();
+  const createBarber = useCreateBarber();
+  const updateBarber = useUpdateBarber();
+  const deleteBarber = useDeleteBarber();
+  const clearError = useClearBarberError();
+  const isBarberLoading = useBarberLoading();
 
   const barberError = useBarberError();
 
@@ -186,18 +191,18 @@ const RegisterPage: React.FC = () => {
       return;
     }
     
-    // Carregar barbeiros usando o store
+    // Carregar barbeiros usando o store apenas uma vez
     fetchBarbers();
-  }, [currentUser, navigate, fetchBarbers]);
+  }, []); // Array vazio para executar apenas uma vez
   
   // Limpar erros do store quando o componente for desmontado
   useEffect(() => {
     return () => {
       clearError();
     };
-  }, [clearError]);
+  }, []); // Removido clearError das dependências
   
-  // Mostrar erros do store como toast
+  // Mostrar erros do store como toast (simplificado)
   useEffect(() => {
     if (barberError) {
       toast.error(barberError, {
@@ -211,9 +216,14 @@ const RegisterPage: React.FC = () => {
           border: '1px solid #FECACA'
         }
       });
-      clearError();
+      // Limpar erro após mostrar o toast
+      const timeoutId = setTimeout(() => {
+        clearError();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [barberError, clearError]);
+  }, [barberError]);
 
   // Função removida - agora usa o store
 

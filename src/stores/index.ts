@@ -20,13 +20,19 @@ export {
 } from './commentStore';
 export {
   useBarberStore,
-  useBarbers,
   useBarberList,
   useCurrentBarber,
   useBarberLoading,
   useBarberError,
   useBarberFilters,
-  useBarberActions
+  useFetchBarbers,
+  useGetBarberById,
+  useCreateBarber,
+  useUpdateBarber,
+  useDeleteBarber,
+  useSetBarberFilters,
+  useClearBarberError,
+  useResetBarberStore
 } from './barberStore';
 
 // Re-export types

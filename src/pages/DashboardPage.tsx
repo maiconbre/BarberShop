@@ -951,7 +951,7 @@ const DashboardPage: React.FC = () => {
                             </p>
                           </div>
                         ) : (
-                          <div className={`flex-1 overflow-y-auto ${isMobile ? 'card-grid' : 'space-y-3 pr-2'}`}>
+                          <div className={`flex-1 ${isMobile ? 'card-grid' : 'space-y-3'}`}>
                             {currentAppointments.map((appointment) => (
                               <AppointmentCardNew
                                 key={`appointment-${appointment.id}-${appointment.status}`}
@@ -964,8 +964,8 @@ const DashboardPage: React.FC = () => {
                             ))}
 
                             {totalPages > 1 && (
-                              <div className={`${isMobile ? 'mt-8 pt-6 border-t border-[#F0B35B]/10' : 'mt-4 pt-4 border-t border-[#F0B35B]/10'}`}>
-                                <div className="flex justify-center items-center gap-2">
+                              <div className={`${isMobile ? 'mt-8 pt-6 border-t border-white/10' : 'mt-4 pt-4 border-t border-white/10'}`}>
+                                <div className="flex justify-center items-center gap-2 flex-wrap overflow-x-hidden">
                                   {/* Botão página anterior */}
                                   <button
                                     onClick={() => {
@@ -1002,10 +1002,7 @@ const DashboardPage: React.FC = () => {
                                     ));
                                   })()}
 
-                                  {/* Indicador de mais páginas */}
-                                  {currentPage + 1 < totalPages && (
-                                    <span className="text-gray-400 px-2 text-sm">...</span>
-                                  )}
+
 
                                   {/* Botão próxima página */}
                                   <button
@@ -1115,10 +1112,7 @@ const DashboardPage: React.FC = () => {
                         </div>
                       ) : (
                         <div className="flex flex-col flex-grow">
-                          <div className={`grid grid-cols-1 gap-3 sm:gap-4 ${isMobile
-                            ? 'max-h-[60vh]'
-                            : 'max-h-[calc(100vh-20rem)]'
-                            } overflow-y-auto pr-1 custom-scrollbar optimize-scroll`} style={{ transform: 'translate3d(0,0,0)' }}>
+                          <div className={`grid grid-cols-1 gap-2 sm:gap-3`}>
                             {calendarCurrentAppointments.map((appointment) => (
                               <AppointmentCardNew
                                 key={`calendar-appointment-${appointment.id}-${appointment.status}`}
@@ -1135,7 +1129,7 @@ const DashboardPage: React.FC = () => {
                             }
                           </div>
                           {calendarTotalPages > 1 && (
-                            <div className="flex justify-center items-center gap-2 mt-4 pt-3 border-t border-white/10">
+                            <div className="flex justify-center items-center gap-2 mt-4 pt-3 border-t border-white/10 flex-wrap overflow-x-hidden">
                               {/* Botão página anterior */}
                               <button
                                 onClick={() => {
@@ -1150,19 +1144,27 @@ const DashboardPage: React.FC = () => {
                                 <ChevronLeft className="w-4 h-4" />
                               </button>
 
-                              {/* Páginas limitadas a 2 botões */}
+                              {/* Páginas numeradas */}
                               {(() => {
-                                const startPage = Math.max(1, currentPage - 1);
-                                const endPage = Math.min(calendarTotalPages, startPage + 1);
+                                const maxVisiblePages = 3;
+                                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                                let endPage = Math.min(calendarTotalPages, startPage + maxVisiblePages - 1);
+                                
+                                // Ajustar startPage se endPage for menor que o esperado
+                                if (endPage - startPage + 1 < maxVisiblePages) {
+                                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                }
+                                
                                 const pages = [];
                                 for (let i = startPage; i <= endPage; i++) {
                                   pages.push(i);
                                 }
+                                
                                 return pages.map((number) => (
                                   <button
                                     key={number}
                                     onClick={() => paginate(number)}
-                                    className={`px-3 py-2 rounded-lg transition-all text-sm ${currentPage === number
+                                    className={`px-3 py-2 rounded-lg transition-all text-sm min-w-[2.5rem] ${currentPage === number
                                       ? 'bg-[#F0B35B] text-black font-medium'
                                       : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
                                       }`}
@@ -1172,10 +1174,7 @@ const DashboardPage: React.FC = () => {
                                 ));
                               })()}
 
-                              {/* Indicador de mais páginas */}
-                              {currentPage + 1 < calendarTotalPages && (
-                                <span className="text-gray-400 px-1 text-xs">...</span>
-                              )}
+
 
                               {/* Botão próxima página */}
                               <button
@@ -1242,9 +1241,10 @@ const DashboardPage: React.FC = () => {
             setIsViewModalOpen(false);
           }
         }}
-        onToggleStatus={() => {
+        onToggleStatus={async () => {
           if (selectedAppointment) {
-            handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status);
+            await handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status);
+            setIsViewModalOpen(false);
           }
         }}
       />

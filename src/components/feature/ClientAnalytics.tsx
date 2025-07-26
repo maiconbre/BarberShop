@@ -156,6 +156,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
             if (!clientMap.has(clientKey)) {
                 clientMap.set(clientKey, {
+                    id: clientKey, // Adiciona um ID único baseado na chave do cliente
                     name: app.clientName,
                     whatsapp: clientWhatsapp,
                     visits: 0,

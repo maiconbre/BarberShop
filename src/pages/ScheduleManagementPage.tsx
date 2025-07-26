@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Loader2, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useBarberList, useBarberActions } from '../stores';
+import { useBarberList, useFetchBarbers } from '../stores';
 
 const ScheduleManagementPage: React.FC = () => {
   const { getCurrentUser } = useAuth();
@@ -15,7 +15,7 @@ const ScheduleManagementPage: React.FC = () => {
   
   // Hooks do barberStore
   const barberList = useBarberList();
-  const { fetchBarbers } = useBarberActions();
+  const fetchBarbers = useFetchBarbers();
 
   // Função para buscar barbeiros usando o store
   useEffect(() => {
@@ -25,27 +25,23 @@ const ScheduleManagementPage: React.FC = () => {
       try {
         if (currentUser.role === 'admin') {
           await fetchBarbers();
-          const formattedBarbers = barberList.map((barber: any) => ({
-            id: barber.id.toString(), // Garantir que o ID seja string
-            name: barber.name
-          }));
-          setBarbers(formattedBarbers);
+          // Não usar barberList aqui para evitar loop - será atualizado no próximo useEffect
         } else {
           // Se for barbeiro, usar os dados do usuário atual
           setBarbers([{
             id: currentUser.id?.toString() || '', // Garantir que o ID seja string
             name: currentUser.name || ''
           }]);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Erro ao buscar barbeiros:', error);
-      } finally {
         setIsLoading(false);
       }
     };
 
     loadBarbers();
-  }, [currentUser, fetchBarbers]);
+  }, [currentUser]); // Removido fetchBarbers das dependências
   
   // Atualizar barbeiros quando o store mudar
   useEffect(() => {
@@ -55,6 +51,7 @@ const ScheduleManagementPage: React.FC = () => {
         name: barber.name
       }));
       setBarbers(formattedBarbers);
+      setIsLoading(false); // Finalizar loading quando os dados chegarem
     }
   }, [barberList, currentUser?.role]);
 

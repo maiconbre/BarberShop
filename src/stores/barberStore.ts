@@ -106,22 +106,18 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
 
     // Actions
     fetchBarbers: async (force = false) => {
-      const { lastFetch } = get();
+      const state = get();
       const now = Date.now();
       
+      // Evitar múltiplas requisições simultâneas
+      if (state.isLoading) {
+        return;
+      }
+      
       // Check cache first (unless forced)
-      if (!force && now - lastFetch < CACHE_TTL) {
-        try {
-          const cacheService = new CacheService();
-          const cachedData = await cacheService.get(CACHE_KEY);
-          if (cachedData && Array.isArray(cachedData)) {
-            set({ barbers: cachedData });
-            logger.componentDebug('Barbeiros carregados do cache');
-            return;
-          }
-        } catch (error) {
-          logger.componentError('Erro ao carregar cache de barbeiros:', error);
-        }
+      if (!force && now - state.lastFetch < CACHE_TTL && state.barbers.length > 0) {
+        logger.componentDebug('Barbeiros já carregados recentemente');
+        return;
       }
       
       // Rate limiting check
@@ -129,16 +125,15 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
         return;
       }
       
-      set({ isLoading: true, error: null });
+      // Atualizar estado de loading apenas uma vez
+      set({ 
+        isLoading: true, 
+        error: null,
+        requestCount: state.requestCount + 1,
+        lastRequestTime: now
+      });
       
       try {
-        // Update request tracking
-        const { requestCount } = get();
-        set({ 
-          requestCount: requestCount + 1, 
-          lastRequestTime: now 
-        });
-        
         const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -157,7 +152,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
         if (data.success && Array.isArray(data.data)) {
           const barbers = data.data;
           
-          // Update state
+          // Atualizar estado apenas uma vez com todos os dados
           set({ 
             barbers, 
             lastFetch: now,
@@ -165,7 +160,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
             error: null 
           });
           
-          // Update cache
+          // Update cache em background sem afetar o estado
           try {
             const cacheService = new CacheService();
             await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
@@ -388,11 +383,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
   };
 }));
 
-// Selectors
-export const useBarbers = () => {
-  const store = useBarberStore();
-  return { ...store };
-};
+// Selectors - removido useBarbers para evitar re-renders desnecessários
 
 // Specific selectors
 export const useBarberList = () => useBarberStore((state) => state.barbers);
@@ -401,17 +392,12 @@ export const useBarberLoading = () => useBarberStore((state) => state.isLoading)
 export const useBarberError = () => useBarberStore((state) => state.error);
 export const useBarberFilters = () => useBarberStore((state) => state.filters);
 
-// Actions
-export const useBarberActions = () => {
-  const store = useBarberStore();
-  return {
-    fetchBarbers: store.fetchBarbers,
-    getBarberById: store.getBarberById,
-    createBarber: store.createBarber,
-    updateBarber: store.updateBarber,
-    deleteBarber: store.deleteBarber,
-    setFilters: store.setFilters,
-    clearError: store.clearError,
-    reset: store.reset,
-  };
-};
+// Actions - usando seletores individuais para evitar re-renders
+export const useFetchBarbers = () => useBarberStore((state) => state.fetchBarbers);
+export const useGetBarberById = () => useBarberStore((state) => state.getBarberById);
+export const useCreateBarber = () => useBarberStore((state) => state.createBarber);
+export const useUpdateBarber = () => useBarberStore((state) => state.updateBarber);
+export const useDeleteBarber = () => useBarberStore((state) => state.deleteBarber);
+export const useSetBarberFilters = () => useBarberStore((state) => state.setFilters);
+export const useClearBarberError = () => useBarberStore((state) => state.clearError);
+export const useResetBarberStore = () => useBarberStore((state) => state.reset);

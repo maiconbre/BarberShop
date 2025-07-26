@@ -6,7 +6,7 @@ import Calendar from './Calendar';
 import { format } from 'date-fns';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 import { cacheService } from '../../services/CacheService';
-import { useBarberList, useBarberActions } from '../../stores';
+import { useBarberList, useFetchBarbers } from '../../stores';
 
 // Importando constantes e funções do serviço de agendamentos
 import { 
@@ -28,7 +28,7 @@ interface BookingModalProps {
 const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '', initialServices = [], preloadedAppointments = [] }) => {
   // Hooks do barberStore
   const barberList = useBarberList();
-  const { fetchBarbers } = useBarberActions();
+  const fetchBarbers = useFetchBarbers();
   
   // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
@@ -168,11 +168,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         setIsLoadingBarbers(true);
         setBarbersError('');
         await fetchBarbers();
-        setBarbers(barberList);
+        // Não usar barberList aqui para evitar loop - será atualizado no próximo useEffect
       } catch (error) {
         logger.componentError('Erro ao buscar barbeiros:', error);
         setBarbersError('Erro ao carregar barbeiros. Tente novamente.');
-      } finally {
         setIsLoadingBarbers(false);
       }
     };
@@ -183,6 +182,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Atualizar barbeiros quando o store mudar
   React.useEffect(() => {
     setBarbers(barberList);
+    if (barberList.length > 0) {
+      setIsLoadingBarbers(false); // Finalizar loading quando os dados chegarem
+    }
   }, [barberList]);
 
   // Efeito para atualizar os horários pré-carregados quando as props mudarem
