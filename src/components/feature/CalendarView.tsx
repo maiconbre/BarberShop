@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, CalendarIcon, Filter, Calendar, Scissors, User, X, Search, CalendarDays, CalendarRange, Grid } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarIcon, Calendar, X, Search, CalendarDays, CalendarRange, Grid } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, getMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -32,8 +32,6 @@ interface CalendarViewProps {
   onToggleRangeFilter?: () => void;
   onResetFilters?: () => void;
   totalValue?: number;
-  barbers?: {id: string; name: string}[];
-  services?: {id: string; name: string}[];
 }
 
 
@@ -44,9 +42,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   startDate,
   endDate,
   currentUser,
-  onResetFilters = () => { },
-  barbers = [],
-  services = []
+  onResetFilters = () => { }
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -57,8 +53,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('month');
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedBarber, setSelectedBarber] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<string>('');
+
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [timeRangeFilter, setTimeRangeFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -279,15 +274,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     
     // Aplicar filtros específicos
     return filtered.filter(app => {
-      // Filtro por barbeiro
-      if (selectedBarber && app.barberId !== selectedBarber) {
-        return false;
-      }
 
-      // Filtro por serviço
-      if (selectedService && app.service !== selectedService) {
-        return false;
-      }
 
       // Filtro por status
       if (selectedStatus && app.status !== selectedStatus) {
@@ -318,7 +305,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
       return true;
     });
-  }, [appointments, selectedBarber, selectedService, selectedStatus, timeRangeFilter, searchTerm, currentUser]);
+  }, [appointments, selectedStatus, timeRangeFilter, searchTerm, currentUser]);
 
   // Função para verificar se uma data tem agendamentos com memoização
   const hasAppointments = useCallback((date: string) => {
@@ -588,8 +575,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   // Limpar todos os filtros
   const handleClearFilters = () => {
-    setSelectedBarber('');
-    setSelectedService('');
     setSelectedStatus('');
     setTimeRangeFilter('');
     setSearchTerm('');
@@ -742,130 +727,81 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 justify-between sm:justify-end">
-          <div className="flex items-center">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setViewMode('day')}
-              className={`p-1.5 rounded-lg ${viewMode === 'day' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'day' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
               aria-label="Visualização diária"
             >
-              <Calendar className="w-4 h-4" />
+              <Calendar className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('week')}
-              className={`p-1.5 rounded-lg ${viewMode === 'week' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'week' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
               aria-label="Visualização semanal"
             >
-              <CalendarRange className="w-4 h-4" />
+              <CalendarRange className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('month')}
-              className={`p-1.5 rounded-lg ${viewMode === 'month' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'month' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
               aria-label="Visualização mensal"
             >
-              <CalendarDays className="w-4 h-4" />
+              <CalendarDays className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('year')}
-              className={`p-1.5 rounded-lg ${viewMode === 'year' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'year' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
               aria-label="Visualização anual"
             >
-              <Grid className="w-4 h-4" />
+              <Grid className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="relative" ref={filterRef}>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-1.5 rounded-lg ${showFilters ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400'}`}
-              aria-label="Filtros"
-            >
-              <Filter className="w-4 h-4" />
-            </button>
-            
+          <div className="relative flex items-center" ref={filterRef}>
             <AnimatePresence>
-              {showFilters && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-2 w-64 bg-[#1A1F2E] rounded-lg shadow-lg p-3 z-10 border border-gray-700"
+              {showFilters ? (
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: "auto", opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="flex items-center overflow-hidden"
                 >
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-medium text-white">Filtros</h3>
-                    <button 
-                      onClick={() => setShowFilters(false)}
-                      className="text-gray-400"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs text-gray-400 flex items-center gap-1 mb-1">
-                        <Search className="w-3 h-3" /> Buscar cliente
-                      </label>
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Nome do cliente"
-                        className="w-full bg-[#252B3B] text-white text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#F0B35B]"
-                      />
-                    </div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar cliente..."
+                    className="w-40 sm:w-48 bg-[#252B3B] text-white text-sm rounded-lg px-3 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] border border-gray-600 focus:border-[#F0B35B] transition-colors"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      setShowFilters(false);
+                      setSearchTerm('');
+                    }}
+                    className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#252B3B] transition-colors"
+                    aria-label="Fechar busca"
+                  >
                     
-                    {barbers.length > 0 && (
-                      <div>
-                        <label className="text-xs text-gray-400 flex items-center gap-1 mb-1">
-                          <User className="w-3 h-3" /> Barbeiro
-                        </label>
-                        <select
-                          value={selectedBarber}
-                          onChange={(e) => setSelectedBarber(e.target.value)}
-                          className="w-full bg-[#252B3B] text-white text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#F0B35B]"
-                        >
-                          <option value="">Todos os barbeiros</option>
-                          {barbers.map(barber => (
-                            <option key={barber.id} value={barber.id}>{barber.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    
-                    {services.length > 0 && (
-                      <div>
-                        <label className="text-xs text-gray-400 flex items-center gap-1 mb-1">
-                          <Scissors className="w-3 h-3" /> Serviço
-                        </label>
-                        <select
-                          value={selectedService}
-                          onChange={(e) => setSelectedService(e.target.value)}
-                          className="w-full bg-[#252B3B] text-white text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#F0B35B]"
-                        >
-                          <option value="">Todos os serviços</option>
-                          {services.map(service => (
-                            <option key={service.id} value={service.id}>{service.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                    
-                    <div className="pt-1">
-                      <button
-                        onClick={handleClearFilters}
-                        className="w-full bg-[#F0B35B]/10 text-[#F0B35B] text-xs rounded-md py-1.5"
-                      >
-                        Limpar filtros
-                      </button>
-                    </div>
-                  </div>
+                  </button>
                 </motion.div>
+              ) : (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  onClick={() => setShowFilters(true)}
+                  className="w-8 h-8 bg-[#252B3B] rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#1A1F2E] transition-colors border border-gray-600"
+                  aria-label="Buscar cliente"
+                >
+                  <Search className="w-4 h-4" />
+                </motion.button>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 switch(viewMode) {
@@ -884,11 +820,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 }
               }}
               disabled={isLoading}
-              className={`p-1.5 rounded-lg
+              className={`p-2 rounded-lg hover:bg-[#252B3B] transition-colors
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label="Anterior"
             >
-              <ChevronLeft className="w-4 h-4 text-gray-400" />
+              <ChevronLeft className="w-5 h-5 text-gray-400" />
             </button>
             <button
               onClick={() => {
@@ -908,11 +844,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 }
               }}
               disabled={isLoading}
-              className={`p-1.5 rounded-lg
+              className={`p-2 rounded-lg hover:bg-[#252B3B] transition-colors
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label="Próximo"
             >
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
           </div>
         </div>
@@ -987,20 +923,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       </AnimatePresence>
       
       {/* Active filters indicator */}
-      {(selectedBarber || selectedService || searchTerm) && (
+      {searchTerm && (
         <div className="flex items-center justify-between bg-[#252B3B]/50 rounded-lg p-2 mt-2">
           <div className="flex items-center gap-2 text-xs text-gray-300 overflow-x-auto hide-scrollbar">
             <span className="text-[#F0B35B]">Filtros ativos:</span>
-            {selectedBarber && (
-              <span className="bg-[#1A1F2E] px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
-                Barbeiro: {barbers.find(b => b.id === selectedBarber)?.name || selectedBarber}
-              </span>
-            )}
-            {selectedService && (
-              <span className="bg-[#1A1F2E] px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
-                Serviço: {services.find(s => s.id === selectedService)?.name || selectedService}
-              </span>
-            )}
             {searchTerm && (
               <span className="bg-[#1A1F2E] px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
                 Cliente: {searchTerm}

@@ -4,55 +4,56 @@ import { useAuth } from '../contexts/AuthContext';
 import { Loader2, ArrowLeft, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useBarberList, useFetchBarbers } from '../stores';
 
 const ScheduleManagementPage: React.FC = () => {
   const { getCurrentUser } = useAuth();
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const currentUser = getCurrentUser();
   const [barbers, setBarbers] = useState<Array<{ id: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Hooks do barberStore
+  const barberList = useBarberList();
+  const fetchBarbers = useFetchBarbers();
 
-  // Função para buscar barbeiros da API
+  // Função para buscar barbeiros usando o store
   useEffect(() => {
-    const fetchBarbers = async () => {
+    const loadBarbers = async () => {
       if (!currentUser) return;
 
       try {
         if (currentUser.role === 'admin') {
-          const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/barbers`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          const data = await response.json();
-          console.log('Barbers data:', data); // Debug log
-          
-          if (response.ok && data.data) {
-            const formattedBarbers = data.data.map((barber: any) => ({
-              id: barber.id.toString(), // Garantir que o ID seja string
-              name: barber.name
-            }));
-            console.log('Formatted barbers:', formattedBarbers); // Debug log
-            setBarbers(formattedBarbers);
-          } else {
-            console.error('Erro na resposta da API:', data);
-          }
+          await fetchBarbers();
+          // Não usar barberList aqui para evitar loop - será atualizado no próximo useEffect
         } else {
           // Se for barbeiro, usar os dados do usuário atual
           setBarbers([{
             id: currentUser.id?.toString() || '', // Garantir que o ID seja string
             name: currentUser.name || ''
           }]);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Erro ao buscar barbeiros:', error);
-      } finally {
         setIsLoading(false);
       }
     };
 
-    fetchBarbers();
-  }, [currentUser]);
+    loadBarbers();
+  }, [currentUser]); // Removido fetchBarbers das dependências
+  
+  // Atualizar barbeiros quando o store mudar
+  useEffect(() => {
+    if (currentUser?.role === 'admin' && barberList.length > 0) {
+      const formattedBarbers = barberList.map((barber: any) => ({
+        id: barber.id.toString(),
+        name: barber.name
+      }));
+      setBarbers(formattedBarbers);
+      setIsLoading(false); // Finalizar loading quando os dados chegarem
+    }
+  }, [barberList, currentUser?.role]);
 
   if (!currentUser) return null;
 

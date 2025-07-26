@@ -297,6 +297,18 @@ class CacheService implements ICacheService, ICacheFetcher {
   }
 
   /**
+   * Gets all cache keys
+   */
+  async getAllKeys(): Promise<string[]> {
+    try {
+      return this.persistentStorage.getAllKeys();
+    } catch (error) {
+      console.error('Error getting all cache keys:', error);
+      return [];
+    }
+  }
+
+  /**
    * Forces cleanup
    */
   async forceCleanup(): Promise<void> {

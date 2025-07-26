@@ -211,18 +211,63 @@ const Calendar: React.FC<CalendarProps> = ({
   // Selecionar horário
   const handleTimeClick = useCallback(async (time: string) => {
     if (!selectedDate) {
-      toast.error('Selecione uma data primeiro');
+      toast.error('Selecione uma data primeiro', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#1A1F2E'
+        }
+      });
       return;
     }
     
     if (!selectedBarber) {
-      toast.error('Selecione um barbeiro primeiro');
+      toast.error('Selecione um barbeiro primeiro', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#1A1F2E'
+        }
+      });
       return;
     }
     
     // Verificar primeiro no cache local para feedback imediato
     if (!isLocallyAvailable(selectedDate, time)) {
-      toast.error('Este horário já está ocupado');
+      toast.error('Este horário já está ocupado', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#1A1F2E'
+        }
+      });
       return;
     }
     
@@ -230,7 +275,22 @@ const Calendar: React.FC<CalendarProps> = ({
     try {
       const isAvailable = await checkAsyncTimeSlotAvailability(selectedDate, time);
       if (!isAvailable) {
-        toast.error('Este horário acabou de ser ocupado por outro cliente');
+        toast.error('Este horário acabou de ser ocupado por outro cliente', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
         return;
       }
     } catch (error) {

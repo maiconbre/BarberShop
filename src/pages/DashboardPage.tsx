@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   Calendar,
   LayoutDashboard,
@@ -29,6 +30,7 @@ import { useNotifications } from '../components/ui/Notifications';
 import Notifications from '../components/ui/Notifications';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
+
 import { cacheService } from '../services/CacheService';
 
 interface Appointment {
@@ -61,6 +63,7 @@ const DashboardPage: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
 
   // Removido sistema de páginas carregadas - agora mostra apenas 2 botões por vez
   const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
@@ -295,6 +298,24 @@ const DashboardPage: React.FC = () => {
             setIsViewModalOpen(false);
             setSelectedAppointment(null);
           }
+
+          // Notificação visual elaborada para exclusão
+          toast.success('Agendamento excluído com sucesso!', {
+            duration: 4000,
+            style: {
+              background: '#1A1F2E',
+              color: '#fff',
+              border: '1px solid #F0B35B',
+              borderRadius: '12px',
+              padding: '16px',
+              fontSize: '12px',
+              fontWeight: '500'
+            },
+            iconTheme: {
+              primary: '#F0B35B',
+              secondary: '#1A1F2E'
+            }
+          });
         } else {
           // Se a resposta não for ok, tenta obter mais informações do erro
           const errorData = await response.json().catch(() => null);
@@ -330,6 +351,28 @@ const DashboardPage: React.FC = () => {
           if (selectedAppointment?.id === appointmentId) {
             setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
           }
+
+          // Notificação visual elaborada para mudança de status
+          const statusMessage = newStatus === 'completed'
+            ? 'Agendamento marcado como concluído!'
+            : 'Agendamento marcado como pendente!';
+
+          toast.success(statusMessage, {
+            duration: 4000,
+            style: {
+              background: '#1A1F2E',
+              color: '#fff',
+              border: '1px solid #F0B35B',
+              borderRadius: '12px',
+              padding: '16px',
+              fontSize: '12px',
+              fontWeight: '500'
+            },
+            iconTheme: {
+              primary: '#F0B35B',
+              secondary: '#1A1F2E'
+            }
+          });
         } else {
           const errorData = await response.json().catch(() => null);
           console.error('Erro ao atualizar status:', {
@@ -342,8 +385,43 @@ const DashboardPage: React.FC = () => {
       }
     } catch (error) {
       console.error(`Erro na ação ${action}:`, error);
-      // Aqui você pode adicionar uma notificação visual para o usuário
-      // Por exemplo, usando um toast ou alert
+
+      // Notificação visual de erro
+      if (action === 'delete') {
+        toast.error('Erro ao excluir agendamento', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
+      } else {
+        toast.error('Erro ao atualizar agendamento', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
+      }
     }
   };
 
@@ -368,13 +446,7 @@ const DashboardPage: React.FC = () => {
         );
 
         if (isSubscribed && Array.isArray(formattedAppointments)) {
-          // Otimização: comparar arrays antes de atualizar o estado
-          const currentIds = appointments.map(app => app.id).sort().join(',');
-          const newIds = formattedAppointments.map(app => app.id).sort().join(',');
-
-          if (currentIds !== newIds || appointments.length !== formattedAppointments.length) {
-            setAppointments(formattedAppointments);
-          }
+          setAppointments(formattedAppointments);
         }
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
@@ -392,18 +464,16 @@ const DashboardPage: React.FC = () => {
       }
     };
 
-    const initialFetchTimeout = setTimeout(() => fetchData(), 500);
+    const initialFetchTimeout = setTimeout(() => fetchData(), 100);
 
     return () => {
       isSubscribed = false;
       if (retryTimeout) clearTimeout(retryTimeout);
       clearTimeout(initialFetchTimeout);
     };
-  }, [loadAppointments, appointments]);
+  }, [loadAppointments]);
 
-  useEffect(() => {
-    console.log('Estado atual de appointments:', appointments);
-  }, [appointments]);
+
 
   useEffect(() => {
     const handleOpenAppointmentModal = (event: CustomEvent) => {
@@ -430,6 +500,8 @@ const DashboardPage: React.FC = () => {
     }
     setCurrentPage(1);
   }, [revenueDisplayMode]);
+
+
 
   return (
     <div className="min-h-screen bg-[#0D121E] relative overflow-hidden">
@@ -515,6 +587,17 @@ const DashboardPage: React.FC = () => {
             background-position: 200% 0;
           }
         }
+        .refresh-icon-spin {
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
       `}</style>
       {/* Background elements - Otimizado para mobile */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/8 to-transparent rounded-full blur-xl translate-x-1/2 -translate-y-1/2 hidden md:block"></div>
@@ -535,17 +618,19 @@ const DashboardPage: React.FC = () => {
               <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center">
                 <Scissors className="w-3 h-3 text-black" />
               </div>
-              <h1 className="text-base font-semibold text-white">
+              <h1 className="text-lg font-semibold text-white">
                 {activeView === 'painel' ? 'Painel' : activeView === 'agenda' ? 'Agenda' : 'Relatórios'}
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              <Notifications />
+              <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
+                <Notifications />
+              </div>
               <button
                 onClick={toggleSidebar}
                 className="p-2 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30"
               >
-                <User className="w-4 h-4" />
+                <User className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -569,26 +654,25 @@ const DashboardPage: React.FC = () => {
 
             {/* Sidebar */}
             <motion.div
-              initial={{ 
+              initial={{
                 opacity: 0,
                 x: isMobile ? 288 : 0 // 72 * 4 = 288px (w-72)
               }}
-              animate={{ 
+              animate={{
                 opacity: 1,
                 x: 0
               }}
-              exit={{ 
+              exit={{
                 opacity: 0,
                 x: isMobile ? 288 : 0
               }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${
-                isMobile 
-                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl' 
-                  : isSidebarCollapsed 
-                    ? 'left-0 w-16 border-r border-[#F0B35B]/20' 
+              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${isMobile
+                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl'
+                  : isSidebarCollapsed
+                    ? 'left-0 w-16 border-r border-[#F0B35B]/20'
                     : 'left-0 w-64 border-r border-[#F0B35B]/20'
-              } transition-all duration-300`}
+                } transition-all duration-300`}
             >
               {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
@@ -653,8 +737,8 @@ const DashboardPage: React.FC = () => {
                   <button
                     onClick={() => handleViewChange('painel')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'painel'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
-                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
+                      : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
                     title={isSidebarCollapsed ? 'Painel Principal' : ''}
                   >
@@ -665,8 +749,8 @@ const DashboardPage: React.FC = () => {
                   <button
                     onClick={() => handleViewChange('agenda')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'agenda'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
-                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
+                      : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
                     title={isSidebarCollapsed ? 'Agenda' : ''}
                   >
@@ -677,8 +761,8 @@ const DashboardPage: React.FC = () => {
                   <button
                     onClick={() => handleViewChange('analytics')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${activeView === 'analytics'
-                        ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
-                        : 'text-white hover:bg-[#252B3B] hover:shadow-md'
+                      ? 'bg-[#F0B35B] text-black font-medium shadow-lg'
+                      : 'text-white hover:bg-[#252B3B] hover:shadow-md'
                       }`}
                     title={isSidebarCollapsed ? 'Relatórios' : ''}
                   >
@@ -702,14 +786,16 @@ const DashboardPage: React.FC = () => {
                     {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
                   </button>
 
-                  <button
-                    onClick={() => navigateToPage('/register')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
-                    title={isSidebarCollapsed ? 'Barbeiros' : ''}
-                  >
-                    <UserCog className="w-5 h-5 flex-shrink-0" />
-                    {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
-                  </button>
+                  {currentUser?.role === 'admin' && (
+                    <button
+                      onClick={() => navigateToPage('/register')}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                      title={isSidebarCollapsed ? 'Barbeiros' : ''}
+                    >
+                      <UserCog className="w-5 h-5 flex-shrink-0" />
+                      {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
+                    </button>
+                  )}
 
                   <button
                     onClick={() => navigateToPage('/gerenciar-horarios')}
@@ -791,10 +877,10 @@ const DashboardPage: React.FC = () => {
 
       {/* Main Content */}
       <main className={`relative z-10 transition-all duration-300 ${isMobile
-          ? 'pt-16 px-3'
-          : isSidebarCollapsed
-            ? 'ml-16 p-4 lg:p-6'
-            : 'ml-64 p-4 lg:p-6'
+        ? 'pt-16 px-3'
+        : isSidebarCollapsed
+          ? 'ml-16 p-4 lg:p-6'
+          : 'ml-64 p-4 lg:p-6'
         }`}>
 
         <div className="max-w-[1600px] mx-auto">
@@ -823,17 +909,17 @@ const DashboardPage: React.FC = () => {
                   <div className={`${isMobile ? 'w-full' : 'w-1/2 flex flex-col'}`}>
                     <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 flex-1 flex flex-col">
                       <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
                           <Calendar className="w-5 h-5 text-[#F0B35B]" />
-                          Agendamentos Recentes
+                          Agendamentos
                         </h2>
                         <div className="flex items-center gap-3">
                           <button
                             onClick={refreshData}
-                            className={`p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+                            className="p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors"
                             aria-label="Atualizar"
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
                           </button>
                           <select
                             value={filterMode}
@@ -865,7 +951,7 @@ const DashboardPage: React.FC = () => {
                             </p>
                           </div>
                         ) : (
-                          <div className={`flex-1 overflow-y-auto ${isMobile ? 'card-grid' : 'space-y-3 pr-2'}`}>
+                          <div className={`flex-1 ${isMobile ? 'card-grid' : 'space-y-3'}`}>
                             {currentAppointments.map((appointment) => (
                               <AppointmentCardNew
                                 key={`appointment-${appointment.id}-${appointment.status}`}
@@ -878,8 +964,8 @@ const DashboardPage: React.FC = () => {
                             ))}
 
                             {totalPages > 1 && (
-                              <div className={`${isMobile ? 'mt-8 pt-6 border-t border-[#F0B35B]/10' : 'mt-4 pt-4 border-t border-[#F0B35B]/10'}`}>
-                                <div className="flex justify-center items-center gap-2">
+                              <div className={`${isMobile ? 'mt-8 pt-6 border-t border-white/10' : 'mt-4 pt-4 border-t border-white/10'}`}>
+                                <div className="flex justify-center items-center gap-2 flex-wrap overflow-x-hidden">
                                   {/* Botão página anterior */}
                                   <button
                                     onClick={() => {
@@ -907,8 +993,8 @@ const DashboardPage: React.FC = () => {
                                         key={number}
                                         onClick={() => paginate(number)}
                                         className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${currentPage === number
-                                            ? 'bg-[#F0B35B] text-black shadow-lg'
-                                            : 'bg-[#252B3B] text-white hover:bg-[#2E354A] hover:shadow-md'
+                                          ? 'bg-[#F0B35B] text-black shadow-lg'
+                                          : 'bg-[#252B3B] text-white hover:bg-[#2E354A] hover:shadow-md'
                                           }`}
                                       >
                                         {number}
@@ -916,10 +1002,7 @@ const DashboardPage: React.FC = () => {
                                     ));
                                   })()}
 
-                                  {/* Indicador de mais páginas */}
-                                  {currentPage + 1 < totalPages && (
-                                    <span className="text-gray-400 px-2 text-sm">...</span>
-                                  )}
+
 
                                   {/* Botão próxima página */}
                                   <button
@@ -953,9 +1036,8 @@ const DashboardPage: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 className="space-y-6"
               >
-                <div className="flex items-center justify-between">
-                  <h1 className="text-2xl font-bold text-white">Agenda</h1>
-                  <div className="text-sm text-gray-400">
+                <div className="flex items-center justify-end mb-4">
+                  <div className="text-xs text-gray-400 mt-2 mr-4">
                     {new Date().toLocaleDateString('pt-BR', {
                       weekday: 'long',
                       year: 'numeric',
@@ -1001,10 +1083,10 @@ const DashboardPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={refreshData}
-                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'animate-spin text-[#F0B35B]' : ''}`}
+                            className={`p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-all duration-300 ${isRefreshing ? 'text-[#F0B35B]' : ''}`}
                             aria-label="Atualizar"
                           >
-                            <RefreshCw className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                            <RefreshCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
                           </button>
                         </div>
                       </div>
@@ -1030,10 +1112,7 @@ const DashboardPage: React.FC = () => {
                         </div>
                       ) : (
                         <div className="flex flex-col flex-grow">
-                          <div className={`grid grid-cols-1 gap-3 sm:gap-4 ${isMobile
-                              ? 'max-h-[60vh]'
-                              : 'max-h-[calc(100vh-20rem)]'
-                            } overflow-y-auto pr-1 custom-scrollbar optimize-scroll`} style={{ transform: 'translate3d(0,0,0)' }}>
+                          <div className={`grid grid-cols-1 gap-2 sm:gap-3`}>
                             {calendarCurrentAppointments.map((appointment) => (
                               <AppointmentCardNew
                                 key={`calendar-appointment-${appointment.id}-${appointment.status}`}
@@ -1050,7 +1129,7 @@ const DashboardPage: React.FC = () => {
                             }
                           </div>
                           {calendarTotalPages > 1 && (
-                            <div className="flex justify-center items-center gap-2 mt-4 pt-3 border-t border-white/10">
+                            <div className="flex justify-center items-center gap-2 mt-4 pt-3 border-t border-white/10 flex-wrap overflow-x-hidden">
                               {/* Botão página anterior */}
                               <button
                                 onClick={() => {
@@ -1060,26 +1139,34 @@ const DashboardPage: React.FC = () => {
                                   }
                                 }}
                                 disabled={currentPage === 1}
-                                className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                               >
-                                <ChevronLeft className="w-3 h-3" />
+                                <ChevronLeft className="w-4 h-4" />
                               </button>
 
-                              {/* Páginas limitadas a 2 botões */}
+                              {/* Páginas numeradas */}
                               {(() => {
-                                const startPage = Math.max(1, currentPage - 1);
-                                const endPage = Math.min(calendarTotalPages, startPage + 1);
+                                const maxVisiblePages = 3;
+                                let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                                let endPage = Math.min(calendarTotalPages, startPage + maxVisiblePages - 1);
+                                
+                                // Ajustar startPage se endPage for menor que o esperado
+                                if (endPage - startPage + 1 < maxVisiblePages) {
+                                  startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                }
+                                
                                 const pages = [];
                                 for (let i = startPage; i <= endPage; i++) {
                                   pages.push(i);
                                 }
+                                
                                 return pages.map((number) => (
                                   <button
                                     key={number}
                                     onClick={() => paginate(number)}
-                                    className={`px-2 py-1.5 rounded-lg transition-all text-xs sm:text-sm ${currentPage === number
-                                        ? 'bg-[#F0B35B] text-black font-medium'
-                                        : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
+                                    className={`px-3 py-2 rounded-lg transition-all text-sm min-w-[2.5rem] ${currentPage === number
+                                      ? 'bg-[#F0B35B] text-black font-medium'
+                                      : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
                                       }`}
                                   >
                                     {number}
@@ -1087,10 +1174,7 @@ const DashboardPage: React.FC = () => {
                                 ));
                               })()}
 
-                              {/* Indicador de mais páginas */}
-                              {currentPage + 1 < calendarTotalPages && (
-                                <span className="text-gray-400 px-1 text-xs">...</span>
-                              )}
+
 
                               {/* Botão próxima página */}
                               <button
@@ -1101,9 +1185,9 @@ const DashboardPage: React.FC = () => {
                                   }
                                 }}
                                 disabled={currentPage === calendarTotalPages}
-                                className="p-1.5 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                               >
-                                <ChevronRight className="w-3 h-3" />
+                                <ChevronRight className="w-4 h-4" />
                               </button>
                             </div>
                           )}
@@ -1157,9 +1241,10 @@ const DashboardPage: React.FC = () => {
             setIsViewModalOpen(false);
           }
         }}
-        onToggleStatus={() => {
+        onToggleStatus={async () => {
           if (selectedAppointment) {
-            handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status);
+            await handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status);
+            setIsViewModalOpen(false);
           }
         }}
       />

@@ -1,6 +1,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Hero from '../components/feature/Hero';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 // Componentes com lazy loading
 const Services = lazy(() => import('../components/feature/Services'));
@@ -8,21 +9,34 @@ const About = lazy(() => import('../components/feature/About'));
 const Footer = lazy(() => import('../components/ui/Footer'));
 const BookingModal = lazy(() => import('../components/feature/BookingModal'));
 
-// Componente de fallback para seções em carregamento
-const SectionLoadingFallback = () => (
-  <div className="w-full py-16 flex items-center justify-center">
-    <div className="animate-pulse flex flex-col items-center">
-      <div className="w-24 h-6 bg-gray-700 rounded mb-4"></div>
-      <div className="w-64 h-32 bg-gray-800 rounded"></div>
+// Componente de fallback para seções em carregamento com delay mínimo
+const SectionLoadingFallback = () => {
+  const [showSpinner, setShowSpinner] = React.useState(false);
+  
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSpinner(true);
+    }, 100); // Pequeno delay para evitar flash
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  if (!showSpinner) {
+    return (
+      <div className="w-full py-16 flex items-center justify-center">
+        <div className="w-8 h-8"></div> {/* Placeholder invisível */}
+      </div>
+    );
+  }
+  
+  return (
+    <div className="w-full py-16 flex items-center justify-center">
+      <LoadingSpinner size="md" text="Carregando seção..." />
     </div>
-  </div>
-);
+  );
+};
 
-interface HomeProps {
-  setIsModalOpen: (open: boolean) => void;
-}
-
-const Home: React.FC<HomeProps> = ({ setIsModalOpen }) => {
+const Home: React.FC = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState('');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);

@@ -35,6 +35,8 @@ export const useNotifications = () => {
   const [cachedAppointments, setCachedAppointments] = useState<Appointment[]>([]);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [refreshCompleted, setRefreshCompleted] = useState<boolean>(false);
   
   const { getCurrentUser } = useAuth();
   
@@ -96,12 +98,22 @@ export const useNotifications = () => {
       setHasError(true);
     } finally {
       setIsLoading(false);
+      if (isRefreshing && !refreshCompleted) {
+        setTimeout(() => {
+          setIsRefreshing(false);
+          setRefreshCompleted(true);
+        }, 800);
+      }
     }
   }, []);
 
   const loadAppointments = useCallback(async (forceRefresh = false) => {
     try {
       setIsLoading(true);
+      if (forceRefresh) {
+        setIsRefreshing(true);
+        setRefreshCompleted(false);
+      }
       const currentUser = getCurrentUser();
       
       // Registrar o momento da tentativa de busca
@@ -148,6 +160,14 @@ export const useNotifications = () => {
         setCachedAppointments(formattedAppointments);
         setLastFetchTime(fetchStartTime);
         setHasError(false);
+        
+        // Show completion state for refresh button
+        if (forceRefresh) {
+          setTimeout(() => {
+            setIsRefreshing(false);
+            setRefreshCompleted(true);
+          }, 800);
+        }
         
         return formattedAppointments;
       }, { forceRefresh });
@@ -258,6 +278,11 @@ export const useNotifications = () => {
 
   const toggleNotificationDropdown = () => {
     setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
+    // Reset refresh state when modal is reopened
+    if (!isNotificationDropdownOpen) {
+      setRefreshCompleted(false);
+      setIsRefreshing(false);
+    }
   };
 
   // Função para verificar se o cache está desatualizado (mais de 30 minutos)
@@ -296,7 +321,9 @@ export const useNotifications = () => {
     cachedAppointments,
     lastFetchTime,
     isCacheStale,
-    getLastUpdateText
+    getLastUpdateText,
+    isRefreshing,
+    refreshCompleted
   };
 };
 
@@ -313,7 +340,9 @@ const Notifications: React.FC = () => {
     hasError,
     isCacheStale,
     getLastUpdateText,
-    loadAppointments
+    loadAppointments,
+    isRefreshing,
+    refreshCompleted
   } = useNotifications();
 
   const totalNotifications = pendingComments.length + newAppointments.length;
@@ -355,10 +384,20 @@ const Notifications: React.FC = () => {
                   <span className="text-gray-400">{getLastUpdateText()}</span>
                 </div>
                 <button 
-                  onClick={() => loadAppointments(true)}
-                  className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-xs px-2 py-1 rounded-md bg-[#F0B35B]/10 hover:bg-[#F0B35B]/20 transition-colors"
+                  onClick={() => !refreshCompleted && !isRefreshing && loadAppointments(true)}
+                  disabled={refreshCompleted || isRefreshing}
+                  className={`text-xs px-2 py-1 rounded-md transition-all duration-300 flex items-center gap-1 ${
+                    refreshCompleted 
+                      ? 'text-green-400 bg-green-500/20 cursor-not-allowed' 
+                      : isRefreshing 
+                        ? 'text-[#F0B35B] bg-[#F0B35B]/20 cursor-not-allowed' 
+                        : 'text-[#F0B35B] hover:text-[#F0B35B]/80 bg-[#F0B35B]/10 hover:bg-[#F0B35B]/20'
+                  }`}
                 >
-                  Atualizar
+                  {isRefreshing && (
+                    <div className="w-3 h-3 border border-[#F0B35B] border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                  {refreshCompleted ? 'Atualizado' : isRefreshing ? 'Atualizando...' : 'Atualizar'}
                 </button>
               </div>
             </div>

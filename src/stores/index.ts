@@ -11,6 +11,29 @@ export {
   useAppointmentError,
   useAppointmentFilters
 } from './appointmentStore';
+export {
+  useCommentStore,
+  useComments,
+  useCommentLoading,
+  useCommentError,
+  useCommentActions
+} from './commentStore';
+export {
+  useBarberStore,
+  useBarberList,
+  useCurrentBarber,
+  useBarberLoading,
+  useBarberError,
+  useBarberFilters,
+  useFetchBarbers,
+  useGetBarberById,
+  useCreateBarber,
+  useUpdateBarber,
+  useDeleteBarber,
+  useSetBarberFilters,
+  useClearBarberError,
+  useResetBarberStore
+} from './barberStore';
 
 // Re-export types
 export type {
@@ -20,5 +43,11 @@ export type {
   RegisterData,
   Appointment,
   BookingFormData,
-  AppointmentFilters
+  AppointmentFilters,
+  PublicComment,
+  CommentFilters
 } from '@/types';
+export type {
+  Barber,
+  BarberFilters
+} from './barberStore';

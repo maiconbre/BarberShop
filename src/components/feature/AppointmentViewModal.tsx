@@ -1,4 +1,4 @@
-import React, { useState, useRef, Suspense, lazy } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaCheck,
@@ -12,7 +12,7 @@ import ConfirmationModal from '../ui/ConfirmationModal';
 import { formatFriendlyDateTime } from '../../utils/DateTimeUtils';
 
 // Lazy load the appointment history component
-const AppointmentHistory = lazy(() => import('./AppointmentHistory'));
+import AppointmentHistory from './AppointmentHistory';
 
 // Função formatWhatsApp reutilizada do ClientAnalytics
 const formatWhatsApp = (whatsapp: string | undefined): string => {
@@ -120,7 +120,7 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
   return (
     <AnimatePresence mode="wait">
       {isOpen && appointment && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-hidden px-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -224,12 +224,6 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                     
                     <AnimatePresence>
                       {showHistory && (
-                        <Suspense fallback={
-                          <div className="mt-4 p-4 bg-white/5 rounded-lg animate-pulse">
-                            <div className="h-4 bg-white/10 rounded w-3/4 mb-2"></div>
-                            <div className="h-4 bg-white/10 rounded w-1/2"></div>
-                          </div>
-                        }>
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
@@ -238,7 +232,6 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
                           >
                             <AppointmentHistory appointments={clientHistory} />
                           </motion.div>
-                        </Suspense>
                       )}
                     </AnimatePresence>
                   </div>
@@ -276,7 +269,10 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
           <ConfirmationModal
             isOpen={deleteModalOpen}
             onClose={() => setDeleteModalOpen(false)}
-            onConfirm={() => handleAction(onDelete)}
+            onConfirm={async () => {
+              await handleAction(onDelete);
+              setDeleteModalOpen(false);
+            }}
             title="Excluir Agendamento"
             message="Tem certeza que deseja excluir este agendamento?"
           />
@@ -284,7 +280,10 @@ const AppointmentViewModal: React.FC<AppointmentViewModalProps> = ({
           <ConfirmationModal
             isOpen={statusModalOpen}
             onClose={() => setStatusModalOpen(false)}
-            onConfirm={() => handleAction(onToggleStatus)}
+            onConfirm={async () => {
+              await handleAction(onToggleStatus);
+              setStatusModalOpen(false);
+            }}
             title="Alterar Status"
             message={`Deseja marcar este agendamento como ${
               appointment.status === 'completed' ? 'pendente' : 'concluído'

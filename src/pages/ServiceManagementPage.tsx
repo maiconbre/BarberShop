@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Scissors, Edit, Trash2 } from 'lucide-react';
+import { ChevronLeft, Scissors, Edit, Trash2, RefreshCw } from 'lucide-react';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
+import EditServiceModal from '../components/ui/EditServiceModal';
 import ApiService from '../services/ApiService';
 import { logger } from '../utils/logger';
+import { CURRENT_ENV } from '../config/environmentConfig';
+import toast from 'react-hot-toast';
 
 interface Service {
   id: string;
@@ -17,6 +20,28 @@ interface Service {
 const ServiceManagementPage: React.FC = () => {
   const navigate = useNavigate();
 
+  // Adicionar estilos CSS para animação do ícone de refresh
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .refresh-icon-spin {
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   const [services, setServices] = useState<Service[]>([]);
   const [newService, setNewService] = useState({ name: '', price: '' as unknown as number });
   const [isLoading, setIsLoading] = useState(false);
@@ -26,17 +51,19 @@ const ServiceManagementPage: React.FC = () => {
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
-  const [barbers, setBarbers] = useState<{id: string, name: string}[]>([]);
-
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   useEffect(() => {
     fetchServices();
-    fetchBarbers();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchServices = async (forceRefresh: boolean = false) => {
     try {
       logger.componentDebug('Carregando serviços no ServiceManagementPage');
-      const result = await ApiService.getServices();
+      const result = forceRefresh 
+        ? await ApiService.get('/api/services', { forceRefresh: true })
+        : await ApiService.getServices();
+      
       if (result && Array.isArray(result)) {
         setServices(result);
         logger.componentDebug(`Carregados ${result.length} serviços`);
@@ -46,18 +73,38 @@ const ServiceManagementPage: React.FC = () => {
     }
   };
 
-  const fetchBarbers = async () => {
+  const handleRefreshServices = async () => {
+    setIsRefreshing(true);
+    setError('');
+    
     try {
-      logger.componentDebug('Carregando barbeiros no ServiceManagementPage');
-      const result = await ApiService.getBarbers();
-      if (result && Array.isArray(result)) {
-        setBarbers(result);
-        logger.componentDebug(`Carregados ${result.length} barbeiros`);
-      }
+      // Força a atualização dos dados ignorando o cache
+      await fetchServices(true);
+      toast.success('Serviços atualizados com sucesso!', {
+        duration: 3000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #F0B35B',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#F0B35B',
+          secondary: '#1A1F2E'
+        }
+      });
     } catch (err) {
-      logger.componentError('Erro ao buscar barbeiros:', err);
+      logger.componentError('Erro ao atualizar serviços:', err);
+      setError('Erro ao atualizar serviços. Tente novamente.');
+    } finally {
+      setIsRefreshing(false);
     }
   };
+
+
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +120,7 @@ const ServiceManagementPage: React.FC = () => {
         throw new Error('Por favor, informe um valor válido');
       }
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +152,7 @@ const ServiceManagementPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services/${serviceToDelete.id}`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services/${serviceToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -119,7 +166,6 @@ const ServiceManagementPage: React.FC = () => {
 
       setSuccess('Serviço removido com sucesso!');
       setTimeout(() => setSuccess(''), 3000);
-      setIsDeleteModalOpen(false);
       setServiceToDelete(null);
       fetchServices();
     } catch (err: any) {
@@ -129,20 +175,21 @@ const ServiceManagementPage: React.FC = () => {
     }
   };
 
-  const handleUpdateService = async () => {
-    if (!serviceToEdit) return;
-    
+  const handleUpdateService = async (updatedService: Service) => {
     setIsLoading(true);
     setError('');
 
     try {
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/services/${serviceToEdit.id}`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services/${updatedService.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + localStorage.getItem('token')
         },
-        body: JSON.stringify(serviceToEdit)
+        body: JSON.stringify({
+          name: updatedService.name,
+          price: updatedService.price
+        })
       });
 
       if (!response.ok) {
@@ -150,11 +197,54 @@ const ServiceManagementPage: React.FC = () => {
         throw new Error(data.message || 'Erro ao atualizar serviço');
       }
 
-      setSuccess('Serviço atualizado com sucesso!');
-      setTimeout(() => setSuccess(''), 3000);
-      setIsEditModalOpen(false);
+      // Atualiza o estado local imediatamente com os novos dados
+      setServices(prevServices => 
+        prevServices.map(service => 
+          service.id === updatedService.id 
+            ? { ...service, name: updatedService.name, price: updatedService.price }
+            : service
+        )
+      );
+
+      // Toast de sucesso padronizado como no BookingModal
+      toast.success('Serviço atualizado com sucesso!', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #F0B35B',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#F0B35B',
+          secondary: '#1A1F2E'
+        }
+      });
+      
       setServiceToEdit(null);
-      fetchServices();
+      setIsEditModalOpen(false);
+      
+      // Invalida apenas o cache de serviços para próximas requisições
+      try {
+        // Remove especificamente o cache de serviços
+        const cacheKeys = ['GET-/api/services', '/api/services'];
+        cacheKeys.forEach(key => {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        });
+        
+        // Força uma nova busca em background para sincronizar com o servidor
+        setTimeout(() => {
+          fetchServices(true).catch(err => 
+            logger.componentError('Erro na sincronização em background:', err)
+          );
+        }, 1000);
+      } catch (cacheError) {
+        logger.componentWarn('Erro ao limpar cache:', cacheError);
+      }
     } catch (err: any) {
       setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
     } finally {
@@ -178,7 +268,7 @@ const ServiceManagementPage: React.FC = () => {
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex items-center justify-between mb-6 border-b border-[#F0B35B]/20 pb-4">
-          <h1 className="text-3xl font-bold text-white">Gerenciamento de Serviços</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Gerenciamento de Serviços</h1>
           <motion.button 
             onClick={() => navigate('/dashboard')}
             className="relative overflow-hidden group flex items-center  px-4 py-2 bg-[#1A1F2E] rounded-lg hover:bg-[#252B3B] transition-all duration-300 text-white border border-[#F0B35B]/20 hover:border-[#F0B35B]/40"
@@ -218,7 +308,7 @@ const ServiceManagementPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h2 className="text-2xl font-semibold mb-4 text-white flex items-center gap-3">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-white flex items-center gap-3">
               <Scissors className="text-[#F0B35B] w-5 h-5" />
               <span>Adicionar Novo Serviço</span>
             </h2>
@@ -264,11 +354,25 @@ const ServiceManagementPage: React.FC = () => {
             transition={{ delay: 0.2 }}
           >
             <div className="flex justify-between items-center mb-4 border-b border-[#F0B35B]/20 pb-2">
-              <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
-                <Scissors className="text-[#F0B35B] w-5 h-5" />
-                <span>Serviços Cadastrados</span>
-                <span className="ml-2 bg-[#F0B35B] text-black text-xs font-bold px-2 py-0.5 rounded-full">{services.length}</span>
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-3">
+                  <Scissors className="text-[#F0B35B] w-5 h-5" />
+                  <span>Serviços Cadastrados</span>
+                </h2>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="bg-[#F0B35B] text-black text-xs font-bold px-2 py-0.5 rounded-full">{services.length}</span>
+                <motion.button
+                  onClick={handleRefreshServices}
+                  disabled={isRefreshing}
+                  className="p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors disabled:opacity-50"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title="Atualizar lista de serviços"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
+                </motion.button>
+              </div>
             </div>
             
             {services.length === 0 ? (
@@ -338,7 +442,10 @@ const ServiceManagementPage: React.FC = () => {
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDeleteService}
+        onConfirm={async () => {
+          await handleDeleteService();
+          setIsDeleteModalOpen(false);
+        }}
         title="Confirmar Remoção"
         message={`Tem certeza que deseja remover o serviço "${serviceToDelete?.name}"?`}
         confirmButtonText="Remover"
@@ -346,14 +453,14 @@ const ServiceManagementPage: React.FC = () => {
         isLoading={isLoading}
       />
       
-      <ConfirmationModal
+      <EditServiceModal
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setServiceToEdit(null);
+        }}
         onConfirm={handleUpdateService}
-        title="Confirmar Edição"
-        message={`Tem certeza que deseja editar o serviço "${serviceToEdit?.name}"?`}
-        confirmButtonText="Editar"
-        cancelButtonText="Cancelar"
+        service={serviceToEdit}
         isLoading={isLoading}
       />
     </div>

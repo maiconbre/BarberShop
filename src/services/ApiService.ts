@@ -172,7 +172,9 @@ class ApiService {
    * Requisição otimizada com headers corretos para evitar CORS
    */
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    // Priorizar localStorage para persistência de 6 horas
+    // Usar 'authToken' como chave principal para consistência
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
     
     // Headers otimizados - removido x-request-id que causa CORS
     const headers = {

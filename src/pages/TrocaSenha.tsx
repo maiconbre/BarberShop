@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { CURRENT_ENV } from '../config/environmentConfig';
 
 const TrocaSenha: React.FC = () => {
   const navigate = useNavigate();
   const { getCurrentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     senhaAtual: '',
     novaSenha: '',
@@ -18,23 +18,66 @@ const TrocaSenha: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    setSuccess('');
 
     try {
       // Validações
       if (!formData.senhaAtual || !formData.novaSenha || !formData.confirmarSenha) {
-        setError('Por favor, preencha todos os campos');
+        toast.error('Por favor, preencha todos os campos', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
         return;
       }
 
       if (formData.novaSenha.length < 6) {
-        setError('A nova senha deve ter pelo menos 6 caracteres');
+        toast.error('A nova senha deve ter pelo menos 6 caracteres', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
         return;
       }
 
       if (formData.novaSenha !== formData.confirmarSenha) {
-        setError('As senhas não coincidem');
+        toast.error('As senhas não coincidem', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#1A1F2E'
+          }
+        });
         return;
       }
 
@@ -43,7 +86,7 @@ const TrocaSenha: React.FC = () => {
         throw new Error('Usuário não encontrado');
       }
 
-      const response = await fetch(`${(import.meta as any).env.VITE_API_URL}/api/users/change-password`, {
+      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/users/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +115,23 @@ const TrocaSenha: React.FC = () => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       sessionStorage.setItem('user', JSON.stringify(updatedUser));
 
-      setSuccess('Senha alterada com sucesso!');
+      // Notificação visual elaborada para sucesso
+      toast.success('Senha alterada com sucesso!', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #F0B35B',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#F0B35B',
+          secondary: '#1A1F2E'
+        }
+      });
       
       // Limpar formulário
       setFormData({
@@ -87,7 +146,24 @@ const TrocaSenha: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       console.error('Erro ao alterar senha:', err);
-      setError(err.message || 'Erro ao alterar senha. Por favor, tente novamente.');
+      
+      // Notificação visual de erro
+      toast.error(err.message || 'Erro ao alterar senha. Por favor, tente novamente.', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #ef4444',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#ef4444',
+          secondary: '#1A1F2E'
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -130,17 +206,6 @@ const TrocaSenha: React.FC = () => {
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
-              {success}
-            </div>
-          )}
 
           <div className="space-y-4">
             <div className="flex flex-col">

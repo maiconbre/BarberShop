@@ -36,8 +36,10 @@ export const authenticateUser = async (username: string, password: string) => {
     }
 
     const { token, user } = response.data.data;
-    localStorage.setItem('token', token);
-    sessionStorage.setItem('token', token);
+    // Armazenar apenas no localStorage para persistência de 6 horas
+    // Usar 'authToken' para consistência com o resto da aplicação
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('token', token); // Manter compatibilidade
 
     return user;
   } catch (error: any) {
