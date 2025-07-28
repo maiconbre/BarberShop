@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { logger } from '../utils/logger';
-import { CacheService } from '../services/CacheService';
+import { cacheService } from '../services/CacheService';
 import { CURRENT_ENV } from '../config/environmentConfig';
 
 // Types
@@ -162,8 +162,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
           
           // Update cache em background sem afetar o estado
           try {
-            const cacheService = new CacheService();
-            await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
+            cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
             logger.componentDebug(`${barbers.length} barbeiros carregados e salvos no cache`);
           } catch (cacheError) {
             logger.componentError('Erro ao salvar cache de barbeiros:', cacheError);
@@ -229,7 +228,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
         // Update cache
         try {
           const { barbers } = get();
-          const cacheService = new CacheService();
+          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
           await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
         } catch (cacheError) {
           logger.componentError('Erro ao atualizar cache após criação:', cacheError);
@@ -291,7 +290,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
         // Update cache
         try {
           const { barbers } = get();
-          const cacheService = new CacheService();
+          // Using the imported cacheService instance instead of creating new one
           await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
         } catch (cacheError) {
           logger.componentError('Erro ao atualizar cache após atualização:', cacheError);
@@ -346,7 +345,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
         // Update cache
         try {
           const { barbers } = get();
-          const cacheService = new CacheService();
+          // Using the imported cacheService instance instead of creating new one
           await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
         } catch (cacheError) {
           logger.componentError('Erro ao atualizar cache após exclusão:', cacheError);

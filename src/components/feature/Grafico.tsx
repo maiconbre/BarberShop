@@ -98,10 +98,12 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
     
     // Contar ocorrências de cada serviço
     appointments.forEach(app => {
-      const services = app.service.split(',').map(s => s.trim());
-      services.forEach(service => {
-        servicesCount[service] = (servicesCount[service] || 0) + 1;
-      });
+      if (app.service) {
+        const services = app.service.split(',').map(s => s.trim());
+        services.forEach(service => {
+          servicesCount[service] = (servicesCount[service] || 0) + 1;
+        });
+      }
     });
 
     return Object.entries(servicesCount)

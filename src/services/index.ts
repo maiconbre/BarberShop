@@ -1,7 +1,8 @@
 /**
  * Services exports
  */
-export { CacheService, cacheService, LegacyCacheService } from './CacheService';
+export { cacheService } from './CacheService';
+export { default as CacheService } from './CacheService';
 
 // Cache strategies and interfaces
 export * from './cache';

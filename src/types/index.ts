@@ -146,7 +146,7 @@ export interface CacheItem<T> {
 
 export interface CacheOptions {
   ttl?: number; // Time to live in milliseconds
-  useLocalStorage?: boolean;
+  persist?: boolean; // Whether to persist in localStorage
 }
 
 export interface FetchWithCacheOptions {

@@ -85,7 +85,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         }
       }
       
-      const response = await cacheService.fetchWithCache(
+      const response = await cacheService.getOrFetch(
         cacheKey,
         async () => {
           const response = await fetch(
@@ -111,7 +111,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
             !apt.isCancelled
           );
         },
-        { forceRefresh }
+        { ttl: forceRefresh ? 0 : undefined }
       );
 
       setAppointments(Array.isArray(response) ? response : []);
