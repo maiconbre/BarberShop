@@ -42,6 +42,12 @@ class RequestDebouncer {
         console.warn(`Requisição ${key} expirou após ${age}ms - criando nova`);
         this.pendingRequests.delete(key);
       } else {
+        // Para requisições muito rápidas (< 100ms), aguardar um pouco mais
+        if (age < 100) {
+          console.log(`Requisição muito rápida para ${key} (${age}ms) - aguardando...`);
+          await new Promise(resolve => setTimeout(resolve, 100 - age));
+        }
+        
         console.log(`Reutilizando requisição pendente para ${key} (${age}ms atrás)`);
         // Incrementar requisições salvas (evitadas)
         this.stats.savedRequests++;
@@ -52,11 +58,18 @@ class RequestDebouncer {
     // Criar nova requisição
     this.stats.debouncedRequests++;
     const promise = requestFn()
+      .then((result) => {
+        // Verificar se o resultado é válido antes de retornar
+        if (result === null || result === undefined) {
+          console.warn(`Requisição ${key} retornou resultado inválido:`, result);
+        }
+        return result;
+      })
       .finally(() => {
-        // Remover da lista após conclusão
+        // Remover da lista após conclusão com delay menor para requisições rápidas
         setTimeout(() => {
           this.pendingRequests.delete(key);
-        }, this.DEBOUNCE_TIME);
+        }, Math.min(this.DEBOUNCE_TIME, 1000)); // Máximo 1 segundo
       });
 
     this.pendingRequests.set(key, {

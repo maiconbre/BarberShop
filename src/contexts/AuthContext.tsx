@@ -32,49 +32,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkSessionValidity = () => {
     // Priorizar localStorage para persistência
     // Usar 'authToken' como chave principal para consistência
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
-    const expiryTime = localStorage.getItem('tokenExpiration') || localStorage.getItem('sessionExpiry') || sessionStorage.getItem('tokenExpiration') || sessionStorage.getItem('sessionExpiry');
-    const user = localStorage.getItem('user') || sessionStorage.getItem('user');
-    const rememberMe = localStorage.getItem('rememberMe') === 'true';
-    const sessionStart = sessionStorage.getItem('sessionStart');
+    const authToken = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
+    const finalToken = authToken || token;
+    const expiryTime = localStorage.getItem('tokenExpiration') || localStorage.getItem('sessionExpiry');
+    const user = localStorage.getItem('user');
+    const rememberMe = localStorage.getItem('rememberMe');
+    
+    // Log detalhado para debug
+    console.log('AuthContext - Verificando sessão (detalhado):', {
+      authToken: authToken ? 'presente' : 'ausente',
+      token: token ? 'presente' : 'ausente',
+      finalToken: finalToken ? 'presente' : 'ausente',
+      tokenExpiration: localStorage.getItem('tokenExpiration') ? 'presente' : 'ausente',
+      sessionExpiry: localStorage.getItem('sessionExpiry') ? 'presente' : 'ausente',
+      user: user ? 'presente' : 'ausente',
+      rememberMe: rememberMe,
+      allLocalStorageKeys: Object.keys(localStorage),
+      currentTime: new Date().toISOString()
+    });
     
     // Se não há dados básicos de autenticação, retornar false
-    if (!token || !expiryTime || !user) {
+    if (!finalToken || !expiryTime || !user) {
+      console.log('AuthContext - Dados básicos ausentes:', {
+        missingToken: !finalToken,
+        missingExpiryTime: !expiryTime,
+        missingUser: !user
+      });
       return false;
     }
 
     // Verificar se a sessão expirou
     const currentTime = new Date().getTime();
-    const isTokenValid = currentTime < parseInt(expiryTime);
+    const expirationTime = parseInt(expiryTime);
+    const isTokenValid = currentTime < expirationTime;
+    
+    // Log para debug da expiração
+    const timeUntilExpiry = expirationTime - currentTime;
+    const hoursUntilExpiry = timeUntilExpiry / (1000 * 60 * 60);
+    console.log('AuthContext - Verificação de expiração:', {
+      currentTime: new Date(currentTime).toISOString(),
+      expirationTime: new Date(expirationTime).toISOString(),
+      isTokenValid,
+      hoursUntilExpiry: hoursUntilExpiry.toFixed(2)
+    });
     
     // Se o token expirou, retornar false
     if (!isTokenValid) {
+      console.log('AuthContext - Token expirado, invalidando sessão');
       return false;
     }
     
-    // Se não escolheu manter-se logado, verificar se é uma nova sessão do navegador
-    if (!rememberMe) {
+    // Simplificar lógica do rememberMe - se não está definido, assumir true por padrão
+    // Isso evita logout desnecessário quando o usuário não escolheu explicitamente
+    const shouldRemember = rememberMe !== 'false'; // true por padrão, false apenas se explicitamente definido
+    
+    if (!shouldRemember) {
+      // Verificar se é uma nova sessão do navegador apenas se rememberMe for explicitamente false
+      const sessionStart = sessionStorage.getItem('sessionStart');
       if (!sessionStart) {
-        // Nova sessão detectada e usuário não quer manter-se logado - deslogar
+        console.log('AuthContext - Nova sessão detectada e usuário não quer manter-se logado');
         return false;
       }
     }
     
-    // Se o token está válido mas só existe no sessionStorage, migrar para localStorage
-    if (isTokenValid && !localStorage.getItem('authToken') && !localStorage.getItem('token')) {
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('token', token); // Manter compatibilidade
-      localStorage.setItem('tokenExpiration', expiryTime);
-      localStorage.setItem('sessionExpiry', expiryTime); // Manter compatibilidade
-      localStorage.setItem('user', user);
-      
-      // Migrar currentBarberId se existir
-      const barberId = sessionStorage.getItem('currentBarberId');
-      if (barberId) {
-        localStorage.setItem('currentBarberId', barberId);
-      }
-    }
-    
+    console.log('AuthContext - Sessão válida');
     return true;
   };
 
@@ -93,44 +115,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const validateSession = () => {
+      console.log('AuthContext - Executando validação de sessão');
       const isValid = checkSessionValidity();
       
       if (isValid) {
-        setIsAuthenticated(true);
-        // Sempre atualizar no localStorage para persistência
-        updateSessionExpiry(localStorage);
+        if (!isAuthenticated) {
+          console.log('AuthContext - Sessão válida, definindo como autenticado');
+          setIsAuthenticated(true);
+        }
+        // Verificar se o token precisa ser renovado
+        checkTokenRenewal();
       } else {
-        // Clear session if expired or invalid
-        setIsAuthenticated(false);
-        // Limpar dados sem chamar logout() para evitar loops
-        const items = ['token', 'authToken', 'currentBarberId', 'user', 'sessionExpiry', 'tokenExpiration', 'rememberMe'];
-        items.forEach(item => {
-          localStorage.removeItem(item);
-          sessionStorage.removeItem(item);
-        });
-        sessionStorage.removeItem('sessionStart');
+        // Só limpar dados se o usuário estava previamente autenticado
+        // Isso evita limpar dados válidos durante a inicialização
+        if (isAuthenticated || isInitialized.current) {
+          console.log('AuthContext - Sessão inválida, fazendo logout');
+          setIsAuthenticated(false);
+          // Limpar dados sem chamar logout() para evitar loops
+          const items = ['token', 'authToken', 'currentBarberId', 'user', 'sessionExpiry', 'tokenExpiration', 'rememberMe'];
+          items.forEach(item => {
+            localStorage.removeItem(item);
+            sessionStorage.removeItem(item);
+          });
+          sessionStorage.removeItem('sessionStart');
+        } else {
+          console.log('AuthContext - Sessão inválida na inicialização, mas não limpando dados ainda');
+        }
       }
     };
 
     // Validação inicial apenas uma vez
     if (!isInitialized.current) {
+      console.log('AuthContext - Executando validação inicial');
       validateSession();
       isInitialized.current = true;
     }
     
-    // Verificar a cada 5 minutos para otimizar performance
-    const interval = setInterval(validateSession, 5 * 60 * 1000);
+    // Verificar a cada 15 minutos para reduzir overhead
+    const interval = setInterval(() => {
+      console.log('AuthContext - Verificação periódica de sessão');
+      validateSession();
+    }, 15 * 60 * 1000);
     
     // Listener para detectar mudanças de aba/janela e revalidar sessão
     const handleVisibilityChange = () => {
       if (!document.hidden) {
+        console.log('AuthContext - Aba ficou visível, validando sessão');
         validateSession();
       }
     };
     
-    // Listener para detectar foco na janela
+    // Listener para detectar foco na janela (menos agressivo)
     const handleFocus = () => {
-      validateSession();
+      // Só validar se passou mais de 5 minutos desde a última validação
+      const lastValidation = localStorage.getItem('lastSessionValidation');
+      const now = Date.now();
+      if (!lastValidation || (now - parseInt(lastValidation)) > 5 * 60 * 1000) {
+        console.log('AuthContext - Janela focada após 5+ minutos, validando sessão');
+        localStorage.setItem('lastSessionValidation', now.toString());
+        validateSession();
+      }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -141,7 +185,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [isAuthenticated]); // Adicionar isAuthenticated como dependência
 
   const clearUserSpecificCache = async (userId?: string) => {
     try {
@@ -178,11 +222,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string, rememberMe: boolean = true) => {
     try {
+      console.log('AuthContext - Iniciando login:', { username, rememberMe });
+      
       // Obter usuário atual antes do login para limpar seu cache
       const currentUser = getCurrentUser();
       const previousUserId = currentUser?.id;
       
       const user = await authenticateUser(username, password);
+      
+      console.log('AuthContext - Usuário autenticado:', { userId: user.id, role: user.role });
       
       // Limpar cache do usuário anterior se for diferente
       if (previousUserId && previousUserId !== user.id) {
@@ -190,7 +238,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       // Sempre usar localStorage para persistência (6 horas)
-      // O parâmetro rememberMe agora controla se o usuário permanece logado após F5
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('rememberMe', rememberMe.toString());
       
@@ -200,15 +247,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Token já é armazenado no localStorage pelo authenticateUser
       // Definir expiração de 6 horas
       updateSessionExpiry(localStorage);
+      
+      console.log('AuthContext - Configuração de sessão:', {
+        rememberMe: rememberMe.toString(),
+        sessionStart: sessionStorage.getItem('sessionStart'),
+        tokenExpiration: localStorage.getItem('tokenExpiration')
+      });
 
       if (user.role === 'barber') {
         localStorage.setItem('currentBarberId', user.id.toString());
       }
 
       setIsAuthenticated(true);
+      console.log('AuthContext - Login concluído com sucesso');
       return true;
     } catch (error) {
-      console.error('Erro no login:', error);
+      console.error('AuthContext - Erro no login:', error);
       return false;
     }
   };
@@ -254,15 +308,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const renewToken = async () => {
     try {
       const currentUser = getCurrentUser();
-      if (!currentUser) return false;
+      if (!currentUser) {
+        console.log('AuthContext - Não é possível renovar token: usuário não encontrado');
+        return false;
+      }
+      
+      console.log('AuthContext - Renovando token para usuário:', currentUser.id);
       
       // Aqui você pode implementar uma chamada para renovar o token
       // Por enquanto, apenas estendemos o tempo de expiração
       updateSessionExpiry(localStorage);
+      
+      console.log('AuthContext - Token renovado com sucesso');
       return true;
     } catch (error) {
-      console.error('Erro ao renovar token:', error);
+      console.error('AuthContext - Erro ao renovar token:', error);
       return false;
+    }
+  };
+  
+  // Função para verificar se o token precisa ser renovado
+  const checkTokenRenewal = () => {
+    const expiryTime = localStorage.getItem('tokenExpiration');
+    if (!expiryTime) return;
+    
+    const currentTime = new Date().getTime();
+    const expirationTime = parseInt(expiryTime);
+    const timeUntilExpiry = expirationTime - currentTime;
+    
+    // Renovar token se faltam menos de 30 minutos para expirar
+    const thirtyMinutes = 30 * 60 * 1000;
+    
+    if (timeUntilExpiry > 0 && timeUntilExpiry < thirtyMinutes) {
+      console.log('AuthContext - Token próximo do vencimento, renovando automaticamente');
+      renewToken();
     }
   };
 

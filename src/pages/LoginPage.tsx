@@ -133,7 +133,7 @@ const LoginPage: React.FC = () => {
                 }
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
-                Manter me conectad
+                Manter conectado
               </label>
             </div>
           </div>

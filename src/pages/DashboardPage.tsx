@@ -410,6 +410,7 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     let isSubscribed = true;
+    let timeoutId: NodeJS.Timeout;
 
     const fetchData = async () => {
       if (!isSubscribed || !navigator.onLine) return;
@@ -421,16 +422,23 @@ const DashboardPage: React.FC = () => {
         }
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
-        if (isSubscribed) {
-          setAppointments([]);
+        // Não limpar appointments em caso de erro para evitar "zeramento"
+        // Manter os dados existentes se houver
+        if (isSubscribed && appointments.length === 0) {
+          // Só definir array vazio se não há dados anteriores
+          setAppointments(prev => prev.length > 0 ? prev : []);
         }
       }
     };
 
-    fetchData();
+    // Pequeno delay para evitar chamadas muito rápidas durante navegação
+    timeoutId = setTimeout(fetchData, 50);
 
     return () => {
       isSubscribed = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, []);
 
@@ -1149,7 +1157,7 @@ const DashboardPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <ClientAnalytics appointments={filteredAppointments} />
+                    <ClientAnalytics appointments={appointments} />
                   </div>
                 </motion.div>
               </motion.div>

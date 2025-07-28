@@ -129,7 +129,7 @@ export const loadAppointments = async (): Promise<any[]> => {
     });
     
     // Durante backoff, sempre usar cache (mesmo que obsoleto) se disponível
-    const cachedData = await cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
+    const cachedData = cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
     if (cachedData) {
       logger.apiWarn(`Usando cache durante período de backoff`);
       AppointmentLogger.logCacheOperation('BACKOFF_CACHE_HIT', APPOINTMENTS_CACHE_KEY, `${cachedData.length} appointments`);
@@ -149,53 +149,67 @@ export const loadAppointments = async (): Promise<any[]> => {
   // 3. Verificar se temos dados em cache válidos
   const cachedData = cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
   
-  // 4. Se temos cache válido e não passou muito tempo desde a última requisição, retornar cache
-  if (cachedData && (now - lastFetchTime) < MIN_FETCH_INTERVAL) {
-    logger.apiDebug(`Usando cache de agendamentos`);
+  // 4. SEMPRE retornar cache se disponível para evitar "zeramento" dos dados
+  // Só fazer nova requisição se não houver cache ou se for explicitamente solicitado
+  if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+    logger.apiDebug(`Usando cache de agendamentos (${cachedData.length} items)`);
     AppointmentLogger.logCacheOperation('CACHE_HIT', APPOINTMENTS_CACHE_KEY, `Count: ${cachedData.length}`);
+    
+    // Atualizar em background apenas se passou tempo suficiente
+    if ((now - lastFetchTime) >= MIN_FETCH_INTERVAL) {
+      logger.apiDebug(`Atualizando cache em background`);
+      setTimeout(() => {
+        fetchAppointments()
+          .then((newData) => {
+            if (newData && Array.isArray(newData) && newData.length > 0) {
+              lastFetchTime = Date.now();
+              consecutiveFailures = 0;
+              // Atualizar cache com novos dados
+              cacheService.set(APPOINTMENTS_CACHE_KEY, newData, { ttl: APPOINTMENTS_CACHE_TTL });
+            }
+          })
+          .catch(err => {
+            logger.apiError('Erro na atualização em background:', err);
+          });
+      }, 100); // Pequeno delay para não interferir com a resposta atual
+    }
+    
     return cachedData;
   }
   
-  // Se temos cache válido, mas pode precisar de atualização em background
-  if (cachedData && (now - lastFetchTime) >= MIN_FETCH_INTERVAL) {
-    logger.apiDebug(`Usando cache e atualizando em background`);
-    // Atualizar em background sem aguardar
-    setTimeout(() => {
-      fetchAppointments()
-        .then(() => {
-          lastFetchTime = Date.now();
-          consecutiveFailures = 0; // Resetar falhas em caso de sucesso
-        })
-        .catch(err => {
-          logger.apiError('Erro na atualização em background:', err);
-        });
-    }, 0);
-    return cachedData;
-  }
-  
-  // 5. Iniciar nova requisição (com deduplicação)
+  // 5. Se não há cache válido, fazer requisição
   try {
     appointmentsPromise = fetchAppointments();
     const appointments = await appointmentsPromise;
-    lastFetchTime = now;
-    consecutiveFailures = 0; // Resetar contador de falhas em caso de sucesso
-    backoffTimeout = 0; // Limpar backoff
     
-    AppointmentLogger.logOperation('LOAD_APPOINTMENTS_SUCCESS', {
-      operationId,
-      count: appointments.length,
-      duration: `${Date.now() - now}ms`,
-      source: 'api'
-    });
-    
-    return appointments;
+    // Verificar se os dados são válidos antes de retornar
+    if (appointments && Array.isArray(appointments)) {
+      lastFetchTime = now;
+      consecutiveFailures = 0;
+      backoffTimeout = 0;
+      
+      AppointmentLogger.logOperation('LOAD_APPOINTMENTS_SUCCESS', {
+        operationId,
+        count: appointments.length,
+        duration: `${Date.now() - now}ms`,
+        source: 'api'
+      });
+      
+      return appointments;
+    } else {
+      // Se a API retornou dados inválidos, usar cache se disponível
+      logger.apiWarn('API retornou dados inválidos, tentando usar cache');
+      if (cachedData) {
+        return cachedData;
+      }
+      return [];
+    }
   } catch (error) {
     logger.apiError(`Erro ao carregar agendamentos:`, error);
     
     // 6. Implementar exponential backoff em caso de falhas consecutivas
     consecutiveFailures++;
     if (consecutiveFailures > 1) {
-      // Calcular tempo de backoff: 2^n segundos (com limite máximo)
       const backoffSeconds = Math.min(Math.pow(2, consecutiveFailures - 1), MAX_BACKOFF / 1000);
       backoffTimeout = now + (backoffSeconds * 1000);
       logger.apiWarn(`Ativando backoff por ${backoffSeconds}s após ${consecutiveFailures} falhas consecutivas`);
@@ -209,15 +223,14 @@ export const loadAppointments = async (): Promise<any[]> => {
       duration: `${Date.now() - now}ms`
     });
     
-    // 7. Em caso de erro, tentar usar cache mesmo que obsoleto
-    if (cachedData) {
-      logger.apiWarn(`Usando cache obsoleto após erro`);
-      AppointmentLogger.logCacheOperation('FALLBACK_CACHE_HIT', APPOINTMENTS_CACHE_KEY, `${cachedData.length} appointments (obsolete)`);
+    // 7. Em caso de erro, SEMPRE usar cache se disponível
+    if (cachedData && Array.isArray(cachedData)) {
+      logger.apiWarn(`Usando cache após erro (${cachedData.length} items)`);
+      AppointmentLogger.logCacheOperation('FALLBACK_CACHE_HIT', APPOINTMENTS_CACHE_KEY, `${cachedData.length} appointments (fallback)`);
       return cachedData;
     }
     
     AppointmentLogger.logCacheOperation('FALLBACK_CACHE_MISS', APPOINTMENTS_CACHE_KEY);
-    // 8. Se não tiver cache, retornar array vazio
     return [];
   } finally {
     // 9. Limpar a promessa para permitir novas requisições
