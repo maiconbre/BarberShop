@@ -4,7 +4,7 @@ import compression from 'vite-plugin-compression2';
 import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     compression({
@@ -48,7 +48,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
-});
+}));
 
 //Para usar o cache atualizado, você pode:
 

@@ -147,28 +147,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Limpar cache específico do usuário anterior
       if (userId) {
-        await cacheService.delete(`schedule_appointments_${userId}`);
+        cacheService.remove(`schedule_appointments_${userId}`);
       }
       
       // Limpar outros caches relacionados a agendamentos
-      await cacheService.delete('/api/appointments');
-      await cacheService.delete('appointments');
+      cacheService.remove('/api/appointments');
+      cacheService.remove('appointments');
       
       // Limpar localStorage de agendamentos
       localStorage.removeItem('appointments');
       
-      // Limpar todos os caches que começam com 'schedule_appointments_'
-      const allKeys = await cacheService.getAllKeys();
-      const keysToDelete = allKeys.filter(key => {
-        // Remove o prefixo para verificar a chave real
-        const keyWithoutPrefix = key.replace(/^cache_/, '');
-        return keyWithoutPrefix.startsWith('schedule_appointments_');
-      });
+      // Limpar caches específicos de agendamentos
+      // Como não temos getAllKeys, vamos limpar caches conhecidos
+      const commonCacheKeys = [
+        'schedule_appointments_',
+        '/api/appointments',
+        'barbers',
+        'services'
+      ];
       
-      for (const key of keysToDelete) {
-        // Remove o prefixo para deletar a chave correta
-        const keyWithoutPrefix = key.replace(/^cache_/, '');
-        await cacheService.delete(keyWithoutPrefix);
+      for (const key of commonCacheKeys) {
+        cacheService.remove(key);
       }
       
       console.log('Cache específico do usuário limpo com sucesso');

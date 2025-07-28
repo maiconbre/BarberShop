@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Clock, Eye, EyeOff, TrendingUp, Users, DollarSign, ArrowUpRight } from 'lucide-react';
@@ -9,6 +9,25 @@ interface StatsProps {
   revenueDisplayMode: string;
   setRevenueDisplayMode: (mode: string) => void;
 }
+
+// Interface para cache de estatísticas
+interface CachedStats {
+  receitaHoje: number;
+  receitaSemana: number;
+  receitaMes: number;
+  clientesHoje: number;
+  clientesSemana: number;
+  clientesMes: number;
+  filteredPendingAppointments: number;
+  filteredCompletedAppointments: number;
+  filteredPendingRevenue: number;
+  filteredCompletedRevenue: number;
+  timestamp: number;
+}
+
+// Cache global para estatísticas
+const statsCache = new Map<string, CachedStats>();
+const CACHE_DURATION = 30000; // 30 segundos
 
 // Componente para animação de contagem
 const CountUp = ({ end, duration = 0.4, prefix = '', suffix = '' }: { end: number; duration?: number; prefix?: string; suffix?: string }) => {
@@ -47,8 +66,11 @@ const CountUp = ({ end, duration = 0.4, prefix = '', suffix = '' }: { end: numbe
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showValues, setShowValues] = useState(true);
+  const [cachedData, setCachedData] = useState<CachedStats | null>(null);
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
+  
+  // Removido log desnecessário que causava chamadas repetidas
   
   // Estado para controlar a animação do olho
   const [isBlinking, setIsBlinking] = useState(false);
@@ -62,67 +84,124 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     }, 300);
   };
 
-  const totalAppointments = appointments.length;
-  const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
-  const completedAppointments = appointments.filter(app => app.status === 'completed').length;
+  // Função para gerar chave de cache otimizada
+  const generateCacheKey = useCallback((mode: string, appointmentsLength: number) => {
+    // Usar apenas length e hash simples para evitar recálculos desnecessários
+    const simpleHash = appointments.length > 0 ? appointments[0]?.id + appointments[appointments.length - 1]?.id : 'empty';
+    return `${mode}_${appointmentsLength}_${simpleHash}`;
+  }, [appointments.length, appointments[0]?.id, appointments[appointments.length - 1]?.id]);
 
-  // Função para filtrar agendamentos por data
-  const getFilteredAppointmentsByDate = () => {
-    const hoje = new Date();
-    const hojeStr = hoje.toISOString().split('T')[0];
+  // Função para verificar se o cache é válido
+  const isCacheValid = useCallback((cached: CachedStats) => {
+    return Date.now() - cached.timestamp < CACHE_DURATION;
+  }, []);
+
+  // Função para calcular estatísticas com cache
+  const calculateStatsWithCache = useCallback((mode: string) => {
+    const cacheKey = generateCacheKey(mode, appointments.length);
+    const cached = statsCache.get(cacheKey);
+    
+    if (cached && isCacheValid(cached)) {
+      return cached;
+    }
+    
+    // Filtrar agendamentos por usuário primeiro (barbeiros veem apenas seus agendamentos)
+    let userFilteredAppointments = appointments;
+    if (currentUser?.role === 'barber' && currentUser?.id) {
+      userFilteredAppointments = appointments.filter(app => app.barberId === currentUser.id);
+    }
+    
+    const hoje = new Date().toISOString().split('T')[0];
     const startOfWeek = new Date();
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0);
 
-    switch (revenueDisplayMode) {
+    const appointmentsHoje = userFilteredAppointments.filter(app => app.date === hoje);
+    const appointmentsSemana = userFilteredAppointments.filter(app => {
+      const appDate = new Date(app.date);
+      return appDate >= startOfWeek && appDate <= endOfWeek;
+    });
+    const appointmentsMes = userFilteredAppointments.filter(app => {
+      const appDate = new Date(app.date);
+      return appDate >= thirtyDaysAgo;
+    });
+
+    // Filtrar por modo atual para o gráfico de pizza
+    let currentFilteredAppointments;
+    switch (mode) {
       case 'day':
-        return appointments.filter(app => {
-          const appDate = new Date(app.date);
-          return appDate.toISOString().split('T')[0] === hojeStr;
-        });
+        currentFilteredAppointments = appointmentsHoje;
+        break;
       case 'week':
-        return appointments.filter(app => {
-          const appDate = new Date(app.date);
-          return appDate >= startOfWeek && appDate <= endOfWeek;
-        });
+        currentFilteredAppointments = appointmentsSemana;
+        break;
       case 'month':
-        return appointments.filter(app => {
-          const appDate = new Date(app.date);
-          return appDate >= thirtyDaysAgo;
-        });
+        currentFilteredAppointments = appointmentsMes;
+        break;
       default:
-        return appointments;
+        currentFilteredAppointments = userFilteredAppointments;
     }
-  };
 
-  // Usando useMemo para evitar recálculos desnecessários
-  const currentFilteredAppointments = useMemo(() => getFilteredAppointmentsByDate(),
-    [appointments, revenueDisplayMode]);
+    const newStats: CachedStats = {
+      receitaHoje: appointmentsHoje.reduce((sum, app) => sum + app.price, 0),
+      receitaSemana: appointmentsSemana.reduce((sum, app) => sum + app.price, 0),
+      receitaMes: appointmentsMes.reduce((sum, app) => sum + app.price, 0),
+      clientesHoje: appointmentsHoje.length,
+      clientesSemana: appointmentsSemana.length,
+      clientesMes: appointmentsMes.length,
+      filteredPendingAppointments: currentFilteredAppointments.filter(app => app.status === 'pending').length,
+      filteredCompletedAppointments: currentFilteredAppointments.filter(app => app.status === 'completed').length,
+      filteredPendingRevenue: currentFilteredAppointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0),
+      filteredCompletedRevenue: currentFilteredAppointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0),
+      timestamp: Date.now()
+    };
 
-  const filteredPendingAppointments = useMemo(() =>
-    currentFilteredAppointments.filter(app => app.status === 'pending').length,
-    [currentFilteredAppointments]);
+    // Salvar no cache
+    statsCache.set(cacheKey, newStats);
+    
+    // Limpar cache antigo (manter apenas os últimos 10 itens)
+    if (statsCache.size > 10) {
+      const oldestKey = statsCache.keys().next().value;
+if (oldestKey) {
+  statsCache.delete(oldestKey);
+}
+    }
 
-  const filteredCompletedAppointments = useMemo(() =>
-    currentFilteredAppointments.filter(app => app.status === 'completed').length,
-    [currentFilteredAppointments]);
+    return newStats;
+  }, [appointments, generateCacheKey, isCacheValid]);
 
-  const filteredPendingRevenue = useMemo(() =>
-    currentFilteredAppointments.filter(app => app.status === 'pending')
-      .reduce((sum, app) => sum + app.price, 0),
-    [currentFilteredAppointments]);
+  // Filtrar agendamentos por usuário para estatísticas gerais
+  const userFilteredAppointments = useMemo(() => {
+    if (currentUser?.role === 'barber' && currentUser?.id) {
+      return appointments.filter(app => app.barberId === currentUser.id);
+    }
+    return appointments;
+  }, [appointments, currentUser]);
 
-  const filteredCompletedRevenue = useMemo(() =>
-    currentFilteredAppointments.filter(app => app.status === 'completed')
-      .reduce((sum, app) => sum + app.price, 0),
-    [currentFilteredAppointments]);
+  const totalAppointments = userFilteredAppointments.length;
+  const totalRevenue = userFilteredAppointments.reduce((sum, app) => sum + app.price, 0);
+  const completedAppointments = userFilteredAppointments.filter(app => app.status === 'completed').length;
+
+  // Usar cache para estatísticas com otimização
+  const currentStats = useMemo(() => {
+    return calculateStatsWithCache(revenueDisplayMode);
+  }, [revenueDisplayMode, appointments.length, calculateStatsWithCache]);
+
+  // Atualizar dados em cache apenas quando necessário
+  useEffect(() => {
+    if (currentStats && (!cachedData || currentStats.timestamp !== cachedData.timestamp)) {
+      setCachedData(currentStats);
+    }
+  }, [currentStats, cachedData]);
+
+  // Usar dados do cache para evitar recálculos
+  const filteredPendingAppointments = cachedData?.filteredPendingAppointments || 0;
+  const filteredCompletedAppointments = cachedData?.filteredCompletedAppointments || 0;
+  const filteredPendingRevenue = cachedData?.filteredPendingRevenue || 0;
+  const filteredCompletedRevenue = cachedData?.filteredCompletedRevenue || 0;
 
 
   // Função para calcular o próximo agendamento e o tempo restante
@@ -130,16 +209,17 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     // Obter a data e hora atual
     const now = new Date();
     
+    // Filtrar agendamentos por usuário primeiro
+    let userFilteredAppointments = appointments;
+    if (currentUser?.role === 'barber' && currentUser?.id) {
+      userFilteredAppointments = appointments.filter(app => app.barberId === currentUser.id);
+    }
+    
     // Filtrar agendamentos futuros (hoje ou depois) e não concluídos
-    let futureAppointments = appointments.filter(app => {
+    let futureAppointments = userFilteredAppointments.filter(app => {
       const appDate = new Date(`${app.date}T${app.time}`);
       return (appDate >= now && app.status !== 'completed');
     });
-
-    // Se o usuário for um barbeiro (não admin), filtrar apenas seus agendamentos
-    if (currentUser?.role === 'barber') {
-      futureAppointments = futureAppointments.filter(app => app.barberId === currentUser.id);
-    }
 
     // Ordenar por data e hora (mais próximo primeiro)
     futureAppointments.sort((a, b) => {
@@ -183,53 +263,35 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     return timeRemaining;
   }, [appointments, currentUser]);
 
-  // Cálculo de estatísticas detalhadas usando useMemo
-  const calculatedStats = useMemo(() => {
-    const hoje = new Date().toISOString().split('T')[0];
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6);
+  // Usar dados do cache para estatísticas
+  const receitaHoje = cachedData?.receitaHoje || 0;
+  const receitaSemana = cachedData?.receitaSemana || 0;
+  const receitaMes = cachedData?.receitaMes || 0;
+  const clientesHoje = cachedData?.clientesHoje || 0;
+  const clientesSemana = cachedData?.clientesSemana || 0;
+  const clientesMes = cachedData?.clientesMes || 0;
+  const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const receitaHoje = appointments.filter(app => app.date === hoje).reduce((sum, app) => sum + app.price, 0);
-    const receitaSemana = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= startOfWeek && appDate <= endOfWeek;
-    }).reduce((sum, app) => sum + app.price, 0);
-
-    const receitaMes = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= thirtyDaysAgo;
-    }).reduce((sum, app) => sum + app.price, 0);
-
-    const taxaConclusao = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
-
-    const clientesHoje = appointments.filter(app => app.date === hoje).length;
-    const clientesSemana = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= startOfWeek && appDate <= endOfWeek;
-    }).length;
-
-    const clientesMes = appointments.filter(app => {
-      const appDate = new Date(app.date);
-      return appDate >= thirtyDaysAgo;
-    }).length;
-
-    return { receitaHoje, receitaSemana, receitaMes, taxaConclusao, clientesHoje, clientesSemana, clientesMes };
-  }, [appointments, totalAppointments, totalRevenue, completedAppointments]);
-
-  const { receitaHoje, receitaSemana, receitaMes, clientesHoje, clientesSemana, clientesMes } = calculatedStats;
-
-  // Função para atualizar o modo de exibição
-  const handleModeChange = (mode: string) => {
+  // Função para atualizar o modo de exibição com cache inteligente
+  const handleModeChange = useCallback((mode: string) => {
+    if (mode === revenueDisplayMode) return; // Evitar chamadas desnecessárias
+    
     setIsTransitioning(true);
-    setRevenueDisplayMode(mode);
-    // Reset do estado após a transição
-    setTimeout(() => setIsTransitioning(false), 50);
-  };
+    
+    // Verificar se já temos dados em cache para este modo
+    const cacheKey = generateCacheKey(mode, appointments.length);
+    const cached = statsCache.get(cacheKey);
+    
+    if (cached && isCacheValid(cached)) {
+      setRevenueDisplayMode(mode);
+      setCachedData(cached);
+      setTimeout(() => setIsTransitioning(false), 50);
+    } else {
+      setRevenueDisplayMode(mode);
+      // Os dados serão calculados pelo useMemo
+      setTimeout(() => setIsTransitioning(false), 100);
+    }
+  }, [revenueDisplayMode, generateCacheKey, isCacheValid, setRevenueDisplayMode]);
 
   // Dados do gráfico memoizados para evitar recriação a cada renderização
   const pieChartData = useMemo(() => {

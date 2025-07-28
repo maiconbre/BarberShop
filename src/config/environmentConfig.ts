@@ -50,10 +50,10 @@ export const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
   
   production: {
     name: 'Produção',
-    apiUrl: 'https://chemical-penelopa-soma-8513fd0f.koyeb.app',
+    apiUrl: 'https://barber-backend-spm8.onrender.com',
     devMode: false,
     debugApi: false,
-    description: 'API de produção hospedada no Koyeb',
+    description: 'API de produção hospedada no Render',
     features: {
       cache: {
         enabled: true,
@@ -73,7 +73,7 @@ export const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
   
   testing: {
     name: 'Testes com API de Produção',
-    apiUrl: 'https://chemical-penelopa-soma-8513fd0f.koyeb.app',
+    apiUrl: 'https://barber-backend-spm8.onrender.com',
     devMode: true,
     debugApi: true,
     description: 'Testes locais usando API de produção',
@@ -107,7 +107,7 @@ export const getCurrentEnvironment = (): EnvironmentConfig => {
   }
   
   // Se está usando API de produção mas com debug habilitado
-  if (apiUrl?.includes('koyeb.app') && (devMode || debugApi)) {
+  if (apiUrl?.includes('onrender.com') && (devMode || debugApi)) {
     return ENVIRONMENT_CONFIGS.testing;
   }
   

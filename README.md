@@ -535,7 +535,7 @@ Acesse a versão online:
 #### Erro de Conexão com API
 ```bash
 # Verificar se a API está rodando
-curl https://chemical-penelopa-soma-8513fd0f.koyeb.app/health
+curl https://barber-backend-spm8.onrender.com/health
 
 # Verificar variáveis de ambiente
 echo $VITE_API_URL

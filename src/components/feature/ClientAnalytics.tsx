@@ -5,6 +5,25 @@ import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { useAuth } from '../../contexts/AuthContext';
 import AppointmentHistory from './AppointmentHistory';
 
+// Estilos CSS para scrollbar personalizada
+const scrollbarStyles = `
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+// Adicionar estilos ao head se não existirem
+if (typeof document !== 'undefined' && !document.getElementById('scrollbar-styles')) {
+  const style = document.createElement('style');
+  style.id = 'scrollbar-styles';
+  style.textContent = scrollbarStyles;
+  document.head.appendChild(style);
+}
+
 const formatWhatsApp = (whatsapp: string | undefined): string => {
     if (!whatsapp) return '-';
 
@@ -62,6 +81,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         totalSpent: number;
         lastVisit: string;
         services: Record<string, number>;
+        barberName?: string;
     }
 
     const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
@@ -70,8 +90,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#F0B35B'];
 
     const filteredAppointments = useMemo(() => {
-        if (isAdmin) return appointments;
-        return appointments.filter(app => app.barberId === currentUser?.id);
+        if (isAdmin) return appointments; // Admin vê todos os agendamentos de todos os barbeiros
+        return appointments.filter(app => app.barberId === currentUser?.id); // Barbeiro vê apenas seus agendamentos
     }, [appointments, isAdmin, currentUser?.id]);
 
     const weeklyData = useMemo(() => {
@@ -107,10 +127,12 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         const servicesCount: { [key: string]: number } = {};
 
         filteredAppointments.forEach(app => {
-            const services = app.service.split(',').map(s => s.trim());
-            services.forEach(service => {
-                servicesCount[service] = (servicesCount[service] || 0) + 1;
-            });
+            if (app.service) {
+                const services = app.service.split(',').map(s => s.trim());
+                services.forEach(service => {
+                    servicesCount[service] = (servicesCount[service] || 0) + 1;
+                });
+            }
         });
 
         return Object.entries(servicesCount)
@@ -156,14 +178,16 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
             if (!clientMap.has(clientKey)) {
                 clientMap.set(clientKey, {
-                    id: clientKey, // Adiciona um ID único baseado na chave do cliente
+                    id: clientKey,
                     name: app.clientName,
                     whatsapp: clientWhatsapp,
                     visits: 0,
                     totalSpent: 0,
                     lastVisit: app.date,
                     services: {},
-                    appointmentDates: []
+                    appointmentDates: [],
+                    barberName: app.barberName, // Adiciona nome do barbeiro para admins
+                    barberId: app.barberId
                 });
             }
 
@@ -176,13 +200,15 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 clientData.lastVisit = app.date;
             }
 
-            const services = app.service.split(',').map(s => s.trim());
-            services.forEach(service => {
-                clientData.services[service] = (clientData.services[service] || 0) + 1;
-            });
+            if (app.service) {
+                const services = app.service.split(',').map(s => s.trim());
+                services.forEach(service => {
+                    clientData.services[service] = (clientData.services[service] || 0) + 1;
+                });
+            }
         });
 
-        return Array.from(clientMap.values());
+        return Array.from(clientMap.values()).sort((a, b) => b.totalSpent - a.totalSpent);
     }, [filteredAppointments]);
 
     const forecastData = useMemo(() => {
@@ -739,32 +765,100 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         </div>
     );
 
+    const [selectedBarber, setSelectedBarber] = useState<string>('all');
+
     const renderClientsTab = () => {
-        const filteredClients = clientsData.filter(client =>
-            client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (client.whatsapp && client.whatsapp.includes(searchTerm))
-        );
+        const filteredClients = clientsData.filter(client => {
+            const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (client.whatsapp && client.whatsapp.includes(searchTerm));
+            const matchesBarber = selectedBarber === 'all' || client.barberId === selectedBarber;
+            return matchesSearch && matchesBarber;
+        });
+
+        // Lista de barbeiros únicos para o filtro (apenas para admins)
+        const uniqueBarbers = isAdmin ? 
+            Array.from(new Map(clientsData.map(client => [client.barberId, { id: client.barberId, name: client.barberName }])).values())
+                .filter(barber => barber.id && barber.name) : [];
 
         return (
-            <div className="space-y-6">
-                <div className={`flex flex-col sm:flex-row gap-4 ${isClientModalOpen ? 'hidden' : ''}`}>
-                    <div className="relative flex-1">
+            <div className="space-y-4 sm:space-y-6">
+                <div className={`space-y-3 sm:space-y-4 ${isClientModalOpen ? 'hidden' : ''}`}>
+                    {/* Barra de busca */}
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Buscar cliente..."
+                            placeholder="Buscar cliente por nome ou WhatsApp..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-[#1A1F2E] rounded-lg border border-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50"
+                            className="w-full pl-9 pr-4 py-2.5 sm:py-3 bg-[#1A1F2E] rounded-lg border border-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 text-sm sm:text-base"
                         />
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
-                            className="p-2 rounded-lg bg-[#1A1F2E] border border-white/5 text-white hover:bg-[#F0B35B]/10 transition-colors"
-                        >
-                            {viewMode === 'table' ? <LayoutGrid className="w-5 h-5" /> : <Table className="w-5 h-5" />}
-                        </button>
+                    
+                    {/* Filtros e controles */}
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        {/* Filtro por barbeiro (apenas para admins) */}
+                        {isAdmin && uniqueBarbers.length > 0 && (
+                            <div className="flex-1 sm:max-w-xs">
+                                <select
+                                    value={selectedBarber}
+                                    onChange={(e) => setSelectedBarber(e.target.value)}
+                                    className="w-full px-3 py-2.5 bg-[#1A1F2E] rounded-lg border border-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#F0B35B]/50 text-sm"
+                                >
+                                    <option value="all">Todos os Barbeiros</option>
+                                    {uniqueBarbers.map((barber) => (
+                                        <option key={barber.id} value={barber.id}>
+                                            {barber.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        
+                        {/* Controles de visualização */}
+                        <div className="flex gap-2 sm:gap-3">
+                            <button
+                                onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
+                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#1A1F2E] border border-white/5 text-white hover:bg-[#F0B35B]/10 transition-colors text-sm"
+                            >
+                                {viewMode === 'table' ? (
+                                    <>
+                                        <LayoutGrid className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Cards</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Table className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Tabela</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Estatísticas dos resultados filtrados */}
+                    <div className="bg-[#1A1F2E] p-3 rounded-lg border border-white/5">
+                        <div className="flex flex-wrap items-center gap-4 text-sm">
+                            <span className="text-gray-400">
+                                <span className="text-white font-medium">{filteredClients.length}</span> cliente{filteredClients.length !== 1 ? 's' : ''} encontrado{filteredClients.length !== 1 ? 's' : ''}
+                            </span>
+                            {filteredClients.length > 0 && (
+                                <>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-gray-400">
+                                        Total gasto: <span className="text-[#F0B35B] font-medium">
+                                            R$ {filteredClients.reduce((sum, client) => sum + client.totalSpent, 0).toFixed(2)}
+                                        </span>
+                                    </span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-gray-400">
+                                        Visitas: <span className="text-blue-400 font-medium">
+                                            {filteredClients.reduce((sum, client) => sum + client.visits, 0)}
+                                        </span>
+                                    </span>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -774,11 +868,14 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-white/5">
-                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Cliente</th>
-                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">WhatsApp</th>
-                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Visitas</th>
-                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Última Visita</th>
-                                        <th className="py-3 px-4 text-left text-sm font-medium text-gray-400">Total Gasto</th>
+                                        <th className="py-2 sm:py-3 px-2 sm:px-4 text-left text-xs sm:text-sm font-medium text-gray-400">Cliente</th>
+                                        <th className="py-2 sm:py-3 px-2 sm:px-4 text-left text-xs sm:text-sm font-medium text-gray-400 hidden sm:table-cell">WhatsApp</th>
+                                        {isAdmin && (
+                                            <th className="py-2 sm:py-3 px-2 sm:px-4 text-left text-xs sm:text-sm font-medium text-gray-400 hidden md:table-cell">Barbeiro</th>
+                                        )}
+                                        <th className="py-2 sm:py-3 px-2 sm:px-4 text-left text-xs sm:text-sm font-medium text-gray-400">Visitas</th>
+                                        <th className="py-2 sm:py-3 px-2 sm:px-4 text-left text-xs sm:text-sm font-medium text-gray-400 hidden lg:table-cell">Última Visita</th>
+                                        <th className="py-2 sm:py-3 px-2 sm:px-4 text-left text-xs sm:text-sm font-medium text-gray-400">Total Gasto</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -788,20 +885,35 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             onClick={() => { setSelectedClient(client); setIsClientModalOpen(true); }}
                                             className="cursor-pointer border-b border-white/5 hover:bg-white/10 transition-colors"
                                         >
-                                            <td className="py-3 px-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
-                                                        <User className="w-4 h-4 text-[#F0B35B]" />
+                                            <td className="py-2 sm:py-3 px-2 sm:px-4">
+                                                <div className="flex items-center gap-2 sm:gap-3">
+                                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
+                                                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-[#F0B35B]" />
                                                     </div>
-                                                    <span className="text-white">{client.name}</span>
+                                                    <div className="min-w-0 flex-1">
+                                                        <span className="text-white text-sm sm:text-base font-medium block truncate">{client.name}</span>
+                                                        <span className="text-gray-400 text-xs sm:hidden block">{formatWhatsApp(client.whatsapp)}</span>
+                                                        {isAdmin && (
+                                                            <span className="text-[#F0B35B] text-xs md:hidden block">{client.barberName}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-4 text-gray-400">{formatWhatsApp(client.whatsapp)}</td>
-                                            <td className="py-3 px-4 text-gray-400">{client.visits}</td>
-                                            <td className="py-3 px-4 text-gray-400">
-                                                {new Date(client.lastVisit).toLocaleDateString()}
+                                            <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-400 text-sm hidden sm:table-cell">{formatWhatsApp(client.whatsapp)}</td>
+                                            {isAdmin && (
+                                                <td className="py-2 sm:py-3 px-2 sm:px-4 text-[#F0B35B] text-sm hidden md:table-cell">{client.barberName}</td>
+                                            )}
+                                            <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-400 text-sm">
+                                                <div className="text-center">
+                                                    <span className="bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full text-xs font-medium">
+                                                        {client.visits}
+                                                    </span>
+                                                </div>
                                             </td>
-                                            <td className="py-3 px-4 text-[#F0B35B]">
+                                            <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-400 text-sm hidden lg:table-cell">
+                                                {new Date(client.lastVisit).toLocaleDateString('pt-BR')}
+                                            </td>
+                                            <td className="py-2 sm:py-3 px-2 sm:px-4 text-[#F0B35B] text-sm font-medium">
                                                 R$ {client.totalSpent.toFixed(2)}
                                             </td>
                                         </tr>
@@ -810,44 +922,66 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             </table>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4">
                             {filteredClients.map((client) => (
                                 <motion.div
                                     key={client.id}
                                     onClick={() => { setSelectedClient(client); setIsClientModalOpen(true); }}
-                                    className="bg-[#252B3B] p-4 rounded-xl border border-white/5 hover:shadow-lg cursor-pointer transition-shadow duration-200"
+                                    className="bg-[#252B3B] p-3 sm:p-4 rounded-xl border border-white/5 hover:shadow-lg cursor-pointer transition-all duration-200 hover:border-[#F0B35B]/30"
                                     whileHover={{ scale: 1.02 }}
                                     transition={{ duration: 0.2 }}
                                 >
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
-                                            <User className="w-5 h-5 text-[#F0B35B]" />
+                                    <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#F0B35B]/10 flex items-center justify-center">
+                                            <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#F0B35B]" />
                                         </div>
-                                        <div>
-                                            <h4 className="text-white font-medium">{client.name}</h4>
-                                            <p className="text-gray-400 text-sm">{formatWhatsApp(client.whatsapp)}</p>
+                                        <div className="min-w-0 flex-1">
+                                            <h4 className="text-white font-medium text-sm sm:text-base truncate">{client.name}</h4>
+                                            <p className="text-gray-400 text-xs sm:text-sm truncate">{formatWhatsApp(client.whatsapp)}</p>
+                                            {isAdmin && (
+                                                <p className="text-[#F0B35B] text-xs font-medium truncate">{client.barberName}</p>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                         <div>
-                                            <p className="text-gray-400 text-sm">Visitas</p>
-                                            <p className="text-white font-medium">{client.visits}</p>
+                                            <p className="text-gray-400 text-xs sm:text-sm">Visitas</p>
+                                            <div className="flex items-center gap-1">
+                                                <span className="bg-blue-500/10 text-blue-400 px-2 py-1 rounded-full text-xs font-medium">
+                                                    {client.visits}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div>
-                                            <p className="text-gray-400 text-sm">Total Gasto</p>
-                                            <p className="text-[#F0B35B] font-medium">R$ {client.totalSpent.toFixed(2)}</p>
+                                            <p className="text-gray-400 text-xs sm:text-sm">Total Gasto</p>
+                                            <p className="text-[#F0B35B] font-medium text-sm sm:text-base">R$ {client.totalSpent.toFixed(2)}</p>
                                         </div>
                                         <div>
-                                            <p className="text-gray-400 text-sm">Última Visita</p>
-                                            <p className="text-white font-medium">
+                                            <p className="text-gray-400 text-xs sm:text-sm">Última Visita</p>
+                                            <p className="text-white font-medium text-xs sm:text-sm">
                                                 {new Date(client.lastVisit).toLocaleDateString('pt-BR')}
                                             </p>
                                         </div>
                                         <div>
-                                            <p className="text-gray-400 text-sm">Ticket Médio</p>
-                                            <p className="text-white font-medium">
+                                            <p className="text-gray-400 text-xs sm:text-sm">Ticket Médio</p>
+                                            <p className="text-green-400 font-medium text-xs sm:text-sm">
                                                 R$ {(client.totalSpent / client.visits).toFixed(2)}
                                             </p>
+                                        </div>
+                                    </div>
+                                    {/* Indicador de performance do cliente */}
+                                    <div className="mt-3 pt-3 border-t border-white/5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-gray-400">Performance</span>
+                                            <div className="flex items-center gap-1">
+                                                {client.visits >= 5 ? (
+                                                    <span className="bg-green-500/10 text-green-400 px-2 py-1 rounded-full text-xs font-medium">VIP</span>
+                                                ) : client.visits >= 3 ? (
+                                                    <span className="bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded-full text-xs font-medium">Frequente</span>
+                                                ) : (
+                                                    <span className="bg-gray-500/10 text-gray-400 px-2 py-1 rounded-full text-xs font-medium">Novo</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -868,72 +1002,150 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         <div className="w-full h-full flex flex-col p-2 sm:p-3 space-y-3 sm:space-y-4 overflow-hidden">
             <AnimatePresence>
                 {isClientModalOpen && selectedClient && (
-                    <div className="fixed inset-0 z-60 flex items-start justify-center pt-20 px-2 sm:px-4 bg-black backdrop-blur-sm">
+                    <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
                         <motion.div
                             initial={{ opacity: 0, y: 50 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 50 }}
-                            className="bg-[#1A1F2E] rounded-xl p-4 sm:p-6 w-full max-w-[90vw] sm:max-w-md md:max-w-lg lg:max-w-xl max-h-[calc(100vh-5rem)] overflow-hidden space-y-1 sm:space-y-5"
+                            className="bg-[#1A1F2E] rounded-xl p-3 sm:p-4 w-full max-w-[95vw] sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto space-y-3 sm:space-y-4"
                         >
                             <div className="flex justify-between items-center">
-                                <h3 className="text-xl font-semibold text-white">Detalhes de {selectedClient.name}</h3>
+                                <div>
+                                    <h3 className="text-lg sm:text-xl font-semibold text-white">{selectedClient.name}</h3>
+                                    {isAdmin && (
+                                        <p className="text-[#F0B35B] text-sm font-medium">Barbeiro: {selectedClient.barberName}</p>
+                                    )}
+                                </div>
                                 <button onClick={() => setIsClientModalOpen(false)} className="p-1.5 rounded-full hover:bg-white/10 text-gray-400">
                                     <X size={18} />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2  sm:gap-4">
-                                <div className="space-y-1 sm:space-y-3">
-                                    <p className="text-gray-400 text-sm">Contato</p>
-                                    <p className="text-white font-medium">{formatWhatsApp(selectedClient.whatsapp)}</p>
-                                    <p className="text-gray-400 text-sm">Visitas</p>
-                                    <p className="text-white font-medium">{selectedClient.visits}</p>
-                                    <p className="text-gray-400 text-sm">Total Gasto</p>
-                                    <p className="text-green-400 font-medium">R$ {selectedClient.totalSpent.toFixed(2)}</p>
+                            
+                            {/* Métricas principais */}
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                                <div className="bg-[#252B3B] p-2 sm:p-3 rounded-lg border border-white/5">
+                                    <p className="text-gray-400 text-xs">Visitas</p>
+                                    <p className="text-blue-400 font-medium text-sm mt-0.5">{selectedClient.visits}</p>
                                 </div>
-                                <div className="space-y-1 sm:space-y-3">
-                                    <p className="text-gray-400 text-sm">Última Visita</p>
-                                    <p className="text-white">{selectedClient.lastVisit ? new Date(selectedClient.lastVisit).toLocaleDateString('pt-BR') : '-'}</p>
-                                    <p className="text-gray-400 text-sm">Serviços Preferidos</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {Object.entries(selectedClient.services || {}).sort(([, a], [, b]) => b - a).map(([s, c]) => (
-                                            <span key={s} className="px-2 py-1 bg-[#F0B35B]/10 text-[#F0B35B] rounded-full text-xs">{s} ({c}x)</span>
-                                        ))}
+                                <div className="bg-[#252B3B] p-2 sm:p-3 rounded-lg border border-white/5">
+                                    <p className="text-gray-400 text-xs">Total Gasto</p>
+                                    <p className="text-[#F0B35B] font-medium text-sm mt-0.5">R$ {selectedClient.totalSpent.toFixed(2)}</p>
+                                </div>
+                                <div className="bg-[#252B3B] p-2 sm:p-3 rounded-lg border border-white/5">
+                                    <p className="text-gray-400 text-xs">Ticket Médio</p>
+                                    <p className="text-green-400 font-medium text-sm mt-0.5">R$ {(selectedClient.totalSpent / selectedClient.visits).toFixed(2)}</p>
+                                </div>
+                                <div className="bg-[#252B3B] p-2 sm:p-3 rounded-lg border border-white/5">
+                                    <p className="text-gray-400 text-xs">Status</p>
+                                    <div className="mt-0.5">
+                                        {selectedClient.visits >= 5 ? (
+                                            <span className="bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full text-xs font-medium">VIP</span>
+                                        ) : selectedClient.visits >= 3 ? (
+                                            <span className="bg-yellow-500/10 text-yellow-400 px-2 py-0.5 rounded-full text-xs font-medium">Frequente</span>
+                                        ) : (
+                                            <span className="bg-gray-500/10 text-gray-400 px-2 py-0.5 rounded-full text-xs font-medium">Novo</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Informações compactas */}
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="bg-[#252B3B] p-2 rounded-lg border border-white/5">
+                                        <p className="text-gray-400 text-xs mb-1">WhatsApp</p>
+                                        <p className="text-white text-sm">{formatWhatsApp(selectedClient.whatsapp)}</p>
+                                    </div>
+                                    <div className="bg-[#252B3B] p-2 rounded-lg border border-white/5">
+                                        <p className="text-gray-400 text-xs mb-1">Última Visita</p>
+                                        <p className="text-white text-sm">{selectedClient.lastVisit ? new Date(selectedClient.lastVisit).toLocaleDateString('pt-BR') : '-'}</p>
+                                    </div>
+                                </div>
+                                
+                                {/* Serviços Preferidos */}
+                                <div className="bg-[#252B3B] p-2 rounded-lg border border-white/5">
+                                    <p className="text-gray-400 text-xs mb-2">Serviços Preferidos</p>
+                                    <div className="flex flex-wrap gap-1">
+                                        {Object.entries(selectedClient.services || {}).sort(([, a], [, b]) => b - a).slice(0, 4).map(([s, c]) => (
+                                            <span key={s} className="px-2 py-0.5 bg-[#F0B35B]/10 text-[#F0B35B] rounded-full text-xs font-medium">
+                                                {s} ({c}x)
+                                            </span>
+                                        ))}
+                                        {Object.keys(selectedClient.services || {}).length > 4 && (
+                                            <span className="px-2 py-0.5 bg-gray-500/10 text-gray-400 rounded-full text-xs">
+                                                +{Object.keys(selectedClient.services || {}).length - 4} mais
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Histórico compacto */}
                             <div>
-                                <h4 className="text-gray-400 text-sm mb-2">Histórico de Agendamentos</h4>
-                                <AppointmentHistory appointments={selectedClientAppointments} />
+                                <h4 className="text-gray-400 text-xs font-medium mb-2">Histórico Recente</h4>
+                                <div className="bg-[#252B3B] rounded-lg border border-white/5 h-32 sm:h-40 overflow-hidden">
+                                    <AppointmentHistory appointments={selectedClientAppointments} />
+                                </div>
                             </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
             <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4 flex-1 overflow-hidden">
-                <nav className="grid grid-cols-2 md:flex md:justify-start md:flex-col gap-1 sm:gap-2 bg-[#1A1F2E] p-2 sm:p-3 rounded-xl md:w-1/4 md:min-w-[180px]">
-                    {[
-                        { id: 'overview', label: 'Visão Geral', icon: BarChart2 },
-                        { id: 'clients', label: 'Clientes', icon: Users },
-                        { id: 'services', label: 'Serviços', icon: PieChart },
-                        { id: 'trends', label: 'Tendências', icon: LineChart }
-                    ].map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                            <motion.button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all duration-200 ${activeTab === tab.id
-                                        ? 'bg-[#F0B35B] text-black font-medium'
-                                        : 'text-white hover:bg-[#F0B35B]/20'
-                                    }`}
-                            >
-                                <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span className="text-xs sm:text-sm">{tab.label}</span>
-                            </motion.button>
-                        );
-                    })}
+                <nav className="bg-[#1A1F2E] p-2 sm:p-3 rounded-xl md:w-1/4 md:min-w-[200px]">
+                    {/* Mobile: Grid horizontal com scroll */}
+                    <div className="flex md:hidden overflow-x-auto gap-2 pb-1 scrollbar-hide">
+                        {[
+                            { id: 'overview', label: 'Visão Geral', icon: BarChart2 },
+                            { id: 'clients', label: 'Clientes', icon: Users },
+                            { id: 'services', label: 'Serviços', icon: PieChart },
+                            { id: 'trends', label: 'Tendências', icon: LineChart }
+                        ].map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <motion.button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 min-w-[70px] ${activeTab === tab.id
+                                            ? 'bg-[#F0B35B] text-black font-medium'
+                                            : 'text-white hover:bg-[#F0B35B]/20'
+                                        }`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span className="text-xs leading-tight text-center whitespace-nowrap">{tab.label}</span>
+                                </motion.button>
+                            );
+                        })}
+                    </div>
+                    
+                    {/* Desktop: Layout vertical */}
+                    <div className="hidden md:flex md:flex-col gap-2">
+                        {[
+                            { id: 'overview', label: 'Visão Geral', icon: BarChart2 },
+                            { id: 'clients', label: 'Clientes', icon: Users },
+                            { id: 'services', label: 'Serviços', icon: PieChart },
+                            { id: 'trends', label: 'Tendências', icon: LineChart }
+                        ].map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <motion.button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${activeTab === tab.id
+                                            ? 'bg-[#F0B35B] text-black font-medium'
+                                            : 'text-white hover:bg-[#F0B35B]/20'
+                                        }`}
+                                >
+                                    <Icon className="w-5 h-5" />
+                                    <span className="text-sm font-medium">{tab.label}</span>
+                                </motion.button>
+                            );
+                        })}
+                    </div>
                 </nav>
                 <div className="flex-1 overflow-hidden w-full">
                     <AnimatePresence mode="wait">

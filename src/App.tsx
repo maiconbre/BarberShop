@@ -15,6 +15,7 @@ import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
 import BookingModal from './components/feature/BookingModal';
 import ProtectedRoute from './components/ui/ProtectedRoute';
+import RequestDebounceMonitor from './components/debug/RequestDebounceMonitor';
 
 
 const AppContent = () => {
@@ -36,6 +37,9 @@ const AppContent = () => {
       
       {/* Modal de agendamento */}
       <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      
+      {/* Monitor de debounce para desenvolvimento */}
+      <RequestDebounceMonitor />
       
       <AnimatePresence mode="wait" initial={false}>
           <motion.div

@@ -3,6 +3,26 @@ import { adjustToBrasilia } from '../utils/DateTimeUtils';
 import { cacheService } from './CacheService';
 import { logger } from '../utils/logger';
 import ApiService from './ApiService';
+import { LogConfig } from '../config/logConfig';
+
+// Sistema de logs para AppointmentService
+class AppointmentLogger {
+  static logOperation(operation: string, details: any) {
+    if (!LogConfig.shouldLog()) return;
+    
+    const timestamp = new Date().toISOString();
+    console.group(`📅 [APPOINTMENT SERVICE] ${operation}`);
+    console.log('🕐 Timestamp:', timestamp);
+    console.log('📋 Details:', details);
+    console.groupEnd();
+  }
+
+  static logCacheOperation(operation: string, key: string, details?: any) {
+    if (!LogConfig.shouldLog()) return;
+    
+    console.log(`💾 [APPOINTMENT CACHE] ${operation} - Key: ${key}`, details || '');
+  }
+}
 
 
 // Constante com horários disponíveis
@@ -38,16 +58,15 @@ export const isTimeSlotAvailable = async (date: string, time: string, barberId: 
   
   try {
     // Verificar no cache global específico do barbeiro
-    const cacheService = (await import('./CacheService')).default;
     const barberCacheKey = `schedule_appointments_${barberId}`;
-    const barberCache = await cacheService.get<any[]>(barberCacheKey) || [];
+    const barberCache = cacheService.get<any[]>(barberCacheKey) || [];
     
     const isAvailableInBarberCache = checkLocalAvailability(date, time, barberId, barberCache);
     if (!isAvailableInBarberCache) return false;
     
     // Verificar no cache global geral de agendamentos
     const allAppointmentsKey = '/api/appointments';
-    const allAppointments = await cacheService.get<any[]>(allAppointmentsKey) || [];
+    const allAppointments = cacheService.get<any[]>(allAppointmentsKey) || [];
     
     return checkLocalAvailability(date, time, barberId, allAppointments);
   } catch (error) {
@@ -87,6 +106,15 @@ export const checkLocalAvailability = (date: string, time: string, barberId: str
  */
 export const loadAppointments = async (): Promise<any[]> => {
   const now = Date.now();
+  const operationId = `load-${Date.now()}`;
+  
+  AppointmentLogger.logOperation('LOAD_APPOINTMENTS_START', {
+    operationId,
+    timestamp: new Date().toISOString(),
+    consecutiveFailures,
+    backoffTimeout: backoffTimeout > 0 ? new Date(backoffTimeout).toISOString() : null
+  });
+  
   logger.apiDebug(`Solicitação para carregar agendamentos`);
   
   // 1. Verificar se estamos em período de backoff após falhas consecutivas
@@ -94,50 +122,55 @@ export const loadAppointments = async (): Promise<any[]> => {
     const waitTime = Math.ceil((backoffTimeout - now) / 1000);
     logger.apiWarn(`Em período de backoff após falhas consecutivas. Aguardando ${waitTime}s antes de tentar novamente.`);
     
+    AppointmentLogger.logOperation('BACKOFF_PERIOD', {
+      operationId,
+      waitTime: `${waitTime}s`,
+      backoffUntil: new Date(backoffTimeout).toISOString()
+    });
+    
     // Durante backoff, sempre usar cache (mesmo que obsoleto) se disponível
     const cachedData = await cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
     if (cachedData) {
       logger.apiWarn(`Usando cache durante período de backoff`);
+      AppointmentLogger.logCacheOperation('BACKOFF_CACHE_HIT', APPOINTMENTS_CACHE_KEY, `${cachedData.length} appointments`);
       return cachedData;
     }
+    AppointmentLogger.logCacheOperation('BACKOFF_CACHE_MISS', APPOINTMENTS_CACHE_KEY);
     return [];
   }
   
   // 2. Verificar se já existe uma requisição em andamento
   if (appointmentsPromise) {
     logger.apiDebug(`Reutilizando requisição de agendamentos em andamento`);
+    AppointmentLogger.logOperation('REUSING_PENDING_REQUEST', { operationId });
     return appointmentsPromise;
   }
   
   // 3. Verificar se temos dados em cache válidos
-  const cachedData = await cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
-  const cacheTimestamp = await cacheService.getTimestamp(APPOINTMENTS_CACHE_KEY);
-  const cacheAge = cacheTimestamp ? now - cacheTimestamp : Infinity;
+  const cachedData = cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
   
   // 4. Se temos cache válido e não passou muito tempo desde a última requisição, retornar cache
-  if (cachedData) {
-    // Cache válido e dentro do intervalo mínimo entre requisições
-    if (cacheAge < APPOINTMENTS_CACHE_TTL && (now - lastFetchTime) < MIN_FETCH_INTERVAL) {
-      logger.apiDebug(`Usando cache de agendamentos (${Math.round(cacheAge/1000)}s)`);
-      return cachedData;
-    }
-    
-    // Cache próximo de expirar mas ainda dentro do intervalo mínimo - atualizar em background
-    if (cacheAge < APPOINTMENTS_CACHE_TTL && (now - lastFetchTime) >= MIN_FETCH_INTERVAL) {
-      logger.apiDebug(`Usando cache e atualizando em background (${Math.round(cacheAge/1000)}s)`);
-      // Atualizar em background sem aguardar
-      setTimeout(() => {
-        fetchAppointments()
-          .then(() => {
-            lastFetchTime = Date.now();
-            consecutiveFailures = 0; // Resetar falhas em caso de sucesso
-          })
-          .catch(err => {
-            logger.apiError('Erro na atualização em background:', err);
-          });
-      }, 0);
-      return cachedData;
-    }
+  if (cachedData && (now - lastFetchTime) < MIN_FETCH_INTERVAL) {
+    logger.apiDebug(`Usando cache de agendamentos`);
+    AppointmentLogger.logCacheOperation('CACHE_HIT', APPOINTMENTS_CACHE_KEY, `Count: ${cachedData.length}`);
+    return cachedData;
+  }
+  
+  // Se temos cache válido, mas pode precisar de atualização em background
+  if (cachedData && (now - lastFetchTime) >= MIN_FETCH_INTERVAL) {
+    logger.apiDebug(`Usando cache e atualizando em background`);
+    // Atualizar em background sem aguardar
+    setTimeout(() => {
+      fetchAppointments()
+        .then(() => {
+          lastFetchTime = Date.now();
+          consecutiveFailures = 0; // Resetar falhas em caso de sucesso
+        })
+        .catch(err => {
+          logger.apiError('Erro na atualização em background:', err);
+        });
+    }, 0);
+    return cachedData;
   }
   
   // 5. Iniciar nova requisição (com deduplicação)
@@ -147,6 +180,14 @@ export const loadAppointments = async (): Promise<any[]> => {
     lastFetchTime = now;
     consecutiveFailures = 0; // Resetar contador de falhas em caso de sucesso
     backoffTimeout = 0; // Limpar backoff
+    
+    AppointmentLogger.logOperation('LOAD_APPOINTMENTS_SUCCESS', {
+      operationId,
+      count: appointments.length,
+      duration: `${Date.now() - now}ms`,
+      source: 'api'
+    });
+    
     return appointments;
   } catch (error) {
     logger.apiError(`Erro ao carregar agendamentos:`, error);
@@ -160,12 +201,22 @@ export const loadAppointments = async (): Promise<any[]> => {
       logger.apiWarn(`Ativando backoff por ${backoffSeconds}s após ${consecutiveFailures} falhas consecutivas`);
     }
     
+    AppointmentLogger.logOperation('LOAD_APPOINTMENTS_ERROR', {
+      operationId,
+      error: error instanceof Error ? error.message : String(error),
+      consecutiveFailures,
+      nextRetryIn: consecutiveFailures > 1 ? `${Math.min(Math.pow(2, consecutiveFailures - 1), MAX_BACKOFF / 1000)}s` : 'immediate',
+      duration: `${Date.now() - now}ms`
+    });
+    
     // 7. Em caso de erro, tentar usar cache mesmo que obsoleto
     if (cachedData) {
-      logger.apiWarn(`Usando cache obsoleto após erro (${Math.round(cacheAge/1000)}s)`);
+      logger.apiWarn(`Usando cache obsoleto após erro`);
+      AppointmentLogger.logCacheOperation('FALLBACK_CACHE_HIT', APPOINTMENTS_CACHE_KEY, `${cachedData.length} appointments (obsolete)`);
       return cachedData;
     }
     
+    AppointmentLogger.logCacheOperation('FALLBACK_CACHE_MISS', APPOINTMENTS_CACHE_KEY);
     // 8. Se não tiver cache, retornar array vazio
     return [];
   } finally {

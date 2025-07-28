@@ -26,10 +26,10 @@ import {
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
-import { useNotifications } from '../components/ui/Notifications';
 import Notifications from '../components/ui/Notifications';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
+import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
 
 import { cacheService } from '../services/CacheService';
 
@@ -49,7 +49,6 @@ interface Appointment {
   isBlocked?: boolean;
 }
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em millisegundos
 const APPOINTMENTS_PER_PAGE = 6; // Número de agendamentos por página
 
 const DashboardPage: React.FC = () => {
@@ -63,9 +62,6 @@ const DashboardPage: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-
-
-  // Removido sistema de páginas carregadas - agora mostra apenas 2 botões por vez
   const [activeView, setActiveView] = useState<'painel' | 'agenda' | 'analytics'>('painel');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false);
@@ -77,9 +73,6 @@ const DashboardPage: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const { loadAppointments } = useNotifications();
-
-  // Detectar mudanças no tamanho da tela com breakpoints otimizados
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -94,19 +87,16 @@ const DashboardPage: React.FC = () => {
         setIsSidebarCollapsed(false);
       } else {
         setIsSidebarOpen(true);
-        // Auto-collapse sidebar em telas médias para mais espaço
         setIsSidebarCollapsed(tablet);
       }
     };
 
-    // Configuração inicial
     handleResize();
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Funções de navegação
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -130,22 +120,36 @@ const DashboardPage: React.FC = () => {
   const filteredAppointments = useMemo(() => {
     if (!appointments.length) return [];
 
+    let filtered = appointments;
+
+    // Filtro por role do usuário: barbeiros veem apenas seus agendamentos
+    if (currentUser?.role === 'barber' && currentUser?.id) {
+      filtered = filtered.filter(app => app.barberId === currentUser.id);
+    }
+
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
     const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString().split('T')[0];
 
     if (filterMode === 'today') {
-      return appointments.filter(app => app.date === today);
+      return filtered.filter(app => app.date === today);
     } else if (filterMode === 'tomorrow') {
-      return appointments.filter(app => app.date === tomorrow);
+      return filtered.filter(app => app.date === tomorrow);
     }
-    return appointments;
-  }, [appointments, filterMode]);
+    return filtered;
+  }, [appointments, filterMode, currentUser]);
 
   const calendarFilteredAppointments = useMemo(() => {
     if (!appointments.length) return [];
 
-    return appointments.filter(app => {
+    let filtered = appointments;
+
+    // Filtro por role do usuário: barbeiros veem apenas seus agendamentos
+    if (currentUser?.role === 'barber' && currentUser?.id) {
+      filtered = filtered.filter(app => app.barberId === currentUser.id);
+    }
+
+    return filtered.filter(app => {
       if (app.isBlocked) return false;
 
       if (!isRangeFilterActive || !startDate) {
@@ -161,30 +165,22 @@ const DashboardPage: React.FC = () => {
 
       return app.date === startDate;
     });
-  }, [appointments, selectedDate, isRangeFilterActive, startDate, endDate]);
+  }, [appointments, selectedDate, isRangeFilterActive, startDate, endDate, currentUser]);
 
   const refreshData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const lastUpdate = await cacheService.get('appointments_last_update');
-      const now = new Date().getTime();
-
-      if (lastUpdate && (now - (typeof lastUpdate === 'string' ? new Date(lastUpdate).getTime() : 0)) < CACHE_DURATION) {
-        console.log('Usando dados em cache');
-        return;
-      }
-
-      const newAppointments = await loadAppointments(true);
+      cacheService.remove('appointments');
+      const newAppointments = await loadAppointmentsService();
       if (newAppointments && Array.isArray(newAppointments)) {
         setAppointments(newAppointments);
-        await cacheService.set('appointments_last_update', new Date().getTime().toString());
       }
     } catch (error) {
       console.error('Erro ao atualizar dados:', error);
     } finally {
       setIsRefreshing(false);
     }
-  }, [loadAppointments]);
+  }, []);
 
   const handleViewChange = useCallback((view: 'painel' | 'agenda' | 'analytics') => {
     setCurrentPage(1);
@@ -194,7 +190,6 @@ const DashboardPage: React.FC = () => {
       setEndDate(null);
     }
     setActiveView(view);
-    // Fechar sidebar em mobile ao clicar nos itens do menu
     if (isMobile) {
       setIsSidebarOpen(false);
     }
@@ -214,12 +209,9 @@ const DashboardPage: React.FC = () => {
   const calendarCurrentAppointments = calendarFilteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
   const calendarTotalPages = Math.ceil(calendarFilteredAppointments.length / APPOINTMENTS_PER_PAGE);
 
-  // Sistema de paginação simplificado
   const paginate = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
   }, []);
-
-  // Resetar página quando mudar de view
   useEffect(() => {
     setCurrentPage(1);
   }, [activeView, filterMode]);
@@ -273,7 +265,6 @@ const DashboardPage: React.FC = () => {
       }
 
       if (action === 'delete') {
-        // Verifica se o ID é válido antes de fazer a requisição
         if (!appointmentId.trim()) {
           console.error('ID do agendamento inválido');
           return;
@@ -289,9 +280,7 @@ const DashboardPage: React.FC = () => {
           mode: 'cors'
         });
 
-        // Verifica se a resposta foi bem-sucedida
         if (response.ok) {
-          // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
           setAppointments(prevAppointments => prevAppointments.filter(app => app.id !== appointmentId));
 
           if (selectedAppointment?.id === appointmentId) {
@@ -299,7 +288,6 @@ const DashboardPage: React.FC = () => {
             setSelectedAppointment(null);
           }
 
-          // Notificação visual elaborada para exclusão
           toast.success('Agendamento excluído com sucesso!', {
             duration: 4000,
             style: {
@@ -317,7 +305,6 @@ const DashboardPage: React.FC = () => {
             }
           });
         } else {
-          // Se a resposta não for ok, tenta obter mais informações do erro
           const errorData = await response.json().catch(() => null);
           console.error('Erro ao deletar agendamento:', {
             status: response.status,
@@ -340,19 +327,15 @@ const DashboardPage: React.FC = () => {
         });
 
         if (response.ok) {
-          // Usar o callback de atualização de estado para garantir que estamos trabalhando com o estado mais recente
           setAppointments(prevAppointments =>
             prevAppointments.map(app =>
               app.id === appointmentId ? { ...app, status: newStatus } : app
             )
           );
-
-          // Atualizar o agendamento selecionado se necessário
           if (selectedAppointment?.id === appointmentId) {
             setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
           }
 
-          // Notificação visual elaborada para mudança de status
           const statusMessage = newStatus === 'completed'
             ? 'Agendamento marcado como concluído!'
             : 'Agendamento marcado como pendente!';
@@ -427,51 +410,29 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     let isSubscribed = true;
-    let retryTimeout: NodeJS.Timeout | null = null;
 
-    const fetchData = async (retryCount = 0) => {
-      if (!isSubscribed) return;
+    const fetchData = async () => {
+      if (!isSubscribed || !navigator.onLine) return;
 
       try {
-        if (!navigator.onLine) {
-          console.log('Dispositivo offline, usando dados em cache');
-          return;
+        const appointments = await loadAppointmentsService();
+        if (isSubscribed && Array.isArray(appointments)) {
+          setAppointments(appointments);
         }
-
-        // Usar memoização para evitar re-renderizações desnecessárias
-        const formattedAppointments = await cacheService.fetchWithCache(
-          'appointments',
-          () => loadAppointments(false),
-          { forceRefresh: false }
-        );
-
-        if (isSubscribed && Array.isArray(formattedAppointments)) {
-          setAppointments(formattedAppointments);
-        }
-      } catch (error: any) {
-        console.error('Error fetching dashboard data:', error);
-
-        if (error.response?.status === 429 || (typeof error === 'object' && error.message?.includes('429'))) {
-          const delay = Math.min(1000 * Math.pow(2, retryCount), 60000);
-          console.warn(`Erro 429, tentando novamente em ${delay / 1000}s`);
-
-          if (retryCount < 5) {
-            retryTimeout = setTimeout(() => fetchData(retryCount + 1), delay);
-          }
-        } else {
+      } catch (error) {
+        console.error('Erro ao carregar agendamentos:', error);
+        if (isSubscribed) {
           setAppointments([]);
         }
       }
     };
 
-    const initialFetchTimeout = setTimeout(() => fetchData(), 100);
+    fetchData();
 
     return () => {
       isSubscribed = false;
-      if (retryTimeout) clearTimeout(retryTimeout);
-      clearTimeout(initialFetchTimeout);
     };
-  }, [loadAppointments]);
+  }, []);
 
 
 
@@ -489,19 +450,6 @@ const DashboardPage: React.FC = () => {
       window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
     };
   }, [appointments]);
-
-  useEffect(() => {
-    if (revenueDisplayMode === 'day') {
-      setFilterMode('today');
-    } else if (revenueDisplayMode === 'week') {
-      setFilterMode('all');
-    } else if (revenueDisplayMode === 'month') {
-      setFilterMode('all');
-    }
-    setCurrentPage(1);
-  }, [revenueDisplayMode]);
-
-
 
   return (
     <div className="min-h-screen bg-[#0D121E] relative overflow-hidden">
@@ -599,7 +547,6 @@ const DashboardPage: React.FC = () => {
           }
         }
       `}</style>
-      {/* Background elements - Otimizado para mobile */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/8 to-transparent rounded-full blur-xl translate-x-1/2 -translate-y-1/2 hidden md:block"></div>
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-lg -translate-x-1/3 translate-y-1/3 md:w-96 md:h-96 md:blur-xl"></div>
 
@@ -610,7 +557,6 @@ const DashboardPage: React.FC = () => {
         }}></div>
       </div>
 
-      {/* Mobile Header */}
       {isMobile && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
           <div className="flex items-center justify-between p-3">
@@ -641,7 +587,6 @@ const DashboardPage: React.FC = () => {
       <AnimatePresence>
         {(isSidebarOpen || !isMobile) && (
           <>
-            {/* Mobile Overlay */}
             {isMobile && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -652,7 +597,6 @@ const DashboardPage: React.FC = () => {
               />
             )}
 
-            {/* Sidebar */}
             <motion.div
               initial={{
                 opacity: 0,
@@ -674,7 +618,6 @@ const DashboardPage: React.FC = () => {
                     : 'left-0 w-64 border-r border-[#F0B35B]/20'
                 } transition-all duration-300`}
             >
-              {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
                 {isMobile ? (
                   <div className="flex items-center justify-between">
@@ -726,9 +669,7 @@ const DashboardPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Navigation Menu */}
               <div className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar min-h-0">
-                {/* Dashboard Views */}
                 <div className="space-y-1">
                   {!isSidebarCollapsed && (
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Dashboard</p>
@@ -771,7 +712,6 @@ const DashboardPage: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Management Section */}
                 <div className="space-y-1 pt-4">
                   {!isSidebarCollapsed && (
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Gerenciamento</p>
@@ -816,7 +756,6 @@ const DashboardPage: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Settings Section */}
                 <div className="space-y-1 pt-4">
                   {!isSidebarCollapsed && (
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Configurações</p>
@@ -842,7 +781,6 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* User Profile Section */}
               {!isSidebarCollapsed && (
                 <div className="p-4 border-t border-[#F0B35B]/20 flex-shrink-0">
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-[#252B3B]/50">
@@ -859,7 +797,6 @@ const DashboardPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Logout Button */}
               <div className="p-4 border-t border-[#F0B35B]/20 flex-shrink-0">
                 <button
                   onClick={handleLogout}
@@ -875,7 +812,6 @@ const DashboardPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
       <main className={`relative z-10 transition-all duration-300 ${isMobile
         ? 'pt-16 px-3'
         : isSidebarCollapsed
@@ -894,18 +830,15 @@ const DashboardPage: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 className="h-full flex flex-col"
               >
-                {/* Layout Desktop Otimizado */}
                 <div className={`flex-1 flex ${isMobile ? 'flex-col gap-4' : 'gap-6 h-full'}`}>
-                  {/* Seção Esquerda - Stats */}
                   <div className={`${isMobile ? 'w-full' : 'w-1/2 flex flex-col'}`}>
-                    <Stats
-                      appointments={appointments}
-                      revenueDisplayMode={revenueDisplayMode}
+                    <Stats 
+                      appointments={appointments} 
+                      revenueDisplayMode={revenueDisplayMode} 
                       setRevenueDisplayMode={setRevenueDisplayMode}
                     />
                   </div>
 
-                  {/* Seção Direita - Agendamentos */}
                   <div className={`${isMobile ? 'w-full' : 'w-1/2 flex flex-col'}`}>
                     <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 flex-1 flex flex-col">
                       <div className="flex items-center justify-between mb-6">
@@ -966,7 +899,6 @@ const DashboardPage: React.FC = () => {
                             {totalPages > 1 && (
                               <div className={`${isMobile ? 'mt-8 pt-6 border-t border-white/10' : 'mt-4 pt-4 border-t border-white/10'}`}>
                                 <div className="flex justify-center items-center gap-2 flex-wrap overflow-x-hidden">
-                                  {/* Botão página anterior */}
                                   <button
                                     onClick={() => {
                                       const prevPage = currentPage - 1;
@@ -980,7 +912,6 @@ const DashboardPage: React.FC = () => {
                                     <ChevronLeft className="w-4 h-4" />
                                   </button>
 
-                                  {/* Páginas limitadas a 2 botões */}
                                   {(() => {
                                     const startPage = Math.max(1, currentPage - 1);
                                     const endPage = Math.min(totalPages, startPage + 1);
@@ -1004,7 +935,6 @@ const DashboardPage: React.FC = () => {
 
 
 
-                                  {/* Botão próxima página */}
                                   <button
                                     onClick={() => {
                                       const nextPage = currentPage + 1;
@@ -1130,7 +1060,6 @@ const DashboardPage: React.FC = () => {
                           </div>
                           {calendarTotalPages > 1 && (
                             <div className="flex justify-center items-center gap-2 mt-4 pt-3 border-t border-white/10 flex-wrap overflow-x-hidden">
-                              {/* Botão página anterior */}
                               <button
                                 onClick={() => {
                                   const prevPage = currentPage - 1;
@@ -1144,7 +1073,6 @@ const DashboardPage: React.FC = () => {
                                 <ChevronLeft className="w-4 h-4" />
                               </button>
 
-                              {/* Páginas numeradas */}
                               {(() => {
                                 const maxVisiblePages = 3;
                                 let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
@@ -1176,7 +1104,6 @@ const DashboardPage: React.FC = () => {
 
 
 
-                              {/* Botão próxima página */}
                               <button
                                 onClick={() => {
                                   const nextPage = currentPage + 1;
@@ -1222,7 +1149,7 @@ const DashboardPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <ClientAnalytics appointments={appointments} />
+                    <ClientAnalytics appointments={filteredAppointments} />
                   </div>
                 </motion.div>
               </motion.div>
