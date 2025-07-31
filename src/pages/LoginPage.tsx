@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from '../contexts/AuthContext';
+import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import { Loader2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -13,6 +14,9 @@ const LoginPage: React.FC = () => {
     password: '',
     rememberMe: false
   });
+
+  // Redirecionar se o usuário já estiver autenticado
+  useAuthRedirect('/dashboard');
 
   // Remover a lógica de salvar username - agora o checkbox controla persistência de login
 
