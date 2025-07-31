@@ -61,7 +61,7 @@ const ScheduleManagementPage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         {/* Info Card */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/20">
+          <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 border border-[#F0B35B]/20">
             <div className="bg-[#F0B35B]/20 p-2 rounded-full">
               <Calendar className="w-5 h-5 text-[#F0B35B]" />
             </div>
@@ -72,7 +72,7 @@ const ScheduleManagementPage: React.FC = () => {
           </div>
         </div>
         {isLoading ? (
-          <div className="flex justify-center items-center h-64 bg-[#1A1F2E] rounded-xl border border-[#F0B35B]/20">
+          <div className="flex justify-center items-center h-64 bg-[#1A1F2E] border border-[#F0B35B]/20">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-[#F0B35B]" />
               <p className="text-gray-400">Carregando informações...</p>

@@ -384,17 +384,13 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
         isMobile
           ? 'pt-16'
           : isSidebarCollapsed
-            ? 'ml-16 p-4 lg:p-6'
-            : 'ml-64 p-4 lg:p-6'
+            ? 'ml-16'
+            : 'ml-64'
       }`}>
-        <div className={`${
-          isMobile ? '' : 'max-w-[1600px] mx-auto'
-        }`}>
+        <div className="w-full">
           {/* Page Header */}
           {(pageTitle || pageSubtitle) && (
-            <div className={`mb-8 ${
-              isMobile ? 'px-3' : ''
-            }`}>
+            <div className="px-2 mb-8">
               <div className="flex items-center gap-3 mb-2">
                 {pageIcon && <div className="text-[#F0B35B]">{pageIcon}</div>}
                 <h1 className="text-xl sm:text-2xl font-bold text-white">
@@ -408,9 +404,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           )}
 
           {/* Page Content */}
-          <div className={`relative ${
-            isMobile ? 'px-3' : ''
-          }`}>
+          <div className="relative">
             {children}
           </div>
         </div>

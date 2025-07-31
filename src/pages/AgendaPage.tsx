@@ -327,7 +327,7 @@ const AgendaPage: React.FC = () => {
 
 
         {/* Calendário */}
-        <div className="bg-[#1A1F2E]/50 rounded-xl p-4 border border-[#F0B35B]/20">
+        <div className="bg-[#1A1F2E]/50 p-4 border border-[#F0B35B]/20">
           <CalendarView
             appointments={appointments.filter(app => !app.isBlocked)}
             onDateSelect={handleDateSelection}

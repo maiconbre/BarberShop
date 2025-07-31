@@ -185,7 +185,7 @@ const TrocaSenha: React.FC = () => {
           </motion.div>
         </div>
 
-        <div className="bg-[#1A1F2E] p-8 rounded-lg shadow-xl">
+        <div className="bg-[#1A1F2E] p-8 shadow-xl">
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
 

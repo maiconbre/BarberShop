@@ -72,7 +72,7 @@ const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 rounded-lg shadow-xl relative z-10">
+      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 shadow-xl relative z-10">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
             BarberShop

@@ -344,7 +344,7 @@ const DashboardPageNew: React.FC = () => {
 
           {/* Seção de Agendamentos */}
           <div className="w-full lg:w-1/2 flex flex-col">
-            <div className="bg-[#1A1F2E]/50 rounded-xl shadow-lg p-6 flex-1 flex flex-col border border-[#F0B35B]/20">
+            <div className="bg-[#1A1F2E]/50 shadow-lg p-6 flex-1 flex flex-col border border-[#F0B35B]/20">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-[#F0B35B]" />

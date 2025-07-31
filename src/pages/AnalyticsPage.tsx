@@ -97,7 +97,7 @@ const AnalyticsPage: React.FC = () => {
 
 
         {/* Analytics de Clientes */}
-        <div className="bg-[#1A1F2E]/50 rounded-xl p-6 border border-[#F0B35B]/20">
+        <div className="bg-[#1A1F2E]/50 p-6 border border-[#F0B35B]/20">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[#F0B35B]" />
             Análise de Clientes
@@ -106,7 +106,7 @@ const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Informações adicionais */}
-        <div className="bg-[#1A1F2E]/30 rounded-xl p-6 border border-[#F0B35B]/10">
+        <div className="bg-[#1A1F2E]/30 p-6 border border-[#F0B35B]/10">
           <h4 className="text-md font-medium text-white mb-3">Sobre os Relatórios</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-400">
             <div>

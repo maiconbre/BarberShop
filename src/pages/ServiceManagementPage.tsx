@@ -244,7 +244,7 @@ const ServiceManagementPage: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
           <motion.div 
-            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 rounded-xl shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
+            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -289,7 +289,7 @@ const ServiceManagementPage: React.FC = () => {
           </motion.div>
 
           <motion.div 
-            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 rounded-xl shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
+            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -305,7 +305,7 @@ const ServiceManagementPage: React.FC = () => {
                 {services.map(service => (
                   <motion.div 
                     key={service.id} 
-                    className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 rounded-xl shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
+                    className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
                     whileHover={{ scale: 1.02, y: -2 }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}

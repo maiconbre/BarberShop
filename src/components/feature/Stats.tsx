@@ -315,7 +315,7 @@ if (oldestKey) {
 
   return (
     <motion.div 
-      className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 w-full overflow-hidden"
+      className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 w-full overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
