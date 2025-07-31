@@ -23,169 +23,111 @@ export const useAuth = () => {
   return context;
 };
 
-const SESSION_EXPIRY = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+const SESSION_EXPIRY = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const isInitialized = useRef(false);
 
   const checkSessionValidity = () => {
-    // Priorizar localStorage para persistência
-    // Usar 'authToken' como chave principal para consistência
+    console.log('AuthContext - Validação inicial');
+    
+    // Verificar dados básicos de autenticação
     const authToken = localStorage.getItem('authToken');
     const token = localStorage.getItem('token');
-    const finalToken = authToken || token;
-    const expiryTime = localStorage.getItem('tokenExpiration') || localStorage.getItem('sessionExpiry');
     const user = localStorage.getItem('user');
-    const rememberMe = localStorage.getItem('rememberMe');
+    const expiryTime = localStorage.getItem('tokenExpiration');
     
-    // Log detalhado para debug
-    console.log('AuthContext - Verificando sessão (detalhado):', {
+    console.log('AuthContext - Valores do localStorage:', {
       authToken: authToken ? 'presente' : 'ausente',
       token: token ? 'presente' : 'ausente',
-      finalToken: finalToken ? 'presente' : 'ausente',
-      tokenExpiration: localStorage.getItem('tokenExpiration') ? 'presente' : 'ausente',
-      sessionExpiry: localStorage.getItem('sessionExpiry') ? 'presente' : 'ausente',
       user: user ? 'presente' : 'ausente',
-      rememberMe: rememberMe,
-      allLocalStorageKeys: Object.keys(localStorage),
-      currentTime: new Date().toISOString()
+      tokenExpiration: expiryTime ? 'presente' : 'ausente'
     });
     
-    // Se não há dados básicos de autenticação, retornar false
-    if (!finalToken || !expiryTime || !user) {
-      console.log('AuthContext - Dados básicos ausentes:', {
-        missingToken: !finalToken,
-        missingExpiryTime: !expiryTime,
-        missingUser: !user
-      });
+    const hasToken = !!(authToken || token);
+    const hasUser = !!user;
+    const hasExpiry = !!expiryTime;
+    
+    console.log('AuthContext - Verificando sessão:', {
+      hasToken,
+      hasUser,
+      hasExpiry
+    });
+    
+    // Se não há dados básicos, retornar false
+    if (!hasToken || !hasUser) {
+      console.log('AuthContext - Dados básicos ausentes');
       return false;
     }
 
+    // Se não há tempo de expiração, criar um novo (12 horas a partir de agora)
+    if (!hasExpiry) {
+      console.log('AuthContext - Criando nova expiração de 12 horas');
+      updateSessionExpiry();
+      return true;
+    }
+
     // Verificar se a sessão expirou
-    const currentTime = new Date().getTime();
+    const currentTime = Date.now();
     const expirationTime = parseInt(expiryTime);
-    const isTokenValid = currentTime < expirationTime;
+    const isValid = currentTime < expirationTime;
     
-    // Log para debug da expiração
-    const timeUntilExpiry = expirationTime - currentTime;
-    const hoursUntilExpiry = timeUntilExpiry / (1000 * 60 * 60);
-    console.log('AuthContext - Verificação de expiração:', {
-      currentTime: new Date(currentTime).toISOString(),
-      expirationTime: new Date(expirationTime).toISOString(),
-      isTokenValid,
-      hoursUntilExpiry: hoursUntilExpiry.toFixed(2)
+    console.log('AuthContext - Verificando expiração:', {
+      now: new Date(currentTime).toLocaleString(),
+      expiry: new Date(expirationTime).toLocaleString(),
+      isExpired: !isValid
     });
     
-    // Se o token expirou, retornar false
-    if (!isTokenValid) {
-      console.log('AuthContext - Token expirado, invalidando sessão');
+    if (!isValid) {
+      console.log('AuthContext - Sessão expirada');
       return false;
-    }
-    
-    // Simplificar lógica do rememberMe - se não está definido, assumir true por padrão
-    // Isso evita logout desnecessário quando o usuário não escolheu explicitamente
-    const shouldRemember = rememberMe !== 'false'; // true por padrão, false apenas se explicitamente definido
-    
-    if (!shouldRemember) {
-      // Verificar se é uma nova sessão do navegador apenas se rememberMe for explicitamente false
-      const sessionStart = sessionStorage.getItem('sessionStart');
-      if (!sessionStart) {
-        console.log('AuthContext - Nova sessão detectada e usuário não quer manter-se logado');
-        return false;
-      }
     }
     
     console.log('AuthContext - Sessão válida');
     return true;
   };
 
-  const updateSessionExpiry = (storage: Storage = localStorage) => {
-    const expiryTime = new Date().getTime() + SESSION_EXPIRY;
-    // Sempre usar localStorage para persistência
-    // Usar 'tokenExpiration' como chave principal para consistência
+  const updateSessionExpiry = () => {
+    const expiryTime = Date.now() + SESSION_EXPIRY;
     localStorage.setItem('tokenExpiration', expiryTime.toString());
-    localStorage.setItem('sessionExpiry', expiryTime.toString()); // Manter compatibilidade
-    // Manter compatibilidade com sessionStorage se necessário
-    if (storage === sessionStorage) {
-      sessionStorage.setItem('tokenExpiration', expiryTime.toString());
-      sessionStorage.setItem('sessionExpiry', expiryTime.toString());
-    }
+    console.log('AuthContext - Sessão atualizada para 12 horas');
   };
 
   useEffect(() => {
     const validateSession = () => {
-      console.log('AuthContext - Executando validação de sessão');
       const isValid = checkSessionValidity();
       
       if (isValid) {
         if (!isAuthenticated) {
-          console.log('AuthContext - Sessão válida, definindo como autenticado');
+          console.log('AuthContext - Sessão válida, autenticando usuário');
           setIsAuthenticated(true);
         }
-        // Verificar se o token precisa ser renovado
-        checkTokenRenewal();
       } else {
-        // Só limpar dados se o usuário estava previamente autenticado
-        // Isso evita limpar dados válidos durante a inicialização
-        if (isAuthenticated || isInitialized.current) {
+        if (isAuthenticated) {
           console.log('AuthContext - Sessão inválida, fazendo logout');
           setIsAuthenticated(false);
-          // Limpar dados sem chamar logout() para evitar loops
-          const items = ['token', 'authToken', 'currentBarberId', 'user', 'sessionExpiry', 'tokenExpiration', 'rememberMe'];
-          items.forEach(item => {
-            localStorage.removeItem(item);
-            sessionStorage.removeItem(item);
-          });
-          sessionStorage.removeItem('sessionStart');
-        } else {
-          console.log('AuthContext - Sessão inválida na inicialização, mas não limpando dados ainda');
+          // Limpar dados de autenticação
+          const items = ['token', 'authToken', 'currentBarberId', 'user', 'tokenExpiration', 'rememberMe'];
+          items.forEach(item => localStorage.removeItem(item));
         }
       }
     };
 
     // Validação inicial apenas uma vez
     if (!isInitialized.current) {
-      console.log('AuthContext - Executando validação inicial');
+      console.log('AuthContext - Validação inicial');
       validateSession();
       isInitialized.current = true;
     }
     
-    // Verificar a cada 15 minutos para reduzir overhead
-    const interval = setInterval(() => {
-      console.log('AuthContext - Verificação periódica de sessão');
-      validateSession();
-    }, 15 * 60 * 1000);
-    
-    // Listener para detectar mudanças de aba/janela e revalidar sessão
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('AuthContext - Aba ficou visível, validando sessão');
-        validateSession();
-      }
-    };
-    
-    // Listener para detectar foco na janela (menos agressivo)
-    const handleFocus = () => {
-      // Só validar se passou mais de 5 minutos desde a última validação
-      const lastValidation = localStorage.getItem('lastSessionValidation');
-      const now = Date.now();
-      if (!lastValidation || (now - parseInt(lastValidation)) > 5 * 60 * 1000) {
-        console.log('AuthContext - Janela focada após 5+ minutos, validando sessão');
-        localStorage.setItem('lastSessionValidation', now.toString());
-        validateSession();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+    // Verificar a cada 30 minutos (menos agressivo)
+    const interval = setInterval(validateSession, 30 * 60 * 1000);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
-  }, [isAuthenticated]); // Adicionar isAuthenticated como dependência
+  }, [isAuthenticated]);
 
   const clearUserSpecificCache = async (userId?: string) => {
     try {
@@ -222,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string, rememberMe: boolean = true) => {
     try {
-      console.log('AuthContext - Iniciando login:', { username, rememberMe });
+      console.log('AuthContext - Iniciando login:', { username });
       
       // Obter usuário atual antes do login para limpar seu cache
       const currentUser = getCurrentUser();
@@ -237,23 +179,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await clearUserSpecificCache(previousUserId.toString());
       }
       
-      // Sempre usar localStorage para persistência (6 horas)
+      // Armazenar dados do usuário no localStorage
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('rememberMe', rememberMe.toString());
-      
-      // Marcar início da sessão no sessionStorage para controle de F5
-      sessionStorage.setItem('sessionStart', new Date().getTime().toString());
       
       // Token já é armazenado no localStorage pelo authenticateUser
-      // Definir expiração de 6 horas
-      updateSessionExpiry(localStorage);
+      // Definir expiração de 12 horas
+      updateSessionExpiry();
       
-      console.log('AuthContext - Configuração de sessão:', {
-        rememberMe: rememberMe.toString(),
-        sessionStart: sessionStorage.getItem('sessionStart'),
-        tokenExpiration: localStorage.getItem('tokenExpiration')
-      });
-
       if (user.role === 'barber') {
         localStorage.setItem('currentBarberId', user.id.toString());
       }
@@ -274,76 +206,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     setIsAuthenticated(false);
     
-    // Clear all auth-related items from both storages
-    const items = ['token', 'authToken', 'currentBarberId', 'user', 'sessionExpiry', 'tokenExpiration', 'rememberMe'];
-    items.forEach(item => {
-      localStorage.removeItem(item);
-      sessionStorage.removeItem(item);
-    });
-    
-    // Limpar também o marcador de sessão
-    sessionStorage.removeItem('sessionStart');
+    // Limpar dados de autenticação do localStorage
+    const items = ['token', 'authToken', 'currentBarberId', 'user', 'tokenExpiration'];
+    items.forEach(item => localStorage.removeItem(item));
     
     // Limpar cache específico do usuário
     if (currentUserId) {
       await clearUserSpecificCache(currentUserId.toString());
     }
     
-    // Limpar todo o cache para garantir limpeza completa
-    try {
-      await cacheService.clear();
-      console.log('Cache completamente limpo no logout');
-    } catch (error) {
-      console.error('Erro ao limpar cache no logout:', error);
-    }
+    console.log('AuthContext - Logout realizado com sucesso');
   };
 
   const getCurrentUser = () => {
-    // Priorizar localStorage para persistência
-    const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   };
-  
-  // Função para renovar token automaticamente
-  const renewToken = async () => {
-    try {
-      const currentUser = getCurrentUser();
-      if (!currentUser) {
-        console.log('AuthContext - Não é possível renovar token: usuário não encontrado');
-        return false;
-      }
-      
-      console.log('AuthContext - Renovando token para usuário:', currentUser.id);
-      
-      // Aqui você pode implementar uma chamada para renovar o token
-      // Por enquanto, apenas estendemos o tempo de expiração
-      updateSessionExpiry(localStorage);
-      
-      console.log('AuthContext - Token renovado com sucesso');
-      return true;
-    } catch (error) {
-      console.error('AuthContext - Erro ao renovar token:', error);
-      return false;
-    }
-  };
-  
-  // Função para verificar se o token precisa ser renovado
-  const checkTokenRenewal = () => {
-    const expiryTime = localStorage.getItem('tokenExpiration');
-    if (!expiryTime) return;
-    
-    const currentTime = new Date().getTime();
-    const expirationTime = parseInt(expiryTime);
-    const timeUntilExpiry = expirationTime - currentTime;
-    
-    // Renovar token se faltam menos de 30 minutos para expirar
-    const thirtyMinutes = 30 * 60 * 1000;
-    
-    if (timeUntilExpiry > 0 && timeUntilExpiry < thirtyMinutes) {
-      console.log('AuthContext - Token próximo do vencimento, renovando automaticamente');
-      renewToken();
-    }
-  };
+
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, login, logout, getCurrentUser }}>
