@@ -332,7 +332,7 @@ const DashboardPageNew: React.FC = () => {
 
       <div className="space-y-6">
         {/* Layout principal do dashboard */}
-        <div className="flex flex-col lg:flex-row gap-6 h-full">
+        <div className="flex flex-col lg:flex-row h-full">
           {/* Seção de Estatísticas */}
           <div className="w-full lg:w-1/2 flex flex-col">
             <Stats 

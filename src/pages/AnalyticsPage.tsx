@@ -93,7 +93,7 @@ const AnalyticsPage: React.FC = () => {
 
       `}</style>
 
-      <div className="space-y-6">
+      <div className="space-y-1">
 
 
         {/* Analytics de Clientes */}

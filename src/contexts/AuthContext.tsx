@@ -134,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Limpar cache específico do usuário anterior
       if (userId) {
         cacheService.remove(`schedule_appointments_${userId}`);
+        cacheService.remove(`/api/appointments_user_${userId}`);
       }
       
       // Limpar outros caches relacionados a agendamentos

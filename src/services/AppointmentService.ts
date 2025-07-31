@@ -32,7 +32,14 @@ export const AVAILABLE_TIME_SLOTS = [
 ];
 
 // Configurações de cache para agendamentos
-const APPOINTMENTS_CACHE_KEY = '/api/appointments';
+const getAppointmentsCacheKey = (userId?: string) => {
+  // Se temos um userId, usar cache específico do usuário
+  if (userId) {
+    return `/api/appointments_user_${userId}`;
+  }
+  // Fallback para cache global (compatibilidade)
+  return '/api/appointments';
+};
 const APPOINTMENTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutos (aumentado para reduzir requisições)
 
 // Variável para controlar requisições em andamento
@@ -64,11 +71,13 @@ export const isTimeSlotAvailable = async (date: string, time: string, barberId: 
     const isAvailableInBarberCache = checkLocalAvailability(date, time, barberId, barberCache);
     if (!isAvailableInBarberCache) return false;
     
-    // Verificar no cache global geral de agendamentos
-    const allAppointmentsKey = '/api/appointments';
-    const allAppointments = cacheService.get<any[]>(allAppointmentsKey) || [];
+    // Verificar no cache específico do usuário
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = currentUser?.id;
+    const userAppointmentsKey = getAppointmentsCacheKey(userId);
+    const userAppointments = cacheService.get<any[]>(userAppointmentsKey) || [];
     
-    return checkLocalAvailability(date, time, barberId, allAppointments);
+    return checkLocalAvailability(date, time, barberId, userAppointments);
   } catch (error) {
     // Em caso de erro na verificação do cache global, confiar apenas no cache local
     logger.apiWarn('Erro ao verificar disponibilidade no cache global:', error);
@@ -108,14 +117,21 @@ export const loadAppointments = async (): Promise<any[]> => {
   const now = Date.now();
   const operationId = `load-${Date.now()}`;
   
+  // Obter usuário atual para cache específico
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = currentUser?.id;
+  const APPOINTMENTS_CACHE_KEY = getAppointmentsCacheKey(userId);
+  
   AppointmentLogger.logOperation('LOAD_APPOINTMENTS_START', {
     operationId,
     timestamp: new Date().toISOString(),
     consecutiveFailures,
-    backoffTimeout: backoffTimeout > 0 ? new Date(backoffTimeout).toISOString() : null
+    backoffTimeout: backoffTimeout > 0 ? new Date(backoffTimeout).toISOString() : null,
+    userId: userId || 'anonymous',
+    cacheKey: APPOINTMENTS_CACHE_KEY
   });
   
-  logger.apiDebug(`Solicitação para carregar agendamentos`);
+  logger.apiDebug(`Solicitação para carregar agendamentos para usuário ${userId || 'anonymous'}`);
   
   // 1. Verificar se estamos em período de backoff após falhas consecutivas
   if (backoffTimeout > 0 && now < backoffTimeout) {
@@ -246,6 +262,11 @@ async function fetchAppointments(): Promise<any[]> {
   const maxRetries = 3;
   let retryCount = 0;
   let lastError: any = null;
+  
+  // Obter usuário atual para cache específico
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = currentUser?.id;
+  const APPOINTMENTS_CACHE_KEY = getAppointmentsCacheKey(userId);
 
   while (retryCount <= maxRetries) {
     try {
@@ -264,9 +285,16 @@ async function fetchAppointments(): Promise<any[]> {
         apt && apt.date && apt.time && !apt.isCancelled
       );
       
+      // Armazenar no cache específico do usuário
+      cacheService.set(APPOINTMENTS_CACHE_KEY, validAppointments);
       
       // Também manter o cache local para compatibilidade
       localStorage.setItem('appointments', JSON.stringify(validAppointments));
+      
+      AppointmentLogger.logCacheOperation('CACHE_SET', APPOINTMENTS_CACHE_KEY, { 
+        count: validAppointments.length, 
+        userId 
+      });
       
       // Resetar contadores de falha em caso de sucesso
       if (retryCount > 0) {

@@ -26,6 +26,14 @@ interface BookingModalProps {
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '', initialServices = [], preloadedAppointments = [] }) => {
+  // Função auxiliar para obter chave de cache específica do usuário
+  const getAppointmentsCacheKey = (userId?: string) => {
+    if (userId) {
+      return `/api/appointments_user_${userId}`;
+    }
+    return '/api/appointments';
+  };
+  
   // Hooks do barberStore
   const barberList = useBarberList();
   const fetchBarbers = useFetchBarbers();
@@ -468,7 +476,9 @@ await cacheService.set(cacheKey, Array.isArray(cachedData) ? [...cachedData, tem
       
       // Atualizar também o cache global geral de agendamentos
       try {
-        const allAppointmentsKey = '/api/appointments';
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = currentUser?.id;
+        const allAppointmentsKey = getAppointmentsCacheKey(userId);
         const allAppointments = await cacheService.get(allAppointmentsKey) || [];
 await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...allAppointments, tempAppointment] : [tempAppointment]);
       } catch (cacheErr) {
@@ -518,7 +528,9 @@ await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...
 await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberCachedData.filter((app: any) => app.id !== tempAppointment.id) : []);
           
           // Reverter também o cache global geral de agendamentos
-          const allAppointmentsKey = '/api/appointments';
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const userId = currentUser?.id;
+          const allAppointmentsKey = getAppointmentsCacheKey(userId);
           const allAppointments = await cacheService.get(allAppointmentsKey) || [];
           await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? allAppointments.filter((app: any) => app.id !== tempAppointment.id) : []);
           
@@ -564,7 +576,9 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
         await cacheService.set(barberCacheKey, updatedBarberCache);
         
         // Atualizar também o cache global geral de agendamentos
-        const allAppointmentsKey = '/api/appointments';
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = currentUser?.id;
+        const allAppointmentsKey = getAppointmentsCacheKey(userId);
         const allAppointments = await cacheService.get(allAppointmentsKey) || [];
         const updatedAllAppointments = (Array.isArray(allAppointments) ? allAppointments : [])
           .filter((app: any) => app.id !== tempAppointment.id)
@@ -632,7 +646,9 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
         await cacheService.set(barberCacheKey, (Array.isArray(barberCachedData) ? barberCachedData : []).filter((app: any) => !app.id.startsWith('temp-')));
         
         // Reverter também o cache global geral de agendamentos
-        const allAppointmentsKey = '/api/appointments';
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = currentUser?.id;
+        const allAppointmentsKey = getAppointmentsCacheKey(userId);
         const allAppointments = await cacheService.get(allAppointmentsKey) || [];
         await cacheService.set(allAppointmentsKey, (Array.isArray(allAppointments) ? allAppointments : []).filter((app: any) => !app.id.startsWith('temp-')));
         
