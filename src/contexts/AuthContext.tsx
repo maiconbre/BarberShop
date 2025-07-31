@@ -162,7 +162,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (username: string, password: string, rememberMe: boolean = true) => {
+  const login = async (username: string, password: string) => {
     try {
       console.log('AuthContext - Iniciando login:', { username });
       

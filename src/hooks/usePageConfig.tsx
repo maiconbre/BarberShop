@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Lock,
   Home,
-  Calendar
 } from 'lucide-react';
 
 interface PageConfig {
@@ -19,8 +18,8 @@ interface PageConfig {
 
 const PAGE_CONFIGS: Record<string, PageConfig> = {
   '/dashboard': {
-    title: 'Dashboard',
-    subtitle: 'Visão geral dos seus agendamentos e estatísticas',
+    title: '',
+    subtitle: '',
     icon: <LayoutDashboard className="w-6 h-6" />
   },
   '/servicos': {
@@ -44,8 +43,8 @@ const PAGE_CONFIGS: Record<string, PageConfig> = {
     icon: <MessageSquare className="w-6 h-6" />
   },
   '/trocar-senha': {
-    title: 'Alterar Senha',
-    subtitle: 'Mantenha sua conta segura com uma nova senha',
+    title: '',
+    subtitle: '',
     icon: <Lock className="w-6 h-6" />
   },
   '/': {

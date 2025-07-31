@@ -9,7 +9,9 @@ import ContactPage from './pages/ContactPage';
 import ScheduleManagementPage from './pages/ScheduleManagementPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
+import DashboardPageNew from './pages/DashboardPageNew';
+import AgendaPage from './pages/AgendaPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import TrocaSenha from './pages/TrocaSenha';
 import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
@@ -31,7 +33,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-[#0D121E] text-white">
       {/* Carrega a navbar imediatamente para melhorar a experiência do usuário */}
-      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && location.pathname !== '/dashboard' && (
+      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && location.pathname !== '/dashboard' && location.pathname !== '/agenda' && location.pathname !== '/analytics' && (
         <Navbar />
       )}
       
@@ -60,7 +62,23 @@ const AppContent = () => {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardPage />
+                    <DashboardPageNew />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agenda"
+                element={
+                  <ProtectedRoute>
+                    <AgendaPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
                   </ProtectedRoute>
                 }
               />

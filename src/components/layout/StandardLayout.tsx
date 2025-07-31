@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   LayoutDashboard,
-  Users,
   Scissors,
   UserCog,
   Lock,
@@ -19,7 +18,6 @@ import {
   User,
   BarChart3
 } from 'lucide-react';
-import { useNotifications } from '../ui/Notifications';
 import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
 
@@ -42,7 +40,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const pageIcon = icon || pageConfig.icon;
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -54,7 +51,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       const tablet = width >= 768 && width < 1024;
 
       setIsMobile(mobile);
-      setIsTablet(tablet);
 
       if (mobile) {
         setIsSidebarOpen(false);
