@@ -31,6 +31,7 @@ export const AVAILABLE_TIME_SLOTS = [
   '16:00', '17:00', '18:00', '19:00', '20:00'
 ];
 
+
 // Configurações de cache para agendamentos
 const getAppointmentsCacheKey = (userId?: string) => {
   // Se temos um userId, usar cache específico do usuário
@@ -372,12 +373,49 @@ export const createAppointment = async (appointmentData: {
     
     logger.apiInfo('Agendamento criado com sucesso:', normalizedResponse);
     
-    // Atualizar o cache de agendamentos após criar um novo
-    setTimeout(() => {
-      fetchAppointments().catch(err => {
-        logger.apiError('Erro ao atualizar cache após criar agendamento:', err);
-      });
-    }, 1000);
+    // Invalidar caches específicos após criar um novo agendamento
+    setTimeout(async () => {
+      try {
+        // Obter usuário atual para limpar cache específico
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = currentUser?.id;
+        
+        // Limpar cache específico do usuário
+        if (userId) {
+          const userCacheKey = getAppointmentsCacheKey(userId);
+          cacheService.remove(userCacheKey);
+          cacheService.remove(`schedule_appointments_${userId}`);
+        }
+        
+        // Limpar cache global
+        cacheService.remove('/api/appointments');
+        cacheService.remove('appointments');
+        
+        // Limpar cache específico do barbeiro
+        if (appointmentData.barberId) {
+          cacheService.remove(`schedule_appointments_${appointmentData.barberId}`);
+        }
+        
+        // Forçar atualização dos dados
+        await fetchAppointments();
+        
+        // Disparar evento para notificar outros componentes
+        window.dispatchEvent(new CustomEvent('cacheUpdated', {
+          detail: {
+            keys: [
+              userId ? getAppointmentsCacheKey(userId) : '/api/appointments',
+              `schedule_appointments_${appointmentData.barberId}`,
+              '/api/appointments'
+            ],
+            timestamp: Date.now()
+          }
+        }));
+        
+        logger.apiInfo('Cache invalidado após criar agendamento');
+      } catch (err) {
+        logger.apiError('Erro ao invalidar cache após criar agendamento:', err);
+      }
+    }, 500);
     
     return normalizedResponse;
   } catch (error) {

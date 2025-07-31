@@ -163,6 +163,23 @@ const AgendaPage: React.FC = () => {
             setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
           }
 
+          // Invalidar cache específico do usuário após atualização
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const userId = currentUser?.id;
+          if (userId) {
+            // Disparar evento para notificar outros componentes sobre a atualização
+            window.dispatchEvent(new CustomEvent('cacheUpdated', {
+              detail: {
+                keys: [
+                  `/api/appointments_user_${userId}`,
+                  '/api/appointments',
+                  `schedule_appointments_${userId}`
+                ],
+                timestamp: Date.now()
+              }
+            }));
+          }
+
           const statusMessage = newStatus === 'completed'
             ? 'Agendamento marcado como concluído!'
             : 'Agendamento marcado como pendente!';

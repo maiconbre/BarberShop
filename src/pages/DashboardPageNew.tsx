@@ -64,7 +64,15 @@ const DashboardPageNew: React.FC = () => {
   const refreshData = useCallback(async () => {
     setIsRefreshing(true);
     try {
+      // Limpar cache específico do usuário
+      const userId = currentUser?.id;
+      if (userId) {
+        cacheService.remove(`/api/appointments_user_${userId}`);
+        cacheService.remove(`schedule_appointments_${userId}`);
+      }
       cacheService.remove('appointments');
+      cacheService.remove('/api/appointments');
+      
       const newAppointments = await loadAppointmentsService();
       if (newAppointments && Array.isArray(newAppointments)) {
         setAppointments(newAppointments);
@@ -74,7 +82,7 @@ const DashboardPageNew: React.FC = () => {
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [currentUser?.id]);
 
   const indexOfLastAppointment = currentPage * APPOINTMENTS_PER_PAGE;
   const indexOfFirstAppointment = indexOfLastAppointment - APPOINTMENTS_PER_PAGE;
@@ -132,6 +140,21 @@ const DashboardPageNew: React.FC = () => {
             setSelectedAppointment(null);
           }
 
+          // Invalidar cache específico do usuário após exclusão
+          const userId = currentUser?.id;
+          if (userId) {
+            window.dispatchEvent(new CustomEvent('cacheUpdated', {
+              detail: {
+                keys: [
+                  `/api/appointments_user_${userId}`,
+                  '/api/appointments',
+                  `schedule_appointments_${userId}`
+                ],
+                timestamp: Date.now()
+              }
+            }));
+          }
+
           toast.success('Agendamento excluído com sucesso!', {
             duration: 4000,
             style: {
@@ -178,6 +201,21 @@ const DashboardPageNew: React.FC = () => {
           );
           if (selectedAppointment?.id === appointmentId) {
             setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
+          }
+
+          // Invalidar cache específico do usuário após atualização
+          const userId = currentUser?.id;
+          if (userId) {
+            window.dispatchEvent(new CustomEvent('cacheUpdated', {
+              detail: {
+                keys: [
+                  `/api/appointments_user_${userId}`,
+                  '/api/appointments',
+                  `schedule_appointments_${userId}`
+                ],
+                timestamp: Date.now()
+              }
+            }));
           }
 
           const statusMessage = newStatus === 'completed'
@@ -301,7 +339,7 @@ const DashboardPageNew: React.FC = () => {
       {/* Dashboard sem título - apenas cards */}
       <style>{`
         .refresh-icon-spin {
-          animation: spin 1s linear infinite;
+          animation: spin 1.2s linear infinite;
         }
         @keyframes spin {
           from {
@@ -310,6 +348,17 @@ const DashboardPageNew: React.FC = () => {
           to {
             transform: rotate(360deg);
           }
+        }
+        .refresh-button {
+          transition: all 0.3s ease;
+          transform: scale(1);
+        }
+        .refresh-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(240, 179, 91, 0.3);
+        }
+        .refresh-button:active {
+          transform: scale(0.95);
         }
         .card-grid {
           display: grid;
@@ -346,19 +395,11 @@ const DashboardPageNew: React.FC = () => {
           <div className="w-full lg:w-1/2 flex flex-col">
             <div className="bg-[#1A1F2E]/50 shadow-lg p-6 flex-1 flex flex-col border border-[#F0B35B]/20">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-[#F0B35B]" />
-                  Agendamentos
-                </h2>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={refreshData}
-                    disabled={isRefreshing}
-                    className="p-2 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 transition-colors disabled:opacity-50"
-                    aria-label="Atualizar"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
-                  </button>
+                  <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#F0B35B]" />
+                    Agendamentos
+                  </h2>
                   <select
                     value={filterMode}
                     onChange={(e) => setFilterMode(e.target.value)}
@@ -369,6 +410,15 @@ const DashboardPageNew: React.FC = () => {
                     <option value="all">Todos</option>
                   </select>
                 </div>
+                <button
+                  onClick={refreshData}
+                  disabled={isRefreshing}
+                  className="refresh-button p-3 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Atualizar agendamentos"
+                  title="Atualizar agendamentos"
+                >
+                  <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
+                </button>
               </div>
 
               <div className="flex-1 flex flex-col">

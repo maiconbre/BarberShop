@@ -475,6 +475,20 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           await cacheService.set(cacheKey, updatedCache);
         }
         
+        // Atualizar também o cache específico do usuário
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = currentUser?.id;
+        if (userId) {
+          const userCacheKey = `/api/appointments_user_${userId}`;
+          const userCachedData = await cacheService.get(userCacheKey);
+          if (userCachedData) {
+            const updatedUserCache = Array.isArray(userCachedData)
+              ? userCachedData.filter(app => app.id !== deletedAppointment.id)
+              : [];
+            await cacheService.set(userCacheKey, updatedUserCache);
+          }
+        }
+        
         // Atualizar também o cache global de agendamentos
         const globalCacheKey = '/api/appointments';
         const globalCachedData = await cacheService.get(globalCacheKey);
@@ -488,7 +502,11 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         // Disparar evento para notificar outros componentes sobre a atualização do cache
         window.dispatchEvent(new CustomEvent('cacheUpdated', {
           detail: {
-            keys: [`schedule_appointments_${selectedBarber}`, '/api/appointments'],
+            keys: [
+              `schedule_appointments_${selectedBarber}`, 
+              '/api/appointments',
+              userId ? `/api/appointments_user_${userId}` : null
+            ].filter(Boolean),
             timestamp: Date.now()
           }
         }));
