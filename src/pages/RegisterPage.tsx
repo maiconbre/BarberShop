@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Trash2, Edit, UserCog } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
-import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError, useBarberLoading } from '../stores/barberStore';
+import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError } from '../stores/barberStore';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
@@ -151,8 +150,6 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
 };
 
 const RegisterPage: React.FC = () => {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -178,7 +175,6 @@ const RegisterPage: React.FC = () => {
   const updateBarber = useUpdateBarber();
   const deleteBarber = useDeleteBarber();
   const clearError = useClearBarberError();
-  const isBarberLoading = useBarberLoading();
   const barberError = useBarberError();
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';

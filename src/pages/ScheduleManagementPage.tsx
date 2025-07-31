@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ScheduleManager from '../components/feature/ScheduleManager';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Calendar, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Loader2, Calendar } from 'lucide-react';
 import { useBarberList, useFetchBarbers } from '../stores';
 import StandardLayout from '../components/layout/StandardLayout';
 
