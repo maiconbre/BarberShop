@@ -130,10 +130,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center text-black">
-                {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
-              </div>
-              <h1 className="text-lg font-semibold text-white">{pageTitle}</h1>
+              {pageIcon && (
+                <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center text-black">
+                  {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
+                </div>
+              )}
+              <h1 className="text-lg font-semibold text-white">Olá, {currentUser?.name || 'Usuário'}!</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
@@ -365,27 +367,35 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       {/* Main Content */}
       <main className={`relative z-10 transition-all duration-300 ${
         isMobile
-          ? 'pt-16 px-3'
+          ? 'pt-16'
           : isSidebarCollapsed
             ? 'ml-16 p-4 lg:p-6'
             : 'ml-64 p-4 lg:p-6'
       }`}>
-        <div className="max-w-[1600px] mx-auto">
+        <div className={`${
+          isMobile ? '' : 'max-w-[1600px] mx-auto'
+        }`}>
           {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              {pageIcon && <div className="text-[#F0B35B]">{pageIcon}</div>}
-              <h1 className="text-xl sm:text-2xl font-bold text-white">
-                {pageTitle}
-              </h1>
+          {(pageTitle || pageSubtitle) && (
+            <div className={`mb-8 ${
+              isMobile ? 'px-3' : ''
+            }`}>
+              <div className="flex items-center gap-3 mb-2">
+                {pageIcon && <div className="text-[#F0B35B]">{pageIcon}</div>}
+                <h1 className="text-xl sm:text-2xl font-bold text-white">
+                  {pageTitle}
+                </h1>
+              </div>
+              {pageSubtitle && (
+                <p className="text-gray-400 text-xs sm:text-sm">{pageSubtitle}</p>
+              )}
             </div>
-            {pageSubtitle && (
-              <p className="text-gray-400 text-xs sm:text-sm">{pageSubtitle}</p>
-            )}
-          </div>
+          )}
 
           {/* Page Content */}
-          <div className="relative">
+          <div className={`relative ${
+            isMobile ? 'px-3' : ''
+          }`}>
             {children}
           </div>
         </div>
