@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from '../contexts/AuthContext';
+import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import { Loader2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -13,6 +14,9 @@ const LoginPage: React.FC = () => {
     password: '',
     rememberMe: false
   });
+
+  // Redirecionar se o usuário já estiver autenticado
+  useAuthRedirect('/dashboard');
 
   // Remover a lógica de salvar username - agora o checkbox controla persistência de login
 
@@ -68,7 +72,7 @@ const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 rounded-lg shadow-xl relative z-10">
+      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 shadow-xl relative z-10">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
             BarberShop

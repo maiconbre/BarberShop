@@ -93,7 +93,7 @@ const Home: React.FC = () => {
       {isBookingModalOpen && (
         <Suspense fallback={
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-            <div className="animate-pulse bg-[#1A1F2E] p-8 rounded-lg">
+            <div className="animate-pulse bg-[#1A1F2E] p-8">
               <div className="w-24 h-6 bg-gray-700 rounded mb-4"></div>
               <div className="w-64 h-32 bg-gray-800 rounded"></div>
             </div>

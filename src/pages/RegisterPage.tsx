@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Trash2, Edit, UserCog } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
-import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError, useBarberLoading } from '../stores/barberStore';
+import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError } from '../stores/barberStore';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
@@ -151,8 +150,6 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
 };
 
 const RegisterPage: React.FC = () => {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -178,7 +175,6 @@ const RegisterPage: React.FC = () => {
   const updateBarber = useUpdateBarber();
   const deleteBarber = useDeleteBarber();
   const clearError = useClearBarberError();
-  const isBarberLoading = useBarberLoading();
   const barberError = useBarberError();
 
   useEffect(() => {
@@ -470,7 +466,7 @@ const RegisterPage: React.FC = () => {
 
       <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
         <div className="w-full md:flex-1">
-          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
+          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 shadow-xl h-fit mx-auto">
             <div>
               <h2 className="mt-4 sm:mt-6 text-center text-2xl sm:text-3xl font-extrabold text-white">
                 {isEditMode ? 'Editar Barbeiro' : 'Cadastro'}
@@ -605,7 +601,7 @@ const RegisterPage: React.FC = () => {
           </div>
         </div>
         <div className="w-full md:flex-1 order-first">
-          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 rounded-lg shadow-xl h-fit mx-auto">
+          <div className="w-full space-y-6 bg-[#1A1F2E] p-6 sm:p-8 shadow-xl h-fit mx-auto">
             <h2 className="text-center text-xl sm:text-2xl font-bold text-white">Barbeiros Cadastrados</h2>
 
 

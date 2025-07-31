@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
@@ -185,7 +185,7 @@ const TrocaSenha: React.FC = () => {
           </motion.div>
         </div>
 
-        <div className="bg-[#1A1F2E] p-8 rounded-lg shadow-xl">
+        <div className="bg-[#1A1F2E] p-8 shadow-xl">
 
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
 

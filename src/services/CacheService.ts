@@ -54,6 +54,12 @@ class CacheService {
       const key = localStorage.key(i);
       if (!key) continue;
       
+      // Proteger tokens de autenticação e dados do usuário
+      const protectedKeys = ['authToken', 'token', 'user', 'tokenExpiration', 'sessionExpiry', 'currentBarberId'];
+      if (protectedKeys.includes(key)) {
+        continue;
+      }
+      
       try {
         const value = localStorage.getItem(key);
         if (!value) continue;
@@ -63,8 +69,10 @@ class CacheService {
           keysToRemove.push(key);
         }
       } catch {
-        // Invalid cache item, remove it
-        keysToRemove.push(key);
+        // Invalid cache item, but don't remove protected auth keys
+        if (!protectedKeys.includes(key)) {
+          keysToRemove.push(key);
+        }
       }
     }
     
@@ -175,11 +183,13 @@ class CacheService {
   clear(): void {
     this.memoryCache.clear();
     
-    // Clear only cache items from localStorage
+    // Clear only cache items from localStorage, protecting auth data
     const keysToRemove: string[] = [];
+    const protectedKeys = ['authToken', 'token', 'user', 'tokenExpiration', 'sessionExpiry', 'currentBarberId'];
+    
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (!key) continue;
+      if (!key || protectedKeys.includes(key)) continue;
       
       try {
         const value = localStorage.getItem(key);

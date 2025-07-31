@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
   LayoutDashboard,
-  Users,
   Scissors,
   UserCog,
   Lock,
@@ -16,9 +15,9 @@ import {
   Home,
   ArrowLeft,
   ArrowRight,
-  User
+  User,
+  BarChart3
 } from 'lucide-react';
-import { useNotifications } from '../ui/Notifications';
 import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
 
@@ -41,7 +40,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const pageIcon = icon || pageConfig.icon;
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -53,7 +51,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       const tablet = width >= 768 && width < 1024;
 
       setIsMobile(mobile);
-      setIsTablet(tablet);
 
       if (mobile) {
         setIsSidebarOpen(false);
@@ -130,10 +127,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center text-black">
-                {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
-              </div>
-              <h1 className="text-lg font-semibold text-white">{pageTitle}</h1>
+              {pageIcon && (
+                <div className="w-6 h-6 bg-[#F0B35B] rounded-md flex items-center justify-center text-black">
+                  {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
+                </div>
+              )}
+              <h1 className="text-lg font-semibold text-white">Olá, {currentUser?.name || 'Usuário'}!</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
@@ -180,12 +179,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 x: isMobile ? 288 : 0
               }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${
+              className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${
                 isMobile
-                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl'
+                  ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
                   : isSidebarCollapsed
-                    ? 'left-0 w-16 border-r border-[#F0B35B]/20'
-                    : 'left-0 w-64 border-r border-[#F0B35B]/20'
+                    ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
+                    : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
               } transition-all duration-300`}
             >
               {/* Sidebar Header */}
@@ -255,6 +254,24 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   >
                     <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm font-medium">Dashboard</span>}
+                  </button>
+
+                  <button
+                    onClick={() => navigateToPage('/analytics')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    title={isSidebarCollapsed ? 'Analytics' : ''}
+                  >
+                    <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Analytics</span>}
+                  </button>
+
+                  <button
+                    onClick={() => navigateToPage('/agenda')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    title={isSidebarCollapsed ? 'Agenda' : ''}
+                  >
+                    <Calendar className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Agenda</span>}
                   </button>
                 </div>
 
@@ -365,24 +382,26 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       {/* Main Content */}
       <main className={`relative z-10 transition-all duration-300 ${
         isMobile
-          ? 'pt-16 px-3'
+          ? 'pt-16'
           : isSidebarCollapsed
-            ? 'ml-16 p-4 lg:p-6'
-            : 'ml-64 p-4 lg:p-6'
+            ? 'ml-16'
+            : 'ml-64'
       }`}>
-        <div className="max-w-[1600px] mx-auto">
+        <div className="w-full">
           {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              {pageIcon && <div className="text-[#F0B35B]">{pageIcon}</div>}
-              <h1 className="text-xl sm:text-2xl font-bold text-white">
-                {pageTitle}
-              </h1>
+          {(pageTitle || pageSubtitle) && (
+            <div className="px-2 mb-8">
+              <div className="flex items-center gap-3 mb-2">
+                {pageIcon && <div className="text-[#F0B35B]">{pageIcon}</div>}
+                <h1 className="text-xl sm:text-2xl font-bold text-white">
+                  {pageTitle}
+                </h1>
+              </div>
+              {pageSubtitle && (
+                <p className="text-gray-400 text-xs sm:text-sm">{pageSubtitle}</p>
+              )}
             </div>
-            {pageSubtitle && (
-              <p className="text-gray-400 text-xs sm:text-sm">{pageSubtitle}</p>
-            )}
-          </div>
+          )}
 
           {/* Page Content */}
           <div className="relative">

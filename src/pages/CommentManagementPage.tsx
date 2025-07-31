@@ -174,7 +174,7 @@ const CommentManagementPage: React.FC = () => {
               </button>
             </div>
           ) : paginatedComments.length === 0 ? (
-            <div className="p-6 bg-[#1A1F2E] rounded-lg text-center">
+            <div className="p-6 bg-[#1A1F2E] text-center">
               <p className="text-gray-400">
                 {activeTab === 'pending' ? 'Nenhum comentário pendente.' : 
                  activeTab === 'approved' ? 'Nenhum comentário aprovado.' : 
@@ -189,7 +189,7 @@ const CommentManagementPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
-                className="bg-[#1A1F2E] p-4 rounded-lg border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300"
+                className="bg-[#1A1F2E] p-4 border border-[#F0B35B]/10 hover:border-[#F0B35B]/30 transition-all duration-300"
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-white font-medium">{comment.name}</h3>
