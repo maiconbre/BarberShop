@@ -16,7 +16,8 @@ import {
   Home,
   ArrowLeft,
   ArrowRight,
-  User
+  User,
+  BarChart3
 } from 'lucide-react';
 import { useNotifications } from '../ui/Notifications';
 import Notifications from '../ui/Notifications';
@@ -182,12 +183,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 x: isMobile ? 288 : 0
               }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className={`fixed top-0 h-screen max-h-screen bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] z-50 glass-effect flex flex-col ${
+              className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${
                 isMobile
-                  ? 'right-0 w-72 border-l border-[#F0B35B]/20 rounded-l-2xl shadow-2xl'
+                  ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
                   : isSidebarCollapsed
-                    ? 'left-0 w-16 border-r border-[#F0B35B]/20'
-                    : 'left-0 w-64 border-r border-[#F0B35B]/20'
+                    ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
+                    : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
               } transition-all duration-300`}
             >
               {/* Sidebar Header */}
@@ -257,6 +258,24 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   >
                     <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm font-medium">Dashboard</span>}
+                  </button>
+
+                  <button
+                    onClick={() => navigateToPage('/analytics')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    title={isSidebarCollapsed ? 'Analytics' : ''}
+                  >
+                    <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Analytics</span>}
+                  </button>
+
+                  <button
+                    onClick={() => navigateToPage('/agenda')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    title={isSidebarCollapsed ? 'Agenda' : ''}
+                  >
+                    <Calendar className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Agenda</span>}
                   </button>
                 </div>
 
