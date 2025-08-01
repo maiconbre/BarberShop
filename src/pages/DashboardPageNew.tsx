@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshCw, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import StandardLayout from '../components/layout/StandardLayout';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
-import { cacheService } from '../services/CacheService';
+import ApiService from '../services/ApiService';
 import toast from 'react-hot-toast';
 
 interface Appointment {
@@ -37,7 +37,6 @@ const DashboardPageNew: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filteredAppointments = useMemo(() => {
     if (!appointments.length) return [];
@@ -61,28 +60,7 @@ const DashboardPageNew: React.FC = () => {
     return filtered;
   }, [appointments, filterMode, currentUser]);
 
-  const refreshData = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      // Limpar cache específico do usuário
-      const userId = currentUser?.id;
-      if (userId) {
-        cacheService.remove(`/api/appointments_user_${userId}`);
-        cacheService.remove(`schedule_appointments_${userId}`);
-      }
-      cacheService.remove('appointments');
-      cacheService.remove('/api/appointments');
-      
-      const newAppointments = await loadAppointmentsService();
-      if (newAppointments && Array.isArray(newAppointments)) {
-        setAppointments(newAppointments);
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar dados:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [currentUser?.id]);
+
 
   const indexOfLastAppointment = currentPage * APPOINTMENTS_PER_PAGE;
   const indexOfFirstAppointment = indexOfLastAppointment - APPOINTMENTS_PER_PAGE;
@@ -297,9 +275,27 @@ const DashboardPageNew: React.FC = () => {
       if (!isSubscribed || !navigator.onLine) return;
 
       try {
-        const appointments = await loadAppointmentsService();
+        const [appointments, services] = await Promise.all([
+          loadAppointmentsService(),
+          ApiService.getServices()
+        ]);
+        
         if (isSubscribed && Array.isArray(appointments)) {
-          setAppointments(appointments);
+          // Criar um mapa de serviceId para serviceName
+          const serviceMap = new Map();
+          if (Array.isArray(services)) {
+            services.forEach((service: any) => {
+              serviceMap.set(service.id, service.name);
+            });
+          }
+          
+          // Transformar os agendamentos para incluir o campo service
+          const transformedAppointments = appointments.map((appointment: any) => ({
+            ...appointment,
+            service: appointment.service || appointment.serviceName || serviceMap.get(appointment.serviceId) || 'Serviço não especificado'
+          }));
+          
+          setAppointments(transformedAppointments);
         }
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
@@ -338,28 +334,7 @@ const DashboardPageNew: React.FC = () => {
     <StandardLayout>
       {/* Dashboard sem título - apenas cards */}
       <style>{`
-        .refresh-icon-spin {
-          animation: spin 1.2s linear infinite;
-        }
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-        .refresh-button {
-          transition: all 0.3s ease;
-          transform: scale(1);
-        }
-        .refresh-button:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 12px rgba(240, 179, 91, 0.3);
-        }
-        .refresh-button:active {
-          transform: scale(0.95);
-        }
+
         .card-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -403,22 +378,14 @@ const DashboardPageNew: React.FC = () => {
                   <select
                     value={filterMode}
                     onChange={(e) => setFilterMode(e.target.value)}
-                    className="appearance-none bg-[#252B3B] text-white text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] cursor-pointer border border-[#F0B35B]/30"
+                    className="appearance-none bg-[#252B3B] text-white text-sm rounded-lg px-3 ml-8 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] cursor-pointer border border-[#F0B35B]/30"
                   >
                     <option value="today">Hoje</option>
                     <option value="tomorrow">Amanhã</option>
                     <option value="all">Todos</option>
                   </select>
                 </div>
-                <button
-                  onClick={refreshData}
-                  disabled={isRefreshing}
-                  className="refresh-button p-3 rounded-lg bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Atualizar agendamentos"
-                  title="Atualizar agendamentos"
-                >
-                  <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'refresh-icon-spin' : ''}`} />
-                </button>
+
               </div>
 
               <div className="flex-1 flex flex-col">

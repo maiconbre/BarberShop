@@ -178,14 +178,14 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 opacity: 0,
                 x: isMobile ? 288 : 0
               }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.15, ease: "easeInOut" }}
               className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${
                 isMobile
                   ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
                   : isSidebarCollapsed
                     ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
                     : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
-              } transition-all duration-300`}
+              } transition-all duration-150`}
             >
               {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
@@ -249,7 +249,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/dashboard')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Dashboard' : ''}
                   >
                     <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
@@ -258,7 +258,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/analytics')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Analytics' : ''}
                   >
                     <BarChart3 className="w-5 h-5 flex-shrink-0" />
@@ -267,7 +267,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/agenda')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 text-white hover:bg-[#252B3B] hover:shadow-md`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Agenda' : ''}
                   >
                     <Calendar className="w-5 h-5 flex-shrink-0" />
@@ -283,7 +283,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/servicos')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Serviços' : ''}
                   >
                     <Scissors className="w-5 h-5 flex-shrink-0" />
@@ -293,7 +293,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   {currentUser?.role === 'admin' && (
                     <button
                       onClick={() => navigateToPage('/register')}
-                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                       title={isSidebarCollapsed ? 'Barbeiros' : ''}
                     >
                       <UserCog className="w-5 h-5 flex-shrink-0" />
@@ -303,7 +303,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/gerenciar-horarios')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Horários' : ''}
                   >
                     <Clock className="w-5 h-5 flex-shrink-0" />
@@ -312,7 +312,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/gerenciar-comentarios')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Comentários' : ''}
                   >
                     <MessageSquare className="w-5 h-5 flex-shrink-0" />
@@ -328,7 +328,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/trocar-senha')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Alterar Senha' : ''}
                   >
                     <Lock className="w-5 h-5 flex-shrink-0" />
@@ -337,7 +337,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     onClick={() => navigateToPage('/')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-200`}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Ir para Site' : ''}
                   >
                     <Home className="w-5 h-5 flex-shrink-0" />
@@ -390,16 +390,20 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
         <div className="w-full">
           {/* Page Header */}
           {(pageTitle || pageSubtitle) && (
-            <div className="px-2 mb-8">
-              <div className="flex items-center gap-3 mb-2">
-                {pageIcon && <div className="text-[#F0B35B]">{pageIcon}</div>}
-                <h1 className="text-xl sm:text-2xl font-bold text-white">
-                  {pageTitle}
-                </h1>
+            <div className={`mb-8 ${isMobile ? 'mt-4' : 'mt-6'}`}>
+              <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 border border-[#F0B35B]/20">
+                {pageIcon && (
+                  <div className="bg-[#F0B35B]/20 p-2 rounded-full flex-shrink-0">
+                    {React.cloneElement(pageIcon as React.ReactElement, { className: "w-5 h-5 text-[#F0B35B]" })}
+                  </div>
+                )}
+                <div>
+                  {pageSubtitle && (
+                    <p className="text-sm text-gray-400">{pageSubtitle}</p>
+                  )}
+                  <p className="text-white font-medium text-lg">{pageTitle}</p>
+                </div>
               </div>
-              {pageSubtitle && (
-                <p className="text-gray-400 text-xs sm:text-sm">{pageSubtitle}</p>
-              )}
             </div>
           )}
 

@@ -144,7 +144,6 @@ const AppointmentCardNew = memo<Props>(({ appointment, onView, className = '' })
         
         <div className="flex items-center justify-center pt-2 border-t border-white/10">
           <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-[#F0B35B] flex-shrink-0" />
             <span className="text-sm font-bold text-[#F0B35B]">R$ {appointment.price.toFixed(2)}</span>
           </div>
         </div>
