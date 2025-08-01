@@ -19,11 +19,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         setShouldCompleteProgress(true);
         setTimeout(() => {
           setIsLoading(false);
-        }, 400);
+        }, 200);
       } else {
         setIsLoading(false);
       }
-    }, 800); // Reduzido para 800ms
+    }, 400); // Reduzido para 400ms
 
     
     return () => clearTimeout(timer);
@@ -37,7 +37,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         size="lg" 
         text="Verificando autenticação..." 
         showProgressBar={true}
-        progressDuration={800}
+        progressDuration={400}
         forceComplete={shouldCompleteProgress}
       />
     );

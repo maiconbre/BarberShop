@@ -8,6 +8,7 @@ import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
 import StandardLayout from '../components/layout/StandardLayout';
 import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
+import ApiService from '../services/ApiService';
 
 
 interface Appointment {
@@ -259,9 +260,28 @@ const AgendaPage: React.FC = () => {
       if (!isSubscribed || !navigator.onLine) return;
 
       try {
-        const appointments = await loadAppointmentsService();
-        if (isSubscribed && Array.isArray(appointments)) {
-          setAppointments(appointments);
+        // Carregar agendamentos e serviços simultaneamente
+        const [appointmentsData, servicesData] = await Promise.all([
+          loadAppointmentsService(),
+          ApiService.getServices()
+        ]);
+
+        if (isSubscribed && Array.isArray(appointmentsData)) {
+          // Criar mapa de serviceId para serviceName
+          const serviceMap = new Map();
+          if (Array.isArray(servicesData)) {
+            servicesData.forEach((service: any) => {
+              serviceMap.set(service.id, service.name);
+            });
+          }
+
+          // Transformar agendamentos para incluir o campo service
+          const transformedAppointments = appointmentsData.map((appointment: any) => ({
+            ...appointment,
+            service: appointment.service || appointment.serviceName || serviceMap.get(appointment.serviceId) || 'Serviço não especificado'
+          }));
+
+          setAppointments(transformedAppointments);
         }
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);

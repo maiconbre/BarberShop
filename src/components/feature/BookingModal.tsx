@@ -766,25 +766,122 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
     onClose();
   };
 
-  // Componente de Lazy Loading Horizontal
-  const LazyLoadingHorizontal = ({ message = "Carregando..." }: { message?: string }) => (
-    <div className="flex flex-col items-center justify-center py-8 px-4">
-      <div className="flex space-x-1 mb-3">
-        {[...Array(5)].map((_, i) => (
-          <div
-            key={i}
-            className="w-2 h-2 bg-[#F0B35B] rounded-full animate-pulse"
-            style={{
-              animationDelay: `${i * 0.2}s`,
-              animationDuration: '1s',
-              animationIterationCount: 'infinite'
-            }}
-          />
-        ))}
-      </div>
-      <p className="text-gray-400 text-sm text-center">{message}</p>
-    </div>
-  );
+  // Componente de Lazy Loading Dinâmico
+  const DynamicLazyLoading = ({ initialMessage = "Carregando..." }: { initialMessage?: string }) => {
+    const [currentMessage, setCurrentMessage] = useState(initialMessage);
+    const [animationPhase, setAnimationPhase] = useState(0);
+    const [showSlowWarning, setShowSlowWarning] = useState(false);
+
+    const funnyMessages = [
+       "Fazendo busca...",
+       "Quase lá...",
+       "Mais lento que o comum...",
+       "Aguarde um pouquinho...",
+       "Carregando com carinho...",
+       "Preparando tudo para você...",
+       "Só mais um segundinho...",
+       "Conectando com os servidores...",
+       "Afiando as navalhas... ✂️",
+       "Organizando a agenda...",
+       "Preparando o melhor atendimento...",
+       "Buscando os melhores horários...",
+       "Quase pronto para o corte perfeito!",
+       "Carregando... como um bom degradê!",
+       "Aguarde, estamos penteando os dados..."
+     ];
+
+    useEffect(() => {
+      // Após 2 segundos, começar a mostrar mensagens divertidas
+      const slowTimer = setTimeout(() => {
+        setShowSlowWarning(true);
+        setCurrentMessage(funnyMessages[0]);
+      }, 2000);
+
+      // Trocar mensagens a cada 3 segundos após o primeiro aviso
+      const messageTimer = setInterval(() => {
+        if (showSlowWarning) {
+          const randomIndex = Math.floor(Math.random() * funnyMessages.length);
+          setCurrentMessage(funnyMessages[randomIndex]);
+        }
+      }, 3000);
+
+      // Mudar fase da animação a cada 1.5 segundos
+       const animationTimer = setInterval(() => {
+         setAnimationPhase(prev => (prev + 1) % 4);
+       }, 1500);
+
+      return () => {
+        clearTimeout(slowTimer);
+        clearInterval(messageTimer);
+        clearInterval(animationTimer);
+      };
+    }, [showSlowWarning]);
+
+    const renderAnimation = () => {
+      switch (animationPhase) {
+        case 0:
+          // Pontos pulsantes
+          return (
+            <div className="flex space-x-1 mb-3">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 bg-[#F0B35B] rounded-full animate-pulse"
+                  style={{
+                    animationDelay: `${i * 0.2}s`,
+                    animationDuration: '1s',
+                    animationIterationCount: 'infinite'
+                  }}
+                />
+              ))}
+            </div>
+          );
+        case 1:
+           // Barra de progresso animada
+           return (
+             <div className="w-32 h-1 bg-gray-700 rounded-full mb-3 overflow-hidden">
+               <div className="h-full bg-gradient-to-r from-[#F0B35B] to-yellow-400 rounded-full animate-slide" 
+                    style={{ width: '60%' }}></div>
+             </div>
+           );
+         case 2:
+           // Pontos saltitantes
+           return (
+             <div className="flex space-x-1 mb-3">
+               {[...Array(3)].map((_, i) => (
+                 <div
+                   key={i}
+                   className="w-3 h-3 bg-[#F0B35B] rounded-full loading-bounce"
+                   style={{
+                     animationDelay: `${i * 0.1}s`
+                   }}
+                 />
+               ))}
+             </div>
+           );
+         default:
+           return null;
+      }
+    };
+
+    return (
+       <div className="flex flex-col items-center justify-center py-8 px-4">
+         {renderAnimation()}
+         
+         <p className={`text-sm text-center loading-transition ${
+           showSlowWarning ? 'text-yellow-400' : 'text-gray-400'
+         }`}>
+           {currentMessage}
+         </p>
+         
+         {showSlowWarning && (
+           <div className="mt-2 text-xs text-gray-500 text-center animate-fade-in">
+             <p>🐌 Conexão mais lenta que o esperado</p>
+           </div>
+         )}
+       </div>
+     );
+  };
 
   // Não renderiza nada se o modal estiver fechado
   if (!isOpen) return null;
@@ -881,7 +978,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                 <label className="block text-sm font-medium mb-1 text-gray-300 group-hover:text-[#F0B35B] transition-colors">Serviços</label>
                 <div className="bg-[#0D121E] rounded-lg p-2.5 border border-transparent hover:border-[#F0B35B]/30 transition-all duration-300">
                   {isLoadingServices ? (
-                    <LazyLoadingHorizontal message="Carregando serviços..." />
+                    <DynamicLazyLoading initialMessage="Carregando serviços..." />
                   ) : servicesError ? (
                     <div className="text-center py-4">
                       <p className="text-red-400 text-sm mb-2">{servicesError}</p>
@@ -966,7 +1063,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   {isLoadingBarbers ? (
                     <div className="col-span-2">
-                      <LazyLoadingHorizontal message="Carregando barbeiros..." />
+                      <DynamicLazyLoading initialMessage="Carregando barbeiros..." />
                     </div>
                   ) : barbersError ? (
                     <div className="col-span-2 text-center py-4">
