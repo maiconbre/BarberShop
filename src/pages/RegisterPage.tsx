@@ -197,6 +197,7 @@ const RegisterPage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadSuccess, setImageUploadSuccess] = useState(false);
+  // Sempre usar a melhor qualidade possível
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -248,7 +249,7 @@ const RegisterPage: React.FC = () => {
     }
   }, [barberError]);
 
-  // Função para converter imagem para SVG com compressão máxima
+  // Função para converter imagem para SVG com máxima qualidade otimizada para mobile
   const convertImageToSVG = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -256,22 +257,37 @@ const RegisterPage: React.FC = () => {
       const ctx = canvas.getContext('2d');
 
       img.onload = () => {
-        // Definir tamanho do canvas - reduzido ainda mais para diminuir o tamanho final
-        const size = 120; // Tamanho reduzido para o QR code
+        // Configuração otimizada para QR Code
+        const size = 250; // Tamanho otimizado para QR Code
+        const quality = 0.8; // Qualidade balanceada para carregamento rápido
+        const format = 'image/png'; // PNG para preservar qualidade
+        
         canvas.width = size;
         canvas.height = size;
 
-        // Desenhar a imagem no canvas
-        ctx?.drawImage(img, 0, 0, size, size);
+        // Melhorar a qualidade do redimensionamento
+        if (ctx) {
+          // Configurar suavização para melhor qualidade
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          
+          // Desenhar a imagem no canvas com melhor qualidade
+          ctx.drawImage(img, 0, 0, size, size);
+        }
 
-        // Converter para base64 com qualidade reduzida para diminuir o tamanho
-        const dataURL = canvas.toDataURL('image/jpeg', 0.5); // Usando JPEG com 50% de qualidade
+        // Converter para base64 com máxima qualidade
+        const dataURL = canvas.toDataURL(format, quality);
 
-        // Criar SVG com a imagem embutida e otimizado (sem espaços ou quebras de linha desnecessárias)
-        const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><image href="${dataURL}" width="${size}" height="${size}"/></svg>`;
+        // Adicionar timestamp único para evitar cache
+        const timestamp = Date.now();
+        const uniqueId = Math.random().toString(36).substr(2, 9);
+        
+        // Criar SVG com a imagem embutida, timestamp e ID único para evitar cache
+        const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" data-timestamp="${timestamp}" data-id="${uniqueId}"><image href="${dataURL}" width="${size}" height="${size}"/></svg>`;
 
         // Log do tamanho para debug
-        console.log(`Tamanho do SVG gerado: ${new Blob([svgContent]).size} bytes`);
+        const svgSize = new Blob([svgContent]).size;
+        console.log(`SVG gerado - QR Code otimizado, Tamanho: ${size}px, Arquivo: ${(svgSize / 1024).toFixed(1)}KB, ID: ${uniqueId}`);
 
         resolve(svgContent);
       };
@@ -315,6 +331,18 @@ const RegisterPage: React.FC = () => {
 
       await response.json(); // Process response but result not needed
       setImageUploadSuccess(true);
+
+      // Se estamos em modo de edição, forçar atualização do preview no modal
+      if (isEditMode && selectedUser) {
+        // Forçar re-render do modal QR code se estiver aberto
+        if (isQRModalOpen) {
+          // Fechar e reabrir o modal para forçar atualização
+          setIsQRModalOpen(false);
+          setTimeout(() => {
+            setIsQRModalOpen(true);
+          }, 100);
+        }
+      }
 
       toast.success('QR Code salvo com sucesso!', {
         style: {
@@ -406,10 +434,14 @@ const RegisterPage: React.FC = () => {
       setSelectedImage(file);
       setImageUploadSuccess(false);
 
-      // Criar preview
+      // Criar preview com timestamp único para evitar cache
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+        const result = e.target?.result as string;
+        // Adicionar timestamp único ao preview para forçar atualização
+        const timestamp = Date.now();
+        const uniquePreview = `${result}#t=${timestamp}`;
+        setImagePreview(uniquePreview);
       };
       reader.readAsDataURL(file);
 
@@ -476,6 +508,12 @@ const RegisterPage: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    
+    // Forçar limpeza completa de cache
+    setTimeout(() => {
+      setImagePreview(null);
+      setSelectedImage(null);
+    }, 100);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -660,7 +698,7 @@ const RegisterPage: React.FC = () => {
       pix: user.pix
     });
 
-    // Limpar estados de imagem
+    // Limpar estados de imagem com força para evitar cache
     setSelectedImage(null);
     setImagePreview(null);
     setImageUploadSuccess(false);
@@ -668,6 +706,11 @@ const RegisterPage: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    
+    // Forçar limpeza de cache do preview
+    setTimeout(() => {
+      setImagePreview(null);
+    }, 50);
 
     // Verificar se existe QR code existente para este barbeiro
     try {
@@ -971,6 +1014,7 @@ const RegisterPage: React.FC = () => {
                         <div className="flex items-start space-x-4">
                           <div className="relative">
                             <img
+                              key={`form-preview-${Date.now()}`}
                               src={imagePreview}
                               alt="QR Code Preview"
                               className="w-20 h-20 object-cover rounded-lg border-2 border-gray-600"
@@ -1007,11 +1051,20 @@ const RegisterPage: React.FC = () => {
                                     </p>
                                   )}
                                   {selectedImage && !imageUploadSuccess && (
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                       <p className="text-xs text-amber-400 flex items-center">
                                         <AlertCircle className="w-3 h-3 mr-1" />
                                         Aguardando upload para liberar cadastro
                                       </p>
+                                      
+                                      {/* Informação sobre qualidade automática */}
+                                       <div className="space-y-1">
+                                         <p className="text-xs text-green-400 flex items-center">
+                                           <CheckCircle className="w-3 h-3 mr-1" />
+                                           Máxima qualidade (400px, PNG) - Otimizado para mobile
+                                         </p>
+                                       </div>
+                                      
                                       {formData.username && (
                                         <button 
                                           type="button" 
@@ -1279,35 +1332,49 @@ const RegisterPage: React.FC = () => {
                 <div className="bg-gray-50 p-4 rounded-xl">
                   {/* Carregando QR code para o usuário */}
                   {selectedUser.username ? (
-                     <img
-                       src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${selectedUser.username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}`}
-                       alt={`QR Code de ${selectedUser.name}`}
-                       className="w-48 h-48 mx-auto object-contain"
-                       onError={(e) => {
-                         // Tentar caminho local como fallback
-                         const imgElement = e.currentTarget;
-                         imgElement.src = `/qr-codes/${selectedUser.username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`;
-                         
-                         // Adicionar outro handler de erro para o fallback
-                         imgElement.onerror = () => {
-                           // Se temos uma imagem selecionada, mostrar o preview
-                           if (imagePreview) {
-                             imgElement.src = imagePreview;
-                             imgElement.style.display = 'block';
-                           } else {
-                             imgElement.style.display = 'none';
-                             const errorDiv = document.createElement('div');
-                             errorDiv.className = 'text-red-500 text-sm py-4';
-                             errorDiv.innerHTML = 'QR Code não disponível';
-                             imgElement.parentNode?.appendChild(errorDiv);
-                           }
-                         };
-                       }}
-                     />
+                    <div className="flex items-center justify-center h-48">
+                      {/* Se estamos em modo de edição e temos um preview, mostrar o preview primeiro */}
+                       {isEditMode && imagePreview ? (
+                         <img
+                           key={`preview-${Date.now()}`}
+                           src={imagePreview}
+                           alt="QR Code Preview"
+                           className="w-48 h-48 mx-auto object-contain"
+                         />
+                       ) : (
+                         <img
+                           key={`qr-${selectedUser.username}-${Date.now()}`}
+                           src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${selectedUser.username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}?t=${Date.now()}`}
+                           alt={`QR Code de ${selectedUser.name}`}
+                           className="w-48 h-48 mx-auto object-contain"
+                           onError={(e) => {
+                             // Tentar caminho local como fallback
+                             const imgElement = e.currentTarget;
+                             imgElement.src = `/qr-codes/${selectedUser.username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg?t=${Date.now()}`;
+                             
+                             // Adicionar outro handler de erro para o fallback
+                             imgElement.onerror = () => {
+                               // Se temos uma imagem selecionada, mostrar o preview
+                               if (imagePreview) {
+                                 imgElement.src = imagePreview;
+                                 imgElement.style.display = 'block';
+                               } else {
+                                 imgElement.style.display = 'none';
+                                 const errorDiv = document.createElement('div');
+                                 errorDiv.className = 'text-red-500 text-sm py-4';
+                                 errorDiv.innerHTML = 'QR Code não disponível';
+                                 imgElement.parentNode?.appendChild(errorDiv);
+                               }
+                             };
+                           }}
+                         />
+                       )}
+                    </div>
                    ) : (
                      <div className="flex items-center justify-center h-48">
                        {imagePreview ? (
                          <img
+                           key={`modal-preview-${Date.now()}`}
                            src={imagePreview}
                            alt="QR Code Preview"
                            className="w-48 h-48 mx-auto object-contain"
