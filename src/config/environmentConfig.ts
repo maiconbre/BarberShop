@@ -27,7 +27,7 @@ export interface EnvironmentConfig {
 export const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
   local: {
     name: 'Desenvolvimento Local',
-    apiUrl: 'http://localhost:6543',
+    apiUrl: 'http://localhost:8000',
     devMode: true,
     debugApi: true,
     description: 'API local para desenvolvimento rápido',
