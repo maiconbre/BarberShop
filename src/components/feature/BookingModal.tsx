@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 import { cacheService } from '../../services/CacheService';
 import { useBarberList, useFetchBarbers } from '../../stores';
+import { CURRENT_ENV } from '../../config/environmentConfig';
 
 // Importando constantes e funções do serviço de agendamentos
 import { 
@@ -1250,9 +1251,23 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                           <div className="space-y-4">
                             <div className="bg-gray-50 p-4 rounded-xl">
                               <img
-                                src={`/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`}
+                                src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}`}
                                 alt={`QR Code de ${formData.barber}`}
                                 className="w-48 h-48 mx-auto object-contain"
+                                onError={(e) => {
+                                  // Tentar caminho local como fallback
+                                  const imgElement = e.currentTarget;
+                                  imgElement.src = `/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`;
+                                  
+                                  // Adicionar outro handler de erro para o fallback
+                                  imgElement.onerror = () => {
+                                    imgElement.style.display = 'none';
+                                    const errorDiv = document.createElement('div');
+                                    errorDiv.className = 'text-red-500 text-sm py-4';
+                                    errorDiv.textContent = 'QR Code não encontrado';
+                                    imgElement.parentNode?.appendChild(errorDiv);
+                                  };
+                                }}
                               />
                             </div>
                             
