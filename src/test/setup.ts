@@ -27,14 +27,34 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+  root: Element | null = null;
+  rootMargin: string = '0px';
+  thresholds: ReadonlyArray<number> = [0];
+
+  constructor(
+    _callback: IntersectionObserverCallback,
+    options?: IntersectionObserverInit
+  ) {
+    this.root = (options?.root instanceof Element) ? options.root : null;
+    this.rootMargin = options?.rootMargin || '0px';
+    this.thresholds = options?.threshold ? 
+      (Array.isArray(options.threshold) ? options.threshold : [options.threshold]) : 
+      [0];
+  }
+
   observe() {
     return null;
   }
+
   disconnect() {
     return null;
   }
+
   unobserve() {
     return null;
   }
-};
+
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+} as any;
