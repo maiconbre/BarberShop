@@ -1,0 +1,264 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main, develop ]
+
+jobs:
+  # Job 1: Análise de Código e Qualidade
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for better analysis
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run ESLint with annotations
+      run: |
+        npm run lint -- --format=@eslint/eslintrc --output-file=eslint-report.json
+      continue-on-error: true
+    
+    - name: Annotate ESLint results
+      uses: ataylorme/eslint-annotate-action@v2
+      if: always()
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        report-json: "eslint-report.json"
+    
+    - name: Run tests with detailed output
+      run: npm run test:run -- --reporter=verbose
+    
+    - name: Generate test coverage
+      run: npm run test:coverage
+    
+    - name: Comment coverage on PR
+      uses: romeovs/lcov-reporter-action@v0.3.1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        lcov-file: ./coverage/lcov.info
+        delete-old-comments: true
+
+  # Job 2: Verificação de Build
+  build-check:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        build-mode: [development, production]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build application (${{ matrix.build-mode }})
+      run: |
+        if [ "${{ matrix.build-mode }}" = "development" ]; then
+          npm run build:dev
+        else
+          npm run build:prod
+        fi
+    
+    - name: Check build size
+      run: |
+        echo "📊 Build Size Analysis:"
+        du -sh dist/
+        echo "📁 Detailed breakdown:"
+        find dist/ -name "*.js" -o -name "*.css" | xargs ls -lh
+    
+    - name: Verify build artifacts
+      run: |
+        if [ ! -f "dist/index.html" ]; then
+          echo "❌ index.html not found in build output"
+          exit 1
+        fi
+        echo "✅ Build artifacts verified"
+
+  # Job 3: Verificação de Dependências
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run npm audit
+      run: |
+        echo "🔍 Running security audit..."
+        npm audit --audit-level=moderate || {
+          echo "⚠️ Security vulnerabilities found!"
+          echo "Please run 'npm audit fix' to resolve issues."
+          exit 1
+        }
+    
+    - name: Check for outdated packages
+      run: |
+        echo "📦 Checking for outdated packages..."
+        npm outdated || echo "Some packages are outdated. Consider updating them."
+    
+    - name: License compliance check
+      run: |
+        echo "📄 Checking license compliance..."
+        npx license-checker --summary || echo "License check completed"
+
+  # Job 4: Verificação de Tipos TypeScript
+  typescript-check:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run TypeScript compiler check
+      run: |
+        echo "🔍 Running TypeScript type checking..."
+        npx tsc --noEmit --skipLibCheck
+        echo "✅ TypeScript type checking passed"
+
+  # Job 5: Análise de Performance
+  performance-check:
+    name: Performance Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build for analysis
+      run: npm run build:prod
+    
+    - name: Analyze bundle size
+      run: |
+        echo "📊 Bundle Size Analysis:"
+        echo "Total build size:"
+        du -sh dist/
+        echo ""
+        echo "JavaScript files:"
+        find dist/ -name "*.js" -exec ls -lh {} \; | sort -k5 -hr
+        echo ""
+        echo "CSS files:"
+        find dist/ -name "*.css" -exec ls -lh {} \;
+        echo ""
+        echo "Asset files:"
+        find dist/ -type f ! -name "*.js" ! -name "*.css" ! -name "*.html" -exec ls -lh {} \;
+
+  # Job 6: Comentário de Resumo no PR
+  pr-summary:
+    name: PR Summary Comment
+    runs-on: ubuntu-latest
+    needs: [code-quality, build-check, dependency-check, typescript-check, performance-check]
+    if: always()
+    
+    steps:
+    - name: Create PR Summary Comment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          // Delete previous bot comments
+          for (const comment of comments) {
+            if (comment.user.type === 'Bot' && comment.body.includes('🤖 PR Analysis Summary')) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id,
+              });
+            }
+          }
+          
+          const results = {
+            'Code Quality': '${{ needs.code-quality.result }}',
+            'Build Check': '${{ needs.build-check.result }}',
+            'Dependency Check': '${{ needs.dependency-check.result }}',
+            'TypeScript Check': '${{ needs.typescript-check.result }}',
+            'Performance Check': '${{ needs.performance-check.result }}'
+          };
+          
+          const getEmoji = (result) => {
+            switch(result) {
+              case 'success': return '✅';
+              case 'failure': return '❌';
+              case 'cancelled': return '⏹️';
+              case 'skipped': return '⏭️';
+              default: return '⏳';
+            }
+          };
+          
+          let summary = '🤖 **PR Analysis Summary**\n\n';
+          
+          for (const [check, result] of Object.entries(results)) {
+            summary += `${getEmoji(result)} **${check}**: ${result}\n`;
+          }
+          
+          const allPassed = Object.values(results).every(result => result === 'success');
+          
+          if (allPassed) {
+            summary += '\n🎉 **All checks passed!** This PR is ready for review.';
+          } else {
+            summary += '\n⚠️ **Some checks failed.** Please review and fix the issues before merging.';
+          }
+          
+          summary += '\n\n---\n*This comment was automatically generated by the CI/CD pipeline.*';
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: summary
+          });
