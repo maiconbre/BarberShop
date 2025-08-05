@@ -8,7 +8,7 @@ interface VirtualizedListProps<T> {
   overscan?: number;
 }
 
-export const VirtualizedList = <T extends unknown>({
+export const VirtualizedList = <T,>({
   items,
   renderItem,
   itemHeight,
@@ -86,4 +86,4 @@ export const VirtualizedList = <T extends unknown>({
   );
 };
 
-export default VirtualizedList; 
+export default VirtualizedList;

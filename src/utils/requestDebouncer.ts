@@ -51,7 +51,7 @@ class RequestDebouncer {
         console.log(`Reutilizando requisição pendente para ${key} (${age}ms atrás)`);
         // Incrementar requisições salvas (evitadas)
         this.stats.savedRequests++;
-        return existing.promise;
+        return existing.promise as Promise<T>;
       }
     }
 

@@ -42,6 +42,8 @@ const ScheduleManagementPage: React.FC = () => {
   }, [currentUser]); // Removido fetchBarbers das dependências
   
   // Atualizar barbeiros quando o store mudar
+  const currentUserRole = currentUser && typeof currentUser === 'object' && 'role' in currentUser ? currentUser.role : undefined;
+  
   useEffect(() => {
     if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'admin' && barberList.length > 0) {
       const formattedBarbers = barberList.map((barber: { id: string; name: string }) => ({
@@ -51,7 +53,7 @@ const ScheduleManagementPage: React.FC = () => {
       setBarbers(formattedBarbers);
       setIsLoading(false); // Finalizar loading quando os dados chegarem
     }
-  }, [barberList, currentUser && typeof currentUser === 'object' && 'role' in currentUser ? currentUser.role : undefined]);
+  }, [barberList, currentUserRole]);
 
   if (!currentUser) return null;
 
