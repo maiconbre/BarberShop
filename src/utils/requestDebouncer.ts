@@ -5,7 +5,7 @@
 
 interface PendingRequest {
   timestamp: number;
-  promise: Promise<any>;
+  promise: Promise<unknown | any>;
 }
 
 class RequestDebouncer {

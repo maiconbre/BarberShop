@@ -20,6 +20,16 @@ export interface LoggerConfig {
   prefix?: string;
 }
 
+interface BarberGRLoggerWindow extends Window {
+  BarberGRLogger: {
+    enableDev: () => void;
+    enableProd: () => void;
+    setLevel: (level: LogLevel) => void;
+    getConfig: () => LoggerConfig;
+    updateConfig: (config: Partial<LoggerConfig>) => void;
+  };
+}
+
 class Logger {
   private static instance: Logger;
   private config: LoggerConfig;
@@ -53,7 +63,7 @@ class Logger {
         const parsed = JSON.parse(storedConfig);
         this.config = { ...this.config, ...parsed };
       }
-    } catch (error) {
+    } catch {
       // Ignorar erros de parsing
     }
   }
@@ -62,7 +72,7 @@ class Logger {
     this.config = { ...this.config, ...newConfig };
     try {
       localStorage.setItem('barberGR_logConfig', JSON.stringify(this.config));
-    } catch (error) {
+    } catch {
       // Ignorar erros de storage
     }
   }
@@ -102,66 +112,66 @@ class Logger {
     return `${this.config.prefix} ${timestamp} ${levelStr} ${categoryStr} ${message}`;
   }
 
-  public error(message: string, category?: string, ...args: any[]): void {
+  public error(message: string, category?: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.ERROR, category)) {
       console.error(this.formatMessage(LogLevel.ERROR, message, category), ...args);
     }
   }
 
-  public warn(message: string, category?: string, ...args: any[]): void {
+  public warn(message: string, category?: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.WARN, category)) {
       console.warn(this.formatMessage(LogLevel.WARN, message, category), ...args);
     }
   }
 
-  public info(message: string, category?: string, ...args: any[]): void {
+  public info(message: string, category?: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.INFO, category)) {
       console.info(this.formatMessage(LogLevel.INFO, message, category), ...args);
     }
   }
 
-  public debug(message: string, category?: string, ...args: any[]): void {
+  public debug(message: string, category?: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.DEBUG, category)) {
       console.debug(this.formatMessage(LogLevel.DEBUG, message, category), ...args);
     }
   }
 
-  public verbose(message: string, category?: string, ...args: any[]): void {
+  public verbose(message: string, category?: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.VERBOSE, category)) {
       console.log(this.formatMessage(LogLevel.VERBOSE, message, category), ...args);
     }
   }
 
   // Métodos de conveniência para categorias específicas
-  public apiError(message: string, ...args: any[]): void {
+  public apiError(message: string, ...args: unknown[]): void {
     this.error(message, 'api', ...args);
   }
 
-  public apiWarn(message: string, ...args: any[]): void {
+  public apiWarn(message: string, ...args: unknown[]): void {
     this.warn(message, 'api', ...args);
   }
 
-  public apiInfo(message: string, ...args: any[]): void {
+  public apiInfo(message: string, ...args: unknown[]): void {
     this.info(message, 'api', ...args);
   }
 
-  public apiDebug(message: string, ...args: any[]): void {
+  public apiDebug(message: string, ...args: unknown[]): void {
     this.debug(message, 'api', ...args);
   }
 
-  public componentError(message: string, ...args: any[]): void {
+  public componentError(message: string, ...args: unknown[]): void {
     this.error(message, 'component', ...args);
   }
 
-  public componentWarn(message: string, ...args: any[]): void {
+  public componentWarn(message: string, ...args: unknown[]): void {
     this.warn(message, 'component', ...args);
   }
 
-  public componentInfo(message: string, ...args: any[]): void {
+  public componentInfo(message: string, ...args: unknown[]): void {
     this.info(message, 'component', ...args);
   }
 
-  public componentDebug(message: string, ...args: any[]): void {
+  public componentDebug(message: string, ...args: unknown[]): void {
     this.debug(message, 'component', ...args);
   }
 
@@ -194,16 +204,16 @@ class Logger {
 export const logger = Logger.getInstance();
 
 // Funções de conveniência para uso direto
-export const logError = (message: string, category?: string, ...args: any[]) => 
+export const logError = (message: string, category?: string, ...args: unknown[]) => 
   logger.error(message, category, ...args);
 
-export const logWarn = (message: string, category?: string, ...args: any[]) => 
+export const logWarn = (message: string, category?: string, ...args: unknown[]) => 
   logger.warn(message, category, ...args);
 
-export const logInfo = (message: string, category?: string, ...args: any[]) => 
+export const logInfo = (message: string, category?: string, ...args: unknown[]) => 
   logger.info(message, category, ...args);
 
-export const logDebug = (message: string, category?: string, ...args: any[]) => 
+export const logDebug = (message: string, category?: string, ...args: unknown[]) => 
   logger.debug(message, category, ...args);
 
 // Adicionar ao objeto window para controle via console do navegador

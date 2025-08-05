@@ -1,7 +1,7 @@
 /**
  * Custom hook for form state management with validation
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from './useFormValidation';
 import { debounce } from '@/utils';
@@ -22,11 +22,11 @@ interface UseFormReturn<T> {
   isValid: boolean;
   isSubmitting: boolean;
   isDirty: boolean;
-  setValue: (field: keyof T, value: any) => void;
+  setValue: (field: keyof T, value: void) => void;
   setValues: (values: Partial<T>) => void;
   setFieldTouched: (field: keyof T, touched?: boolean) => void;
   setTouched: (touched: Partial<Record<keyof T, boolean>>) => void;
-  handleChange: (field: keyof T) => (value: any) => void;
+  handleChange: (field: keyof T) => (value: void) => void;
   handleBlur: (field: keyof T) => () => void;
   handleSubmit: (e?: React.FormEvent) => Promise<void>;
   reset: (values?: T) => void;
