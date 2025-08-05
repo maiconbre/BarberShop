@@ -44,8 +44,8 @@ const DashboardPageNew: React.FC = () => {
     let filtered = appointments;
 
     // Filtro por role do usuário: barbeiros veem apenas seus agendamentos
-    if (currentUser?.role === 'barber' && currentUser?.id) {
-      filtered = filtered.filter(app => app.barberId === currentUser.id);
+    if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'barber' && 'id' in currentUser) {
+      filtered = filtered.filter(app => app.barberId === (currentUser as { id: string | number }).id.toString());
     }
 
     const now = new Date();
@@ -119,7 +119,7 @@ const DashboardPageNew: React.FC = () => {
           }
 
           // Invalidar cache específico do usuário após exclusão
-          const userId = currentUser?.id;
+          const userId = currentUser && typeof currentUser === 'object' && 'id' in currentUser ? (currentUser as { id: string | number }).id : null;
           if (userId) {
             window.dispatchEvent(new CustomEvent('cacheUpdated', {
               detail: {
@@ -160,18 +160,12 @@ const DashboardPageNew: React.FC = () => {
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          mode: 'cors',
-          body: JSON.stringify({ status: newStatus })
-        });
-
-        if (response.ok) {
+        
+        try {
+          // Usar o ApiService para requisições PATCH com retry e cache
+          await ApiService.patch(`/api/appointments/${appointmentId}`, { status: newStatus });
+          
+          // Se chegou aqui, a requisição foi bem-sucedida
           setAppointments(prevAppointments =>
             prevAppointments.map(app =>
               app.id === appointmentId ? { ...app, status: newStatus } : app
@@ -182,7 +176,7 @@ const DashboardPageNew: React.FC = () => {
           }
 
           // Invalidar cache específico do usuário após atualização
-          const userId = currentUser?.id;
+          const userId = currentUser && typeof currentUser === 'object' && 'id' in currentUser ? currentUser.id : null;
           if (userId) {
             window.dispatchEvent(new CustomEvent('cacheUpdated', {
               detail: {
@@ -216,14 +210,9 @@ const DashboardPageNew: React.FC = () => {
               secondary: '#1A1F2E'
             }
           });
-        } else {
-          const errorData = await response.json().catch(() => null);
-          console.error('Erro ao atualizar status:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData
-          });
-          throw new Error(`Erro ao atualizar status: ${response.status} ${response.statusText}`);
+        } catch (patchError) {
+          console.error('Erro ao atualizar status:', patchError);
+          throw patchError;
         }
       }
     } catch (error) {
@@ -269,7 +258,6 @@ const DashboardPageNew: React.FC = () => {
 
   useEffect(() => {
     let isSubscribed = true;
-    let timeoutId: NodeJS.Timeout;
 
     const fetchData = async () => {
       if (!isSubscribed || !navigator.onLine) return;
@@ -284,18 +272,26 @@ const DashboardPageNew: React.FC = () => {
           // Criar um mapa de serviceId para serviceName
           const serviceMap = new Map();
           if (Array.isArray(services)) {
-            services.forEach((service: any) => {
-              serviceMap.set(service.id, service.name);
+            services.forEach((service: unknown) => {
+              if (typeof service === 'object' && service !== null && 'id' in service && 'name' in service) {
+                serviceMap.set(service.id, service.name);
+              }
             });
           }
           
           // Transformar os agendamentos para incluir o campo service
-          const transformedAppointments = appointments.map((appointment: any) => ({
-            ...appointment,
-            service: appointment.service || appointment.serviceName || serviceMap.get(appointment.serviceId) || 'Serviço não especificado'
-          }));
+          const transformedAppointments = appointments.map((appointment: unknown) => {
+            if (typeof appointment === 'object' && appointment !== null) {
+              const apt = appointment as { service?: string; serviceName?: string; serviceId?: string; [key: string]: unknown };
+              return {
+                ...appointment,
+                service: apt.service || apt.serviceName || serviceMap.get(apt.serviceId ?? '') || 'Serviço não especificado'
+              };
+            }
+            return appointment;
+          });
           
-          setAppointments(transformedAppointments);
+          setAppointments(transformedAppointments as Appointment[]);
         }
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
@@ -305,13 +301,11 @@ const DashboardPageNew: React.FC = () => {
       }
     };
 
-    timeoutId = setTimeout(fetchData, 50);
+    const timeoutId = setTimeout(fetchData, 50);
 
     return () => {
       isSubscribed = false;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      clearTimeout(timeoutId);
     };
   }, []);
 

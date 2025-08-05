@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import ApiService from '../../services/ApiService';
 import { logger } from '../../utils/logger';
 import { X, MessageCircle, ArrowRight, CheckCircle, Eye } from 'lucide-react';
@@ -10,12 +10,52 @@ import { useBarberList, useFetchBarbers } from '../../stores';
 import { CURRENT_ENV } from '../../config/environmentConfig';
 
 // Importando constantes e funções do serviço de agendamentos
-import { 
+import {
   loadAppointments,
   createAppointment,
   formatWhatsappMessage,
   formatDisplayDate
 } from '../../services/AppointmentService';
+
+// Interfaces para tipagem
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration?: number;
+  description?: string;
+}
+
+interface Barber {
+  id: string;
+  name: string;
+  whatsapp?: string;
+  pix?: string;
+  avatar?: string;
+  specialties?: string[];
+}
+
+interface Appointment {
+  id: string;
+  clientName: string;
+  serviceName: string;
+  date: string;
+  time: string;
+  barberId: string;
+  barberName: string;
+  price: number;
+  wppclient?: string;
+  status?: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  isCancelled?: boolean;
+  isRemoved?: boolean;
+}
+
+interface ApiResponse<T = unknown> {
+  success?: boolean;
+  data?: T;
+  error?: string;
+  id?: string;
+}
 
 // Interface para as props do componente
 interface BookingModalProps {
@@ -23,7 +63,7 @@ interface BookingModalProps {
   onClose: () => void;
   initialService?: string;
   initialServices?: string[];
-  preloadedAppointments?: any[];
+  preloadedAppointments?: Appointment[];
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '', initialServices = [], preloadedAppointments = [] }) => {
@@ -34,11 +74,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     }
     return '/api/appointments';
   };
-  
+
   // Hooks do barberStore
   const barberList = useBarberList();
   const fetchBarbers = useFetchBarbers();
-  
+
   // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +101,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   });
 
   // Estado para armazenar os horários pré-carregados
-  const [cachedAppointments, setCachedAppointments] = useState<any[]>(Array.isArray(preloadedAppointments) ? preloadedAppointments : []);
+  const [cachedAppointments, setCachedAppointments] = useState<Appointment[]>(Array.isArray(preloadedAppointments) ? preloadedAppointments : []);
 
   // Atualiza os serviços quando o initialService ou initialServices mudar
   useEffect(() => {
@@ -97,11 +137,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const [serviceData, setServiceData] = useState<{ [key: string]: number }>({});
 
   // Função para obter o preço de um serviço pelo nome
-  const getServicePrice = (serviceName: string): number => {
+  const getServicePrice = useCallback((serviceName: string): number => {
     return serviceData[serviceName] || 0;
-  };
+  }, [serviceData]);
   // Estado para armazenar os barbeiros (carregados dinamicamente da API)
-  const [barbers, setBarbers] = useState<Array<{ id: string, name: string, whatsapp?: string, pix?: string }>>([]);
+  const [barbers, setBarbers] = useState<Barber[]>([]);
   const [services, setServices] = useState<string[]>([]);
 
   // Buscar serviços da API ao carregar o componente
@@ -112,14 +152,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         setServicesError('');
         logger.componentDebug('Carregando serviços no BookingModal');
         const result = await ApiService.getServices();
-        
+
         if (result && Array.isArray(result)) {
           // Armazenar os nomes dos serviços
-          const serviceNames = result.map((service: any) => service.name);
-          
+          const serviceNames = result.map((service: unknown) => (service as Service).name);
+
           // Consolidar serviços diretamente no useEffect para evitar dependências desnecessárias
           const consolidatedServices = [...serviceNames];
-          
+
           // Adicionar serviços iniciais se não estiverem na lista da API
           if (initialService && !consolidatedServices.includes(initialService)) {
             consolidatedServices.push(initialService);
@@ -131,13 +171,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
               }
             });
           }
-          
+
           setServices(consolidatedServices);
 
           // Armazenar os preços dos serviços em um objeto para fácil acesso
-          const priceMap: { [key: string]: number } = {};
-          result.forEach((service: any) => {
-            priceMap[service.name] = service.price;
+          const priceMap: Record<string, number> = {};
+          result.forEach((service: unknown) => {
+            if ((service as Service).name && (service as Service).price) {
+              priceMap[(service as Service).name] = (service as Service).price;
+            }
           });
           setServiceData(priceMap);
           logger.componentDebug(`Carregados ${result.length} serviços no BookingModal`);
@@ -148,17 +190,17 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         // Se a API falhar, usar apenas os serviços iniciais como fallback
         // Create a Set to automatically handle duplicates
         const fallbackServices = new Set<string>();
-        
+
         // Add initial service if it exists
         if (initialService) {
           fallbackServices.add(initialService);
         }
-        
+
         // Add all initial services if they exist
         if (initialServices?.length) {
           initialServices.forEach(service => fallbackServices.add(service));
         }
-        
+
         // Only update services if we have fallback values
         if (fallbackServices.size > 0) {
           setServices(Array.from(fallbackServices));
@@ -186,7 +228,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     loadBarbers();
-  }, []); // Executa apenas uma vez ao montar o componente
+  }, [fetchBarbers]); // Inclui fetchBarbers como dependência
 
   // Atualizar barbeiros quando o store mudar
   React.useEffect(() => {
@@ -211,13 +253,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     try {
       // Usar a função importada do AppointmentService que agora usa cache centralizado
       const validAppointments = await loadAppointments();
-      
+
       logger.componentDebug(`BookingModal: ${validAppointments.length} agendamentos carregados`);
-      setCachedAppointments(Array.isArray(validAppointments) ? validAppointments : []);
-      
+      setCachedAppointments(Array.isArray(validAppointments) ? validAppointments.map(appointment => ({
+        ...appointment,
+        clientName: appointment.clientName || '',
+        serviceName: appointment.serviceName || '',
+        date: appointment.date || '',
+        time: appointment.time || '',
+        barberId: appointment.barberId || '',
+        barberName: appointment.barberName || '',
+        price: appointment.price || 0,
+        id: appointment.id || ''
+      })) : []);
+
     } catch (err) {
       logger.componentError('BookingModal: Erro ao carregar agendamentos:', err);
-      
+
       // Tentar recuperar do cache local em caso de falha
       const localCache = localStorage.getItem('appointments');
       if (localCache) {
@@ -233,10 +285,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   }, []);
 
   // Função utilitária para filtrar agendamentos por data, hora e barbeiro
-  const filterAppointmentsBySlot = useCallback((appointments: any[], targetAppointment: any) => {
-    return appointments.filter(app => 
-      !(app.date === targetAppointment.date && 
-        app.time === targetAppointment.time && 
+  const filterAppointmentsBySlot = useCallback((appointments: Appointment[], targetAppointment: Appointment) => {
+    return appointments.filter(app =>
+      !(app.date === targetAppointment.date &&
+        app.time === targetAppointment.time &&
         app.barberId === targetAppointment.barberId)
     );
   }, []);
@@ -247,7 +299,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
     // Carregar dados iniciais
     fetchAppointmentsData();
-    
+
     // Listener para atualização via localStorage
     const handleStorageChange = () => {
       const localCache = localStorage.getItem('appointments');
@@ -272,7 +324,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     // Listener para atualização de agendamento
     const handleAppointmentUpdate = (event: CustomEvent) => {
       const updatedAppointment = event.detail;
-      
+
       setCachedAppointments(prev => {
         if (!Array.isArray(prev)) return [];
         const filtered = filterAppointmentsBySlot(prev, updatedAppointment);
@@ -315,7 +367,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const handleTimeSelect = useCallback((date: Date, time: string) => {
     // Formatar a data usando o formato yyyy-MM-dd para armazenamento
     const formattedDate = format(adjustToBrasilia(date), 'yyyy-MM-dd');
-    
+
     if (!formData.barberId) {
       // Validação removida - barbeiro é obrigatório no formulário
       return;
@@ -361,11 +413,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       ];
 
       for (const validation of validations) {
-        if (!validateField(validation.field, validation.value, validation.message)) {
+        if (!validateField(validation.field, validation.value)) {
           return;
         }
       }
-      
+
       // Error state removido
       setStep(2);
       return;
@@ -379,11 +431,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       ];
 
       for (const validation of validations) {
-        if (!validateField(validation.field, validation.value, validation.message)) {
+        if (!validateField(validation.field, validation.value)) {
           return;
         }
       }
-      
+
       // Error state removido
       setStep(3); // Ir para step 3 (prévia/confirmação)
       return;
@@ -404,34 +456,44 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     try {
       // Primeiro, tentar obter os dados mais recentes do cache global
       const cacheKey = `schedule_appointments_${formData.barberId}`;
-      
+
       // Verificar disponibilidade usando dados do cache global e local de forma assíncrona
       const { isTimeSlotAvailable, checkLocalAvailability } = await import('../../services/AppointmentService');
-      
+
       // Verificar disponibilidade no cache local para feedback imediato
       const isStillAvailableInLocalCache = checkLocalAvailability(formData.date, formData.time, formData.barberId, cachedAppointments);
-      
+
       if (!isStillAvailableInLocalCache) {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
       }
-      
+
       // Verificar disponibilidade em todos os caches de forma assíncrona
       const isStillAvailableInAllCaches = await isTimeSlotAvailable(formData.date, formData.time, formData.barberId, cachedAppointments);
-      
+
       // Se o horário não estiver disponível em qualquer um dos caches, impedir o agendamento
       if (!isStillAvailableInAllCaches) {
         throw new Error('Este horário não está mais disponível. Por favor, escolha outro horário.');
       }
-      
+
       // Tentar buscar dados mais recentes da API para garantir disponibilidade
       try {
         const freshAppointments = await loadAppointments();
         const { isTimeSlotAvailable } = await import('../../services/AppointmentService');
         const isStillAvailableInAPI = await isTimeSlotAvailable(formData.date, formData.time, formData.barberId, freshAppointments);
-        
+
         if (!isStillAvailableInAPI) {
           // Atualizar caches com os dados mais recentes
-          setCachedAppointments(freshAppointments);
+          setCachedAppointments(freshAppointments.map(appointment => ({
+            ...appointment,
+            clientName: appointment.clientName || '',
+            serviceName: appointment.serviceName || '',
+            date: appointment.date || '',
+            time: appointment.time || '',
+            barberId: appointment.barberId || '',
+            barberName: appointment.barberName || '',
+            price: appointment.price || 0,
+            id: appointment.id || ''
+          })));
           await cacheService.set(cacheKey, freshAppointments);
           throw new Error('Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.');
         }
@@ -454,34 +516,34 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
       // Atualização otimista do cache local
       setCachedAppointments(prev => Array.isArray(prev) ? [...prev, tempAppointment] : [tempAppointment]);
-      
+
       // Atualizar o cache global para garantir que outros componentes vejam a mudança
       // Reutilizando as variáveis já declaradas acima
       const cachedData = await cacheService.get(cacheKey) || [];
-      
+
       // Verificar novamente se o horário já não foi ocupado por outro cliente
-      const isStillAvailable = !Array.isArray(cachedData) ? true : !cachedData.some((app: any) =>
-        app.date === formData.date && 
-        app.time === formData.time && 
-        app.barberId === formData.barberId && 
+      const isStillAvailable = !Array.isArray(cachedData) ? true : !cachedData.some((app: Appointment) =>
+        app.date === formData.date &&
+        app.time === formData.time &&
+        app.barberId === formData.barberId &&
         app.id !== tempAppointment.id && // Ignorar o appointment temporário que acabamos de criar
-        !app.isCancelled && 
+        !app.isCancelled &&
         !app.isRemoved
       );
-      
+
       if (!isStillAvailable) {
         throw new Error('Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.');
       }
-      
-await cacheService.set(cacheKey, Array.isArray(cachedData) ? [...cachedData, tempAppointment] : [tempAppointment]);
-      
+
+      await cacheService.set(cacheKey, Array.isArray(cachedData) ? [...cachedData, tempAppointment] : [tempAppointment]);
+
       // Atualizar também o cache global geral de agendamentos
       try {
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = currentUser?.id;
         const allAppointmentsKey = getAppointmentsCacheKey(userId);
         const allAppointments = await cacheService.get(allAppointmentsKey) || [];
-await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...allAppointments, tempAppointment] : [tempAppointment]);
+        await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...allAppointments, tempAppointment] : [tempAppointment]);
       } catch (cacheErr) {
         logger.componentWarn('Erro ao atualizar cache global de agendamentos:', cacheErr);
       }
@@ -490,7 +552,7 @@ await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...
       window.dispatchEvent(new CustomEvent('timeSlotBlocked', {
         detail: tempAppointment
       }));
-      
+
       // Atualizar o localStorage para compatibilidade com componentes que usam esse método
       try {
         const localStorageData = localStorage.getItem('appointments');
@@ -511,101 +573,101 @@ await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...
         barberName: formData.barber,
         price: calculateTotalPrice()
       };
-      
+
       const result = await createAppointment(appointmentData);
 
       // Verificar se a resposta é válida
       if (!result || (result.success === false)) {
         // Reverter atualização otimista em caso de erro
         setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => app.id !== tempAppointment.id) : []);
-        
+
         // Reverter o cache global
         try {
           // Reutilizando o cacheService já importado acima
-          
+
           // Reverter o cache específico do barbeiro
           const barberCacheKey = `schedule_appointments_${formData.barberId}`;
           const barberCachedData = await cacheService.get(barberCacheKey) || [];
-await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberCachedData.filter((app: any) => app.id !== tempAppointment.id) : []);
-          
+          await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberCachedData.filter((app: Appointment) => app.id !== tempAppointment.id) : []);
+
           // Reverter também o cache global geral de agendamentos
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           const userId = currentUser?.id;
           const allAppointmentsKey = getAppointmentsCacheKey(userId);
           const allAppointments = await cacheService.get(allAppointmentsKey) || [];
-          await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? allAppointments.filter((app: any) => app.id !== tempAppointment.id) : []);
-          
+          await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? allAppointments.filter((app: Appointment) => app.id !== tempAppointment.id) : []);
+
           // Reverter o localStorage
           const localStorageData = localStorage.getItem('appointments');
           if (localStorageData) {
             const parsedData = JSON.parse(localStorageData);
-            localStorage.setItem('appointments', JSON.stringify(parsedData.filter((app: any) => app.id !== tempAppointment.id)));
+            localStorage.setItem('appointments', JSON.stringify(parsedData.filter((app: Appointment) => app.id !== tempAppointment.id)));
           }
-          
+
           // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
           await cacheService.forceCleanup();
         } catch (err) {
           logger.componentError('Erro ao reverter cache:', err);
         }
-        
+
         window.dispatchEvent(new CustomEvent('timeSlotUnblocked', {
           detail: tempAppointment
         }));
-        
+
         throw new Error((result as { error?: string }).error || 'Erro ao criar agendamento');
       }
 
       // Atualizar o appointment com o ID real
       const confirmedAppointment = {
         ...tempAppointment,
-        id: result.data?.id || (result as any).id || tempAppointment.id
+        id: result.data?.id || (result as ApiResponse).id || tempAppointment.id
       };
 
       // Atualizar o cache global com o ID real
       try {
         // Reutilizando o cacheService já importado acima
-        
+
         // Atualizar o cache específico do barbeiro
         const barberCacheKey = `schedule_appointments_${formData.barberId}`;
         const barberCachedData = await cacheService.get(barberCacheKey) || [];
-        
+
         // Remover o appointment temporário e adicionar o confirmado
         const updatedBarberCache = (Array.isArray(barberCachedData) ? barberCachedData : [])
-          .filter((app: any) => app.id !== tempAppointment.id)
+          .filter((app: Appointment) => app.id !== tempAppointment.id)
           .concat(confirmedAppointment);
-          
+
         await cacheService.set(barberCacheKey, updatedBarberCache);
-        
+
         // Atualizar também o cache global geral de agendamentos
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = currentUser?.id;
         const allAppointmentsKey = getAppointmentsCacheKey(userId);
         const allAppointments = await cacheService.get(allAppointmentsKey) || [];
         const updatedAllAppointments = (Array.isArray(allAppointments) ? allAppointments : [])
-          .filter((app: any) => app.id !== tempAppointment.id)
+          .filter((app: Appointment) => app.id !== tempAppointment.id)
           .concat(confirmedAppointment);
         await cacheService.set(allAppointmentsKey, updatedAllAppointments);
-        
+
         // Atualizar o localStorage
         const localStorageData = localStorage.getItem('appointments');
         if (localStorageData) {
           const parsedData = JSON.parse(localStorageData);
           const updatedLocalStorage = parsedData
-            .filter((app: any) => app.id !== tempAppointment.id)
+            .filter((app: Appointment) => app.id !== tempAppointment.id)
             .concat(confirmedAppointment);
           localStorage.setItem('appointments', JSON.stringify(updatedLocalStorage));
         }
-        
+
         // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
         await cacheService.forceCleanup();
-        
+
         // Forçar uma atualização dos dados de agendamentos para todos os componentes
         setTimeout(async () => {
           try {
             // Recarregar agendamentos da API para atualizar o cache global
             const { loadAppointments } = await import('../../services/AppointmentService');
             await loadAppointments();
-            
+
             // Disparar evento personalizado para notificar outros componentes sobre a atualização do cache
             window.dispatchEvent(new CustomEvent('cacheUpdated', {
               detail: {
@@ -636,36 +698,36 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
       // Reverter atualização otimista em caso de erro
       // Remove the temporary appointment from cached appointments
       setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => !app.id.startsWith('temp-')) : []);
-      
+
       // Reverter o cache global
       try {
         // Reutilizando o cacheService já importado acima
-        
+
         // Reverter o cache específico do barbeiro
         const barberCacheKey = `schedule_appointments_${formData.barberId}`;
         const barberCachedData = await cacheService.get(barberCacheKey) || [];
-        await cacheService.set(barberCacheKey, (Array.isArray(barberCachedData) ? barberCachedData : []).filter((app: any) => !app.id.startsWith('temp-')));
-        
+        await cacheService.set(barberCacheKey, (Array.isArray(barberCachedData) ? barberCachedData : []).filter((app: Appointment) => !app.id.startsWith('temp-')));
+
         // Reverter também o cache global geral de agendamentos
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = currentUser?.id;
         const allAppointmentsKey = getAppointmentsCacheKey(userId);
         const allAppointments = await cacheService.get(allAppointmentsKey) || [];
-        await cacheService.set(allAppointmentsKey, (Array.isArray(allAppointments) ? allAppointments : []).filter((app: any) => !app.id.startsWith('temp-')));
-        
+        await cacheService.set(allAppointmentsKey, (Array.isArray(allAppointments) ? allAppointments : []).filter((app: Appointment) => !app.id.startsWith('temp-')));
+
         // Reverter o localStorage
         const localStorageData = localStorage.getItem('appointments');
         if (localStorageData) {
           const parsedData = JSON.parse(localStorageData);
-          localStorage.setItem('appointments', JSON.stringify(parsedData.filter((app: any) => !app.id.startsWith('temp-'))));
+          localStorage.setItem('appointments', JSON.stringify(parsedData.filter((app: Appointment) => !app.id.startsWith('temp-'))));
         }
-        
+
         // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
         await cacheService.forceCleanup();
       } catch (cacheErr) {
         logger.componentError('Erro ao reverter cache:', cacheErr);
       }
-      
+
       // Disparar evento para desbloquear o horário
       window.dispatchEvent(new CustomEvent('timeSlotUnblocked', {
         detail: {
@@ -674,30 +736,19 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
           barberId: formData.barberId
         }
       }));
-      
+
       // Tratamento mais específico de erros
       logger.componentError('Error saving appointment:', err);
-      
-      // Tratamento mais específico de erros
-      let errorMessage = 'Erro ao salvar agendamento. Por favor, tente novamente.';
-      if (err instanceof Error) {
-        if (err.message.includes('network') || err.message.includes('fetch')) {
-          errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
-        } else if (err.message.includes('timeout')) {
-          errorMessage = 'Tempo limite excedido. Tente novamente.';
-        } else {
-          errorMessage = err.message;
-        }
-      }
-      
+
       // Error state removido - erro será logado
+      logger.error('Error saving appointment:', err?.toString() || 'Unknown error');
     } finally {
       setIsLoading(false);
     }
   };
 
   // Função utilitária para validação de campos obrigatórios
-  const validateField = useCallback((_fieldName: string, value: any, errorMessage: string): boolean => {
+  const validateField = useCallback((_fieldName: string, value: string | string[] | boolean): boolean => {
     if (!value || (typeof value === 'string' && !value.trim()) || (Array.isArray(value) && value.length === 0)) {
       // Error state removido - erro será logado
       return false;
@@ -716,7 +767,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
   // Função utilitária para calcular preço total dos serviços
   const calculateTotalPrice = useCallback(() => {
     return formData.services.reduce((total, service) => total + getServicePrice(service), 0);
-  }, [formData.services]);
+  }, [formData.services, getServicePrice]);
 
   // Função para obter informações do barbeiro selecionado
   const getSelectedBarberInfo = () => {
@@ -773,23 +824,23 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
     const [animationPhase, setAnimationPhase] = useState(0);
     const [showSlowWarning, setShowSlowWarning] = useState(false);
 
-    const funnyMessages = [
-       "Fazendo busca...",
-       "Quase lá...",
-       "Mais lento que o comum...",
-       "Aguarde um pouquinho...",
-       "Carregando com carinho...",
-       "Preparando tudo para você...",
-       "Só mais um segundinho...",
-       "Conectando com os servidores...",
-       "Afiando as navalhas... ✂️",
-       "Organizando a agenda...",
-       "Preparando o melhor atendimento...",
-       "Buscando os melhores horários...",
-       "Quase pronto para o corte perfeito!",
-       "Carregando... como um bom degradê!",
-       "Aguarde, estamos penteando os dados..."
-     ];
+    const funnyMessages = React.useMemo(() => [
+      "Fazendo busca...",
+      "Quase lá...",
+      "Mais lento que o comum...",
+      "Aguarde um pouquinho...",
+      "Carregando com carinho...",
+      "Preparando tudo para você...",
+      "Só mais um segundinho...",
+      "Conectando com os servidores...",
+      "Afiando as navalhas... ✂️",
+      "Organizando a agenda...",
+      "Preparando o melhor atendimento...",
+      "Buscando os melhores horários...",
+      "Quase pronto para o corte perfeito!",
+      "Carregando... como um bom degradê!",
+      "Aguarde, estamos penteando os dados..."
+    ], []);
 
     useEffect(() => {
       // Após 2 segundos, começar a mostrar mensagens divertidas
@@ -807,16 +858,16 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
       }, 3000);
 
       // Mudar fase da animação a cada 1.5 segundos
-       const animationTimer = setInterval(() => {
-         setAnimationPhase(prev => (prev + 1) % 4);
-       }, 1500);
+      const animationTimer = setInterval(() => {
+        setAnimationPhase(prev => (prev + 1) % 4);
+      }, 1500);
 
       return () => {
         clearTimeout(slowTimer);
         clearInterval(messageTimer);
         clearInterval(animationTimer);
       };
-    }, [showSlowWarning]);
+    }, [showSlowWarning, funnyMessages]);
 
     const renderAnimation = () => {
       switch (animationPhase) {
@@ -838,50 +889,49 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
             </div>
           );
         case 1:
-           // Barra de progresso animada
-           return (
-             <div className="w-32 h-1 bg-gray-700 rounded-full mb-3 overflow-hidden">
-               <div className="h-full bg-gradient-to-r from-[#F0B35B] to-yellow-400 rounded-full animate-slide" 
-                    style={{ width: '60%' }}></div>
-             </div>
-           );
-         case 2:
-           // Pontos saltitantes
-           return (
-             <div className="flex space-x-1 mb-3">
-               {[...Array(3)].map((_, i) => (
-                 <div
-                   key={i}
-                   className="w-3 h-3 bg-[#F0B35B] rounded-full loading-bounce"
-                   style={{
-                     animationDelay: `${i * 0.1}s`
-                   }}
-                 />
-               ))}
-             </div>
-           );
-         default:
-           return null;
+          // Barra de progresso animada
+          return (
+            <div className="w-32 h-1 bg-gray-700 rounded-full mb-3 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#F0B35B] to-yellow-400 rounded-full animate-slide"
+                style={{ width: '60%' }}></div>
+            </div>
+          );
+        case 2:
+          // Pontos saltitantes
+          return (
+            <div className="flex space-x-1 mb-3">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="w-3 h-3 bg-[#F0B35B] rounded-full loading-bounce"
+                  style={{
+                    animationDelay: `${i * 0.1}s`
+                  }}
+                />
+              ))}
+            </div>
+          );
+        default:
+          return null;
       }
     };
 
     return (
-       <div className="flex flex-col items-center justify-center py-8 px-4">
-         {renderAnimation()}
-         
-         <p className={`text-sm text-center loading-transition ${
-           showSlowWarning ? 'text-yellow-400' : 'text-gray-400'
-         }`}>
-           {currentMessage}
-         </p>
-         
-         {showSlowWarning && (
-           <div className="mt-2 text-xs text-gray-500 text-center animate-fade-in">
-             <p>🐌 Conexão mais lenta que o esperado</p>
-           </div>
-         )}
-       </div>
-     );
+      <div className="flex flex-col items-center justify-center py-8 px-4">
+        {renderAnimation()}
+
+        <p className={`text-sm text-center loading-transition ${showSlowWarning ? 'text-yellow-400' : 'text-gray-400'
+          }`}>
+          {currentMessage}
+        </p>
+
+        {showSlowWarning && (
+          <div className="mt-2 text-xs text-gray-500 text-center animate-fade-in">
+            <p>🐌 Conexão mais lenta que o esperado</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Não renderiza nada se o modal estiver fechado
@@ -953,7 +1003,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                   <div className="absolute inset-0 rounded-lg pointer-events-none border border-[#F0B35B]/0 group-hover:border-[#F0B35B]/20 transition-colors duration-300"></div>
                 </div>
               </div>
-              
+
               <div className="group relative">
                 <label className="block text-sm font-medium mb-1 text-gray-300 group-hover:text-[#F0B35B] transition-colors">WhatsApp</label>
                 <div className="relative">
@@ -1118,7 +1168,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto" style={{maxHeight: "calc(100% - 120px)"}}>
+              <div className="flex-1 overflow-y-auto" style={{ maxHeight: "calc(100% - 120px)" }}>
                 <Calendar
                   selectedBarber={formData.barber}
                   onTimeSelect={handleTimeSelect}
@@ -1153,19 +1203,19 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
           ) : step === 3 ? (
             <div className="space-y-4">
               <div className="bg-[#0D121E] p-4 rounded-lg border border-[#F0B35B]/10">
-               
-                
+
+
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center py-1.5 border-b border-white/10">
                     <span className="text-gray-400">Nome:</span>
                     <span className="text-white font-medium">{formData.name}</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2 border-b border-white/10">
                     <span className="text-gray-400">WhatsApp:</span>
                     <span className="text-white font-medium">{formData.whatsapp}</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-start py-1.5 border-b border-white/10">
                     <span className="text-gray-400">Serviços:</span>
                     <div className="text-right">
@@ -1173,17 +1223,17 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                       <div className="text-[#F0B35B] text-xs mt-1">R$ {calculateTotalPrice().toFixed(2)}</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2 border-b border-white/10">
                     <span className="text-gray-400">Barbeiro:</span>
                     <span className="text-white font-medium">{formData.barber}</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2 border-b border-white/10">
                     <span className="text-gray-400">Data:</span>
                     <span className="text-white font-medium">{formData.date ? formatDisplayDate(formData.date) : ''}</span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-1.5">
                     <span className="text-gray-400">Horário:</span>
                     <span className="text-white font-medium">{formData.time}</span>
@@ -1196,7 +1246,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                     <p className="text-sm text-gray-300 mb-1">Pagamento via PIX</p>
                     <p className="text-base font-bold text-green-400">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
                   </div>
-                  
+
                   <div className="bg-[#1A1F2E] p-2.5 rounded-lg border border-[#F0B35B]/10">
                     <p className="text-xs text-gray-400 mb-1.5">Chave PIX:</p>
                     <div className="flex items-center gap-1.5 mb-2">
@@ -1226,13 +1276,13 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                         <MessageCircle size={14} />
                       </a>
                     </div>
-                    
+
                     <p className="text-xs text-gray-400 text-center leading-tight">
                       👁️ QR Code • 💬 WhatsApp
                     </p>
                   </div>
                 </div>
-                
+
                 {/* QR Code Modal */}
                 {showQRModal && (
                   <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
@@ -1243,10 +1293,10 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                       >
                         <X size={20} />
                       </button>
-                      
+
                       <div className="text-center">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">QR Code PIX</h3>
-                        
+
                         {formData.barber ? (
                           <div className="space-y-4">
                             <div className="bg-gray-50 p-4 rounded-xl">
@@ -1258,7 +1308,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                                   // Tentar caminho local como fallback
                                   const imgElement = e.currentTarget;
                                   imgElement.src = `/qr-codes/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg`;
-                                  
+
                                   // Adicionar outro handler de erro para o fallback
                                   imgElement.onerror = () => {
                                     imgElement.style.display = 'none';
@@ -1270,7 +1320,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                                 }}
                               />
                             </div>
-                            
+
                             <div className="space-y-2">
                               <p className="text-sm text-gray-600">Barbeiro: <span className="font-medium">{formData.barber}</span></p>
                               <p className="text-lg font-bold text-green-600">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
@@ -1295,7 +1345,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                 >
                   Voltar
                 </button>
-                
+
                 <button
                   onClick={handleNextStep}
                   disabled={isLoading}
@@ -1314,7 +1364,7 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine"></div>
                 </button>
-                
+
                 {/* Loading Overlay */}
                 {isLoading && (
                   <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[10000] animate-in fade-in duration-300">
@@ -1329,9 +1379,9 @@ await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberC
                           <p className="text-sm text-gray-600">Aguarde enquanto confirmamos seus dados...</p>
                         </div>
                         <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-[#F0B35B] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                         </div>
                       </div>
                     </div>

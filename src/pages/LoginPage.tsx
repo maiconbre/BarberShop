@@ -38,9 +38,13 @@ const LoginPage: React.FC = () => {
       } else {
         setError('username ou senha incorretos');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro durante o login:', err);
-      setError(err.message || 'Ocorreu um erro ao tentar fazer login. Tente novamente.');
+      setError(
+        err instanceof Error 
+          ? err.message 
+          : 'Ocorreu um erro ao tentar fazer login. Tente novamente.'
+      );
     } finally {
       setIsLoading(false);
     }

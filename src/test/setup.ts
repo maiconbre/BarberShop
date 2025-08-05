@@ -57,4 +57,4 @@ global.IntersectionObserver = class IntersectionObserver {
   takeRecords(): IntersectionObserverEntry[] {
     return [];
   }
-} as any;
+};

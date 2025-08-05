@@ -70,7 +70,7 @@ export class CacheCleanupStrategy implements ICacheCleanup {
         if (this.isExpired(cacheItem, now)) {
           this.storage.removeItem(this.getKeyWithoutPrefix(key));
         }
-      } catch (error) {
+      } catch {
         // If we can't parse the item, remove it
         console.warn('Removing corrupted cache item:', key);
         this.storage.removeItem(this.getKeyWithoutPrefix(key));

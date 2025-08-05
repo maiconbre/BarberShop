@@ -27,6 +27,29 @@ interface Appointment {
   isBlocked?: boolean;
 }
 
+interface Service {
+  id: string;
+  name: string;
+}
+
+interface RawAppointmentData {
+  id: string;
+  clientName: string;
+  service?: string;
+  serviceName?: string;
+  serviceId?: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'confirmed' | 'completed';
+  barberId: string;
+  barberName: string;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+  viewed?: boolean;
+  isBlocked?: boolean;
+}
+
 const APPOINTMENTS_PER_PAGE = 6;
 
 const AgendaPage: React.FC = () => {
@@ -46,8 +69,8 @@ const AgendaPage: React.FC = () => {
     let filtered = appointments;
 
     // Filtro por role do usuário: barbeiros veem apenas seus agendamentos
-    if (currentUser?.role === 'barber' && currentUser?.id) {
-      filtered = filtered.filter(app => app.barberId === currentUser.id);
+    if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'barber' && 'id' in currentUser) {
+      filtered = filtered.filter(app => app.barberId === (currentUser as { id: string | number }).id.toString());
     }
 
     return filtered.filter(app => {
@@ -74,7 +97,7 @@ const AgendaPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
+  const handleAppointmentAction = useCallback(async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
     if (!appointmentId) return;
     try {
       if (action === 'view') {
@@ -143,18 +166,12 @@ const AgendaPage: React.FC = () => {
         }
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          mode: 'cors',
-          body: JSON.stringify({ status: newStatus })
-        });
-
-        if (response.ok) {
+        
+        try {
+          // Usar o ApiService para requisições PATCH com retry e cache
+          await ApiService.patch(`/api/appointments/${appointmentId}`, { status: newStatus });
+          
+          // Se chegou aqui, a requisição foi bem-sucedida
           setAppointments(prevAppointments =>
             prevAppointments.map(app =>
               app.id === appointmentId ? { ...app, status: newStatus } : app
@@ -201,14 +218,9 @@ const AgendaPage: React.FC = () => {
               secondary: '#1A1F2E'
             }
           });
-        } else {
-          const errorData = await response.json().catch(() => null);
-          console.error('Erro ao atualizar status:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData
-          });
-          throw new Error(`Erro ao atualizar status: ${response.status} ${response.statusText}`);
+        } catch (patchError) {
+          console.error('Erro ao atualizar status:', patchError);
+          throw patchError;
         }
       }
     } catch (error) {
@@ -250,11 +262,10 @@ const AgendaPage: React.FC = () => {
         });
       }
     }
-  };
+  }, [appointments, selectedAppointment]);
 
   useEffect(() => {
     let isSubscribed = true;
-    let timeoutId: NodeJS.Timeout;
 
     const fetchData = async () => {
       if (!isSubscribed || !navigator.onLine) return;
@@ -268,36 +279,39 @@ const AgendaPage: React.FC = () => {
 
         if (isSubscribed && Array.isArray(appointmentsData)) {
           // Criar mapa de serviceId para serviceName
-          const serviceMap = new Map();
+          const serviceMap = new Map<string, string>();
           if (Array.isArray(servicesData)) {
-            servicesData.forEach((service: any) => {
-              serviceMap.set(service.id, service.name);
+            servicesData.forEach((service: unknown) => {
+              if (typeof service === 'object' && service !== null && 'id' in service && 'name' in service) {
+                const typedService = service as Service;
+                serviceMap.set(typedService.id, typedService.name);
+              }
             });
           }
 
           // Transformar agendamentos para incluir o campo service
-          const transformedAppointments = appointmentsData.map((appointment: any) => ({
+          const transformedAppointments = appointmentsData.map((appointment: { status?: 'pending' | 'confirmed' | 'completed' } & Partial<RawAppointmentData>) => ({
             ...appointment,
-            service: appointment.service || appointment.serviceName || serviceMap.get(appointment.serviceId) || 'Serviço não especificado'
-          }));
+            service: appointment?.service || appointment?.serviceName || serviceMap.get(appointment?.serviceId ?? '') || 'Serviço não especificado'
+          })).filter((appointment): appointment is Appointment => {
+            return appointment.status !== undefined;
+          });
 
           setAppointments(transformedAppointments);
         }
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
-        if (isSubscribed && appointments.length === 0) {
+        if (isSubscribed) {
           setAppointments(prev => prev.length > 0 ? prev : []);
         }
       }
     };
 
-    timeoutId = setTimeout(fetchData, 50);
+    const timeoutId = setTimeout(fetchData, 50);
 
     return () => {
       isSubscribed = false;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      clearTimeout(timeoutId);
     };
   }, []);
 
@@ -314,7 +328,7 @@ const AgendaPage: React.FC = () => {
     return () => {
       window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
     };
-  }, [appointments]);
+  }, [handleAppointmentAction]);
 
   return (
     <StandardLayout

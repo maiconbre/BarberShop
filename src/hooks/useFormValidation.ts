@@ -13,7 +13,7 @@ interface UseFormValidationReturn<T> {
   errors: ValidationError[];
   isValid: boolean;
   validate: (data: T) => boolean;
-  validateField: (field: keyof T, value: any) => boolean;
+  validateField: (field: keyof T, value: unknown) => boolean;
   clearErrors: () => void;
   clearFieldError: (field: keyof T) => void;
   getFieldError: (field: keyof T) => string | undefined;
@@ -22,7 +22,7 @@ interface UseFormValidationReturn<T> {
 /**
  * Hook for form validation using Zod schemas
  */
-export const useFormValidation = <T extends Record<string, any>>(
+export const useFormValidation = <T extends Record<string, unknown>>(
   schema: z.ZodSchema<T>
 ): UseFormValidationReturn<T> => {
   const [errors, setErrors] = useState<ValidationError[]>([]);
@@ -48,12 +48,13 @@ export const useFormValidation = <T extends Record<string, any>>(
   );
 
   const validateField = useCallback(
-    (field: keyof T, value: any): boolean => {
+    (field: keyof T, value: unknown): boolean => {
       try {
         // Create a partial schema for the specific field
-        const fieldSchema = (schema as any)._def.shape?.[field as string];
+        const schemaShape = (schema as z.ZodObject<z.ZodRawShape>)._def.shape;
+        const fieldSchema = schemaShape?.[field as string];
         if (fieldSchema) {
-          fieldSchema.parse(value);
+          (fieldSchema as z.ZodTypeAny).parse(value);
           // Remove any existing errors for this field
           setErrors((prev) => prev.filter((error) => error.field !== field));
           return true;

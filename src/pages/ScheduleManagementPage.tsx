@@ -21,14 +21,14 @@ const ScheduleManagementPage: React.FC = () => {
       if (!currentUser) return;
 
       try {
-        if (currentUser.role === 'admin') {
+        if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'admin') {
           await fetchBarbers();
           // Não usar barberList aqui para evitar loop - será atualizado no próximo useEffect
         } else {
           // Se for barbeiro, usar os dados do usuário atual
           setBarbers([{
-            id: currentUser.id?.toString() || '', // Garantir que o ID seja string
-            name: currentUser.name || ''
+            id: currentUser && typeof currentUser === 'object' && 'id' in currentUser && typeof currentUser.id === 'number' ? currentUser.id.toString() : '', // Ensure ID is string
+            name: currentUser && typeof currentUser === 'object' && 'name' in currentUser && typeof currentUser.name === 'string' ? currentUser.name : ''
           }]);
           setIsLoading(false);
         }
@@ -43,15 +43,15 @@ const ScheduleManagementPage: React.FC = () => {
   
   // Atualizar barbeiros quando o store mudar
   useEffect(() => {
-    if (currentUser?.role === 'admin' && barberList.length > 0) {
-      const formattedBarbers = barberList.map((barber: any) => ({
+    if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'admin' && barberList.length > 0) {
+      const formattedBarbers = barberList.map((barber: { id: string; name: string }) => ({
         id: barber.id.toString(),
         name: barber.name
       }));
       setBarbers(formattedBarbers);
       setIsLoading(false); // Finalizar loading quando os dados chegarem
     }
-  }, [barberList, currentUser?.role]);
+  }, [barberList, currentUser && typeof currentUser === 'object' && 'role' in currentUser ? currentUser.role : undefined]);
 
   if (!currentUser) return null;
 
@@ -80,8 +80,8 @@ const ScheduleManagementPage: React.FC = () => {
         ) : (
           <ScheduleManager
             barbers={barbers}
-            userRole={currentUser?.role || 'barber'}
-            currentBarberId={currentUser?.id}
+            userRole={typeof currentUser === 'object' && 'role' in currentUser && (currentUser.role === 'admin' || currentUser.role === 'barber') ? currentUser.role : 'barber'}
+            currentBarberId={currentUser && typeof currentUser === 'object' && 'id' in currentUser && typeof currentUser.id === 'number' ? currentUser.id.toString() : undefined}
           />
         )}
       </div>

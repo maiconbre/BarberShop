@@ -5,11 +5,89 @@ import { requestDebouncer } from '../utils/requestDebouncer';
 
 import { LogConfig } from '../config/logConfig';
 
+// Interfaces específicas para o ApiService
+interface RequestOptions {
+  headers?: Record<string, string>;
+  body?: string;
+  method?: string;
+  [key: string]: unknown;
+}
+
+interface CacheItem {
+  data: unknown;
+  timestamp: number;
+  ttl: number;
+}
+
+interface ApiError {
+  message?: string;
+  response?: {
+    status?: number;
+  };
+  status?: number;
+}
+
+interface CommentData {
+  name: string;
+  comment: string;
+}
+
+interface Comment {
+  id: string;
+  name: string;
+  comment: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+interface Barber {
+  id: string;
+  name: string;
+  whatsapp: string;
+  pix: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface Appointment {
+  id: string;
+  clientName: string;
+  service?: string;
+  serviceName?: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'confirmed' | 'completed';
+  barberId: string;
+  barberName: string;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+}
+
+interface ApiServiceState {
+  connectionErrorTimestamp?: number;
+}
+
+interface RateLimitError extends Error {
+  isRateLimitError: boolean;
+  retryAfter: number;
+  endpoint: string;
+  requestKey: string;
+  requestId: string;
+}
+
 // Sistema de logs para requisições da API
 class ApiLogger {
   private static requestCounter = 0;
 
-  static logRequest(method: string, endpoint: string, requestId: string, options?: any) {
+  static logRequest(method: string, endpoint: string, requestId: string, options?: RequestOptions) {
     if (!LogConfig.shouldLog()) return;
     
     this.requestCounter++;
@@ -34,7 +112,7 @@ class ApiLogger {
     console.groupEnd();
   }
 
-  static logResponse(requestId: string, endpoint: string, status: number, data: any, duration: number) {
+  static logResponse(requestId: string, endpoint: string, status: number, data: unknown, duration: number) {
     if (!LogConfig.shouldLog()) return;
     
     const timestamp = new Date().toISOString();
@@ -55,16 +133,17 @@ class ApiLogger {
     console.groupEnd();
   }
 
-  static logError(requestId: string, endpoint: string, error: any, duration: number) {
+  static logError(requestId: string, endpoint: string, error: unknown, duration: number) {
     if (!LogConfig.shouldLog()) return;
     
     const timestamp = new Date().toISOString();
+    const apiError = error as ApiError;
     
     console.group(`💥 [API ERROR] ${endpoint} (${duration}ms)`);
     console.log('📋 Error Details:', {
       requestId,
       endpoint,
-      error: error.message || error,
+      error: apiError.message || error,
       duration: `${duration}ms`,
       timestamp
     });
@@ -97,18 +176,14 @@ class ApiService {
   private isOnline: boolean = navigator.onLine;
   
   // Cache inteligente em memória para evitar múltiplas chamadas
-  private memoryCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  private memoryCache = new Map<string, CacheItem>();
   
   // Controle de requisições em andamento para evitar duplicação
-  private pendingRequests = new Map<string, Promise<any>>();
-  private debounceTimers = new Map<string, NodeJS.Timeout>();
-  private batchRequests = new Map<string, Promise<any>>();
+  private pendingRequests = new Map<string, Promise<unknown>>();
+  private batchRequests = new Map<string, Promise<unknown>>();
   private requestCounters = new Map<string, { count: number; timestamp: number }>();
-  private connectionErrorTimestamp: number = 0;
   
   // Constantes de configuração
-  private readonly CACHE_TTL: number = this.config.CACHE_TTL || 300000; // 5 minutos
-  private readonly MIN_REQUEST_INTERVAL: number = this.config.MIN_REQUEST_INTERVAL || 2000; // 2 segundos
   private readonly REQUEST_COUNTER_RESET_TIME: number = 60000; // 1 minuto
   private readonly MAX_IDENTICAL_REQUESTS: number = 5; // Máximo de requisições idênticas em 1 minuto
   
@@ -128,7 +203,7 @@ class ApiService {
   };
 
   private constructor() {
-    let apiUrl = (import.meta as any).env.VITE_API_URL || '';
+    let apiUrl = (import.meta as { env: { VITE_API_URL?: string } }).env.VITE_API_URL || '';
     if (apiUrl.endsWith('/')) {
       apiUrl = apiUrl.slice(0, -1);
     }
@@ -184,11 +259,12 @@ class ApiService {
       
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       
-      this.connectionErrorTimestamp = 0;
+      // Reset any connection error state
+      (this as ApiServiceState).connectionErrorTimestamp = 0;
       return response;
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        this.connectionErrorTimestamp = Date.now();
+        (this as ApiServiceState).connectionErrorTimestamp = Date.now();
         console.error('Erro de conexão detectado, usando cooldown:', error);
       }
       
@@ -202,23 +278,6 @@ class ApiService {
     }
   }
 
-  private debounce<T>(key: string, fn: () => Promise<T>, delay: number): Promise<T> {
-    if (this.debounceTimers.has(key)) {
-      clearTimeout(this.debounceTimers.get(key));
-    }
-
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(async () => {
-        this.debounceTimers.delete(key);
-        try {
-          resolve(await fn());
-        } catch (error) {
-          reject(error);
-        }
-      }, delay);
-      this.debounceTimers.set(key, timer);
-    });
-  }
 
   private async batchRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const key = `${endpoint}-${JSON.stringify(options)}`;
@@ -260,7 +319,11 @@ class ApiService {
     const startTime = Date.now();
     
     // Log da requisição
-    ApiLogger.logRequest(method, endpoint, requestId, options);
+    ApiLogger.logRequest(method, endpoint, requestId, {
+      headers: options.headers as Record<string, string> | undefined,
+      body: options.body?.toString(),
+      method: options.method
+    });
     
     this.metrics.networkRequests++;
     
@@ -282,7 +345,7 @@ class ApiService {
   /**
    * Cache inteligente em memória - mais rápido que localStorage
    */
-  private setMemoryCache(key: string, data: any, ttl: number = this.config.CACHE_TTL): void {
+  private setMemoryCache(key: string, data: unknown, ttl: number = this.config.CACHE_TTL): void {
     this.memoryCache.set(key, {
       data,
       timestamp: Date.now(),
@@ -290,7 +353,7 @@ class ApiService {
     });
   }
 
-  private getMemoryCache(key: string): any | null {
+  private getMemoryCache(key: string): unknown | null {
     const cached = this.memoryCache.get(key);
     if (!cached) return null;
     
@@ -368,20 +431,6 @@ class ApiService {
   /**
    * Verifica se um erro deve ser retentado
    */
-  private shouldRetry(error: any): boolean {
-    // Não tentar novamente para erros de rate limit (já tratados separadamente)
-    if (error.message && error.message.includes('429')) {
-      return false;
-    }
-    
-    // Tentar novamente para erros de rede
-    return error instanceof TypeError || 
-           (error.message && (
-             error.message.includes('fetch') ||
-             error.message.includes('network') ||
-             error.message.includes('timeout')
-           ));
-  }
 
   // Método para verificar e controlar chamadas repetidas
   private checkRepeatedRequests(endpoint: string, method: string = 'GET'): boolean {
@@ -453,12 +502,12 @@ class ApiService {
       console.error(`[ApiService][${requestId}] ${errorMessage}`);
       
       // Criar um objeto de erro com informações adicionais
-      const error = new Error(errorMessage);
-      (error as any).isRateLimitError = true;
-      (error as any).retryAfter = this.REQUEST_COUNTER_RESET_TIME / 1000;
-      (error as any).endpoint = endpoint;
-      (error as any).requestKey = requestKey;
-      (error as any).requestId = requestId;
+      const error = new Error(errorMessage) as RateLimitError;
+      error.isRateLimitError = true;
+      error.retryAfter = this.REQUEST_COUNTER_RESET_TIME / 1000;
+      error.endpoint = endpoint;
+      error.requestKey = requestKey;
+      error.requestId = requestId;
       throw error;
     }
     
@@ -539,7 +588,7 @@ class ApiService {
   /**
    * Normaliza resposta da API para formato consistente
    */
-  private normalizeResponse(data: any, dataType: string = 'dados'): any[] {
+  private normalizeResponse(data: unknown, dataType: string = 'dados'): unknown[] {
     // Se já é um array, retorna diretamente
     if (Array.isArray(data)) {
       return data;
@@ -575,7 +624,7 @@ class ApiService {
     // Criar chave única para o debounce baseada no endpoint e opções
     const requestKey = `get_${endpoint}_${JSON.stringify(options)}`;
     
-    return requestDebouncer.execute(requestKey, async () => {
+    return requestDebouncer.execute<T>(requestKey, async (): Promise<T> => {
       this.metrics.totalRequests++;
 
       // Se forceRefresh não está ativo, verifica cache
@@ -585,7 +634,7 @@ class ApiService {
         if (memoryData) {
           this.metrics.cacheHits++;
           logger.apiDebug(`Cache hit (memória): ${endpoint}`);
-          return memoryData;
+          return memoryData as T;
         }
 
         // 2. Verifica cache persistente
@@ -635,7 +684,7 @@ class ApiService {
   /**
    * Método para requisições POST otimizado
    */
-  async post<T>(endpoint: string, data: any): Promise<T> {
+  async post<T>(endpoint: string, data: unknown): Promise<T> {
     if (!this.isOnline) {
       throw new Error('Não é possível enviar dados offline');
     }
@@ -650,6 +699,30 @@ class ApiService {
       });
 
       // Invalida caches relacionados após POST
+      this.invalidateRelatedCaches(endpoint);
+      
+      return result;
+    });
+  }
+
+  /**
+   * Método para requisições PATCH otimizado
+   */
+  async patch<T>(endpoint: string, data: unknown): Promise<T> {
+    if (!this.isOnline) {
+      throw new Error('Não é possível atualizar dados offline');
+    }
+
+    // Para PATCH, incluir dados no hash para evitar conflitos
+    const requestKey = `patch_${endpoint}_${JSON.stringify(data)}_${Date.now()}`;
+    
+    return requestDebouncer.execute(requestKey, async () => {
+      const result = await this.makeRequest<T>(endpoint, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+      });
+
+      // Invalida caches relacionados após PATCH
       this.invalidateRelatedCaches(endpoint);
       
       return result;
@@ -685,7 +758,7 @@ class ApiService {
   async getApprovedComments() {
     const endpoint = '/api/comments?status=approved';
     try {
-      const response = await this.get<any>(endpoint, { 
+      const response = await this.get<Comment[]>(endpoint, { 
         ttl: this.config.COMMENTS_CACHE_TTL 
       });
       return this.normalizeResponse(response, 'comentários');
@@ -698,7 +771,7 @@ class ApiService {
   async getBarbers() {
     const endpoint = '/api/barbers';
     try {
-      const response = await this.get<any>(endpoint);
+      const response = await this.get<Barber[]>(endpoint);
       return this.normalizeResponse(response, 'barbeiros');
     } catch (error) {
       logger.apiError('Erro ao buscar barbeiros:', error);
@@ -709,7 +782,7 @@ class ApiService {
   async getAppointments() {
     const endpoint = '/api/appointments';
     try {
-      const response = await this.get<any>(endpoint, {
+      const response = await this.get<Appointment[]>(endpoint, {
         ttl: DATA_TYPE_CONFIG.appointments.cacheTTL
       });
       return this.normalizeResponse(response, 'agendamentos');
@@ -722,7 +795,7 @@ class ApiService {
   async getServices() {
     const endpoint = '/api/services';
     try {
-      const response = await this.get<any>(endpoint, {
+      const response = await this.get<Service[]>(endpoint, {
         ttl: this.config.SERVICES_CACHE_DURATION
       });
       return this.normalizeResponse(response, 'serviços');
@@ -735,10 +808,10 @@ class ApiService {
   /**
    * Submete um novo comentário para aprovação
    */
-  async submitComment(commentData: { name: string; comment: string }) {
+  async submitComment(commentData: CommentData) {
     const endpoint = '/api/comments';
     try {
-      const response = await this.post<any>(endpoint, commentData);
+      const response = await this.post<unknown>(endpoint, commentData);
       logger.apiInfo('Comentário enviado com sucesso');
       
       // Invalida cache de comentários para forçar atualização
@@ -783,7 +856,7 @@ class ApiService {
     let highPrioritySuccessful = 0;
     for (const { method } of highPriorityEndpoints) {
       try {
-        await (this as any)[method]();
+        await ((this as unknown) as { [key: string]: () => Promise<unknown> })[method]();
         highPrioritySuccessful++;
         // Pequeno delay entre requisições para evitar sobrecarga
         await new Promise(resolve => setTimeout(resolve, 300));

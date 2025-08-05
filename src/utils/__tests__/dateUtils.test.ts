@@ -3,7 +3,7 @@ import { addDays, isSameDay } from '../dateUtils';
 import { formatDate } from '../formatters';
 
 // Helper function to check if date is valid
-const isValidDate = (date: any): boolean => {
+const isValidDate = (date: unknown): boolean => {
   return date instanceof Date && !isNaN(date.getTime());
 };
 
@@ -34,7 +34,7 @@ describe('dateUtils', () => {
     });
 
     it('should return false for null', () => {
-      expect(isValidDate(null as any)).toBe(false);
+      expect(isValidDate(null as unknown)).toBe(false);
     });
   });
 

@@ -35,7 +35,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onView, className = '' })
   const formatDate = (date: string) => {
     try {
       return format(new Date(date), "dd 'de' MMMM", { locale: ptBR });
-    } catch (error) {
+    } catch {
       return date;
     }
   };

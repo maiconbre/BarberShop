@@ -1,10 +1,9 @@
 import { Instagram, Facebook, Twitter, Mail, Phone, MapPin, Clock } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 
 const Footer = () => {
-  const navigate = useNavigate();
 
   const instagramUrl = '#';
   const facebookUrl = '#';

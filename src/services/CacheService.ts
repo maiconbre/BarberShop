@@ -6,7 +6,7 @@ import { LogConfig } from '../config/logConfig';
 class CacheLogger {
   private static counter = 0;
 
-  static log(operation: string, key: string, details?: any) {
+  static log(operation: string, key: string, details?: unknown) {
     if (!LogConfig.shouldLog()) return;
     
     this.counter++;
@@ -39,7 +39,7 @@ class CacheService {
     // Clean memory cache
     for (const [key, value] of this.memoryCache.entries()) {
       try {
-        const item: CacheItem<any> = JSON.parse(value);
+        const item: CacheItem<unknown> = JSON.parse(value);
         if (this.isExpired(item)) {
           this.memoryCache.delete(key);
         }
@@ -64,7 +64,7 @@ class CacheService {
         const value = localStorage.getItem(key);
         if (!value) continue;
         
-        const item: CacheItem<any> = JSON.parse(value);
+        const item: CacheItem<unknown> = JSON.parse(value);
         if (item.timestamp && item.ttl && this.isExpired(item)) {
           keysToRemove.push(key);
         }

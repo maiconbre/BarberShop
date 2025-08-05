@@ -13,7 +13,7 @@ interface UseAsyncReturn<T> {
   data: T | null;
   loading: boolean;
   error: Error | null;
-  execute: (...args: any[]) => Promise<T | undefined>;
+  execute: (...args: unknown[]) => Promise<T | undefined>;
   reset: () => void;
   setData: (data: T | null) => void;
   setError: (error: Error | null) => void;
@@ -22,8 +22,8 @@ interface UseAsyncReturn<T> {
 /**
  * Hook for managing async operations with loading, error, and data states
  */
-export const useAsync = <T = any>(
-  asyncFunction?: (...args: any[]) => Promise<T>,
+export const useAsync = <T = unknown>(
+  asyncFunction?: (...args: unknown[]) => Promise<T>,
   immediate: boolean = false
 ): UseAsyncReturn<T> => {
   const [state, setState] = useState<UseAsyncState<T>>({
@@ -36,7 +36,7 @@ export const useAsync = <T = any>(
   const pendingPromiseRef = useRef<Promise<T> | null>(null);
 
   const execute = useCallback(
-    async (...args: any[]): Promise<T | undefined> => {
+    async (...args: unknown[]): Promise<T | undefined> => {
       if (!asyncFunction) {
         console.warn('No async function provided to useAsync');
         return;
@@ -108,29 +108,26 @@ export const useAsync = <T = any>(
 /**
  * Hook for managing async operations with automatic retry
  */
-export const useAsyncWithRetry = <T = any>(
-  asyncFunction: (...args: any[]) => Promise<T>,
+export const useAsyncWithRetry = <T = unknown>(
+  asyncFunction: (...args: unknown[]) => Promise<T>,
   maxRetries: number = 3,
   retryDelay: number = 1000
 ): UseAsyncReturn<T> & { retry: () => Promise<void> } => {
-  const [retryCount, setRetryCount] = useState(0);
-  const lastArgsRef = useRef<any[]>([]);
+  const lastArgsRef = useRef<unknown[]>([]);
 
   const wrappedAsyncFunction = useCallback(
-    async (...args: any[]): Promise<T> => {
+    async (...args: unknown[]): Promise<T> => {
       lastArgsRef.current = args;
       let lastError: Error;
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
           const result = await asyncFunction(...args);
-          setRetryCount(0); // Reset retry count on success
           return result;
         } catch (error) {
           lastError = error instanceof Error ? error : new Error(String(error));
           
           if (attempt < maxRetries) {
-            setRetryCount(attempt + 1);
             await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, attempt)));
           }
         }
@@ -156,7 +153,7 @@ export const useAsyncWithRetry = <T = any>(
 /**
  * Hook for managing multiple async operations
  */
-export const useAsyncQueue = <T = any>() => {
+export const useAsyncQueue = <T = unknown>() => {
   const [queue, setQueue] = useState<Array<{
     id: string;
     promise: Promise<T>;

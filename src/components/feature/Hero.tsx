@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Scissors, Clock, MapPin } from 'lucide-react';
-// @ts-ignore
+// @ts-expect-error - LazyLoadImage types may not be available
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 

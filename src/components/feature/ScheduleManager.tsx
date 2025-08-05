@@ -28,6 +28,20 @@ interface Appointment {
   isCancelled?: boolean;
 }
 
+interface AppointmentData {
+  id?: string;
+  date?: string;
+  time?: string;
+  barberId?: string;
+  barberName?: string;
+  clientName?: string;
+  serviceName?: string;
+  price?: number;
+  status?: string;
+  isBlocked?: boolean;
+  isCancelled?: boolean;
+}
+
 // Atualizar array de horários disponíveis para sincronizar com o BookingModal
 const timeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
@@ -103,7 +117,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           const appointments = data.data || data || [];
           
           // Filtrar apenas agendamentos válidos
-          return appointments.filter((apt: any) => 
+          return appointments.filter((apt: AppointmentData) => 
             apt && 
             apt.date && 
             apt.time && 

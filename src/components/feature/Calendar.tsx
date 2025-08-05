@@ -25,6 +25,10 @@ interface CalendarAppointment {
   isCancelled?: boolean;
 }
 
+interface AppointmentResponse {
+  data?: CalendarAppointment[];
+}
+
 const timeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
   '16:00', '17:00', '18:00', '19:00', '20:00'
@@ -66,9 +70,13 @@ const Calendar: React.FC<CalendarProps> = ({
       let appointmentsArray: CalendarAppointment[] = [];
       
       if (Array.isArray(data)) {
-        appointmentsArray = data;
+        appointmentsArray = data.map(appointment => ({
+          ...appointment,
+          barberName: appointment.barberName || ''  // Ensure barberName is never undefined
+        }));
       } else if (data && typeof data === 'object' && 'data' in data) {
-        appointmentsArray = Array.isArray((data as any).data) ? (data as any).data : [];
+        const response = data as AppointmentResponse;
+        appointmentsArray = Array.isArray(response.data) ? response.data : [];
       }
       
       setAppointments(appointmentsArray);
@@ -79,9 +87,9 @@ const Calendar: React.FC<CalendarProps> = ({
         await CacheService.set('/api/appointments', appointmentsArray);
         
         // Agrupar agendamentos por barbeiro e atualizar caches específicos
-        const barberAppointments: Record<string, any[]> = {};
+        const barberAppointments: Record<string, CalendarAppointment[]> = {};
         
-        appointmentsArray.forEach((appointment: any) => {
+        appointmentsArray.forEach((appointment: CalendarAppointment) => {
           if (appointment.barberId) {
             if (!barberAppointments[appointment.barberId]) {
               barberAppointments[appointment.barberId] = [];

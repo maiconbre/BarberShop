@@ -5,9 +5,50 @@ import { logger } from '../utils/logger';
 import ApiService from './ApiService';
 import { LogConfig } from '../config/logConfig';
 
+// Interfaces específicas para o AppointmentService
+interface LogDetails {
+  [key: string]: unknown;
+}
+
+interface AppointmentCacheItem {
+  id: string;
+  date: string;
+  time: string;
+  barberId: string;
+  clientName?: string;
+  serviceName?: string;
+  barberName?: string;
+  price?: number;
+  isCancelled?: boolean;
+  isRemoved?: boolean;
+  wppclient?: string;
+}
+
+interface CreateAppointmentResponse {
+  success: boolean;
+  data: AppointmentCacheItem | null;
+  id?: string;
+  error?: string;
+}
+
+interface ApiError {
+  message?: string;
+  response?: {
+    status?: number;
+  };
+  status?: number;
+}
+
+interface CurrentUser {
+  id?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+}
+
 // Sistema de logs para AppointmentService
 class AppointmentLogger {
-  static logOperation(operation: string, details: any) {
+  static logOperation(operation: string, details: LogDetails) {
     if (!LogConfig.shouldLog()) return;
     
     const timestamp = new Date().toISOString();
@@ -17,7 +58,7 @@ class AppointmentLogger {
     console.groupEnd();
   }
 
-  static logCacheOperation(operation: string, key: string, details?: any) {
+  static logCacheOperation(operation: string, key: string, details?: LogDetails | string) {
     if (!LogConfig.shouldLog()) return;
     
     console.log(`💾 [APPOINTMENT CACHE] ${operation} - Key: ${key}`, details || '');
@@ -44,7 +85,7 @@ const getAppointmentsCacheKey = (userId?: string) => {
 const APPOINTMENTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutos (aumentado para reduzir requisições)
 
 // Variável para controlar requisições em andamento
-let appointmentsPromise: Promise<any[]> | null = null;
+let appointmentsPromise: Promise<AppointmentCacheItem[]> | null = null;
 let lastFetchTime = 0;
 const MIN_FETCH_INTERVAL = 30000; // 30 segundos entre requisições (aumentado para evitar erro 429)
 
@@ -57,7 +98,7 @@ const MAX_BACKOFF = 5 * 60 * 1000; // 5 minutos máximo de backoff
  * Verifica se um horário está disponível para agendamento
  * Verifica tanto no cache local quanto no cache global
  */
-export const isTimeSlotAvailable = async (date: string, time: string, barberId: string, appointments: any[]): Promise<boolean> => {
+export const isTimeSlotAvailable = async (date: string, time: string, barberId: string, appointments: AppointmentCacheItem[]): Promise<boolean> => {
   // Verificar no cache local primeiro (para feedback imediato)
   const isLocallyAvailable = checkLocalAvailability(date, time, barberId, appointments);
   
@@ -67,16 +108,16 @@ export const isTimeSlotAvailable = async (date: string, time: string, barberId: 
   try {
     // Verificar no cache global específico do barbeiro
     const barberCacheKey = `schedule_appointments_${barberId}`;
-    const barberCache = cacheService.get<any[]>(barberCacheKey) || [];
+    const barberCache = cacheService.get<AppointmentCacheItem[]>(barberCacheKey) || [];
     
     const isAvailableInBarberCache = checkLocalAvailability(date, time, barberId, barberCache);
     if (!isAvailableInBarberCache) return false;
     
     // Verificar no cache específico do usuário
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const currentUser: CurrentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = currentUser?.id;
     const userAppointmentsKey = getAppointmentsCacheKey(userId);
-    const userAppointments = cacheService.get<any[]>(userAppointmentsKey) || [];
+    const userAppointments = cacheService.get<AppointmentCacheItem[]>(userAppointmentsKey) || [];
     
     return checkLocalAvailability(date, time, barberId, userAppointments);
   } catch (error) {
@@ -94,7 +135,7 @@ export const checkTimeSlotAvailability = isTimeSlotAvailable;
 /**
  * Verifica disponibilidade apenas no cache local fornecido
  */
-export const checkLocalAvailability = (date: string, time: string, barberId: string, appointments: any[]): boolean => {
+export const checkLocalAvailability = (date: string, time: string, barberId: string, appointments: AppointmentCacheItem[]): boolean => {
   if (!appointments || !Array.isArray(appointments)) return true;
   
   return !appointments.some(appointment => 
@@ -114,7 +155,7 @@ export const checkLocalAvailability = (date: string, time: string, barberId: str
  * - Limita a frequência de requisições
  * - Implementa exponential backoff para evitar erro 429
  */
-export const loadAppointments = async (): Promise<any[]> => {
+export const loadAppointments = async (): Promise<AppointmentCacheItem[]> => {
   const now = Date.now();
   const operationId = `load-${Date.now()}`;
   
@@ -146,7 +187,7 @@ export const loadAppointments = async (): Promise<any[]> => {
     });
     
     // Durante backoff, sempre usar cache (mesmo que obsoleto) se disponível
-    const cachedData = cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
+    const cachedData = cacheService.get<AppointmentCacheItem[]>(APPOINTMENTS_CACHE_KEY);
     if (cachedData) {
       logger.apiWarn(`Usando cache durante período de backoff`);
       AppointmentLogger.logCacheOperation('BACKOFF_CACHE_HIT', APPOINTMENTS_CACHE_KEY, `${cachedData.length} appointments`);
@@ -164,7 +205,7 @@ export const loadAppointments = async (): Promise<any[]> => {
   }
   
   // 3. Verificar se temos dados em cache válidos
-  const cachedData = cacheService.get<any[]>(APPOINTMENTS_CACHE_KEY);
+  const cachedData = cacheService.get<AppointmentCacheItem[]>(APPOINTMENTS_CACHE_KEY);
   
   // 4. SEMPRE retornar cache se disponível para evitar "zeramento" dos dados
   // Só fazer nova requisição se não houver cache ou se for explicitamente solicitado
@@ -259,10 +300,10 @@ export const loadAppointments = async (): Promise<any[]> => {
  * Função interna para buscar agendamentos da API
  * Implementa retry com backoff para lidar com erros 429
  */
-async function fetchAppointments(): Promise<any[]> {
+async function fetchAppointments(): Promise<AppointmentCacheItem[]> {
   const maxRetries = 3;
   let retryCount = 0;
-  let lastError: any = null;
+  let lastError: ApiError | null = null;
   
   // Obter usuário atual para cache específico
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -282,7 +323,7 @@ async function fetchAppointments(): Promise<any[]> {
       const appointments = await ApiService.getAppointments();
       
       // Filtrar apenas agendamentos válidos e não cancelados
-      const validAppointments = appointments.filter((apt: any) => 
+      const validAppointments = (appointments as AppointmentCacheItem[]).filter((apt) =>
         apt && apt.date && apt.time && !apt.isCancelled
       );
       
@@ -302,14 +343,15 @@ async function fetchAppointments(): Promise<any[]> {
         logger.apiInfo(`Recuperado com sucesso após ${retryCount} tentativas`);
       }
       
-      return validAppointments;
-    } catch (error: any) {
-      lastError = error;
+      return validAppointments as AppointmentCacheItem[];
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      lastError = apiError;
       
       // Verificar se é um erro 429 (Too Many Requests)
-      const is429Error = error?.message?.includes('429') || 
-                        error?.response?.status === 429 ||
-                        error?.status === 429;
+      const is429Error = apiError?.message?.includes('429') || 
+                        apiError?.response?.status === 429 ||
+                        apiError?.status === 429;
       
       // Para erro 429, sempre tentar novamente com backoff
       if (is429Error && retryCount < maxRetries) {
@@ -319,9 +361,9 @@ async function fetchAppointments(): Promise<any[]> {
       }
       
       // Para outros erros, verificar se vale a pena tentar novamente
-      const isNetworkError = error?.message?.includes('network') || 
-                            error?.message?.includes('connection') ||
-                            error?.message?.includes('timeout');
+      const isNetworkError = apiError?.message?.includes('network') || 
+                            apiError?.message?.includes('connection') ||
+                            apiError?.message?.includes('timeout');
       
       if (isNetworkError && retryCount < maxRetries) {
         logger.apiWarn(`Erro de rede detectado. Tentativa ${retryCount + 1}/${maxRetries}`);
@@ -330,8 +372,8 @@ async function fetchAppointments(): Promise<any[]> {
       }
       
       // Se chegou aqui, não vamos mais tentar
-      logger.apiError(`Erro na requisição de agendamentos após ${retryCount} tentativas:`, error);
-      throw error;
+      logger.apiError(`Erro na requisição de agendamentos após ${retryCount} tentativas:`, apiError);
+      throw apiError;
     }
   }
   
@@ -352,12 +394,12 @@ export const createAppointment = async (appointmentData: {
   barberId: string;
   barberName: string;
   price: number;
-}) => {
+}): Promise<CreateAppointmentResponse> => {
   try {
     logger.apiInfo('Criando novo agendamento', appointmentData);
     
     // Usar o ApiService otimizado para POST
-    const response = await ApiService.post<any>(
+    const response = await ApiService.post<AppointmentCacheItem>(
       '/api/appointments',
       appointmentData
     );
@@ -367,8 +409,8 @@ export const createAppointment = async (appointmentData: {
     // Normalizar a resposta para garantir formato consistente
     const normalizedResponse = {
       success: true,
-      data: response?.data || response || { id: `temp-${Date.now()}` },
-      id: response?.id || response?.data?.id || `temp-${Date.now()}`
+      data: response || { id: `temp-${Date.now()}` },
+      id: response?.id || `temp-${Date.now()}`
     };
     
     logger.apiInfo('Agendamento criado com sucesso:', normalizedResponse);
@@ -441,7 +483,7 @@ export const formatWhatsappMessage = (data: {
   date: string;
   time: string;
   totalPrice: number;
-}) => {
+}): string => {
   const formattedDate = data.date
     ? format(new Date(data.date), 'dd/MM/yyyy')
     : format(new Date(), 'dd/MM/yyyy');
@@ -463,7 +505,20 @@ Aguardo a confirmação.`;
 /**
  * Formata a data para exibição
  */
-export const formatDisplayDate = (dateString: string): string => {
-  if (!dateString) return '';
-  return format(adjustToBrasilia(new Date(new Date(dateString).setDate(new Date(dateString).getDate() + 1))), 'dd/MM/yyyy');
+export const formatDisplayDate = (dateString: string | Date | null | undefined): string => {
+  if (!dateString) return 'Data não informada';
+  
+  try {
+    // Se já é uma string no formato brasileiro, retornar como está
+    if (typeof dateString === 'string' && dateString.includes('/')) {
+      return dateString;
+    }
+    
+    // Converter para Date e formatar
+    const date = new Date(dateString);
+    return adjustToBrasilia(date).toLocaleDateString('pt-BR');
+  } catch (error) {
+    logger.apiWarn('Erro ao formatar data:', error);
+    return 'Data inválida';
+  }
 };

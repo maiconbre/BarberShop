@@ -3,6 +3,7 @@ import { Bell, MessageCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cacheService } from '../../services/CacheService';
 import { requestDebouncer } from '../../utils/requestDebouncer';
+import ApiService from '../../services/ApiService';
 
 interface Appointment {
   id: string;
@@ -27,6 +28,20 @@ interface Comment {
   createdAt: string;
 }
 
+interface RawAppointmentData {
+  id: string;
+  clientName: string;
+  serviceName: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'confirmed' | 'completed';
+  barberId: string;
+  barberName: string;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export const useNotifications = () => {
   const [pendingComments, setPendingComments] = useState<Comment[]>([]);
   const [newAppointments, setNewAppointments] = useState<Appointment[]>([]);
@@ -35,7 +50,6 @@ export const useNotifications = () => {
   const [hasError, setHasError] = useState(false);
   const [cachedAppointments, setCachedAppointments] = useState<Appointment[]>([]);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshCompleted, setRefreshCompleted] = useState<boolean>(false);
   const [usingExpiredCache, setUsingExpiredCache] = useState<boolean>(false);
@@ -77,7 +91,7 @@ export const useNotifications = () => {
       }
 
       try {
-        setIsLoading(true);
+// Removed setIsLoading since it's not defined in the state
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -140,7 +154,7 @@ export const useNotifications = () => {
         
         return [];
       } finally {
-        setIsLoading(false);
+// Removed setIsLoading call since it's not defined in state
 
         if (isRefreshing && !refreshCompleted) {
           setTimeout(() => {
@@ -157,7 +171,7 @@ export const useNotifications = () => {
 
     return requestDebouncer.execute(requestKey, async () => {
       try {
-        setIsLoading(true);
+// Removed setIsLoading since it's not defined in state
         if (forceRefresh) {
           setIsRefreshing(true);
           setRefreshCompleted(false);
@@ -185,16 +199,16 @@ export const useNotifications = () => {
           if (!result?.success) throw new Error('Dados inválidos');
 
           const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
-          let formattedAppointments = result.data.map((app: any) => ({
+          let formattedAppointments = result.data.map((app: RawAppointmentData) => ({
             ...app,
             service: app.serviceName,
             viewed: viewedAppointmentIds.includes(app.id)
           }));
 
           // Filtrar por role: admin vê todos, barbeiros só veem os seus
-          if (currentUser?.role !== 'admin') {
+          if ((currentUser as { role?: string })?.role !== 'admin') {
             formattedAppointments = formattedAppointments.filter(
-              (app: Appointment) => app.barberId === currentUser?.id
+              (app: Appointment) => app.barberId === (currentUser as { id: string })?.id
             );
           }
 
@@ -245,7 +259,7 @@ export const useNotifications = () => {
 
         return [];
       } finally {
-        setIsLoading(false);
+// Removed setIsLoading call since it's not defined in state
       }
     });
   }, [getCurrentUser]);
@@ -255,18 +269,13 @@ export const useNotifications = () => {
 
     try {
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comments/${commentId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      if (response.ok) {
-        setPendingComments(prev => prev.filter(comment => comment.id !== commentId));
-        setIsNotificationDropdownOpen(pendingComments.length > 1);
-      }
+      
+      // Usar o ApiService para requisições PATCH com retry e cache
+      await ApiService.patch(`/api/comments/${commentId}`, { status: newStatus });
+      
+      // Se chegou aqui, a requisição foi bem-sucedida
+      setPendingComments(prev => prev.filter(comment => comment.id !== commentId));
+      setIsNotificationDropdownOpen(pendingComments.length > 1);
     } catch (error) {
       console.error(`Erro ao ${action === 'approve' ? 'aprovar' : 'rejeitar'} comentário:`, error);
     }

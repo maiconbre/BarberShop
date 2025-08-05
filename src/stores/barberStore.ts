@@ -3,6 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { logger } from '../utils/logger';
 import { cacheService } from '../services/CacheService';
 import { CURRENT_ENV } from '../config/environmentConfig';
+import ApiService from '../services/ApiService';
 
 // Types
 export interface Barber {
@@ -60,7 +61,9 @@ const initialFilters: BarberFilters = {
 /**
  * Barber store with caching and rate limiting
  */
-export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, get) => {  
+export const useBarberStore = create<BarberState>()(
+  subscribeWithSelector(
+    (set, get): BarberState => {
   // Rate limiting helper
   const canMakeRequest = (): boolean => {
     const now = Date.now();
@@ -242,7 +245,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
       }
     },
 
-    updateBarber: async (id: string, barberData: Partial<Barber>) => {
+    updateBarber: async (id: string, barberData: Partial<Barber>): Promise<Barber> => {
       // Rate limiting check
       if (!canMakeRequest()) {
         throw new Error(get().error || 'Rate limit exceeded');
@@ -259,30 +262,14 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
           lastRequestTime: now 
         });
         
-        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers/${id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(barberData)
-        });
-        
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
-          }
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Erro ao atualizar barbeiro');
-        }
-        
-        const data = await response.json();
-        const updatedBarber = data.data;
+        // Usar o ApiService para requisições PATCH com retry e cache
+        const data = await ApiService.patch(`/api/barbers/${id}`, barberData);
+        const updatedBarber = (data as Record<string, unknown>).data || data;
         
         // Update state
         set(state => ({ 
           barbers: state.barbers.map(barber => 
-            barber.id === id ? updatedBarber : barber
+            barber.id === id ? { ...barber, ...updatedBarber as Barber } : barber
           ),
           isLoading: false 
         }));
@@ -296,7 +283,7 @@ export const useBarberStore = create<BarberState>()(subscribeWithSelector((set, 
           logger.componentError('Erro ao atualizar cache após atualização:', cacheError);
         }
         
-        return updatedBarber;
+        return updatedBarber as Barber;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro ao atualizar barbeiro';
         set({ error: errorMessage, isLoading: false });

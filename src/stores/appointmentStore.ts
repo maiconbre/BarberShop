@@ -77,7 +77,7 @@ export const useAppointmentStore = create<AppointmentState>()(
           page: pagination.page.toString(),
           limit: pagination.limit.toString(),
           ...Object.fromEntries(
-            Object.entries(currentFilters).filter(([_, value]) => value !== undefined)
+            Object.entries(currentFilters).filter(([, value]) => value !== undefined)
           ),
         });
 
@@ -90,7 +90,7 @@ export const useAppointmentStore = create<AppointmentState>()(
         }
 
         const data = await response.json();
-        const appointments = data.appointments.map((apt: any) => 
+        const appointments = data.appointments.map((apt: Appointment) => 
           AppointmentModel.fromApiData(apt).toJSON()
         );
 

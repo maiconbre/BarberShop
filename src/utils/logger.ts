@@ -20,16 +20,6 @@ export interface LoggerConfig {
   prefix?: string;
 }
 
-interface BarberGRLoggerWindow extends Window {
-  BarberGRLogger: {
-    enableDev: () => void;
-    enableProd: () => void;
-    setLevel: (level: LogLevel) => void;
-    getConfig: () => LoggerConfig;
-    updateConfig: (config: Partial<LoggerConfig>) => void;
-  };
-}
-
 class Logger {
   private static instance: Logger;
   private config: LoggerConfig;
@@ -216,9 +206,21 @@ export const logInfo = (message: string, category?: string, ...args: unknown[]) 
 export const logDebug = (message: string, category?: string, ...args: unknown[]) => 
   logger.debug(message, category, ...args);
 
-// Adicionar ao objeto window para controle via console do navegador
+// Extend Window interface to include BarberGRLogger property
+declare global {
+  interface Window {
+    BarberGRLogger: {
+      enableDev: () => void;
+      enableProd: () => void;
+      setLevel: (level: LogLevel) => void;
+      getConfig: () => LoggerConfig;
+      updateConfig: (config: Partial<LoggerConfig>) => void;
+    };
+  }
+}
 if (typeof window !== 'undefined') {
-  (window as any).BarberGRLogger = {
+  (window as unknown as Window).BarberGRLogger = {
+
     enableDev: () => logger.enableDevelopmentLogs(),
     enableProd: () => logger.enableProductionLogs(),
     setLevel: (level: LogLevel) => logger.updateConfig({ level }),
