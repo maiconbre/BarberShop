@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+  checks: write
+
 jobs:
   # Job 1: Testes e Qualidade de Código
   test:
@@ -133,14 +139,11 @@ jobs:
     
     - name: Deploy to Vercel (Staging)
       id: deploy
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel-args: ''
-        alias-domains: |
-          barber-gr-staging.vercel.app
+      run: |
+        npx vercel --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --confirm
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   # Job 5: Deploy para Produção (apenas em push para main)
   deploy-production:
@@ -175,14 +178,11 @@ jobs:
     
     - name: Deploy to Vercel (Production)
       id: deploy
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel-args: '--prod'
-        alias-domains: |
-          barber-gr.vercel.app
+      run: |
+        npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --confirm
+      env:
+        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
