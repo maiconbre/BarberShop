@@ -191,12 +191,12 @@ jobs:
         name: Release v${{ github.run_number }}
         body: |
           Automated release from main branch
-        token: ${{ secrets.GITHUB_TOKEN }}
-          
+
           Changes in this release:
           ${{ github.event.head_commit.message }}
         draft: false
         prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
 
   # Job 6: Notificações
   notify:
