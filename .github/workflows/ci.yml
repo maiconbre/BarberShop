@@ -138,7 +138,7 @@ jobs:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
         vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel-args: '--prebuilt'
+        vercel-args: ''
         alias-domains: |
           barber-gr-staging.vercel.app
 
@@ -180,7 +180,7 @@ jobs:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
         vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel-args: '--prebuilt --prod'
+        vercel-args: '--prod'
         alias-domains: |
           barber-gr.vercel.app
     
