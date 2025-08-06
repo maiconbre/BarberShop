@@ -104,8 +104,8 @@ const ServiceManagementPage: React.FC = () => {
       setTimeout(() => setSuccess(''), 3000);
       setNewService({ name: '', price: '' as unknown as number });
       fetchServices();
-    } catch (err: any) {
-      setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -134,8 +134,8 @@ const ServiceManagementPage: React.FC = () => {
       setTimeout(() => setSuccess(''), 3000);
       setServiceToDelete(null);
       fetchServices();
-    } catch (err: any) {
-      setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -146,22 +146,13 @@ const ServiceManagementPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services/${updatedService.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
-        body: JSON.stringify({
-          name: updatedService.name,
-          price: updatedService.price
-        })
+      // Usar o ApiService para requisições PATCH com retry e cache
+      await ApiService.patch(`/api/services/${updatedService.id}`, {
+        name: updatedService.name,
+        price: updatedService.price
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erro ao atualizar serviço');
-      }
+      // Se chegou aqui, a requisição foi bem-sucedida
 
       // Atualiza o estado local imediatamente com os novos dados
       setServices(prevServices => 
@@ -211,8 +202,8 @@ const ServiceManagementPage: React.FC = () => {
       } catch (cacheError) {
         logger.componentWarn('Erro ao limpar cache:', cacheError);
       }
-    } catch (err: any) {
-      setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }

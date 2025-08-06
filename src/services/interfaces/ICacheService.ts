@@ -1,4 +1,4 @@
-import type { CacheItem, CacheOptions } from '@/types';
+import type { CacheOptions } from '@/types';
 
 /**
  * Interface for cache service following Interface Segregation Principle

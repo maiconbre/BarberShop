@@ -5,7 +5,7 @@
 
 interface PendingRequest {
   timestamp: number;
-  promise: Promise<any>;
+  promise: Promise<unknown>;
 }
 
 class RequestDebouncer {
@@ -51,7 +51,7 @@ class RequestDebouncer {
         console.log(`Reutilizando requisição pendente para ${key} (${age}ms atrás)`);
         // Incrementar requisições salvas (evitadas)
         this.stats.savedRequests++;
-        return existing.promise;
+        return existing.promise as Promise<T>;
       }
     }
 
@@ -121,7 +121,7 @@ class RequestDebouncer {
   getStats() {
     const now = Date.now();
     const active = Array.from(this.pendingRequests.entries())
-      .filter(([_, req]) => (now - req.timestamp) <= this.MAX_PENDING_TIME);
+      .filter(([, req]) => (now - req.timestamp) <= this.MAX_PENDING_TIME);
 
     return {
       totalRequests: this.stats.totalRequests,
@@ -132,7 +132,7 @@ class RequestDebouncer {
       totalPending: this.pendingRequests.size,
       activePending: active.length,
       oldestRequest: active.length > 0 
-        ? Math.min(...active.map(([_, req]) => now - req.timestamp))
+        ? Math.min(...active.map(([, req]) => now - req.timestamp))
         : 0
     };
   }

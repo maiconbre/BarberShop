@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, DollarSign, User } from 'lucide-react';
+import { Calendar, Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -35,7 +35,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onView, className = '' })
   const formatDate = (date: string) => {
     try {
       return format(new Date(date), "dd 'de' MMMM", { locale: ptBR });
-    } catch (error) {
+    } catch {
       return date;
     }
   };
@@ -43,7 +43,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onView, className = '' })
   const formatTime = (time: string) => {
     try {
       return format(new Date(`2000-01-01T${time}`), 'HH:mm');
-    } catch (error) {
+    } catch {
       return time;
     }
   };

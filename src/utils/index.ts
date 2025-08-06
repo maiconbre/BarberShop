@@ -19,7 +19,7 @@ export const generateId = (): string => {
 /**
  * Debounces a function call
  */
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): ((...args: Parameters<T>) => void) => {
@@ -34,7 +34,7 @@ export const debounce = <T extends (...args: any[]) => any>(
 /**
  * Throttles a function call
  */
-export const throttle = <T extends (...args: any[]) => any>(
+export const throttle = <T extends (...args: unknown[]) => unknown>(
   func: T,
   limit: number
 ): ((...args: Parameters<T>) => void) => {
@@ -68,7 +68,7 @@ export const deepClone = <T>(obj: T): T => {
   if (typeof obj === 'object') {
     const clonedObj = {} as T;
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         clonedObj[key] = deepClone(obj[key]);
       }
     }
@@ -81,7 +81,8 @@ export const deepClone = <T>(obj: T): T => {
 /**
  * Checks if two objects are deeply equal
  */
-export const deepEqual = (obj1: any, obj2: any): boolean => {
+export const deepEqual = (obj1: unknown, obj2: unknown): boolean => {
+
   if (obj1 === obj2) {
     return true;
   }
@@ -110,7 +111,7 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
       return false;
     }
     
-    if (!deepEqual(obj1[key], obj2[key])) {
+    if (!deepEqual((obj1 as Record<string, unknown>)[key], (obj2 as Record<string, unknown>)[key])) {
       return false;
     }
   }
@@ -121,7 +122,8 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
 /**
  * Removes undefined values from an object
  */
-export const removeUndefined = <T extends Record<string, any>>(
+export const removeUndefined = <T extends Record<string, unknown>>(
+
   obj: T
 ): Partial<T> => {
   const result: Partial<T> = {};

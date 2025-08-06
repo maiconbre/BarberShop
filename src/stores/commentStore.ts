@@ -4,13 +4,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { PublicComment, ApiResponse } from '@/types';
+import ApiService from '../services/ApiService';
+
+interface CommentCacheItem {
+  data: PublicComment[];
+  timestamp: number;
+  ttl: number;
+}
 
 interface CommentCache {
-  [key: string]: {
-    data: PublicComment[];
-    timestamp: number;
-    ttl: number;
-  };
+  [key: string]: CommentCacheItem;
 }
 
 interface CommentState {
@@ -90,7 +93,7 @@ export const useCommentStore = create<CommentState>()(
           }
           
           const response = await fetch(
-            `${(import.meta as any).env.VITE_API_URL}/api/comments?status=${status}`,
+            `${(import.meta).env.VITE_API_URL}/api/comments?status=${status}`,
             {
               method: 'GET',
               headers,
@@ -151,29 +154,10 @@ export const useCommentStore = create<CommentState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          };
+          // Usar o ApiService para requisições PATCH com retry e cache
+          await ApiService.patch(`/api/comments/${commentId}`, { status: newStatus });
           
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-
-          const response = await fetch(
-            `${(import.meta as any).env.VITE_API_URL}/api/comments/${commentId}`,
-            {
-              method: 'PATCH',
-              headers,
-              mode: 'cors',
-              body: JSON.stringify({ status: newStatus })
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error(`Erro ao atualizar comentário: ${response.status}`);
-          }
+          // Se chegou aqui, a requisição foi bem-sucedida
 
           // Update local state by removing comment from all status arrays
           // and adding to the new status array
@@ -234,7 +218,7 @@ export const useCommentStore = create<CommentState>()(
           }
 
           const response = await fetch(
-            `${(import.meta as any).env.VITE_API_URL}/api/comments/${commentId}`,
+            `${(import.meta).env.VITE_API_URL}/api/comments/${commentId}`,
             {
               method: 'DELETE',
               headers,

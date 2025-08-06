@@ -1,10 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Trash2, Edit, UserCog, Upload, X, Camera, Image as ImageIcon, CheckCircle, AlertCircle, Users, Phone, CreditCard, UserPlus, Eye } from 'lucide-react';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
-import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError } from '../stores/barberStore';
+import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError, type Barber } from '../stores/barberStore';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
+
+// Interfaces para tipagem
+interface FormData {
+  name: string;
+  username: string;
+  password: string;
+  whatsapp: string;
+  pix: string;
+}
+
+interface QRCodeUploadResponse {
+  message: string;
+  filename: string;
+}
+
+
+interface QRCodeFile {
+  name: string;
+  path: string;
+}
+
+interface QRCodeListResponse {
+  success: boolean;
+  files: QRCodeFile[];
+}
+
+interface UpdateBarberData {
+  name: string;
+  whatsapp: string;
+  pix: string;
+  password: string;
+}
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -185,7 +217,8 @@ const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [formData, setFormData] = useState({
+
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     username: '',
     password: '',
@@ -204,7 +237,7 @@ const RegisterPage: React.FC = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isEditConfirmModalOpen, setIsEditConfirmModalOpen] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<Barber | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
 
@@ -325,11 +358,11 @@ const RegisterPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { message?: string };
         throw new Error(errorData.message || 'Erro ao salvar QR Code');
       }
 
-      await response.json(); // Process response but result not needed
+      await response.json() as QRCodeUploadResponse;
       setImageUploadSuccess(true);
 
       // Se estamos em modo de edição, forçar atualização do preview no modal
@@ -587,9 +620,9 @@ const RegisterPage: React.FC = () => {
 
       // Limpar o formulário
       resetFormStates();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error during operation:', err);
-      setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -622,13 +655,16 @@ const RegisterPage: React.FC = () => {
       }
 
       // Atualizar barbeiro existente usando o store
-      const updateData: any = {
+      const updateData: UpdateBarberData = {
         name: formData.name.trim(),
         whatsapp: cleanWhatsapp,
         pix: formData.pix.trim(),
         password: password // Usar a senha fornecida no modal
       };
 
+      if (!selectedUser?.id) {
+        throw new Error('Usuário não selecionado');
+      }
       await updateBarber(selectedUser.id, updateData);
 
       // Processar e salvar a imagem se fornecida durante a edição
@@ -656,20 +692,21 @@ const RegisterPage: React.FC = () => {
 
       // A lista será atualizada automaticamente pelo store
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error during operation:', err);
-      setError(err.message || 'Erro inesperado. Por favor, tente novamente.');
+      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
     } finally {
       setIsLoading(false); // Garantir que o loading seja desativado em qualquer cenário
     }
   };
 
-  const handleDeleteUser = async (userId: number, userName: string) => {
-    setSelectedUser({ id: userId, name: userName });
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    setSelectedUser({ id: userId, name: userName } as Barber);
     setIsDeleteModalOpen(true);
   };
 
-  const handleEditUser = async (user: any) => {
+  const handleEditUser = async (user: Barber) => {
+
     // Definir o usuário selecionado para uso no modal
     setSelectedUser(user);
 
@@ -682,9 +719,10 @@ const RegisterPage: React.FC = () => {
     setEditSuccess('');
   };
 
-  const prepareEditForm = async (user: any) => {
+  const prepareEditForm = async (user: Barber) => {
+
     // Formatar o número de WhatsApp para exibição (remover o prefixo 55)
-    let displayWhatsapp = user.whatsapp;
+    let displayWhatsapp: string = user.whatsapp || '';
     if (displayWhatsapp.startsWith('55')) {
       displayWhatsapp = displayWhatsapp.substring(2);
     }
@@ -692,10 +730,10 @@ const RegisterPage: React.FC = () => {
     // Preencher o formulário com os dados do usuário
     setFormData({
       name: user.name,
-      username: user.username,
+      username: user.username || 'string',
       password: '', // Não preencher a senha por segurança
       whatsapp: displayWhatsapp,
-      pix: user.pix
+      pix: user.pix || 'string'
     });
 
     // Limpar estados de imagem com força para evitar cache
@@ -717,11 +755,11 @@ const RegisterPage: React.FC = () => {
       // Primeiro tentar obter do Supabase Storage
       const response = await fetch(`${CURRENT_ENV.apiUrl}/api/qr-codes/list`);
       if (response.ok) {
-        const data = await response.json();
+        const data: QRCodeListResponse = await response.json();
         if (data.success) {
           // Procurar o QR code do barbeiro na lista
           const userQrCode = data.files.find(
-            (file: any) => file.name.toLowerCase() === user.username.toLowerCase()
+            (file: QRCodeFile) => file.name.toLowerCase() === user?.username?.toLowerCase()
           );
           
           if (userQrCode) {
@@ -731,7 +769,7 @@ const RegisterPage: React.FC = () => {
           }
         }
       }
-    } catch (error) {
+    } catch {
       // Se não existe ou houve erro, não fazer nada (preview permanece null)
       console.log('QR code não encontrado para o barbeiro:', user.username);
     }
@@ -796,7 +834,7 @@ const RegisterPage: React.FC = () => {
                 border: '1px solid #BBF7D0'
               }
             });
-          } catch (error) {
+          } catch {
             toast.error('Erro ao excluir barbeiro', {
               style: {
                 fontSize: '14px',
@@ -820,7 +858,9 @@ const RegisterPage: React.FC = () => {
         isOpen={isEditConfirmModalOpen}
         onClose={() => setIsEditConfirmModalOpen(false)}
         onConfirm={async () => {
-          await prepareEditForm(selectedUser);
+          if (selectedUser) {
+            await prepareEditForm(selectedUser);
+          }
           setIsEditConfirmModalOpen(false);
         }}
         barberName={selectedUser?.name || ''}
@@ -1198,7 +1238,7 @@ const RegisterPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="space-y-2">
-                      {barbers.map((user: any) => (
+                      {barbers.map((user: Barber) => (
                         <tr key={user.id} className="bg-[#1A1F2E] border border-gray-700 hover:bg-[#252A3A] transition-all duration-200 rounded-lg">
                           <td className="px-6 py-4 rounded-l-lg">
                             <div>
@@ -1256,7 +1296,7 @@ const RegisterPage: React.FC = () => {
 
                 {/* Mobile Cards */}
                 <div className="md:hidden space-y-4">
-                  {barbers.map((user: any) => (
+                  {barbers.map((user: Barber) => (
                     <div key={user.id} className="bg-[#1A1F2E] border border-gray-700 rounded-xl p-4 hover:bg-[#252A3A] transition-all duration-200">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -1350,7 +1390,7 @@ const RegisterPage: React.FC = () => {
                            onError={(e) => {
                              // Tentar caminho local como fallback
                              const imgElement = e.currentTarget;
-                             imgElement.src = `/qr-codes/${selectedUser.username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}.svg?t=${Date.now()}`;
+imgElement.src = `/qr-codes/${selectedUser?.username?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || 'default'}.svg?t=${Date.now()}`;
                              
                              // Adicionar outro handler de erro para o fallback
                              imgElement.onerror = () => {

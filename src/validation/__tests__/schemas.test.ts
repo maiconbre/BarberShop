@@ -4,8 +4,6 @@ import {
   RegisterDataSchema,
   BookingFormDataSchema,
   ServiceFormDataSchema,
-  UserSchema,
-  AppointmentSchema
 } from '../schemas';
 
 describe('Validation Schemas', () => {

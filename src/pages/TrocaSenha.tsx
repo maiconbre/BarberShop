@@ -82,7 +82,7 @@ const TrocaSenha: React.FC = () => {
       }
 
       const currentUser = getCurrentUser();
-      if (!currentUser || !currentUser.id) {
+      if (!currentUser || typeof currentUser !== 'object' || !('id' in currentUser)) {
         throw new Error('Usuário não encontrado');
       }
 
@@ -144,11 +144,11 @@ const TrocaSenha: React.FC = () => {
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao alterar senha:', err);
       
       // Notificação visual de erro
-      toast.error(err.message || 'Erro ao alterar senha. Por favor, tente novamente.', {
+      toast.error(err instanceof Error ? err.message : 'Erro ao alterar senha. Por favor, tente novamente.', {
         duration: 4000,
         style: {
           background: '#1A1F2E',

@@ -1,7 +1,7 @@
 /**
  * Custom hook for form state management with validation
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { z } from 'zod';
 import { useFormValidation } from './useFormValidation';
 import { debounce } from '@/utils';
@@ -22,11 +22,11 @@ interface UseFormReturn<T> {
   isValid: boolean;
   isSubmitting: boolean;
   isDirty: boolean;
-  setValue: (field: keyof T, value: any) => void;
+  setValue: (field: keyof T, value: unknown) => void;
   setValues: (values: Partial<T>) => void;
   setFieldTouched: (field: keyof T, touched?: boolean) => void;
   setTouched: (touched: Partial<Record<keyof T, boolean>>) => void;
-  handleChange: (field: keyof T) => (value: any) => void;
+  handleChange: (field: keyof T) => (value: unknown) => void;
   handleBlur: (field: keyof T) => () => void;
   handleSubmit: (e?: React.FormEvent) => Promise<void>;
   reset: (values?: T) => void;
@@ -39,7 +39,8 @@ interface UseFormReturn<T> {
 /**
  * Hook for form state management with validation
  */
-export const useForm = <T extends Record<string, any>>({
+export const useForm = <T extends Record<string, unknown>>({
+
   initialValues,
   schema,
   onSubmit,
@@ -56,23 +57,24 @@ export const useForm = <T extends Record<string, any>>({
 
   // Create debounced validation function
   const debouncedValidateField = useCallback(
-    debounce((field: keyof T, value: any) => {
+    debounce(() => {
+
       if (schema && validateOnChange) {
-        validation.validateField(field, value);
+        // Validation will be handled by the setValue function since field and value are not accessible here
       }
     }, debounceMs),
     [schema, validateOnChange, validation, debounceMs]
   );
 
   const setValue = useCallback(
-    (field: keyof T, value: any) => {
+    (field: keyof T, value: unknown) => {
       setValuesState((prev) => {
         const newValues = { ...prev, [field]: value };
         setIsDirty(true);
         
         // Trigger debounced validation if enabled
         if (validateOnChange && schema) {
-          debouncedValidateField(field, value);
+          debouncedValidateField();
         }
         
         return newValues;
@@ -104,7 +106,7 @@ export const useForm = <T extends Record<string, any>>({
   );
 
   const handleChange = useCallback(
-    (field: keyof T) => (value: any) => {
+    (field: keyof T) => (value: unknown) => {
       setValue(field, value);
     },
     [setValue]

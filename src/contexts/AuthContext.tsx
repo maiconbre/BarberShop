@@ -6,7 +6,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (username: string, password: string, rememberMe: boolean) => Promise<boolean>;
   logout: () => void;
-  getCurrentUser: () => any | null;
+  getCurrentUser: () => unknown | null;
 }
 
 interface AuthProviderProps {
@@ -173,10 +173,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const user = await authenticateUser(username, password);
       
-      console.log('AuthContext - Usuário autenticado:', { userId: user.id, role: user.role });
+      console.log('AuthContext - Authenticated user:', { 
+        userId: (user as { id: string | number }).id, 
+        role: (user as { role: string }).role 
+      });
       
       // Limpar cache do usuário anterior se for diferente
-      if (previousUserId && previousUserId !== user.id) {
+      if (previousUserId && previousUserId !== (user as { id: string | number }).id) {
         await clearUserSpecificCache(previousUserId.toString());
       }
       
@@ -187,8 +190,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Definir expiração de 12 horas
       updateSessionExpiry();
       
-      if (user.role === 'barber') {
-        localStorage.setItem('currentBarberId', user.id.toString());
+      if ((user as { role: string }).role === 'barber') {
+        localStorage.setItem('currentBarberId', ((user as { id: string | number }).id).toString());
       }
 
       setIsAuthenticated(true);

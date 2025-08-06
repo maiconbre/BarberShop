@@ -40,12 +40,30 @@ interface ClientData {
   barberId?: string;
 }
 
+interface User {
+  id: string;
+  role?: string;
+  userRole?: string;
+  type?: string | number;
+  userId?: string;
+  uid?: string;
+}
+
+interface BarberStats {
+  id: string;
+  name: string;
+  appointments: number;
+  revenue: number;
+  clients: Set<string>;
+}
+
 // Função auxiliar para determinar se é admin de forma segura
-const checkIsAdmin = (user: any): boolean => {
+const checkIsAdmin = (user: unknown): boolean => {
   // Verificar se temos um usuário válido
-  if (user && user.id && user.id !== 'fallback-user') {
-    const role = user.role || user.userRole || user.type || '';
-    return role.toLowerCase() === 'admin' || role.toLowerCase() === 'administrator' || role === 1 || role === 'ADMIN';
+  if (user && typeof user === 'object' && 'id' in user && user.id !== 'fallback-user') {
+    const userObj = user as User;
+    const role = userObj.role || userObj.userRole || userObj.type || '';
+    return role.toString().toLowerCase() === 'admin' || role.toString().toLowerCase() === 'administrator' || role === 1 || role === 'ADMIN';
   }
   
   // Verificar se temos uma flag de debug no localStorage apenas para desenvolvimento
@@ -60,9 +78,10 @@ const checkIsAdmin = (user: any): boolean => {
 };
 
 // Função auxiliar para obter ID do usuário de forma segura
-const getUserId = (user: any): string | null => {
-  if (!user || user.id === 'fallback-user') return null;
-  return user.id || user.userId || user.uid || null;
+const getUserId = (user: unknown): string | null => {
+  if (!user || (typeof user === 'object' && 'id' in user && user.id === 'fallback-user')) return null;
+  const userObj = user as User;
+  return userObj.id || userObj.userId || userObj.uid || null;
 };
 
 const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
@@ -251,7 +270,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     const barberStats = useMemo(() => {
         if (!isAdmin) return [];
 
-        const barberMap = new Map<string, any>();
+        const barberMap = new Map<string, BarberStats>();
 
         filteredAppointments.forEach(app => {
             if (!barberMap.has(app.barberId)) {
@@ -454,8 +473,6 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         <div className="mt-4 space-y-2">
                             <h4 className="text-white text-sm font-medium">Estatísticas Detalhadas</h4>
                             {chartData.topServices.map((service, index) => {
-                                const totalServices = chartData.topServices.reduce((sum, s) => sum + s.value, 0);
-                                const percentage = (service.value / totalServices) * 100;
                                 const avgRevenue = filteredAppointments
                                     .filter(app => app.service?.includes(service.name))
                                     .reduce((sum, app) => sum + app.price, 0) / service.value;

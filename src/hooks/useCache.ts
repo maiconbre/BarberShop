@@ -31,9 +31,9 @@ export const useCache = <T>(
   const [isStale, setIsStale] = useState(false);
 
   const mountedRef = useRef(true);
-  const { ttl = 300000, forceRefresh = false, ...cacheOptions } = options;
+  const { ttl = 300000, forceRefresh = false } = options;
 
-  const fetchData = useCallback(async (force = false) => {
+  const fetchData = useCallback(async () => {
     if (!mountedRef.current) return;
 
     setLoading(true);
@@ -63,7 +63,7 @@ export const useCache = <T>(
   }, [key, fetchFn, options]);
 
   const refetch = useCallback(async () => {
-    await fetchData(true);
+    await fetchData();
   }, [fetchData]);
 
   const invalidate = useCallback(async () => {
@@ -101,7 +101,7 @@ export const useCache = <T>(
 
   // Initial fetch
   useEffect(() => {
-    fetchData(forceRefresh);
+    fetchData();
   }, [fetchData, forceRefresh]);
 
   // Cleanup on unmount

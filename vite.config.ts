@@ -4,7 +4,7 @@ import compression from 'vite-plugin-compression2';
 import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
   plugins: [
     react(),
     compression({

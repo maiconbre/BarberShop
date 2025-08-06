@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaChevronDown } from 'react-icons/fa';
 import { DollarSign, Award, Users } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, BarChart, Bar, AreaChart, Area } from 'recharts';
 
 interface Appointment {
   id: string;
@@ -306,7 +306,7 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
                           fontSize: window.innerWidth < 640 ? 10 : 12,
                         }}
                       >
-                        {popularServicesData.map((entry, index) => (
+                        {popularServicesData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Bar>

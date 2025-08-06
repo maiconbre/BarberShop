@@ -39,8 +39,8 @@ interface ServicesProps {
 
 const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isShowcase = false }) => {
   // Estados para visibilidade de cada seção
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const [services, setServices] = useState<any[]>(staticServices);
+  const [headerVisible] = useState(true);
+  const [services, setServices] = useState<typeof staticServices>(staticServices);
   const [cardsVisible, setCardsVisible] = useState<boolean[]>(staticServices.map(() => true));
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
@@ -66,7 +66,6 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
 
   // Carregar serviços do backend apenas se não for vitrine
   useEffect(() => {
-    const componentId = `services-${Date.now()}`;
     logger.componentDebug(`useEffect iniciado, isShowcase: ${isShowcase}`);
     
     // Se for vitrine, usar apenas os serviços estáticos
@@ -112,7 +111,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
             formattedServices = formatServices(response as Service[]);
           } else if (response && typeof response === 'object' && 'data' in (response as { data: unknown }) && Array.isArray((response as { data: unknown }).data)) {
             // Se for um objeto com propriedade data que é um array
-            logger.componentDebug(`Resposta é um objeto com propriedade data contendo ${((response as { data: unknown }).data as any[]).length} itens, formatando serviços`);
+            logger.componentDebug(`Resposta é um objeto com propriedade data contendo ${((response as { data: Service[] }).data).length} itens, formatando serviços`);
             formattedServices = formatServices((response as { data: Service[] }).data);
           }
           
@@ -123,12 +122,13 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
             cardRefs.current = formattedServices.map(() => null);
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.componentError(`Erro ao carregar serviços:`, err);
         
         // Verificar se é um erro de limite de chamadas repetidas
-        if (err.isRateLimitError) {
-          const retryAfter = err.retryAfter || 60; // Padrão de 60 segundos se não especificado
+        const errorObj = err as { isRateLimitError?: boolean; retryAfter?: number };
+        if (errorObj.isRateLimitError) {
+          const retryAfter = errorObj.retryAfter || 60; // Padrão de 60 segundos se não especificado
           const errorMessage = `Muitas requisições em um curto período. Aguarde ${retryAfter} segundos ou use os dados em cache.`;
           logger.componentWarn(`${errorMessage}`);
           

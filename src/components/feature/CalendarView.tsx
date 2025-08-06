@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, CalendarIcon, Calendar, X, Search, CalendarDays, CalendarRange, Grid } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarIcon, Calendar, Search, CalendarDays, CalendarRange, Grid } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, getMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -42,22 +42,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   startDate,
   endDate,
   currentUser,
-  onResetFilters = () => { }
+
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentDay, setCurrentDay] = useState(new Date());
-  const [isMobile, setIsMobile] = useState(false);
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month' | 'year'>('month');
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [showFilters, setShowFilters] = useState(false);
 
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [timeRangeFilter, setTimeRangeFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [compactMode, setCompactMode] = useState(false);
+
   const calendarRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -66,20 +63,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const filterRef = useRef<HTMLDivElement>(null);
   const swipeDistance = 50; // Distância mínima para considerar um swipe
 
-  // Detectar tamanho da tela
-  useEffect(() => {
-    const checkScreenSize = () => {
-      const width = window.innerWidth;
-      setIsMobile(width < 768);
-      setIsSmallScreen(width < 480);
-      setCompactMode(width < 320);
-    };
-    
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
+  // Screen size detection removed as it was not being used
 
   // Manipuladores de toque aprimorados para gestos em dispositivos móveis
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -97,7 +81,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     if (touchStartX.current && touchEndX.current && touchStartY.current && touchEndY.current) {
       const diffX = touchStartX.current - touchEndX.current;
       const diffY = touchStartY.current - touchEndY.current;
-      
+
       // Determinar se o gesto é mais horizontal ou vertical
       if (Math.abs(diffX) > Math.abs(diffY)) {
         // Gesto horizontal
@@ -131,14 +115,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         }
       }
     }
-    
+
     // Resetar valores
     touchStartX.current = null;
     touchEndX.current = null;
     touchStartY.current = null;
     touchEndY.current = null;
   };
-  
+
   // Funções para alternar entre níveis de zoom
   const zoomIn = () => {
     setViewMode(prev => {
@@ -150,7 +134,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       }
     });
   };
-  
+
   const zoomOut = () => {
     setViewMode(prev => {
       switch (prev) {
@@ -162,77 +146,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     });
   };
 
-  // Dados para o gráfico de recorrência com memoização
-  const recurrenceData = useMemo(() => {
-    const recurrenceMap: { [key: string]: number } = {
-      '1 visita': 0,
-      '2 visitas': 0,
-      '3 visitas': 0,
-      '4 visitas': 0,
-      '5+ visitas': 0
-    };
 
-    // Mapa para contar visitas por cliente
-    const clientVisits: Record<string, number> = {};
 
-    // Contar visitas por cliente
-    appointments.forEach(app => {
-      if (app.clientName) {
-        const clientKey = app.clientName.toLowerCase();
-        clientVisits[clientKey] = (clientVisits[clientKey] || 0) + 1;
-      }
-    });
 
-    // Preencher o mapa de recorrência
-    Object.values(clientVisits).forEach(visits => {
-      if (visits === 1) recurrenceMap['1 visita']++;
-      else if (visits === 2) recurrenceMap['2 visitas']++;
-      else if (visits === 3) recurrenceMap['3 visitas']++;
-      else if (visits === 4) recurrenceMap['4 visitas']++;
-      else recurrenceMap['5+ visitas']++;
-    });
-
-    return Object.entries(recurrenceMap)
-      .map(([name, value]) => ({ name, value }))
-      .filter(item => item.value > 0);
-  }, [appointments]);
-
-  // Calcular estatísticas de clientes com memoização
-  const clientStats = useMemo(() => {
-    // Extrair nomes de clientes únicos
-    const uniqueClients = new Set<string>();
-    appointments.forEach(app => {
-      if (app.clientName) {
-        uniqueClients.add(app.clientName.toLowerCase());
-      }
-    });
-
-    // Mapa para contar visitas por cliente
-    const clientVisits: Record<string, number> = {};
-    appointments.forEach(app => {
-      if (app.clientName) {
-        const clientKey = app.clientName.toLowerCase();
-        clientVisits[clientKey] = (clientVisits[clientKey] || 0) + 1;
-      }
-    });
-
-    // Calcular clientes que retornam (com mais de uma visita)
-    const returningClients = Object.values(clientVisits).filter(visits => visits > 1).length;
-
-    // Calcular clientes novos (com apenas uma visita)
-    const newClients = Object.values(clientVisits).filter(visits => visits === 1).length;
-
-    // Calcular ticket médio
-    const totalRevenue = appointments.reduce((sum, app) => sum + (app.price || 0), 0);
-    const ticketMedio = appointments.length > 0 ? totalRevenue / appointments.length : 0;
-
-    return {
-      totalClients: uniqueClients.size,
-      returningClients,
-      newClients,
-      ticketMedio
-    };
-  }, [appointments]);
 
   // Função para obter o primeiro dia do mês com memoização
   const getFirstDayOfMonth = useCallback((date: Date) => {
@@ -263,40 +179,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const filteredAppointments = useMemo(() => {
     // Aplicar filtros em etapas para melhorar a performance
     let filtered = appointments;
-    
+
     // Primeiro aplicar filtros que podem reduzir significativamente o conjunto de dados
     filtered = filtered.filter(app => !app.isBlocked);
-    
+
     // Filtro por usuário logado (se não for admin)
     if (currentUser?.role !== 'admin' && currentUser?.id) {
       filtered = filtered.filter(app => app.barberId === currentUser.id);
     }
-    
+
     // Aplicar filtros específicos
     return filtered.filter(app => {
 
-
-      // Filtro por status
-      if (selectedStatus && app.status !== selectedStatus) {
-        return false;
-      }
-
-      // Filtro por faixa de horário
-      if (timeRangeFilter) {
-        const appHour = parseInt(app.time.split(':')[0]);
-        
-        switch (timeRangeFilter) {
-          case 'morning': // Manhã (6h-12h)
-            if (appHour < 6 || appHour >= 12) return false;
-            break;
-          case 'afternoon': // Tarde (12h-18h)
-            if (appHour < 12 || appHour >= 18) return false;
-            break;
-          case 'evening': // Noite (18h-23h)
-            if (appHour < 18 || appHour >= 23) return false;
-            break;
-        }
-      }
 
       // Filtro por termo de busca (nome do cliente)
       if (searchTerm && !app.clientName?.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -305,7 +199,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
       return true;
     });
-  }, [appointments, selectedStatus, timeRangeFilter, searchTerm, currentUser]);
+  }, [appointments, searchTerm, currentUser]);
 
   // Função para verificar se uma data tem agendamentos com memoização
   const hasAppointments = useCallback((date: string) => {
@@ -353,7 +247,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       setIsLoading(false);
     }
   }, []);
-  
+
   // Função para navegar entre os meses com feedback visual
   const navigateMonth = useCallback(async (direction: 'prev' | 'next') => {
     setIsLoading(true);
@@ -371,7 +265,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       setIsLoading(false);
     }
   }, []);
-  
+
   // Função para navegar entre os anos
   const navigateYear = useCallback((direction: 'prev' | 'next') => {
     setIsLoading(true);
@@ -383,7 +277,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       setIsLoading(false);
     }
   }, []);
-  
+
   // Gerar dias da semana atual
   const weekDays = useMemo(() => {
     const start = startOfWeek(currentWeek, { weekStartsOn: 0 });
@@ -398,7 +292,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       };
     });
   }, [currentWeek]);
-  
+
   // Gerar horas do dia atual para visualização diária
   const dayHours = useMemo(() => {
     // Horário de funcionamento: 8h às 22h
@@ -415,12 +309,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       };
     });
   }, [currentDay, filteredAppointments]);
-  
+
   // Gerar meses do ano atual para visualização anual
   const yearMonths = useMemo(() => {
     const firstDayOfYear = new Date(currentYear, 0, 1);
     const lastDayOfYear = new Date(currentYear, 11, 31);
-    
+
     return eachMonthOfInterval({
       start: firstDayOfYear,
       end: lastDayOfYear
@@ -431,7 +325,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         const appDate = new Date(app.date);
         return appDate >= monthStart && appDate <= monthEnd;
       });
-      
+
       return {
         date,
         monthName: format(date, 'MMM', { locale: ptBR }),
@@ -528,7 +422,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     return grid;
   }, [currentMonth, hasAppointments, getDateStyles, onDateSelect]);
-  
+
   // Renderiza a visualização semanal
   const renderWeekView = useCallback(() => {
     return (
@@ -537,7 +431,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           const hasApps = hasAppointments(day.formattedDate);
           const dateStyles = getDateStyles(day.formattedDate, hasApps);
           const isSelected = day.formattedDate === selectedDate;
-          
+
           return (
             <div key={day.formattedDate} className="flex flex-col">
               <div className="text-xs text-center text-gray-400 mb-1">
@@ -573,42 +467,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
-  // Limpar todos os filtros
-  const handleClearFilters = () => {
-    setSelectedStatus('');
-    setTimeRangeFilter('');
-    setSearchTerm('');
-    onResetFilters();
-  };
-  
+
+
   // Renderiza a visualização diária com virtualização para melhor performance
   const renderDayView = useCallback(() => {
     const formattedDate = format(currentDay, 'EEEE, d MMMM', { locale: ptBR });
-    
-    // Preparar dados para virtualização
-    const flattenedAppointments = dayHours.flatMap((hourData) => {
-      if (hourData.appointments.length === 0) {
-        return [{
-          type: 'empty',
-          hour: hourData.hour,
-          formattedHour: hourData.formattedHour
-        }];
-      }
-      
-      return [
-        {
-          type: 'header',
-          hour: hourData.hour,
-          formattedHour: hourData.formattedHour
-        },
-        ...hourData.appointments.map(app => ({
-          type: 'appointment',
-          hour: hourData.hour,
-          appointment: app
-        }))
-      ];
-    });
-    
+
+
+
     return (
       <div className="mt-2">
         <div className="text-sm text-center text-gray-300 mb-3 capitalize">
@@ -617,7 +483,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-1 hide-scrollbar">
           {dayHours.map((hourData) => {
             const hasApps = hourData.appointments.length > 0;
-            
+
             return (
               <div key={hourData.hour} className="flex">
                 <div className="w-12 flex-shrink-0 text-xs text-gray-400 pt-2">
@@ -627,7 +493,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {hasApps ? (
                     <div className="space-y-1">
                       {hourData.appointments.map(app => (
-                        <motion.div 
+                        <motion.div
                           key={app.id}
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -645,7 +511,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     </div>
                   ) : (
                     <div className="h-full flex items-center justify-center">
-                      <button 
+                      <button
                         onClick={() => {
                           const date = format(currentDay, 'yyyy-MM-dd');
                           onDateSelect(date);
@@ -664,15 +530,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       </div>
     );
   }, [currentDay, dayHours, onDateSelect]);
-  
+
   // Renderiza a visualização anual
   const renderYearView = useCallback(() => {
     return (
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
         {yearMonths.map((month) => {
-          const isCurrentMonth = new Date().getMonth() === month.monthNumber && 
-                               new Date().getFullYear() === currentYear;
-          
+          const isCurrentMonth = new Date().getMonth() === month.monthNumber &&
+            new Date().getFullYear() === currentYear;
+
           return (
             <motion.button
               key={month.monthNumber}
@@ -698,7 +564,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       </div>
     );
   }, [yearMonths, currentYear]);
-  
+
   // Função para obter a cor do agendamento baseado no status
   const getAppointmentColorByStatus = (status: string) => {
     switch (status) {
@@ -784,7 +650,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#252B3B] transition-colors"
                     aria-label="Fechar busca"
                   >
-                    
+
                   </button>
                 </motion.div>
               ) : (
@@ -804,7 +670,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                switch(viewMode) {
+                switch (viewMode) {
                   case 'day':
                     navigateDay('prev');
                     break;
@@ -828,7 +694,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
             <button
               onClick={() => {
-                switch(viewMode) {
+                switch (viewMode) {
                   case 'day':
                     navigateDay('next');
                     break;
@@ -921,7 +787,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Active filters indicator */}
       {searchTerm && (
         <div className="flex items-center justify-between bg-[#252B3B]/50 rounded-lg p-2 mt-2">

@@ -33,8 +33,8 @@ const AnalyticsPage: React.FC = () => {
     let filtered = appointments;
 
     // Filtro por role do usuário: barbeiros veem apenas seus agendamentos
-    if (currentUser?.role === 'barber' && currentUser?.id) {
-      filtered = filtered.filter(app => app.barberId === currentUser.id);
+    if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'barber' && 'id' in currentUser) {
+      filtered = filtered.filter(app => app.barberId === (currentUser as { id: string | number }).id.toString());
     }
 
     return filtered;
@@ -44,31 +44,31 @@ const AnalyticsPage: React.FC = () => {
 
   useEffect(() => {
     let isSubscribed = true;
-    let timeoutId: NodeJS.Timeout;
 
     const fetchData = async () => {
       if (!isSubscribed || !navigator.onLine) return;
 
       try {
-        const appointments = await loadAppointmentsService();
-        if (isSubscribed && Array.isArray(appointments)) {
-          setAppointments(appointments);
-        }
+        const fetchedAppointments = await loadAppointmentsService();
+        
+        if (!isSubscribed) return;
+        
+        if (!Array.isArray(fetchedAppointments)) {
+          throw new Error('Invalid appointments data received');
+        };
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
-        if (isSubscribed && appointments.length === 0) {
+        if (isSubscribed) {
           setAppointments(prev => prev.length > 0 ? prev : []);
         }
       }
     };
 
-    timeoutId = setTimeout(fetchData, 50);
+    const timeoutId = setTimeout(fetchData, 50);
 
     return () => {
       isSubscribed = false;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      clearTimeout(timeoutId);
     };
   }, []);
 

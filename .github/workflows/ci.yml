@@ -39,12 +39,13 @@ jobs:
       run: npm run test:coverage
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage/lcov.info
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   # Job 2: Build e Verificação
   build:
@@ -69,7 +70,7 @@ jobs:
       run: npm run build
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-files
         path: dist/
@@ -132,7 +133,7 @@ jobs:
     
     - name: Deploy to Vercel (Staging)
       id: deploy
-      uses: vercel/action@v1
+      uses: amondnet/vercel-action@v25
       with:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
@@ -174,7 +175,7 @@ jobs:
     
     - name: Deploy to Vercel (Production)
       id: deploy
-      uses: vercel/action@v1
+      uses: amondnet/vercel-action@v25
       with:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
@@ -184,19 +185,18 @@ jobs:
           barber-gr.vercel.app
     
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ github.run_number }}
-        release_name: Release v${{ github.run_number }}
+        name: Release v${{ github.run_number }}
         body: |
           Automated release from main branch
-          
+
           Changes in this release:
           ${{ github.event.head_commit.message }}
         draft: false
         prerelease: false
+        token: ${{ secrets.GITHUB_TOKEN }}
 
   # Job 6: Notificações
   notify:
