@@ -1,5 +1,5 @@
 /**
- * Custom hook for managing async operations
+ * Custom hook fo1r managing async operations
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
 
