@@ -79,10 +79,6 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 - **React Virtualized Auto Sizer 1.0.26** - Dimensionamento automático
 - **React Lazy Load Image 1.6.3** - Carregamento lazy de imagens
 
-### 🔗 Comunicação
-- **Axios 1.8.1** - Cliente HTTP
-- **Supabase JS 2.48.1** - Backend as a Service
-
 ### 🛠️ Ferramentas de Desenvolvimento
 - **ESLint 9.9.1** - Linting de código
 - **TypeScript ESLint 8.3.0** - Regras específicas para TS
@@ -201,16 +197,6 @@ Barbershop/
 
 ---
 
-
-## 🧠 Padrões de Projeto
-
-- **Repository Pattern**
-- **Strategy Pattern**
-- **Observer Pattern**
-- **Factory Pattern**
-- **Decorator Pattern**
-
----
 
 ## 🚀 Instalação e Execução
 
@@ -334,118 +320,6 @@ npm run start:dev
    npm run test:supabase
    ```
 
-### 🏗️ Criando Novos Componentes
-
-```typescript
-// src/components/feature/MeuComponente.tsx
-import React from 'react';
-import { motion } from 'framer-motion';
-
-interface MeuComponenteProps {
-  title: string;
-  onAction?: () => void;
-}
-
-export const MeuComponente: React.FC<MeuComponenteProps> = ({ 
-  title, 
-  onAction 
-}) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="p-4 bg-white rounded-lg shadow-md"
-    >
-      <h2 className="text-xl font-semibold">{title}</h2>
-      {onAction && (
-        <button 
-          onClick={onAction}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Ação
-        </button>
-      )}
-    </motion.div>
-  );
-};
-```
-
-### 🗃️ Criando Stores Zustand
-
-```typescript
-// src/stores/meuStore.ts
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-interface MeuState {
-  dados: any[];
-  loading: boolean;
-  fetchDados: () => Promise<void>;
-  addItem: (item: any) => void;
-}
-
-export const useMeuStore = create<MeuState>()()
-  persist(
-    (set, get) => ({
-      dados: [],
-      loading: false,
-      
-      fetchDados: async () => {
-        set({ loading: true });
-        try {
-          // Lógica de fetch...
-          set({ dados: resultado, loading: false });
-        } catch (error) {
-          set({ loading: false });
-        }
-      },
-      
-      addItem: (item) => {
-        set((state) => ({ 
-          dados: [...state.dados, item] 
-        }));
-      }
-    }),
-    {
-      name: 'meu-store',
-      partialize: (state) => ({ dados: state.dados })
-    }
-  )
-);
-```
-
-### 🎣 Criando Hooks Customizados
-
-```typescript
-// src/hooks/useMeuHook.ts
-import { useState, useEffect } from 'react';
-import { ApiService } from '@/services';
-
-export const useMeuHook = (id: string) => {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const result = await ApiService.get(`/endpoint/${id}`);
-        setData(result);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [id]);
-  
-  return { data, loading, error };
-};
-```
-
 ### 🔧 Configuração TypeScript
 
 ```json
@@ -486,15 +360,7 @@ Acesse a versão online:
 ## 📸 Capturas de Tela
 
 <div align="center">
-  <h4>Página Inicial | Escolha de Horário | Dashboard</h4>
-  <img src="./public/screenshots/Img1.PNG" width="200px" />
-  <img src="./public/screenshots/Img2.PNG" width="200px" />
-  <img src="./public/screenshots/Img3.PNG" width="200px" />
-
-  <h4>Cards de Agendamento | Agenda do Barbeiro | Métricas</h4>
-  <img src="./public/screenshots/Img4.PNG" width="200px" />
-  <img src="./public/screenshots/Img5.PNG" width="200px" />
-  <img src="./public/screenshots/Img6.PNG" width="200px" />
+  <h4>Em breve...</h4>
 </div>
 
 ---
@@ -503,19 +369,11 @@ Acesse a versão online:
 
 ### 🎯 Próximas Funcionalidades
 
-#### 🧪 Prioridade Alta
-- [ ] **Testes Automatizados** - Implementação completa de testes unitários e de integração
-- [ ] **Error Boundaries** - Tratamento robusto de erros em componentes
-- [ ] **Logging Avançado** - Sistema de logs estruturado para produção
-- [ ] **Monitoramento** - Métricas de performance e saúde da aplicação
 
-#### 🚀 Prioridade Média
 - [ ] **PWA (Progressive Web App)** - Funcionalidades offline e instalação
 - [ ] **Notificações Push** - Alertas em tempo real para agendamentos
 - [ ] **Integração com Pagamentos** - Stripe, PayPal, PIX
 - [ ] **Sistema de Avaliações** - Reviews e ratings dos serviços
-
-#### 🌟 Prioridade Baixa
 - [ ] **Aplicativo Mobile** - React Native (iOS e Android)
 - [ ] **Suporte Multi-tenant** - Múltiplas barbearias
 - [ ] **IA para Recomendações** - Sugestões personalizadas
@@ -528,76 +386,7 @@ Acesse a versão online:
 - [ ] **Server-Side Rendering** - SEO e performance
 - [ ] **Docker** - Containerização para deploy
 
-## 🆘 Troubleshooting
-
-### 🐛 Problemas Comuns
-
-#### Erro de Conexão com API
-```bash
-# Verificar se a API está rodando
-curl https://barber-backend-spm8.onrender.com/health
-
-# Verificar variáveis de ambiente
-echo $VITE_API_URL
-
-# Testar conexão
-npm run test:supabase
-```
-
-#### Problemas de Cache
-```typescript
-// Limpar cache manualmente
-import { CacheService } from '@/services';
-
-// No console do navegador
-CacheService.clearCache();
-localStorage.clear();
-sessionStorage.clear();
-```
-
-#### Erro de Build
-```bash
-# Limpar cache do Vite
-rm -rf node_modules/.vite
-
-# Reinstalar dependências
-rm -rf node_modules package-lock.json
-npm install
-
-# Build limpa
-npm run build:prod
-```
-
-### 🔍 Debug Mode
-
-```bash
-# Ativar modo debug
-export VITE_DEBUG_API=true
-export VITE_DEV_MODE=true
-
-# Ou no .env
-VITE_DEBUG_API=true
-VITE_DEV_MODE=true
-```
-
-## ❓ FAQ
-
-### 🤔 Perguntas Frequentes
-
-**Q: Como alterar a URL da API?**
-A: Modifique a variável `VITE_API_URL` no arquivo `.env` ou use os scripts `npm run env:switch-local` / `npm run env:switch-prod`.
-
-**Q: Por que o cache não está funcionando?**
-A: Verifique se o `CacheService` está inicializado e se as configurações de TTL estão corretas no `apiConfig.ts`.
-
-**Q: Como adicionar um novo ambiente?**
-A: Adicione a configuração em `src/config/environmentConfig.ts` e crie o arquivo `.env` correspondente.
-
-**Q: O projeto funciona offline?**
-A: Atualmente não. PWA está no roadmap para implementação futura.
-
-**Q: Como contribuir com o projeto?**
-A: Siga o [Guia de Contribuição](#-contribuindo) e abra um Pull Request.
+---
 
 ## 🔐 Segurança
 
@@ -608,13 +397,6 @@ A: Siga o [Guia de Contribuição](#-contribuindo) e abra um Pull Request.
 - **HTTPS** - Comunicação criptografada
 - **Autenticação JWT** - Tokens seguros
 - **Rate Limiting** - Proteção contra spam
-
-### 🔒 Melhorias
-
-- [ ] Implementar CSP (Content Security Policy)
-- [ ] Adicionar CSRF protection
-- [ ] Configurar CORS 
-- [ ] Implementar 2FA (Two-Factor Authentication)
 
 ---
 
@@ -688,14 +470,32 @@ Para reportar bugs, abra uma [issue](https://github.com/maiconbre/Barbershop/iss
 
 ---
 
-**Obrigado por contribuir! 🙏**
+## ❓ FAQ
+
+### 🤔 Perguntas Frequentes
+
+**Q: Como alterar a URL da API?**
+A: Modifique a variável `VITE_API_URL` no arquivo `.env` ou use os scripts `npm run env:switch-local` / `npm run env:switch-prod`.
+
+**Q: Por que o cache não está funcionando?**
+A: Verifique se o `CacheService` está inicializado e se as configurações de TTL estão corretas no `apiConfig.ts`.
+
+**Q: Como adicionar um novo ambiente?**
+A: Adicione a configuração em `src/config/environmentConfig.ts` e crie o arquivo `.env` correspondente.
+
+**Q: O projeto funciona offline?**
+A: Atualmente não. PWA está no roadmap para implementação futura.
+
+**Q: Como contribuir com o projeto?**
+A: Siga o [Guia de Contribuição](#-contribuindo) e abra um Pull Request.
 
 ---
+
 
 ## 📄 Licença
 
 Este projeto está licenciado sob a [MIT License](LICENSE).
 
 ---
-
+**Obrigado por contribuir! 🙏**
 Desenvolvido com ❤️ por [Maicon Brendon](https://github.com/maiconbre)
