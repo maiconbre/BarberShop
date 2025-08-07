@@ -408,25 +408,30 @@ jobs:
               "${{ needs.security-audit.result }}" == "failure" || 
               "${{ needs.deploy.result }}" == "failure" ]]; then
           STATUS="❌ FAILED"
-          COLOR="15158332"
+          COLOR=15158332
         else
           STATUS="✅ SUCCESS"
-          COLOR="3066993"
+          COLOR=3066993
         fi
+        
+        # Create JSON payload
+        cat > payload.json << EOF
+        {
+          "embeds": [{
+            "title": "🚀 BarberGR CI/CD Pipeline",
+            "description": "**Status:** $STATUS\n**Branch:** ${{ github.ref_name }}\n**Commit:** ${{ github.sha }}",
+            "color": $COLOR,
+            "fields": [
+              {"name": "Quality & Tests", "value": "${{ needs.quality-tests.result }}", "inline": true},
+              {"name": "Build", "value": "${{ needs.smart-build.result }}", "inline": true},
+              {"name": "Deploy", "value": "${{ needs.deploy.result }}", "inline": true}
+            ],
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          }]
+        }
+        EOF
         
         # Send webhook
         curl -H "Content-Type: application/json" \
-             -d "{
-               \"embeds\": [{
-                 \"title\": \"🚀 BarberGR CI/CD Pipeline\",
-                 \"description\": \"**Status:** $STATUS\\n**Branch:** ${{ github.ref_name }}\\n**Commit:** [${{ github.event.head_commit.message }}](${{ github.event.head_commit.url }})\",
-                 \"color\": $COLOR,
-                 \"fields\": [
-                   {\"name\": \"Quality & Tests\", \"value\": \"${{ needs.quality-tests.result }}\", \"inline\": true},
-                   {\"name\": \"Build\", \"value\": \"${{ needs.smart-build.result }}\", \"inline\": true},
-                   {\"name\": \"Deploy\", \"value\": \"${{ needs.deploy.result }}\", \"inline\": true}
-                 ],
-                 \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"
-               }]
-             }" \
+             -d @payload.json \
              https://discord.com/api/webhooks/1403067064293392598/nueJrCGZ2oaoMDUJRaxSS2Vie62yNV_O7bRd2vacD7odPO1K208OarzUMZTH8hJ1lkfa
