@@ -266,3 +266,250 @@ jobs:
         else
           echo "✅ No security issues detected"
         fi
+
+        
+    - name: 📢 Send Discord Report
+    runs-on: ubuntu-latest
+    needs: [collect-metrics, performance-alerts, benchmark-comparison, summary]
+    if: always()
+    
+    steps:
+    - name: Download performance artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: performance-metrics-*
+        merge-multiple: true
+      continue-on-error: true
+    
+    - name: Download benchmark artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: benchmark-results-*
+        merge-multiple: true
+      continue-on-error: true
+    
+    - name: Prepare Discord notification
+      id: prepare
+      run: |
+        # Get workflow status
+        METRICS_STATUS="${{ needs.collect-metrics.result }}"
+        ALERTS_STATUS="${{ needs.performance-alerts.result }}"
+        BENCHMARK_STATUS="${{ needs.benchmark-comparison.result }}"
+        PERFORMANCE_TREND="${{ needs.collect-metrics.outputs.performance-trend }}"
+        
+        # Set status emoji and color
+        case "$PERFORMANCE_TREND" in
+          "excellent")
+            STATUS_EMOJI="🚀"
+            STATUS_COLOR="3066993"  # Green
+            STATUS_TEXT="Excellent Performance"
+            ;;
+          "good")
+            STATUS_EMOJI="✅"
+            STATUS_COLOR="15844367"  # Gold
+            STATUS_TEXT="Good Performance"
+            ;;
+          "needs-improvement")
+            STATUS_EMOJI="⚠️"
+            STATUS_COLOR="16776960"  # Yellow
+            STATUS_TEXT="Needs Improvement"
+            ;;
+          "poor")
+            STATUS_EMOJI="❌"
+            STATUS_COLOR="15158332"  # Red
+            STATUS_TEXT="Poor Performance"
+            ;;
+          *)
+            STATUS_EMOJI="📊"
+            STATUS_COLOR="7506394"  # Blue
+            STATUS_TEXT="Performance Analysis"
+            ;;
+        esac
+        
+        echo "status_emoji=$STATUS_EMOJI" >> $GITHUB_OUTPUT
+        echo "status_color=$STATUS_COLOR" >> $GITHUB_OUTPUT
+        echo "status_text=$STATUS_TEXT" >> $GITHUB_OUTPUT
+        
+        # Parse metrics if available
+        TOTAL_RUNS="N/A"
+        SUCCESS_RATE="N/A"
+        AVG_DURATION="N/A"
+        CACHE_HIT_RATE="N/A"
+        
+        if [ -f "performance-metrics.json" ]; then
+          TOTAL_RUNS=$(jq -r '.total_runs // "N/A"' performance-metrics.json)
+          SUCCESS_RATE=$(jq -r '.success_rate // "N/A"' performance-metrics.json)
+          AVG_DURATION=$(jq -r '.average_duration // "N/A"' performance-metrics.json)
+          CACHE_HIT_RATE=$(jq -r '.cache_hit_rate // "N/A"' performance-metrics.json)
+          
+          if [ "$AVG_DURATION" != "N/A" ]; then
+            AVG_DURATION_MIN=$((AVG_DURATION / 60))
+            AVG_DURATION_SEC=$((AVG_DURATION % 60))
+            AVG_DURATION="${AVG_DURATION_MIN}m ${AVG_DURATION_SEC}s"
+          fi
+        fi
+        
+        echo "total_runs=$TOTAL_RUNS" >> $GITHUB_OUTPUT
+        echo "success_rate=$SUCCESS_RATE" >> $GITHUB_OUTPUT
+        echo "avg_duration=$AVG_DURATION" >> $GITHUB_OUTPUT
+        echo "cache_hit_rate=$CACHE_HIT_RATE" >> $GITHUB_OUTPUT
+        
+        # Get benchmark results if available
+        BENCHMARK_TOTAL="N/A"
+        BENCHMARK_STATUS_TEXT="Not Available"
+        
+        if [ -f "benchmark-results.md" ]; then
+          # Try to extract total time from benchmark results
+          BENCHMARK_TOTAL=$(grep "Total Pipeline" benchmark-results.md | grep -o '[0-9]\+s' | head -1 || echo "N/A")
+          
+          if grep -q "Excellent Performance" benchmark-results.md; then
+            BENCHMARK_STATUS_TEXT="🚀 Excellent"
+          elif grep -q "Good Performance" benchmark-results.md; then
+            BENCHMARK_STATUS_TEXT="✅ Good"
+          elif grep -q "Moderate Performance" benchmark-results.md; then
+            BENCHMARK_STATUS_TEXT="⚠️ Moderate"
+          elif grep -q "Poor Performance" benchmark-results.md; then
+            BENCHMARK_STATUS_TEXT="❌ Poor"
+          fi
+        fi
+        
+        echo "benchmark_total=$BENCHMARK_TOTAL" >> $GITHUB_OUTPUT
+        echo "benchmark_status=$BENCHMARK_STATUS_TEXT" >> $GITHUB_OUTPUT
+    
+    - name: Send Discord notification
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const webhook_url = "https://discord.com/api/webhooks/1403080159539757086/jPd738BY7oID9oQSH4VCmb3taAlJjOi_rFZZPXGztWkirhMwnqB-IwjuWnTqfS3ReZ6r";
+          
+          // Get step outputs
+          const statusEmoji = "${{ steps.prepare.outputs.status_emoji }}";
+          const statusColor = parseInt("${{ steps.prepare.outputs.status_color }}");
+          const statusText = "${{ steps.prepare.outputs.status_text }}";
+          const totalRuns = "${{ steps.prepare.outputs.total_runs }}";
+          const successRate = "${{ steps.prepare.outputs.success_rate }}";
+          const avgDuration = "${{ steps.prepare.outputs.avg_duration }}";
+          const cacheHitRate = "${{ steps.prepare.outputs.cache_hit_rate }}";
+          const benchmarkTotal = "${{ steps.prepare.outputs.benchmark_total }}";
+          const benchmarkStatus = "${{ steps.prepare.outputs.benchmark_status }}";
+          
+          // Build recommendations based on performance
+          const trend = "${{ needs.collect-metrics.outputs.performance-trend }}";
+          let recommendations = [];
+          
+          if (trend === "poor" || trend === "needs-improvement") {
+            recommendations = [
+              "🔍 **Review Failed Workflows** - Identify and fix failing jobs",
+              "⚡ **Optimize Cache Strategy** - Improve dependency caching",
+              "🏃‍♂️ **Parallelize Jobs** - Run independent tasks concurrently",
+              "📦 **Optimize Dependencies** - Review and clean up package.json",
+              "🧪 **Optimize Tests** - Parallelize or optimize slow test suites"
+            ];
+          } else if (trend === "good") {
+            recommendations = [
+              "📊 **Monitor Trends** - Keep tracking performance metrics",
+              "🔧 **Fine-tune Caching** - Optimize cache hit rates further",
+              "🚀 **Consider Upgrades** - Evaluate new GitHub Actions features"
+            ];
+          } else if (trend === "excellent") {
+            recommendations = [
+              "🎉 **Maintain Excellence** - Keep current optimization practices",
+              "📈 **Share Best Practices** - Document successful optimizations",
+              "🔄 **Regular Reviews** - Continue monitoring for regressions"
+            ];
+          }
+          
+          const embed = {
+            title: `${statusEmoji} CI/CD Performance Report`,
+            description: `**Status:** ${statusText}\n**Repository:** ${context.repo.owner}/${context.repo.repo}`,
+            color: statusColor,
+            timestamp: new Date().toISOString(),
+            fields: [
+              {
+                name: "📊 Metrics Overview",
+                value: `**Total Runs:** ${totalRuns}\n**Success Rate:** ${successRate}%\n**Avg Duration:** ${avgDuration}\n**Cache Hit Rate:** ${cacheHitRate}%`,
+                inline: true
+              },
+              {
+                name: "🏃‍♂️ Benchmark Results",
+                value: `**Status:** ${benchmarkStatus}\n**Total Time:** ${benchmarkTotal}\n**Target:** <5 minutes`,
+                inline: true
+              },
+              {
+                name: "📈 Analysis Period",
+                value: `**Range:** ${{ github.event.inputs.time_range || '7d' }}\n**Type:** ${{ github.event.inputs.metric_type || 'all' }}\n**Workflow:** #${{ github.run_number }}`,
+                inline: true
+              }
+            ],
+            footer: {
+              text: "Performance Monitoring • Auto-generated",
+              icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+            }
+          };
+          
+          // Add recommendations field if there are any
+          if (recommendations.length > 0) {
+            embed.fields.push({
+              name: "🎯 Optimization Recommendations",
+              value: recommendations.slice(0, 5).join("\n"),
+              inline: false
+            });
+          }
+          
+          // Add status indicators
+          const statusIndicators = [];
+          if (trend === "excellent" || trend === "good") {
+            statusIndicators.push("✅ Performance within targets");
+          }
+          if (trend === "needs-improvement") {
+            statusIndicators.push("⚠️ Performance degradation detected");
+          }
+          if (trend === "poor") {
+            statusIndicators.push("🚨 Critical performance issues");
+          }
+          
+          if (statusIndicators.length > 0) {
+            embed.fields.push({
+              name: "🔔 Status Alerts",
+              value: statusIndicators.join("\n"),
+              inline: false
+            });
+          }
+          
+          // Add quick actions
+          const quickActions = [
+            `[📊 View Workflow Run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+            `[📋 Download Metrics](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#artifacts)`,
+            `[🔍 Repository Actions](https://github.com/${context.repo.owner}/${context.repo.repo}/actions)`
+          ];
+          
+          embed.fields.push({
+            name: "🔗 Quick Actions",
+            value: quickActions.join(" • "),
+            inline: false
+          });
+          
+          const payload = {
+            username: "CI/CD Monitor",
+            avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+            embeds: [embed]
+          };
+          
+          try {
+            const response = await fetch(webhook_url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Discord webhook failed: ${response.status} ${response.statusText}`);
+            }
+            
+            console.log("✅ Discord notification sent successfully");
+          } catch (error) {
+            console.error("❌ Failed to send Discord notification:", error);
+            core.setFailed(`Discord notification failed: ${error.message}`);
+          }
