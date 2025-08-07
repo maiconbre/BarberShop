@@ -196,7 +196,15 @@ jobs:
     - name: Deploy to Vercel (Staging)
       id: deploy
       run: |
-        npx vercel --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --confirm
+        # Disable Vercel telemetry to avoid output issues
+        export VERCEL_TELEMETRY_DISABLED=1
+        DEPLOY_OUTPUT=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --confirm 2>&1)
+        echo "$DEPLOY_OUTPUT" | grep -v "telemetry" || true
+        DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o 'https://[^[:space:]]*' | head -1)
+        if [ -n "$DEPLOY_URL" ]; then
+          echo "staging_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to staging: $DEPLOY_URL"
+        fi
       env:
         VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -235,7 +243,15 @@ jobs:
     - name: Deploy to Vercel (Production)
       id: deploy
       run: |
-        npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --confirm
+        # Disable Vercel telemetry to avoid output issues
+        export VERCEL_TELEMETRY_DISABLED=1
+        DEPLOY_OUTPUT=$(npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --confirm 2>&1)
+        echo "$DEPLOY_OUTPUT" | grep -v "telemetry" || true
+        DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o 'https://[^[:space:]]*' | head -1)
+        if [ -n "$DEPLOY_URL" ]; then
+          echo "production_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to production: $DEPLOY_URL"
+        fi
       env:
         VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
