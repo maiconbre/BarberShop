@@ -348,11 +348,18 @@ jobs:
       run: |
         echo "🚀 Deploying to ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}..."
         
+        # Disable Vercel telemetry to avoid output issues
+        export VERCEL_TELEMETRY_DISABLED=1
+        
         if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-          DEPLOY_URL=$(npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --confirm 2>&1 | grep -o 'https://[^[:space:]]*')
+          DEPLOY_OUTPUT=$(npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --confirm 2>&1)
         else
-          DEPLOY_URL=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }} --confirm 2>&1 | grep -o 'https://[^[:space:]]*')
+          DEPLOY_OUTPUT=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }} --confirm 2>&1)
         fi
+        
+        # Filter out telemetry messages and extract URL
+        echo "$DEPLOY_OUTPUT" | grep -v "telemetry" || true
+        DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -o 'https://[^[:space:]]*' | head -1)
         
         # Validate DEPLOY_URL before writing to GITHUB_OUTPUT
         if [ -n "$DEPLOY_URL" ] && [[ "$DEPLOY_URL" =~ ^https:// ]]; then
