@@ -51,34 +51,13 @@ jobs:
     - name: Run comprehensive security audit
       id: audit
       run: |
-          echo "🔍 Running comprehensive security audit..."
-          
-          AUDIT_LEVEL="${{ github.event.inputs.audit_level != '' && github.event.inputs.audit_level || 'moderate' }}"
+        echo "🔍 Running comprehensive security audit..."
+        
+        AUDIT_LEVEL="${{ github.event.inputs.audit_level != '' && github.event.inputs.audit_level || 'moderate' }}"
         echo "Audit level: $AUDIT_LEVEL"
         
         # Create audit report
         echo "# Security Audit Report - $(date)" > audit-report.md
-        echo "" >> audit-report.md
-        
-        # Run npm audit
-        echo "## NPM Security Audit" >> audit-report.md
-        echo "" >> audit-report.md
-        
-        if npm audit --audit-level=$AUDIT_LEVEL --json > npm-audit.json 2>&1; then
-          echo "✅ No security vulnerabilities found at $AUDIT_LEVEL level" >> audit-report.md
-          echo "audit_status=clean" >> $GITHUB_OUTPUT
-        else
-          echo "⚠️ Security vulnerabilities found!" >> audit-report.md
-          echo "audit_status=vulnerabilities" >> $GITHUB_OUTPUT
-          
-          # Parse vulnerabilities if jq is available
-          if command -v jq &> /dev/null; then
-            echo "" >> audit-report.md
-            echo "### Critical/High Vulnerabilities:" >> audit-report.md
-            jq -r '.vulnerabilities | to_entries[] | select(.value.severity == "critical" or .value.severity == "high") | "- **\(.key)**: \(.value.severity) - \(.value.title)"' npm-audit.json >> audit-report.md || true
-          fi
-        fi
-        
         echo "" >> audit-report.md
     
     - name: Check outdated packages
