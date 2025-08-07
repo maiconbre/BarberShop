@@ -176,7 +176,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        build-type: ${{ github.event_name == 'pull_request' && fromJSON('["development"]') || fromJSON('["development", "production"]') }}
+        build-type: ${{ ((github.event_name == 'pull_request' && github.base_ref == 'develop') || (github.event_name == 'push' && github.ref_name == 'develop')) && fromJSON('["development"]') || fromJSON('["production"]') }}
     
     steps:
     - name: Checkout code
@@ -392,51 +392,57 @@ jobs:
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Notificação Inteligente
+  # Notificação Discord
   notify:
-    name: 📢 Notify Results
+    name: 📢 Discord Notification
     runs-on: ubuntu-latest
     needs: [detect-changes, quality-tests, smart-build, security-audit, deploy]
     if: always() && needs.detect-changes.outputs.skip-build == 'false'
     
     steps:
-    - name: Calculate workflow efficiency
+    - name: Send Discord notification
       run: |
-        echo "📊 Workflow Efficiency Report:"
-        echo "- Changes detected: ${{ needs.detect-changes.result }}"
-        echo "- Quality & Tests: ${{ needs.quality-tests.result }}"
-        echo "- Build: ${{ needs.smart-build.result }}"
-        echo "- Security: ${{ needs.security-audit.result }}"
-        echo "- Deploy: ${{ needs.deploy.result }}"
+        # Determine overall status
+        if [[ "${{ needs.quality-tests.result }}" == "failure" || 
+              "${{ needs.smart-build.result }}" == "failure" || 
+              "${{ needs.security-audit.result }}" == "failure" || 
+              "${{ needs.deploy.result }}" == "failure" ]]; then
+          STATUS="❌ FAILED"
+          COLOR=15158332
+        else
+          STATUS="✅ SUCCESS"
+          COLOR=3066993
+        fi
         
-        # Calculate skipped jobs
-        TOTAL_JOBS=5
-        SKIPPED=0
+        # Get commit info
+        COMMIT_MSG="${{ github.event.head_commit.message }}"
+        COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
+        COMMIT_URL="${{ github.event.head_commit.url }}"
         
-        if [ "${{ needs.quality-tests.result }}" = "skipped" ]; then SKIPPED=$((SKIPPED + 1)); fi
-        if [ "${{ needs.smart-build.result }}" = "skipped" ]; then SKIPPED=$((SKIPPED + 1)); fi
-        if [ "${{ needs.security-audit.result }}" = "skipped" ]; then SKIPPED=$((SKIPPED + 1)); fi
-        if [ "${{ needs.deploy.result }}" = "skipped" ]; then SKIPPED=$((SKIPPED + 1)); fi
+        # Create JSON payload
+        cat > payload.json << EOF
+        {
+          "embeds": [{
+            "title": "🚀 BarberShop CI/CD Pipeline",
+            "description": "**Status:** $STATUS\n**Branch:** \`${{ github.ref_name }}\`\n**Commit:** [\`${{ github.sha }}\`]($COMMIT_URL)\n**Author:** $COMMIT_AUTHOR\n**Message:** $COMMIT_MSG",
+            "color": $COLOR,
+            "fields": [
+              {"name": "🧪 Quality & Tests", "value": "${{ needs.quality-tests.result }}\n⏱️ Duração: ~2-3min", "inline": true},
+              {"name": "🔨 Build", "value": "${{ needs.smart-build.result }}\n⏱️ Duração: ~1-2min", "inline": true},
+              {"name": "🚀 Deploy", "value": "${{ needs.deploy.result }}\n⏱️ Duração: ~30s", "inline": true},
+              {"name": "🔍 Security Audit", "value": "${{ needs.security-audit.result }}\n🛡️ Vulnerabilidades verificadas", "inline": true},
+              {"name": "📊 Change Detection", "value": "${{ needs.detect-changes.result }}\n🎯 Smart CI ativo", "inline": true},
+              {"name": "🔗 Links Úteis", "value": "[📋 Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n[📁 Repository](${{ github.server_url }}/${{ github.repository }})", "inline": true}
+            ],
+            "footer": {
+              "text": "BarberShop CI/CD • Run #${{ github.run_number }}"
+            },
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+          }]
+        }
+        EOF
         
-        EFFICIENCY=$((SKIPPED * 100 / TOTAL_JOBS))
-        echo "⚡ Efficiency: ${EFFICIENCY}% of jobs were intelligently skipped"
-    
-    - name: Success notification
-      if: |
-        needs.quality-tests.result == 'success' && 
-        (needs.smart-build.result == 'success' || needs.smart-build.result == 'skipped') &&
-        (needs.security-audit.result == 'success' || needs.security-audit.result == 'skipped')
-      run: |
-        echo "✅ **Pipeline Success!**"
-        echo "All critical checks passed. Ready for review/deployment."
-    
-    - name: Failure notification
-      if: |
-        needs.quality-tests.result == 'failure' || 
-        needs.smart-build.result == 'failure' || 
-        needs.security-audit.result == 'failure' ||
-        needs.deploy.result == 'failure'
-      run: |
-        echo "❌ **Pipeline Failed!**"
-        echo "Please check the failed jobs and fix the issues."
-        exit 1
+        # Send webhook
+        curl -H "Content-Type: application/json" \
+             -d @payload.json \
+             https://discord.com/api/webhooks/1403080159539757086/jPd738BY7oID9oQSH4VCmb3taAlJjOi_rFZZPXGztWkirhMwnqB-IwjuWnTqfS3ReZ6r
