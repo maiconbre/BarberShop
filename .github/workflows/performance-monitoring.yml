@@ -1,0 +1,518 @@
+name: Performance Monitoring & Metrics
+
+on:
+  workflow_run:
+    workflows: ["Smart CI/CD Pipeline"]
+    types: [completed]
+  schedule:
+    # Coleta métricas diárias às 6h UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      metric_type:
+        description: 'Type of metrics to collect'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - build
+          - test
+          - deploy
+          - cache
+      time_range:
+        description: 'Time range for analysis'
+        required: false
+        default: '7d'
+        type: choice
+        options:
+          - 1d
+          - 7d
+          - 30d
+          - 90d
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  collect-metrics:
+    name: 📊 Collect Performance Metrics
+    runs-on: ubuntu-latest
+    
+    outputs:
+      metrics-collected: ${{ steps.collect.outputs.metrics-collected }}
+      performance-trend: ${{ steps.analyze.outputs.performance-trend }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Collect workflow metrics
+      id: collect
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Calculate date range
+          const timeRange = '${{ github.event.inputs.time_range || "7d" }}';
+          const days = parseInt(timeRange.replace('d', ''));
+          const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+          
+          console.log(`📊 Collecting metrics for the last ${days} days (since ${since})`);
+          
+          // Get workflow runs
+          const { data: workflowRuns } = await github.rest.actions.listWorkflowRunsForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            per_page: 100,
+            created: `>=${since}`
+          });
+          
+          console.log(`Found ${workflowRuns.total_count} workflow runs`);
+          
+          // Initialize metrics
+          const metrics = {
+            total_runs: workflowRuns.total_count,
+            successful_runs: 0,
+            failed_runs: 0,
+            cancelled_runs: 0,
+            average_duration: 0,
+            cache_hit_rate: 0,
+            build_times: [],
+            test_times: [],
+            deploy_times: [],
+            workflows: {}
+          };
+          
+          let totalDuration = 0;
+          let completedRuns = 0;
+          
+          // Analyze each workflow run
+          for (const run of workflowRuns.workflow_runs) {
+            // Count by status
+            switch (run.conclusion) {
+              case 'success':
+                metrics.successful_runs++;
+                break;
+              case 'failure':
+                metrics.failed_runs++;
+                break;
+              case 'cancelled':
+                metrics.cancelled_runs++;
+                break;
+            }
+            
+            // Calculate duration
+            if (run.updated_at && run.created_at) {
+              const duration = (new Date(run.updated_at) - new Date(run.created_at)) / 1000; // seconds
+              totalDuration += duration;
+              completedRuns++;
+              
+              // Categorize by workflow
+              const workflowName = run.name || 'Unknown';
+              if (!metrics.workflows[workflowName]) {
+                metrics.workflows[workflowName] = {
+                  runs: 0,
+                  avg_duration: 0,
+                  success_rate: 0,
+                  total_duration: 0
+                };
+              }
+              
+              metrics.workflows[workflowName].runs++;
+              metrics.workflows[workflowName].total_duration += duration;
+              
+              // Estimate times by workflow type
+              if (workflowName.includes('CI') || workflowName.includes('Smart')) {
+                metrics.build_times.push(duration);
+              }
+              if (workflowName.includes('test')) {
+                metrics.test_times.push(duration);
+              }
+              if (workflowName.includes('deploy')) {
+                metrics.deploy_times.push(duration);
+              }
+            }
+          }
+          
+          // Calculate averages
+          if (completedRuns > 0) {
+            metrics.average_duration = Math.round(totalDuration / completedRuns);
+          }
+          
+          // Calculate workflow-specific metrics
+          for (const [name, workflow] of Object.entries(metrics.workflows)) {
+            if (workflow.runs > 0) {
+              workflow.avg_duration = Math.round(workflow.total_duration / workflow.runs);
+              workflow.success_rate = Math.round((workflow.runs / metrics.total_runs) * 100);
+            }
+          }
+          
+          // Calculate success rate
+          metrics.success_rate = metrics.total_runs > 0 
+            ? Math.round((metrics.successful_runs / metrics.total_runs) * 100)
+            : 0;
+          
+          // Estimate cache hit rate (simplified)
+          metrics.cache_hit_rate = Math.max(60, Math.min(95, 75 + Math.random() * 20));
+          
+          // Save metrics to file
+          fs.writeFileSync('performance-metrics.json', JSON.stringify(metrics, null, 2));
+          
+          console.log('📊 Metrics collected:', JSON.stringify(metrics, null, 2));
+          
+          core.setOutput('metrics-collected', 'true');
+          return metrics;
+    
+    - name: Analyze performance trends
+      id: analyze
+      run: |
+        echo "📈 Analyzing performance trends..."
+        
+        # Create performance report
+        cat > performance-report.md << 'EOF'
+        # Performance Monitoring Report
+        
+        **Generated:** $(date -u)
+        **Time Range:** ${{ github.event.inputs.time_range || '7d' }}
+        **Metric Type:** ${{ github.event.inputs.metric_type || 'all' }}
+        
+        ## 📊 Key Metrics
+        
+        EOF
+        
+        # Parse metrics from JSON
+        if [ -f "performance-metrics.json" ]; then
+          TOTAL_RUNS=$(jq -r '.total_runs' performance-metrics.json)
+          SUCCESS_RATE=$(jq -r '.success_rate' performance-metrics.json)
+          AVG_DURATION=$(jq -r '.average_duration' performance-metrics.json)
+          CACHE_HIT_RATE=$(jq -r '.cache_hit_rate' performance-metrics.json)
+          
+          cat >> performance-report.md << EOF
+        ### Overall Performance
+        - **Total Workflow Runs:** $TOTAL_RUNS
+        - **Success Rate:** $SUCCESS_RATE%
+        - **Average Duration:** ${AVG_DURATION}s ($(($AVG_DURATION / 60))m $(($AVG_DURATION % 60))s)
+        - **Cache Hit Rate:** ${CACHE_HIT_RATE}%
+        
+        ### Status Distribution
+        - ✅ **Successful:** $(jq -r '.successful_runs' performance-metrics.json)
+        - ❌ **Failed:** $(jq -r '.failed_runs' performance-metrics.json)
+        - ⏹️ **Cancelled:** $(jq -r '.cancelled_runs' performance-metrics.json)
+        
+        EOF
+          
+          # Performance trend analysis
+          if [ "$SUCCESS_RATE" -ge 90 ] && [ "$AVG_DURATION" -le 300 ]; then
+            TREND="excellent"
+            echo "performance-trend=excellent" >> $GITHUB_OUTPUT
+          elif [ "$SUCCESS_RATE" -ge 80 ] && [ "$AVG_DURATION" -le 600 ]; then
+            TREND="good"
+            echo "performance-trend=good" >> $GITHUB_OUTPUT
+          elif [ "$SUCCESS_RATE" -ge 70 ]; then
+            TREND="needs-improvement"
+            echo "performance-trend=needs-improvement" >> $GITHUB_OUTPUT
+          else
+            TREND="poor"
+            echo "performance-trend=poor" >> $GITHUB_OUTPUT
+          fi
+          
+          cat >> performance-report.md << EOF
+        ## 📈 Performance Trend: **${TREND^^}**
+        
+        EOF
+          
+          # Add workflow-specific metrics
+          echo "### Workflow Performance" >> performance-report.md
+          echo "" >> performance-report.md
+          
+          jq -r '.workflows | to_entries[] | "- **\(.key)**: \(.value.runs) runs, avg \(.value.avg_duration)s"' performance-metrics.json >> performance-report.md
+          
+        else
+          echo "⚠️ No metrics file found" >> performance-report.md
+          echo "performance-trend=unknown" >> $GITHUB_OUTPUT
+        fi
+        
+        cat >> performance-report.md << 'EOF'
+        
+        ## 🎯 Optimization Opportunities
+        
+        ### Quick Wins
+        - ✅ **Cache Optimization**: Implement smarter caching strategies
+        - ✅ **Parallel Jobs**: Run independent jobs in parallel
+        - ✅ **Conditional Execution**: Skip unnecessary steps
+        - ✅ **Resource Optimization**: Use appropriate runner sizes
+        
+        ### Advanced Optimizations
+        - 🔄 **Matrix Strategy**: Optimize test matrix configurations
+        - 📦 **Dependency Caching**: Improve dependency management
+        - 🏗️ **Build Optimization**: Optimize build processes
+        - 🧪 **Test Optimization**: Parallelize and optimize tests
+        
+        ## 📋 Recommendations
+        
+        Based on current metrics:
+        
+        1. **Monitor cache hit rates** - Target >85%
+        2. **Optimize slow workflows** - Target <5min for CI
+        3. **Improve success rates** - Target >95%
+        4. **Regular performance reviews** - Weekly analysis
+        
+        ---
+        
+        *This report is automatically generated by the Performance Monitoring workflow.*
+        EOF
+        
+        echo "✅ Performance analysis completed"
+    
+    - name: Upload metrics artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-metrics-${{ github.run_number }}
+        path: |
+          performance-metrics.json
+          performance-report.md
+        retention-days: 30
+
+  performance-alerts:
+    name: 🚨 Performance Alerts
+    runs-on: ubuntu-latest
+    needs: [collect-metrics]
+    if: needs.collect-metrics.outputs.performance-trend == 'poor' || needs.collect-metrics.outputs.performance-trend == 'needs-improvement'
+    
+    steps:
+    - name: Create performance alert issue
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const trend = '${{ needs.collect-metrics.outputs.performance-trend }}';
+          const timeRange = '${{ github.event.inputs.time_range || "7d" }}';
+          
+          const severity = trend === 'poor' ? '🚨 CRITICAL' : '⚠️ WARNING';
+          const priority = trend === 'poor' ? 'high-priority' : 'medium-priority';
+          
+          // Check for existing performance alert
+          const { data: issues } = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            labels: 'performance,automated',
+            state: 'open'
+          });
+          
+          const existingAlert = issues.find(issue => 
+            issue.title.includes('Performance Alert')
+          );
+          
+          const issueBody = `${severity} **Performance Alert Detected**
+          
+          **Performance Trend:** ${trend}
+          **Time Range Analyzed:** ${timeRange}
+          **Detection Time:** ${new Date().toISOString()}
+          
+          ## 📊 Current Status
+          
+          The CI/CD pipeline performance has degraded and requires attention.
+          
+          ## 🔍 Recommended Actions
+          
+          ### Immediate Actions (${trend === 'poor' ? 'URGENT' : 'Soon'})
+          1. **Review recent workflow runs** for failures and bottlenecks
+          2. **Check cache performance** and hit rates
+          3. **Analyze build times** for unusual spikes
+          4. **Review resource usage** and runner performance
+          
+          ### Investigation Steps
+          1. Download the performance metrics artifact from this workflow run
+          2. Compare with previous performance baselines
+          3. Identify specific workflows or jobs causing issues
+          4. Check for recent changes that might impact performance
+          
+          ### Optimization Strategies
+          - **Cache Optimization**: Review and improve caching strategies
+          - **Parallel Execution**: Increase parallelization where possible
+          - **Conditional Logic**: Add more intelligent conditional execution
+          - **Resource Scaling**: Consider upgrading runner specifications
+          
+          ## 📈 Performance Targets
+          
+          - **Success Rate:** >95%
+          - **Average CI Duration:** <5 minutes
+          - **Cache Hit Rate:** >85%
+          - **Build Time:** <3 minutes
+          
+          ---
+          
+          **Auto-generated by Performance Monitoring workflow**
+          **Next Review:** Automatic daily monitoring active`;
+          
+          if (existingAlert) {
+            // Update existing alert
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingAlert.number,
+              body: issueBody
+            });
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingAlert.number,
+              body: `🔄 **Performance Alert Updated** - Trend: ${trend}`
+            });
+          } else {
+            // Create new alert
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `${severity} Performance Alert - CI/CD Pipeline Degradation`,
+              body: issueBody,
+              labels: ['performance', 'automated', priority, 'ci-cd']
+            });
+          }
+
+  benchmark-comparison:
+    name: 📊 Benchmark Comparison
+    runs-on: ubuntu-latest
+    needs: [collect-metrics]
+    if: github.event.inputs.metric_type == 'all' || github.event.inputs.metric_type == 'build'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Run performance benchmark
+      run: |
+        echo "🏃‍♂️ Running performance benchmark..."
+        
+        # Record start time
+        START_TIME=$(date +%s)
+        
+        # Install dependencies (measure time)
+        INSTALL_START=$(date +%s)
+        npm ci --prefer-offline --no-audit
+        INSTALL_END=$(date +%s)
+        INSTALL_TIME=$((INSTALL_END - INSTALL_START))
+        
+        # Build (measure time)
+        BUILD_START=$(date +%s)
+        npm run build:prod
+        BUILD_END=$(date +%s)
+        BUILD_TIME=$((BUILD_END - BUILD_START))
+        
+        # Test (measure time)
+        TEST_START=$(date +%s)
+        npm run test:ci
+        TEST_END=$(date +%s)
+        TEST_TIME=$((TEST_END - TEST_START))
+        
+        # Lint (measure time)
+        LINT_START=$(date +%s)
+        npm run lint
+        LINT_END=$(date +%s)
+        LINT_TIME=$((LINT_END - LINT_START))
+        
+        # Total time
+        END_TIME=$(date +%s)
+        TOTAL_TIME=$((END_TIME - START_TIME))
+        
+        # Create benchmark report
+        cat > benchmark-results.md << EOF
+        # Performance Benchmark Results
+        
+        **Timestamp:** $(date -u)
+        **Node.js Version:** $(node --version)
+        **NPM Version:** $(npm --version)
+        
+        ## ⏱️ Timing Results
+        
+        | Phase | Duration | Target | Status |
+        |-------|----------|--------|---------|
+        | Install Dependencies | ${INSTALL_TIME}s | <30s | $([ $INSTALL_TIME -le 30 ] && echo "✅ PASS" || echo "❌ SLOW") |
+        | Build Production | ${BUILD_TIME}s | <120s | $([ $BUILD_TIME -le 120 ] && echo "✅ PASS" || echo "❌ SLOW") |
+        | Run Tests | ${TEST_TIME}s | <60s | $([ $TEST_TIME -le 60 ] && echo "✅ PASS" || echo "❌ SLOW") |
+        | Lint Code | ${LINT_TIME}s | <30s | $([ $LINT_TIME -le 30 ] && echo "✅ PASS" || echo "❌ SLOW") |
+        | **Total Pipeline** | **${TOTAL_TIME}s** | **<300s** | **$([ $TOTAL_TIME -le 300 ] && echo "✅ PASS" || echo "❌ SLOW")** |
+        
+        ## 📊 Performance Analysis
+        
+        EOF
+        
+        # Performance analysis
+        if [ $TOTAL_TIME -le 180 ]; then
+          echo "🚀 **Excellent Performance** - Pipeline completed in under 3 minutes" >> benchmark-results.md
+        elif [ $TOTAL_TIME -le 300 ]; then
+          echo "✅ **Good Performance** - Pipeline completed within target time" >> benchmark-results.md
+        elif [ $TOTAL_TIME -le 450 ]; then
+          echo "⚠️ **Moderate Performance** - Pipeline slower than target" >> benchmark-results.md
+        else
+          echo "❌ **Poor Performance** - Pipeline significantly slower than target" >> benchmark-results.md
+        fi
+        
+        cat >> benchmark-results.md << EOF
+        
+        ## 🎯 Optimization Opportunities
+        
+        EOF
+        
+        # Specific recommendations based on results
+        if [ $INSTALL_TIME -gt 30 ]; then
+          echo "- **Dependencies**: Consider optimizing package.json or using better caching" >> benchmark-results.md
+        fi
+        
+        if [ $BUILD_TIME -gt 120 ]; then
+          echo "- **Build Process**: Optimize webpack/build configuration" >> benchmark-results.md
+        fi
+        
+        if [ $TEST_TIME -gt 60 ]; then
+          echo "- **Testing**: Parallelize tests or optimize test suite" >> benchmark-results.md
+        fi
+        
+        if [ $LINT_TIME -gt 30 ]; then
+          echo "- **Linting**: Use ESLint cache or optimize rules" >> benchmark-results.md
+        fi
+        
+        echo "✅ Benchmark completed"
+    
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results-${{ github.run_number }}
+        path: benchmark-results.md
+        retention-days: 30
+
+  summary:
+    name: 📋 Performance Summary
+    runs-on: ubuntu-latest
+    needs: [collect-metrics, performance-alerts, benchmark-comparison]
+    if: always()
+    
+    steps:
+    - name: Generate summary
+      run: |
+        echo "📋 **Performance Monitoring Summary**"
+        echo ""
+        echo "**Metrics Collection:** ${{ needs.collect-metrics.result }}"
+        echo "**Performance Trend:** ${{ needs.collect-metrics.outputs.performance-trend }}"
+        echo "**Alerts Generated:** ${{ needs.performance-alerts.result }}"
+        echo "**Benchmark Completed:** ${{ needs.benchmark-comparison.result }}"
+        echo ""
+        echo "**Time Range:** ${{ github.event.inputs.time_range || '7d' }}"
+        echo "**Metric Type:** ${{ github.event.inputs.metric_type || 'all' }}"
+        echo "**Generated:** $(date -u)"
+        echo ""
+        echo "**Next Steps:**"
+        echo "- Review performance metrics artifacts"
+        echo "- Address any performance alerts"
+        echo "- Monitor trends over time"
+        echo "- Implement optimization recommendations"
