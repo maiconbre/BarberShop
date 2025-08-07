@@ -277,8 +277,8 @@ jobs:
       run: |
         echo "📋 **Cache Management Summary**"
         echo ""
-        echo "**Action performed:** ${{ github.event.inputs.action || 'cleanup' }}"
-        echo "**Cache type:** ${{ github.event.inputs.cache_type || 'all' }}"
+        echo "**Action performed:** ${{ github.event.inputs.action != '' && github.event.inputs.action || 'cleanup' }}"
+          echo "**Cache type:** ${{ github.event.inputs.cache_type != '' && github.event.inputs.cache_type || 'all' }}"
         echo "**Timestamp:** $(date -u)"
         echo ""
         

@@ -186,6 +186,23 @@ time_range: '7d'          # 1d, 7d, 30d, 90d
 - ⚡ **Cache inefficiency** - Relatórios de otimização
 - 📊 **Build failures** - Notificações imediatas
 
+## 📁 Estrutura dos Arquivos
+
+```
+.github/
+├── workflows/
+│   ├── smart-ci.yml              # 🚀 Pipeline principal otimizada
+│   ├── docs.yml                  # 📚 Workflow de documentação
+│   ├── scheduled-audit.yml       # 🔒 Auditoria de segurança agendada
+│   ├── performance-monitoring.yml # 📊 Monitoramento de performance
+│   ├── cache-management.yml      # 🗄️ Gerenciamento de cache
+│   ├── ci.yml                   # 🔄 Pipeline legado (obsoleto)
+│   ├── pr-checks.yml            # ✅ Checks de PR legados (obsoletos)
+│   └── README.md                # 📖 Esta documentação
+└── config/
+    └── config.yml               # ⚙️ Configurações centralizadas
+```
+
 ## 🔧 Configuração e Customização
 
 ### Variáveis de Ambiente

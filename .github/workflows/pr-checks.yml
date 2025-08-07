@@ -70,9 +70,9 @@ jobs:
     steps:
     - name: ⚠️ Legacy PR checks warning
       run: |
-        echo "⚠️ Running LEGACY PR Quality Checks"
-        echo "Consider using smart-ci.yml for better performance"
-        echo "PR Number: ${{ github.event.inputs.pr_number || 'Manual trigger' }}"
+          echo "⚠️ Running LEGACY PR Quality Checks"
+          echo "Consider using smart-ci.yml for better performance"
+          echo "PR Number: ${{ github.event.inputs.pr_number != '' && github.event.inputs.pr_number || 'Manual trigger' }}"
     
     - name: Checkout code
       uses: actions/checkout@v4

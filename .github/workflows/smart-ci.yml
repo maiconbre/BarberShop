@@ -176,11 +176,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        build-type: ${{ 
-          github.event_name == 'pull_request' && 
-          fromJSON('["development"]') || 
-          fromJSON('["development", "production"]') 
-        }}
+        build-type: ${{ github.event_name == 'pull_request' && fromJSON('["development"]') || fromJSON('["development", "production"]') }}
     
     steps:
     - name: Checkout code

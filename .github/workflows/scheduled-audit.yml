@@ -51,9 +51,9 @@ jobs:
     - name: Run comprehensive security audit
       id: audit
       run: |
-        echo "🔍 Running comprehensive security audit..."
-        
-        AUDIT_LEVEL="${{ github.event.inputs.audit_level || 'moderate' }}"
+          echo "🔍 Running comprehensive security audit..."
+          
+          AUDIT_LEVEL="${{ github.event.inputs.audit_level != '' && github.event.inputs.audit_level || 'moderate' }}"
         echo "Audit level: $AUDIT_LEVEL"
         
         # Create audit report
@@ -212,7 +212,7 @@ jobs:
           4. Test the application after updates
           
           **Auto-generated on:** ${new Date().toISOString()}
-          **Audit Level:** ${{ github.event.inputs.audit_level || 'moderate' }}`;
+          **Audit Level:** ${{ github.event.inputs.audit_level != '' && github.event.inputs.audit_level || 'moderate' }}`;
           
           if (existingIssue) {
             // Update existing issue
