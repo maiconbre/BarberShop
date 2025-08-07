@@ -36,7 +36,7 @@ const LoginPage: React.FC = () => {
       if (result) {
         navigate('/dashboard', { replace: true });
       } else {
-        setError('username ou senha incorretos');
+        setError('user ou senha incorretos');
       }
     } catch (err: unknown) {
       console.error('Erro durante o login:', err);
