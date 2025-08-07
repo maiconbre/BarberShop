@@ -414,18 +414,29 @@ jobs:
           COLOR=3066993
         fi
         
+        # Get commit info
+        COMMIT_MSG="${{ github.event.head_commit.message }}"
+        COMMIT_AUTHOR="${{ github.event.head_commit.author.name }}"
+        COMMIT_URL="${{ github.event.head_commit.url }}"
+        
         # Create JSON payload
         cat > payload.json << EOF
         {
           "embeds": [{
-            "title": "🚀 BarberGR CI/CD Pipeline",
-            "description": "**Status:** $STATUS\n**Branch:** ${{ github.ref_name }}\n**Commit:** ${{ github.sha }}",
+            "title": "🚀 BarberShop CI/CD Pipeline",
+            "description": "**Status:** $STATUS\n**Branch:** \`${{ github.ref_name }}\`\n**Commit:** [\`${{ github.sha }}\`]($COMMIT_URL)\n**Author:** $COMMIT_AUTHOR\n**Message:** $COMMIT_MSG",
             "color": $COLOR,
             "fields": [
-              {"name": "Quality & Tests", "value": "${{ needs.quality-tests.result }}", "inline": true},
-              {"name": "Build", "value": "${{ needs.smart-build.result }}", "inline": true},
-              {"name": "Deploy", "value": "${{ needs.deploy.result }}", "inline": true}
+              {"name": "🧪 Quality & Tests", "value": "${{ needs.quality-tests.result }}\n⏱️ Duração: ~2-3min", "inline": true},
+              {"name": "🔨 Build", "value": "${{ needs.smart-build.result }}\n⏱️ Duração: ~1-2min", "inline": true},
+              {"name": "🚀 Deploy", "value": "${{ needs.deploy.result }}\n⏱️ Duração: ~30s", "inline": true},
+              {"name": "🔍 Security Audit", "value": "${{ needs.security-audit.result }}\n🛡️ Vulnerabilidades verificadas", "inline": true},
+              {"name": "📊 Change Detection", "value": "${{ needs.detect-changes.result }}\n🎯 Smart CI ativo", "inline": true},
+              {"name": "🔗 Links Úteis", "value": "[📋 Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n[📁 Repository](${{ github.server_url }}/${{ github.repository }})", "inline": true}
             ],
+            "footer": {
+              "text": "BarberShop CI/CD • Run #${{ github.run_number }}"
+            },
             "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
           }]
         }
