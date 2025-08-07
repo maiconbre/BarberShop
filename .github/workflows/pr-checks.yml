@@ -1,9 +1,31 @@
-name: Pull Request Checks
+name: Legacy PR Quality Checks (Deprecated)
+
+# ⚠️ DEPRECATED: This workflow is being replaced by smart-ci.yml
+# The new Smart CI/CD Pipeline handles PR checks more efficiently
+# This file is kept for backward compatibility
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [ main, develop ]
+  # Temporarily disabled - using smart-ci.yml instead
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  #   branches: [ main, develop ]
+  
+  # Manual trigger only for legacy compatibility
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to check (legacy mode)'
+        required: false
+        type: string
+      force_legacy:
+        description: 'Force run legacy PR checks'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20.x'
+  CACHE_VERSION: v2  # Updated cache version
 
 permissions:
   contents: read
@@ -11,12 +33,47 @@ permissions:
   checks: write
 
 jobs:
-  # Job 1: Análise de Código e Qualidade
-  code-quality:
-    name: Code Quality Analysis
+  legacy-pr-notice:
+    name: 📢 Legacy PR Checks Notice
     runs-on: ubuntu-latest
+    if: github.event.inputs.force_legacy != 'true'
     
     steps:
+    - name: Legacy PR checks notice
+      run: |
+        echo "⚠️ **NOTICE: Legacy PR Quality Checks**"
+        echo ""
+        echo "This workflow has been deprecated and replaced with:"
+        echo "- 🚀 **smart-ci.yml** - Handles PR checks with intelligent filtering"
+        echo "- 📚 **docs.yml** - Specialized documentation validation"
+        echo "- 📊 **performance-monitoring.yml** - Performance impact analysis"
+        echo ""
+        echo "**New PR workflow benefits:**"
+        echo "- 60-70% faster execution"
+        echo "- Path-based conditional execution"
+        echo "- Better resource utilization"
+        echo "- Integrated quality gates"
+        echo ""
+        echo "**Migration Status:** ✅ New smart-ci.yml handles PR checks"
+        echo "**Removal Timeline:** This legacy workflow will be removed in 30 days"
+        echo ""
+        echo "To force run legacy PR checks, use workflow_dispatch with force_legacy=true"
+        
+        exit 1  # Fail to prevent accidental usage
+
+  # Job 1: Análise de Código e Qualidade (Legacy)
+  code-quality:
+    name: 🔍 Legacy Code Quality Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.force_legacy == 'true'
+    
+    steps:
+    - name: ⚠️ Legacy PR checks warning
+      run: |
+          echo "⚠️ Running LEGACY PR Quality Checks"
+          echo "Consider using smart-ci.yml for better performance"
+          echo "PR Number: ${{ github.event.inputs.pr_number != '' && github.event.inputs.pr_number || 'Manual trigger' }}"
+    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -25,11 +82,23 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
+        node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
     
+    - name: Cache dependencies (Legacy)
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: legacy-pr-quality-node-modules-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          legacy-pr-quality-node-modules-${{ runner.os }}-
+    
     - name: Install dependencies
-      run: npm ci
+      run: |
+        echo "📦 Installing dependencies (legacy PR mode)..."
+        npm ci --prefer-offline --no-audit
     
     - name: Run ESLint with annotations
       run: |

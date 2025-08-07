@@ -1,0 +1,425 @@
+# 🎛️ Workflow Configuration
+# Configurações centralizadas para todos os workflows otimizados
+# Este arquivo serve como referência e documentação das configurações
+
+# ⚙️ Global Settings
+global:
+  node_version: '20.x'
+  cache_version: 'v2'
+  timeout_minutes: 30
+  retention_days: 30
+  
+  # Performance targets
+  performance_targets:
+    max_ci_duration: 300      # 5 minutes
+    max_build_duration: 180   # 3 minutes
+    max_test_duration: 120    # 2 minutes
+    min_success_rate: 95      # 95%
+    min_cache_hit_rate: 85    # 85%
+
+# 🚀 Smart CI/CD Configuration
+smart_ci:
+  # Path filtering patterns
+  paths:
+    source_code:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+    
+    dependencies:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+    
+    configuration:
+      - 'vite.config.*'
+      - 'tsconfig.json'
+      - '.eslintrc*'
+      - 'tailwind.config.*'
+    
+    documentation:
+      - '*.md'
+      - 'docs/**'
+      - 'README*'
+    
+    workflows:
+      - '.github/**'
+    
+    tests:
+      - 'tests/**'
+      - '**/*.test.*'
+      - '**/*.spec.*'
+      - 'jest.config.*'
+      - 'vitest.config.*'
+  
+  # Job execution matrix
+  matrix:
+    node_versions: ['20.x']  # Single version for performance
+    os: ['ubuntu-latest']    # Single OS for consistency
+  
+  # Cache strategies
+  cache:
+    npm:
+      key_pattern: 'node-modules-smart-{os}-{hash}'
+      paths:
+        - '~/.npm'
+        - 'node_modules'
+      restore_keys:
+        - 'node-modules-smart-{os}-'
+        - 'node-modules-{os}-'
+    
+    build:
+      key_pattern: 'build-cache-smart-{os}-{sha}'
+      paths:
+        - 'dist'
+        - '.cache'
+        - 'node_modules/.cache'
+      restore_keys:
+        - 'build-cache-smart-{os}-'
+    
+    eslint:
+      key_pattern: 'eslint-cache-smart-{os}-{hash}'
+      paths:
+        - '.eslintcache'
+        - 'node_modules/.cache/eslint'
+      restore_keys:
+        - 'eslint-cache-smart-{os}-'
+  
+  # Conditional execution rules
+  conditions:
+    quality_checks:
+      - 'source_code'
+      - 'configuration'
+      - 'tests'
+    
+    build_required:
+      - 'source_code'
+      - 'dependencies'
+      - 'configuration'
+    
+    security_audit:
+      - 'dependencies'
+      - 'workflows'
+    
+    deploy_staging:
+      branch: 'develop'
+      event: 'push'
+      required_jobs: ['quality', 'build', 'security']
+    
+    deploy_production:
+      branch: 'main'
+      event: 'push'
+      required_jobs: ['quality', 'build', 'security']
+
+# 📚 Documentation Workflow Configuration
+docs:
+  # File patterns for documentation
+  patterns:
+    markdown:
+      - '*.md'
+      - '**/*.md'
+    
+    documentation:
+      - 'docs/**'
+      - 'README*'
+      - 'CHANGELOG*'
+      - 'CONTRIBUTING*'
+      - 'LICENSE*'
+  
+  # Validation rules
+  validation:
+    link_check: true
+    markdown_lint: true
+    spell_check: false  # Disabled for performance
+    format_check: true
+  
+  # Metrics collection
+  metrics:
+    word_count: true
+    readability: true
+    coverage: true
+
+# 🔒 Security Audit Configuration
+security:
+  # Audit schedule
+  schedule:
+    cron: '0 2 * * 1'  # Every Monday at 2 AM UTC
+    timezone: 'UTC'
+  
+  # Audit levels
+  levels:
+    low: ['info']
+    moderate: ['info', 'low']
+    high: ['info', 'low', 'moderate']
+    critical: ['info', 'low', 'moderate', 'high']
+  
+  # Auto-fix settings
+  auto_fix:
+    enabled: false  # Disabled by default for safety
+    max_severity: 'moderate'
+    create_pr: true
+    auto_merge: false
+  
+  # License compliance
+  license_check:
+    enabled: true
+    allowed_licenses:
+      - 'MIT'
+      - 'Apache-2.0'
+      - 'BSD-3-Clause'
+      - 'ISC'
+    
+    prohibited_licenses:
+      - 'GPL*'
+      - 'AGPL*'
+      - 'LGPL*'
+      - 'CPAL*'
+      - 'EPL*'
+  
+  # Issue management
+  issue_management:
+    auto_create: true
+    labels: ['security', 'automated', 'high-priority']
+    assignees: []  # Add team members if needed
+    auto_close: false
+
+# 📊 Performance Monitoring Configuration
+performance:
+  # Monitoring schedule
+  schedule:
+    daily_metrics: '0 6 * * *'  # 6 AM UTC daily
+    weekly_report: '0 8 * * 1'  # 8 AM UTC Monday
+  
+  # Metrics collection
+  metrics:
+    workflow_runs: true
+    build_times: true
+    test_duration: true
+    cache_hit_rates: true
+    success_rates: true
+    resource_usage: true
+  
+  # Alert thresholds
+  alerts:
+    success_rate_threshold: 90      # Below 90%
+    avg_duration_threshold: 600     # Above 10 minutes
+    cache_hit_threshold: 70         # Below 70%
+    failure_streak_threshold: 3     # 3 consecutive failures
+  
+  # Benchmark targets
+  benchmarks:
+    install_time: 30    # seconds
+    build_time: 120     # seconds
+    test_time: 60       # seconds
+    lint_time: 30       # seconds
+    total_time: 300     # seconds
+  
+  # Trend analysis
+  trends:
+    analysis_period: '7d'   # 7 days
+    comparison_period: '30d' # 30 days
+    trend_threshold: 20     # 20% change
+
+# 🗄️ Cache Management Configuration
+cache:
+  # Management schedule
+  schedule:
+    cleanup: '0 3 * * 5'    # Friday 3 AM UTC
+    analysis: '0 4 * * 1'   # Monday 4 AM UTC
+    warming: '0 1 * * 1'    # Monday 1 AM UTC
+  
+  # Cache types
+  types:
+    npm:
+      size_limit: '500MB'
+      retention: '7d'
+      cleanup_threshold: '80%'
+    
+    build:
+      size_limit: '300MB'
+      retention: '3d'
+      cleanup_threshold: '75%'
+    
+    eslint:
+      size_limit: '50MB'
+      retention: '7d'
+      cleanup_threshold: '70%'
+    
+    test:
+      size_limit: '150MB'
+      retention: '5d'
+      cleanup_threshold: '75%'
+  
+  # Optimization strategies
+  optimization:
+    content_based_keys: true
+    fallback_keys: true
+    compression: true
+    parallel_restore: true
+  
+  # Monitoring
+  monitoring:
+    hit_rate_tracking: true
+    size_monitoring: true
+    performance_impact: true
+    cleanup_reporting: true
+
+# 🔄 Legacy Workflow Management
+legacy:
+  # Deprecation timeline
+  deprecation:
+    warning_period: '30d'
+    removal_date: '2024-02-01'  # Adjust as needed
+    migration_guide: '.github/workflows/README.md'
+  
+  # Legacy workflows
+  workflows:
+    ci_yml:
+      status: 'deprecated'
+      replacement: 'smart-ci.yml'
+      force_trigger: 'workflow_dispatch'
+    
+    pr_checks_yml:
+      status: 'deprecated'
+      replacement: 'smart-ci.yml'
+      force_trigger: 'workflow_dispatch'
+  
+  # Migration tracking
+  migration:
+    smart_ci_active: true
+    docs_workflow_active: true
+    security_audit_active: true
+    performance_monitoring_active: true
+    cache_management_active: true
+
+# 🎯 Optimization Targets
+optimization:
+  # Performance improvements
+  targets:
+    execution_time_reduction: '60-70%'
+    resource_usage_reduction: '50%'
+    cache_hit_improvement: '+45%'
+    feedback_time_reduction: '75%'
+    unnecessary_executions_reduction: '70%'
+  
+  # Quality metrics
+  quality:
+    code_coverage: '80%'
+    test_success_rate: '98%'
+    build_success_rate: '95%'
+    security_score: 'A+'
+  
+  # Efficiency metrics
+  efficiency:
+    parallel_job_utilization: '80%'
+    cache_utilization: '85%'
+    resource_optimization: '90%'
+    workflow_specialization: '100%'
+
+# 📋 Maintenance
+maintenance:
+  # Regular tasks
+  tasks:
+    weekly_review: true
+    monthly_optimization: true
+    quarterly_audit: true
+    annual_architecture_review: true
+  
+  # Update schedule
+  updates:
+    dependencies: 'weekly'
+    actions_versions: 'monthly'
+    node_version: 'quarterly'
+    workflow_optimization: 'continuous'
+  
+  # Documentation
+  documentation:
+    auto_update: true
+    changelog: true
+    metrics_reporting: true
+    best_practices: true
+
+# 🔧 Development Settings
+development:
+  # Debug options
+  debug:
+    verbose_logging: false
+    step_debugging: false
+    performance_profiling: true
+    cache_debugging: false
+  
+  # Testing
+  testing:
+    workflow_testing: true
+    dry_run_mode: false
+    validation_checks: true
+    integration_tests: true
+
+# 📞 Notifications
+notifications:
+  # Channels
+  channels:
+    github_issues: true
+    github_discussions: false
+    slack: false  # Configure if needed
+    discord: false  # Configure if needed
+    email: false  # Configure if needed
+  
+  # Event types
+  events:
+    workflow_failure: true
+    security_alerts: true
+    performance_degradation: true
+    deployment_success: true
+    cache_issues: true
+  
+  # Formatting
+  formatting:
+    include_metrics: true
+    include_logs: false
+    include_artifacts: true
+    markdown_format: true
+
+# 📊 Reporting
+reporting:
+  # Report types
+  types:
+    daily_summary: true
+    weekly_performance: true
+    monthly_security: true
+    quarterly_optimization: true
+  
+  # Report format
+  format:
+    markdown: true
+    json: true
+    html: false
+    pdf: false
+  
+  # Distribution
+  distribution:
+    github_artifacts: true
+    github_releases: false
+    external_storage: false
+
+# 🏷️ Metadata
+metadata:
+  version: '2.0'
+  created: '2024-01-01'
+  last_updated: '2024-01-01'
+  author: 'BarberGR Team'
+  description: 'Optimized CI/CD workflows configuration'
+  
+  # Compatibility
+  compatibility:
+    github_actions: '>=2.0'
+    node_js: '>=18.0'
+    npm: '>=8.0'
+  
+  # Tags
+  tags:
+    - 'ci-cd'
+    - 'optimization'
+    - 'performance'
+    - 'automation'
+    - 'devops'
