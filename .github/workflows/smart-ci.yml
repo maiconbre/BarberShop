@@ -354,8 +354,14 @@ jobs:
           DEPLOY_URL=$(npx vercel --token=${{ secrets.VERCEL_TOKEN }} --confirm 2>&1 | grep -o 'https://[^[:space:]]*')
         fi
         
-        echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
-        echo "✅ Deployed to: $DEPLOY_URL"
+        # Validate DEPLOY_URL before writing to GITHUB_OUTPUT
+        if [ -n "$DEPLOY_URL" ] && [[ "$DEPLOY_URL" =~ ^https:// ]]; then
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to: $DEPLOY_URL"
+        else
+          echo "❌ Failed to get valid deployment URL"
+          echo "url=deployment-failed" >> $GITHUB_OUTPUT
+        fi
       env:
         VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
