@@ -58,7 +58,7 @@ jobs:
           const fs = require('fs');
           
           // Calculate date range
-          const timeRange = '${{ github.event.inputs.time_range != '' && github.event.inputs.time_range || "7d" }}';
+          const timeRange = '${{ github.event.inputs.time_range != '' && github.event.inputs.time_range || '7d' }}';
           const days = parseInt(timeRange.replace('d', ''));
           const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
           
@@ -290,7 +290,7 @@ jobs:
       with:
         script: |
           const trend = '${{ needs.collect-metrics.outputs.performance-trend }}';
-          const timeRange = '${{ github.event.inputs.time_range != '' && github.event.inputs.time_range || "7d" }}';
+          const timeRange = '${{ github.event.inputs.time_range != '' && github.event.inputs.time_range || '7d' }}';
           
           const severity = trend === 'poor' ? '🚨 CRITICAL' : '⚠️ WARNING';
           const priority = trend === 'poor' ? 'high-priority' : 'medium-priority';
