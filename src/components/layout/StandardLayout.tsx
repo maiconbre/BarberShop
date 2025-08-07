@@ -132,7 +132,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
                 </div>
               )}
-              <h1 className="text-lg font-semibold text-white">Olá, {currentUser?.name || 'Usuário'}!</h1>
+              <h1 className="text-lg font-semibold text-white">Olá, {(currentUser as { name?: string })?.name || 'Usuário'}!</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
@@ -197,7 +197,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                       </div>
                       <div>
                         <h2 className="text-white font-semibold text-base">Perfil</h2>
-                        <p className="text-gray-300 text-sm">{currentUser?.name || 'Usuário'}</p>
+                        <p className="text-gray-300 text-sm">{(currentUser as { name?: string })?.name || 'Usuário'}</p>
                       </div>
                     </div>
                     <button
@@ -215,8 +215,8 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                           <Scissors className="w-4 h-4 text-black" />
                         </div>
                         <div>
-                          <h2 className="text-white font-semibold text-sm">BarberGR</h2>
-                          <p className="text-gray-400 text-xs">{currentUser?.name || 'Usuário'}</p>
+                          <h2 className="text-white font-semibold text-sm">BarberShop</h2>
+                          <p className="text-gray-400 text-xs">{(currentUser as { name?: string })?.name || 'Usuário'}</p>
                         </div>
                       </div>
                     )}
@@ -290,7 +290,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
                   </button>
 
-                  {currentUser?.role === 'admin' && (
+                  {(currentUser as { role?: string })?.role === 'admin' && (
                     <button
                       onClick={() => navigateToPage('/register')}
                       className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
@@ -355,7 +355,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white truncate">
-                        {currentUser?.name || 'Usuário'}
+                        {(currentUser as { name?: string })?.name || 'Usuário'}
                       </p>
                       <p className="text-xs text-gray-400">Barbeiro</p>
                     </div>
