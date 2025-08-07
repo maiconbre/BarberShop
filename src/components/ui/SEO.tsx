@@ -9,8 +9,8 @@ interface SEOProps {
 }
 
 const SEO: React.FC<SEOProps> = ({
-  title = 'BarberGR - Barbearia Moderna',
-  description = 'Agende seu horário na BarberGR. Cortes modernos e clássicos, profissionais qualificados e ambiente acolhedor.',
+  title = 'BarberShop - Barbearia Moderna',
+  description = 'Agende seu horário na BarberShop. Cortes modernos e clássicos, profissionais qualificados e ambiente acolhedor.',
   image = '/img/fotohero.avif',
   url = 'https://barber-gr.vercel.app',
   type = 'website'
@@ -18,7 +18,7 @@ const SEO: React.FC<SEOProps> = ({
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'HairSalon',
-    name: 'BarberGR',
+    name: 'BarberShop',
     image,
     '@id': url,
     url,
@@ -67,7 +67,7 @@ const SEO: React.FC<SEOProps> = ({
       <meta property="og:image" content={`${url}${image}`} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
-      <meta property="og:site_name" content="BarberGR" />
+      <meta property="og:site_name" content="BarberShop" />
 
       {/* Twitter Card Meta Tags */}
       <meta name="twitter:card" content="summary_large_image" />

@@ -1,6 +1,6 @@
 # 🚀 Optimized CI/CD Workflows
 
-Este diretório contém workflows de CI/CD otimizados para o projeto BarberGR, projetados para máxima performance, inteligência e manutenibilidade.
+Este diretório contém workflows de CI/CD otimizados para o projeto BarberShop, projetados para máxima performance, inteligência e manutenibilidade.
 
 ## 📊 Performance Improvements
 

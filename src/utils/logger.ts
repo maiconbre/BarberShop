@@ -32,7 +32,7 @@ class Logger {
       enableComponentLogs: false, // Desabilitar logs detalhados de componentes
       enableCacheLogs: false, // Desabilitar logs de cache
       enableRequestLogs: false, // Desabilitar logs de requisições
-      prefix: '[BarberGR]'
+      prefix: '[BarberShop]'
     };
 
     // Permitir configuração via localStorage para desenvolvimento
@@ -48,7 +48,7 @@ class Logger {
 
   private loadConfigFromStorage(): void {
     try {
-      const storedConfig = localStorage.getItem('barberGR_logConfig');
+      const storedConfig = localStorage.getItem('barberShop_logConfig');
       if (storedConfig) {
         const parsed = JSON.parse(storedConfig);
         this.config = { ...this.config, ...parsed };
@@ -61,7 +61,7 @@ class Logger {
   public updateConfig(newConfig: Partial<LoggerConfig>): void {
     this.config = { ...this.config, ...newConfig };
     try {
-      localStorage.setItem('barberGR_logConfig', JSON.stringify(this.config));
+      localStorage.setItem('barberShop_logConfig', JSON.stringify(this.config));
     } catch {
       // Ignorar erros de storage
     }
@@ -206,10 +206,10 @@ export const logInfo = (message: string, category?: string, ...args: unknown[]) 
 export const logDebug = (message: string, category?: string, ...args: unknown[]) => 
   logger.debug(message, category, ...args);
 
-// Extend Window interface to include BarberGRLogger property
+// Extend Window interface to include BarberShopLogger property
 declare global {
   interface Window {
-    BarberGRLogger: {
+    BarberShopLogger: {
       enableDev: () => void;
       enableProd: () => void;
       setLevel: (level: LogLevel) => void;
@@ -219,7 +219,7 @@ declare global {
   }
 }
 if (typeof window !== 'undefined') {
-  (window as unknown as Window).BarberGRLogger = {
+  (window as unknown as Window).BarberShopLogger = {
 
     enableDev: () => logger.enableDevelopmentLogs(),
     enableProd: () => logger.enableProductionLogs(),

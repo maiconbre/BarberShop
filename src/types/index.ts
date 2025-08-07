@@ -1,4 +1,4 @@
-// Base types for the BarberGR application
+// Base types for the BarberShop application
 
 export interface User {
   id: string;
