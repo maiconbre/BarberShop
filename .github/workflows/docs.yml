@@ -34,6 +34,7 @@ jobs:
         use-verbose-mode: 'yes'
         config-file: '.github/markdown-link-check.json'
         check-modified-files-only: 'yes'
+        base-branch: 'main'
     
     - name: Validate markdown format
       run: |
