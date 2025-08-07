@@ -160,66 +160,40 @@ jobs:
         
         echo "" >> audit-report.md
     
-    - name: Create or update security issue
-      if: steps.audit.outputs.audit_status == 'vulnerabilities'
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const fs = require('fs');
-          const auditReport = fs.readFileSync('audit-report.md', 'utf8');
-          
-          // Check if there's already an open security issue
-          const { data: issues } = await github.rest.issues.listForRepo({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: 'security,automated',
-            state: 'open'
-          });
-          
-          const existingIssue = issues.find(issue => 
-            issue.title.includes('🚨 Automated Security Audit')
-          );
-          
-          const issueBody = `${auditReport}
-          
-          ---
-          
-          **Actions Required:**
-          1. Review the vulnerabilities listed above
-          2. Run \`npm audit fix\` to automatically fix issues
-          3. For manual fixes, update the affected packages
-          4. Test the application after updates
-          
-          **Auto-generated on:** ${new Date().toISOString()}
-          **Audit Level:** ${{ github.event.inputs.audit_level != '' && github.event.inputs.audit_level || 'moderate' }}`;
-          
-          if (existingIssue) {
-            // Update existing issue
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: existingIssue.number,
-              body: issueBody
-            });
-            
-            // Add comment
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: existingIssue.number,
-              body: '🔄 **Security audit updated** - New vulnerabilities detected or audit re-run.'
-            });
-          } else {
-            // Create new issue
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚨 Automated Security Audit - Vulnerabilities Detected',
-              body: issueBody,
-              labels: ['security', 'automated', 'high-priority']
-            });
-          }
+
     
+    - name: Notify Discord with Audit Report
+      if: always()
+      run: |
+        REPORT_CONTENT=$(cat audit-report.md)
+        WEBHOOK_URL="https://discord.com/api/webhooks/1403080159539757086/jPd738BY7oID9oQSH4VCmb3taAlJjOi_rFZZPXGztWkirhMwnqB-IwjuWnTqfS3ReZ6r"
+        
+        # Escape newlines and double quotes for JSON payload
+        ESCAPED_REPORT_CONTENT=$(echo "$REPORT_CONTENT" | sed -z 's/\n/\\n/g' | sed 's/"/\\"/g')
+
+        # Truncate content if too long for Discord (max 4096 characters per embed description)
+        if [ ${#ESCAPED_REPORT_CONTENT} -gt 4000 ]; then
+          ESCAPED_REPORT_CONTENT="${ESCAPED_REPORT_CONTENT:0:4000}... (truncated)"
+        fi
+
+        PAYLOAD='{
+          "username": "Notify Bot Github",
+          "embeds": [
+            {
+              "title": "🔍 Relatório de Auditoria de Segurança",
+              "description": "```markdown\n'"$ESCAPED_REPORT_CONTENT"'\n```",
+              "color": 3447003,
+              "footer": {
+                "text": "BarberShop Audit | Run #${{ github.run_number }}",
+                "icon_url": "https://avatars.githubusercontent.com/u/123456789?s=200&v=4" 
+              },
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }
+          ]
+        }'
+        
+        curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" $WEBHOOK_URL
+
     - name: Auto-fix dependencies (if enabled)
       if: github.event.inputs.force_update == 'true'
       run: |
