@@ -33,6 +33,11 @@ jobs:
     name: 🔍 Comprehensive Security Audit
     runs-on: ubuntu-latest
     
+    outputs:
+      audit-status: ${{ steps.audit.outputs.audit_status }}
+      vulnerabilities-found: ${{ steps.audit.outputs.vulnerabilities_found }}
+      outdated-packages: ${{ steps.audit.outputs.outdated_packages }}
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -48,7 +53,7 @@ jobs:
     - name: Install dependencies
       run: npm ci --prefer-offline
     
-    - name: Run comprehensive security audit
+    - name: Run NPM Security Audit
       id: audit
       run: |
         echo "🔍 Running comprehensive security audit..."
@@ -59,12 +64,54 @@ jobs:
         # Create audit report
         echo "# Security Audit Report - $(date)" > audit-report.md
         echo "" >> audit-report.md
+        echo "**Audit Level:** $AUDIT_LEVEL" >> audit-report.md
+        echo "**Repository:** ${{ github.repository }}" >> audit-report.md
+        echo "**Workflow Run:** #${{ github.run_number }}" >> audit-report.md
+        echo "" >> audit-report.md
+        
+        # Run npm audit and capture results
+        echo "## 🔒 Security Vulnerabilities" >> audit-report.md
+        echo "" >> audit-report.md
+        
+        if npm audit --json > npm-audit.json 2>/dev/null; then
+          AUDIT_EXIT_CODE=0
+        else
+          AUDIT_EXIT_CODE=$?
+        fi
+        
+        if [ $AUDIT_EXIT_CODE -eq 0 ]; then
+          echo "✅ No security vulnerabilities found" >> audit-report.md
+          echo "audit_status=clean" >> $GITHUB_OUTPUT
+          echo "vulnerabilities_found=0" >> $GITHUB_OUTPUT
+        else
+          VULN_COUNT=$(jq -r '.metadata.vulnerabilities.total // 0' npm-audit.json 2>/dev/null || echo "0")
+          echo "⚠️ Found $VULN_COUNT security vulnerabilities" >> audit-report.md
+          echo "" >> audit-report.md
+          
+          # Extract vulnerability summary
+          if command -v jq &> /dev/null && [ -f npm-audit.json ]; then
+            HIGH=$(jq -r '.metadata.vulnerabilities.high // 0' npm-audit.json)
+            MODERATE=$(jq -r '.metadata.vulnerabilities.moderate // 0' npm-audit.json)
+            LOW=$(jq -r '.metadata.vulnerabilities.low // 0' npm-audit.json)
+            CRITICAL=$(jq -r '.metadata.vulnerabilities.critical // 0' npm-audit.json)
+            
+            echo "- 🔴 Critical: $CRITICAL" >> audit-report.md
+            echo "- 🟠 High: $HIGH" >> audit-report.md
+            echo "- 🟡 Moderate: $MODERATE" >> audit-report.md
+            echo "- 🟢 Low: $LOW" >> audit-report.md
+          fi
+          
+          echo "audit_status=vulnerabilities" >> $GITHUB_OUTPUT
+          echo "vulnerabilities_found=$VULN_COUNT" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "" >> audit-report.md
     
     - name: Check outdated packages
       run: |
         echo "📦 Checking for outdated packages..."
         
-        echo "## Outdated Packages" >> audit-report.md
+        echo "## 📦 Outdated Packages" >> audit-report.md
         echo "" >> audit-report.md
         
         if npm outdated --json > outdated.json 2>/dev/null && [ -s outdated.json ] && [ "$(cat outdated.json)" != "{}" ]; then
@@ -73,12 +120,17 @@ jobs:
           
           # Parse outdated packages
           if command -v jq &> /dev/null; then
+            OUTDATED_COUNT=$(jq 'length' outdated.json)
+            echo "**Total outdated packages:** $OUTDATED_COUNT" >> audit-report.md
+            echo "" >> audit-report.md
             echo "| Package | Current | Wanted | Latest |" >> audit-report.md
             echo "|---------|---------|--------|--------|" >> audit-report.md
             jq -r 'to_entries[] | "| \(.key) | \(.value.current) | \(.value.wanted) | \(.value.latest) |"' outdated.json >> audit-report.md || true
+            echo "outdated_packages=$OUTDATED_COUNT" >> $GITHUB_OUTPUT
           fi
         else
           echo "✅ All packages are up to date" >> audit-report.md
+          echo "outdated_packages=0" >> $GITHUB_OUTPUT
         fi
         
         echo "" >> audit-report.md
@@ -87,7 +139,7 @@ jobs:
       run: |
         echo "📄 Checking license compliance..."
         
-        echo "## License Compliance" >> audit-report.md
+        echo "## 📄 License Compliance" >> audit-report.md
         echo "" >> audit-report.md
         
         # Install license-checker if not present
@@ -99,14 +151,25 @@ jobs:
         if license-checker --summary --json > licenses.json 2>/dev/null; then
           echo "✅ License check completed" >> audit-report.md
           
+          # Count license types
+          LICENSE_COUNT=$(jq 'length' licenses.json 2>/dev/null || echo "0")
+          echo "**Total unique licenses:** $LICENSE_COUNT" >> audit-report.md
+          echo "" >> audit-report.md
+          
           # Check for problematic licenses
           PROBLEMATIC_LICENSES=("GPL" "AGPL" "LGPL" "CPAL" "EPL")
+          PROBLEMATIC_FOUND=0
           
           for license in "${PROBLEMATIC_LICENSES[@]}"; do
             if grep -qi "$license" licenses.json; then
               echo "⚠️ Potentially problematic license found: $license" >> audit-report.md
+              PROBLEMATIC_FOUND=1
             fi
           done
+          
+          if [ $PROBLEMATIC_FOUND -eq 0 ]; then
+            echo "✅ No problematic licenses detected" >> audit-report.md
+          fi
         else
           echo "❌ License check failed" >> audit-report.md
         fi
@@ -117,7 +180,7 @@ jobs:
       run: |
         echo "🔗 Analyzing dependencies..."
         
-        echo "## Dependency Analysis" >> audit-report.md
+        echo "## 🔗 Dependency Analysis" >> audit-report.md
         echo "" >> audit-report.md
         
         # Count dependencies
@@ -125,14 +188,23 @@ jobs:
         DEV_DEPS=$(jq '.devDependencies | length' package.json 2>/dev/null || echo "0")
         TOTAL_DEPS=$((PROD_DEPS + DEV_DEPS))
         
-        echo "- Production dependencies: $PROD_DEPS" >> audit-report.md
-        echo "- Development dependencies: $DEV_DEPS" >> audit-report.md
-        echo "- Total dependencies: $TOTAL_DEPS" >> audit-report.md
+        echo "- **Production dependencies:** $PROD_DEPS" >> audit-report.md
+        echo "- **Development dependencies:** $DEV_DEPS" >> audit-report.md
+        echo "- **Total dependencies:** $TOTAL_DEPS" >> audit-report.md
         echo "" >> audit-report.md
         
         # Check for large dependencies
-        echo "### Large Dependencies (>1MB):" >> audit-report.md
-        du -sh node_modules/* 2>/dev/null | awk '$1 ~ /[0-9]+M/ && $1 !~ /^[0-9]\.[0-9]M/ {print "- " $2 ": " $1}' >> audit-report.md || true
+        echo "### 📊 Large Dependencies (>1MB):" >> audit-report.md
+        if [ -d "node_modules" ]; then
+          LARGE_DEPS=$(du -sh node_modules/* 2>/dev/null | awk '$1 ~ /[0-9]+M/ && $1 !~ /^[0-9]\.[0-9]M/ {print "- " $2 ": " $1}' | head -10)
+          if [ -n "$LARGE_DEPS" ]; then
+            echo "$LARGE_DEPS" >> audit-report.md
+          else
+            echo "✅ No unusually large dependencies found" >> audit-report.md
+          fi
+        else
+          echo "⚠️ node_modules directory not found" >> audit-report.md
+        fi
         
         echo "" >> audit-report.md
     
@@ -140,62 +212,82 @@ jobs:
       run: |
         echo "⚡ Collecting performance metrics..."
         
-        echo "## Performance Metrics" >> audit-report.md
+        echo "## ⚡ Performance Metrics" >> audit-report.md
         echo "" >> audit-report.md
         
         # Build size analysis
         if npm run build:prod > /dev/null 2>&1; then
-          BUILD_SIZE=$(du -sh dist/ 2>/dev/null | cut -f1 || echo "Unknown")
-          echo "- Production build size: $BUILD_SIZE" >> audit-report.md
-          
-          # Count files
-          JS_FILES=$(find dist/ -name "*.js" 2>/dev/null | wc -l || echo "0")
-          CSS_FILES=$(find dist/ -name "*.css" 2>/dev/null | wc -l || echo "0")
-          
-          echo "- JavaScript files: $JS_FILES" >> audit-report.md
-          echo "- CSS files: $CSS_FILES" >> audit-report.md
+          if [ -d "dist" ]; then
+            BUILD_SIZE=$(du -sh dist/ 2>/dev/null | cut -f1 || echo "Unknown")
+            echo "- **Production build size:** $BUILD_SIZE" >> audit-report.md
+            
+            # Count files
+            JS_FILES=$(find dist/ -name "*.js" 2>/dev/null | wc -l || echo "0")
+            CSS_FILES=$(find dist/ -name "*.css" 2>/dev/null | wc -l || echo "0")
+            
+            echo "- **JavaScript files:** $JS_FILES" >> audit-report.md
+            echo "- **CSS files:** $CSS_FILES" >> audit-report.md
+          else
+            echo "⚠️ Build directory not found" >> audit-report.md
+          fi
         else
           echo "❌ Build failed - unable to analyze build size" >> audit-report.md
         fi
         
         echo "" >> audit-report.md
-    
-
-    
-    - name: Notify Discord with Audit Report
-      if: always()
-      run: |
-        REPORT_CONTENT=$(cat audit-report.md)
-        WEBHOOK_URL="https://discord.com/api/webhooks/1403080159539757086/jPd738BY7oID9oQSH4VCmb3taAlJjOi_rFZZPXGztWkirhMwnqB-IwjuWnTqfS3ReZ6r"
         
-        # Escape newlines and double quotes for JSON payload
-        ESCAPED_REPORT_CONTENT=$(echo "$REPORT_CONTENT" | sed -z 's/\n/\\n/g' | sed 's/"/\\"/g')
-
-        # Truncate content if too long for Discord (max 4096 characters per embed description)
-        if [ ${#ESCAPED_REPORT_CONTENT} -gt 4000 ]; then
-          ESCAPED_REPORT_CONTENT="${ESCAPED_REPORT_CONTENT:0:4000}... (truncated)"
+        # Add recommendations section
+        echo "## 🎯 Recommendations" >> audit-report.md
+        echo "" >> audit-report.md
+        
+        AUDIT_STATUS="${{ steps.audit.outputs.audit_status }}"
+        if [ "$AUDIT_STATUS" = "vulnerabilities" ]; then
+          echo "### 🚨 Security Actions Required:" >> audit-report.md
+          echo "1. **Run \`npm audit fix\`** to automatically fix vulnerabilities" >> audit-report.md
+          echo "2. **Review remaining vulnerabilities** manually" >> audit-report.md
+          echo "3. **Consider updating major versions** of vulnerable packages" >> audit-report.md
+          echo "4. **Monitor security advisories** for your dependencies" >> audit-report.md
+        else
+          echo "### ✅ Maintenance Recommendations:" >> audit-report.md
+          echo "1. **Keep dependencies updated** regularly" >> audit-report.md
+          echo "2. **Review and clean unused dependencies**" >> audit-report.md
+          echo "3. **Monitor license compliance** for new packages" >> audit-report.md
+          echo "4. **Optimize large dependencies** if possible" >> audit-report.md
         fi
+    
+    - name: Upload audit artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-audit-report-${{ github.run_number }}
+        path: |
+          audit-report.md
+          npm-audit.json
+          outdated.json
+          licenses.json
+        retention-days: 30
 
-        PAYLOAD='{
-          "username": "Notify Bot Github",
-          "embeds": [
-            {
-              "title": "🔍 Relatório de Auditoria de Segurança",
-              "description": "```markdown\n'"$ESCAPED_REPORT_CONTENT"'\n```",
-              "color": 3447003,
-              "footer": {
-                "text": "BarberShop Audit | Run #${{ github.run_number }}",
-                "icon_url": "https://avatars.githubusercontent.com/u/123456789?s=200&v=4" 
-              },
-              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
-            }
-          ]
-        }'
-        
-        curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" $WEBHOOK_URL
-
-    - name: Auto-fix dependencies (if enabled)
-      if: github.event.inputs.force_update == 'true'
+  auto-fix:
+    name: 🔧 Auto-fix Dependencies
+    runs-on: ubuntu-latest
+    needs: [comprehensive-audit]
+    if: github.event.inputs.force_update == 'true' && needs.comprehensive-audit.outputs.audit-status == 'vulnerabilities'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci --prefer-offline
+    
+    - name: Auto-fix vulnerabilities
       run: |
         echo "🔧 Attempting to auto-fix dependencies..."
         
@@ -224,7 +316,7 @@ jobs:
             # Push branch
             git push origin $BRANCH_NAME
             
-            # Create PR
+            # Create PR using GitHub CLI
             gh pr create \
               --title "🔒 Automated Security Fixes" \
               --body "This PR contains automated security fixes generated by the scheduled audit workflow.
@@ -232,6 +324,10 @@ jobs:
               **Changes:**
               - Applied \`npm audit fix\`
               - Updated vulnerable dependencies
+              
+              **Audit Results:**
+              - Vulnerabilities found: ${{ needs.comprehensive-audit.outputs.vulnerabilities-found }}
+              - Outdated packages: ${{ needs.comprehensive-audit.outputs.outdated-packages }}
               
               **Please review and test before merging.**" \
               --label "security,automated" \
@@ -242,139 +338,64 @@ jobs:
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Upload audit artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-audit-report-${{ github.run_number }}
-        path: |
-          audit-report.md
-          npm-audit.json
-          outdated.json
-          licenses.json
-        retention-days: 30
-    
-    - name: Summary
-      run: |
-        echo "📊 **Audit Summary:**"
-        echo "- Status: ${{ steps.audit.outputs.audit_status }}"
-        echo "- Report generated: audit-report.md"
-        echo "- Artifacts uploaded for 30 days retention"
-        
-        if [ "${{ steps.audit.outputs.audit_status }}" = "vulnerabilities" ]; then
-          echo "⚠️ Action required: Security vulnerabilities found"
-        else
-          echo "✅ No security issues detected"
-        fi
 
-        
-    - name: 📢 Send Discord Report
+  discord-notification:
+    name: 📢 Send Discord Report
     runs-on: ubuntu-latest
-    needs: [collect-metrics, performance-alerts, benchmark-comparison, summary]
+    needs: [comprehensive-audit, auto-fix]
     if: always()
     
     steps:
-    - name: Download performance artifacts
+    - name: Download audit artifacts
       uses: actions/download-artifact@v4
       with:
-        pattern: performance-metrics-*
-        merge-multiple: true
-      continue-on-error: true
-    
-    - name: Download benchmark artifacts
-      uses: actions/download-artifact@v4
-      with:
-        pattern: benchmark-results-*
+        pattern: security-audit-report-*
         merge-multiple: true
       continue-on-error: true
     
     - name: Prepare Discord notification
       id: prepare
       run: |
-        # Get workflow status
-        METRICS_STATUS="${{ needs.collect-metrics.result }}"
-        ALERTS_STATUS="${{ needs.performance-alerts.result }}"
-        BENCHMARK_STATUS="${{ needs.benchmark-comparison.result }}"
-        PERFORMANCE_TREND="${{ needs.collect-metrics.outputs.performance-trend }}"
+        # Get audit results
+        AUDIT_STATUS="${{ needs.comprehensive-audit.outputs.audit-status }}"
+        VULNERABILITIES="${{ needs.comprehensive-audit.outputs.vulnerabilities-found }}"
+        OUTDATED="${{ needs.comprehensive-audit.outputs.outdated-packages }}"
         
-        # Set status emoji and color
-        case "$PERFORMANCE_TREND" in
-          "excellent")
-            STATUS_EMOJI="🚀"
-            STATUS_COLOR="3066993"  # Green
-            STATUS_TEXT="Excellent Performance"
-            ;;
-          "good")
-            STATUS_EMOJI="✅"
-            STATUS_COLOR="15844367"  # Gold
-            STATUS_TEXT="Good Performance"
-            ;;
-          "needs-improvement")
-            STATUS_EMOJI="⚠️"
-            STATUS_COLOR="16776960"  # Yellow
-            STATUS_TEXT="Needs Improvement"
-            ;;
-          "poor")
-            STATUS_EMOJI="❌"
+        # Set status emoji and color based on audit results
+        case "$AUDIT_STATUS" in
+          "vulnerabilities")
+            STATUS_EMOJI="🚨"
             STATUS_COLOR="15158332"  # Red
-            STATUS_TEXT="Poor Performance"
+            STATUS_TEXT="Security Issues Found"
+            ;;
+          "clean")
+            STATUS_EMOJI="✅"
+            STATUS_COLOR="3066993"   # Green
+            STATUS_TEXT="Security Clean"
             ;;
           *)
             STATUS_EMOJI="📊"
-            STATUS_COLOR="7506394"  # Blue
-            STATUS_TEXT="Performance Analysis"
+            STATUS_COLOR="7506394"   # Blue
+            STATUS_TEXT="Audit Completed"
             ;;
         esac
         
         echo "status_emoji=$STATUS_EMOJI" >> $GITHUB_OUTPUT
         echo "status_color=$STATUS_COLOR" >> $GITHUB_OUTPUT
         echo "status_text=$STATUS_TEXT" >> $GITHUB_OUTPUT
+        echo "vulnerabilities=$VULNERABILITIES" >> $GITHUB_OUTPUT
+        echo "outdated=$OUTDATED" >> $GITHUB_OUTPUT
         
-        # Parse metrics if available
-        TOTAL_RUNS="N/A"
-        SUCCESS_RATE="N/A"
-        AVG_DURATION="N/A"
-        CACHE_HIT_RATE="N/A"
-        
-        if [ -f "performance-metrics.json" ]; then
-          TOTAL_RUNS=$(jq -r '.total_runs // "N/A"' performance-metrics.json)
-          SUCCESS_RATE=$(jq -r '.success_rate // "N/A"' performance-metrics.json)
-          AVG_DURATION=$(jq -r '.average_duration // "N/A"' performance-metrics.json)
-          CACHE_HIT_RATE=$(jq -r '.cache_hit_rate // "N/A"' performance-metrics.json)
-          
-          if [ "$AVG_DURATION" != "N/A" ]; then
-            AVG_DURATION_MIN=$((AVG_DURATION / 60))
-            AVG_DURATION_SEC=$((AVG_DURATION % 60))
-            AVG_DURATION="${AVG_DURATION_MIN}m ${AVG_DURATION_SEC}s"
-          fi
+        # Read audit report content if available
+        REPORT_SUMMARY="Audit completed successfully"
+        if [ -f "audit-report.md" ]; then
+          # Extract key sections from the report
+          REPORT_SUMMARY=$(head -20 audit-report.md | tail -15 | grep -v "^#" | grep -v "^$" | head -5 | paste -sd "\\n" -)
         fi
         
-        echo "total_runs=$TOTAL_RUNS" >> $GITHUB_OUTPUT
-        echo "success_rate=$SUCCESS_RATE" >> $GITHUB_OUTPUT
-        echo "avg_duration=$AVG_DURATION" >> $GITHUB_OUTPUT
-        echo "cache_hit_rate=$CACHE_HIT_RATE" >> $GITHUB_OUTPUT
-        
-        # Get benchmark results if available
-        BENCHMARK_TOTAL="N/A"
-        BENCHMARK_STATUS_TEXT="Not Available"
-        
-        if [ -f "benchmark-results.md" ]; then
-          # Try to extract total time from benchmark results
-          BENCHMARK_TOTAL=$(grep "Total Pipeline" benchmark-results.md | grep -o '[0-9]\+s' | head -1 || echo "N/A")
-          
-          if grep -q "Excellent Performance" benchmark-results.md; then
-            BENCHMARK_STATUS_TEXT="🚀 Excellent"
-          elif grep -q "Good Performance" benchmark-results.md; then
-            BENCHMARK_STATUS_TEXT="✅ Good"
-          elif grep -q "Moderate Performance" benchmark-results.md; then
-            BENCHMARK_STATUS_TEXT="⚠️ Moderate"
-          elif grep -q "Poor Performance" benchmark-results.md; then
-            BENCHMARK_STATUS_TEXT="❌ Poor"
-          fi
-        fi
-        
-        echo "benchmark_total=$BENCHMARK_TOTAL" >> $GITHUB_OUTPUT
-        echo "benchmark_status=$BENCHMARK_STATUS_TEXT" >> $GITHUB_OUTPUT
+        echo "report_summary<<EOF" >> $GITHUB_OUTPUT
+        echo "$REPORT_SUMMARY" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
     
     - name: Send Discord notification
       uses: actions/github-script@v6
@@ -386,86 +407,90 @@ jobs:
           const statusEmoji = "${{ steps.prepare.outputs.status_emoji }}";
           const statusColor = parseInt("${{ steps.prepare.outputs.status_color }}");
           const statusText = "${{ steps.prepare.outputs.status_text }}";
-          const totalRuns = "${{ steps.prepare.outputs.total_runs }}";
-          const successRate = "${{ steps.prepare.outputs.success_rate }}";
-          const avgDuration = "${{ steps.prepare.outputs.avg_duration }}";
-          const cacheHitRate = "${{ steps.prepare.outputs.cache_hit_rate }}";
-          const benchmarkTotal = "${{ steps.prepare.outputs.benchmark_total }}";
-          const benchmarkStatus = "${{ steps.prepare.outputs.benchmark_status }}";
+          const vulnerabilities = "${{ steps.prepare.outputs.vulnerabilities }}";
+          const outdated = "${{ steps.prepare.outputs.outdated }}";
+          const auditLevel = "${{ github.event.inputs.audit_level || 'moderate' }}";
+          const forceUpdate = "${{ github.event.inputs.force_update || 'false' }}";
+          const reportSummary = `${{ steps.prepare.outputs.report_summary }}`;
           
-          // Build recommendations based on performance
-          const trend = "${{ needs.collect-metrics.outputs.performance-trend }}";
+          // Build recommendations based on audit status
+          const auditStatus = "${{ needs.comprehensive-audit.outputs.audit-status }}";
           let recommendations = [];
           
-          if (trend === "poor" || trend === "needs-improvement") {
+          if (auditStatus === "vulnerabilities") {
             recommendations = [
-              "🔍 **Review Failed Workflows** - Identify and fix failing jobs",
-              "⚡ **Optimize Cache Strategy** - Improve dependency caching",
-              "🏃‍♂️ **Parallelize Jobs** - Run independent tasks concurrently",
-              "📦 **Optimize Dependencies** - Review and clean up package.json",
-              "🧪 **Optimize Tests** - Parallelize or optimize slow test suites"
+              "🔒 **Run npm audit fix** - Apply automatic fixes",
+              "🔍 **Review vulnerabilities** - Check each security issue",
+              "📦 **Update dependencies** - Upgrade to secure versions",
+              "🛡️ **Monitor advisories** - Set up security alerts",
+              "🧪 **Test thoroughly** - Verify fixes don't break functionality"
             ];
-          } else if (trend === "good") {
+          } else if (outdated > 0) {
             recommendations = [
-              "📊 **Monitor Trends** - Keep tracking performance metrics",
-              "🔧 **Fine-tune Caching** - Optimize cache hit rates further",
-              "🚀 **Consider Upgrades** - Evaluate new GitHub Actions features"
+              "📦 **Update packages** - Keep dependencies current",
+              "🧹 **Clean unused deps** - Remove unnecessary packages",
+              "📄 **Check licenses** - Ensure compliance",
+              "⚡ **Optimize bundles** - Review large dependencies"
             ];
-          } else if (trend === "excellent") {
+          } else {
             recommendations = [
-              "🎉 **Maintain Excellence** - Keep current optimization practices",
-              "📈 **Share Best Practices** - Document successful optimizations",
-              "🔄 **Regular Reviews** - Continue monitoring for regressions"
+              "✅ **Maintain vigilance** - Continue regular audits",
+              "📊 **Monitor metrics** - Track dependency health",
+              "🔄 **Schedule reviews** - Regular maintenance checks",
+              "📚 **Update docs** - Keep security practices current"
             ];
           }
           
           const embed = {
-            title: `${statusEmoji} CI/CD Performance Report`,
+            title: `${statusEmoji} Security Audit Report`,
             description: `**Status:** ${statusText}\n**Repository:** ${context.repo.owner}/${context.repo.repo}`,
             color: statusColor,
             timestamp: new Date().toISOString(),
             fields: [
               {
-                name: "📊 Metrics Overview",
-                value: `**Total Runs:** ${totalRuns}\n**Success Rate:** ${successRate}%\n**Avg Duration:** ${avgDuration}\n**Cache Hit Rate:** ${cacheHitRate}%`,
+                name: "🔍 Audit Results",
+                value: `**Vulnerabilities:** ${vulnerabilities || '0'}\n**Outdated Packages:** ${outdated || '0'}\n**Audit Level:** ${auditLevel}\n**Auto-fix:** ${forceUpdate === 'true' ? 'Enabled' : 'Disabled'}`,
                 inline: true
               },
               {
-                name: "🏃‍♂️ Benchmark Results",
-                value: `**Status:** ${benchmarkStatus}\n**Total Time:** ${benchmarkTotal}\n**Target:** <5 minutes`,
+                name: "📊 Status Summary",
+                value: auditStatus === "vulnerabilities" 
+                  ? `🚨 **Action Required**\nSecurity vulnerabilities detected` 
+                  : auditStatus === "clean"
+                  ? `✅ **All Clear**\nNo security issues found`
+                  : `📋 **Review Complete**\nAudit finished successfully`,
                 inline: true
               },
               {
-                name: "📈 Analysis Period",
-                value: `**Range:** ${{ github.event.inputs.time_range || '7d' }}\n**Type:** ${{ github.event.inputs.metric_type || 'all' }}\n**Workflow:** #${{ github.run_number }}`,
+                name: "⏰ Schedule Info",
+                value: `**Next Audit:** Every Monday 2AM UTC\n**Workflow:** #${{ github.run_number }}\n**Trigger:** ${context.eventName === 'schedule' ? 'Scheduled' : 'Manual'}`,
                 inline: true
               }
             ],
             footer: {
-              text: "Performance Monitoring • Auto-generated",
+              text: "Security Audit • Automated Maintenance",
               icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
             }
           };
           
-          // Add recommendations field if there are any
+          // Add recommendations field
           if (recommendations.length > 0) {
             embed.fields.push({
-              name: "🎯 Optimization Recommendations",
+              name: "🎯 Recommended Actions",
               value: recommendations.slice(0, 5).join("\n"),
               inline: false
             });
           }
           
-          // Add status indicators
+          // Add status indicators based on results
           const statusIndicators = [];
-          if (trend === "excellent" || trend === "good") {
-            statusIndicators.push("✅ Performance within targets");
-          }
-          if (trend === "needs-improvement") {
-            statusIndicators.push("⚠️ Performance degradation detected");
-          }
-          if (trend === "poor") {
-            statusIndicators.push("🚨 Critical performance issues");
+          if (auditStatus === "vulnerabilities") {
+            statusIndicators.push("🚨 Security vulnerabilities require attention");
+            if (forceUpdate === 'true') {
+              statusIndicators.push("🔧 Auto-fix attempted");
+            }
+          } else {
+            statusIndicators.push("✅ No critical security issues detected");
           }
           
           if (statusIndicators.length > 0) {
@@ -478,9 +503,9 @@ jobs:
           
           // Add quick actions
           const quickActions = [
-            `[📊 View Workflow Run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
-            `[📋 Download Metrics](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#artifacts)`,
-            `[🔍 Repository Actions](https://github.com/${context.repo.owner}/${context.repo.repo}/actions)`
+            `[📊 View Audit Run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+            `[📋 Download Report](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}#artifacts)`,
+            `[🔒 Security Tab](https://github.com/${context.repo.owner}/${context.repo.repo}/security)`
           ];
           
           embed.fields.push({
@@ -490,7 +515,7 @@ jobs:
           });
           
           const payload = {
-            username: "CI/CD Monitor",
+            username: "Security Audit Bot",
             avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
             embeds: [embed]
           };
