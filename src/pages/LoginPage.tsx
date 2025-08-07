@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
       setError(
         err instanceof Error 
           ? err.message 
-          : 'Ocorreu um erro ao tentar fazer login. Tente novamente.'
+          : 'Ocorreu um erro ao tentar fazer login. Tente novamente mais tarde.'
       );
     } finally {
       setIsLoading(false);
