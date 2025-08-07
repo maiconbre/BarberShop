@@ -511,8 +511,26 @@ jobs:
           echo "**Metric Type:** ${{ github.event.inputs.metric_type != '' && github.event.inputs.metric_type || 'all' }}"
         echo "**Generated:** $(date -u)"
         echo ""
-        echo "**Next Steps:**"
+        echo "**Next Steps:"
         echo "- Review performance metrics artifacts"
         echo "- Address any performance alerts"
         echo "- Monitor trends over time"
         echo "- Implement optimization recommendations"
+
+    - name: 📢 Send summary to Discord
+      if: always()
+      run: |
+        SUMMARY="📋 *Performance Summary*\n\
+        • Metrics Collection: ${{ needs.collect-metrics.result }}\n\
+        • Trend: ${{ needs.collect-metrics.outputs.performance-trend }}\n\
+        • Alerts Generated: ${{ needs.performance-alerts.result }}\n\
+        • Benchmark: ${{ needs.benchmark-comparison.result }}\n\
+        • Time Range: ${{ github.event.inputs.time_range != '' && github.event.inputs.time_range || '7d' }}\n\
+        • Metric Type: ${{ github.event.inputs.metric_type != '' && github.event.inputs.metric_type || 'all' }}\n\
+        • Generated: $(date -u)\n\
+        "
+        
+        curl -H "Content-Type: application/json" \
+        -X POST \
+        -d "{\"content\": \"$SUMMARY\"}" \
+        https://discord.com/api/webhooks/1403080159539757086/jPd738BY7oID9oQSH4VCmb3taAlJjOi_rFZZPXGztWkirhMwnqB-IwjuWnTqfS3ReZ6r
