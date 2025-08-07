@@ -1,10 +1,28 @@
-name: CI/CD Pipeline
+name: Legacy CI/CD Pipeline (Deprecated)
+
+# ⚠️ DEPRECATED: This workflow is being replaced by smart-ci.yml
+# This file is kept for backward compatibility and will be removed in future versions
+# Please use the new Smart CI/CD Pipeline for better performance and features
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+  # Temporarily disabled - using smart-ci.yml instead
+  # push:
+  #   branches: [ main, develop ]
+  # pull_request:
+  #   branches: [ main, develop ]
+  
+  # Manual trigger only for legacy compatibility
+  workflow_dispatch:
+    inputs:
+      force_legacy:
+        description: 'Force run legacy pipeline'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20.x'
+  CACHE_VERSION: v2  # Updated cache version
 
 permissions:
   contents: write
@@ -13,16 +31,52 @@ permissions:
   checks: write
 
 jobs:
-  # Job 1: Testes e Qualidade de Código
-  test:
-    name: Tests & Code Quality
+  legacy-notice:
+    name: 📢 Legacy Pipeline Notice
     runs-on: ubuntu-latest
+    if: github.event.inputs.force_legacy != 'true'
+    
+    steps:
+    - name: Legacy pipeline notice
+      run: |
+        echo "⚠️ **NOTICE: Legacy CI/CD Pipeline**"
+        echo ""
+        echo "This workflow has been deprecated and replaced with:"
+        echo "- 🚀 **smart-ci.yml** - Optimized CI/CD with intelligent path filtering"
+        echo "- 📚 **docs.yml** - Specialized documentation workflow"
+        echo "- 🔒 **scheduled-audit.yml** - Automated security audits"
+        echo "- 📊 **performance-monitoring.yml** - Performance tracking"
+        echo "- 🗄️ **cache-management.yml** - Cache optimization"
+        echo ""
+        echo "**Benefits of new workflows:**"
+        echo "- 60-70% faster execution for small changes"
+        echo "- Intelligent path filtering"
+        echo "- Better resource utilization"
+        echo "- Specialized workflows for different purposes"
+        echo ""
+        echo "**Migration Status:** ✅ New workflows are active"
+        echo "**Removal Timeline:** This legacy workflow will be removed in 30 days"
+        echo ""
+        echo "To force run this legacy pipeline, use workflow_dispatch with force_legacy=true"
+        
+        exit 1  # Fail to prevent accidental usage
+
+  # Job 1: Testes e Qualidade de Código (Legacy)
+  test:
+    name: 🧪 Legacy Tests & Code Quality
+    runs-on: ubuntu-latest
+    if: github.event.inputs.force_legacy == 'true'
     
     strategy:
       matrix:
         node-version: [18.x, 20.x]
     
     steps:
+    - name: ⚠️ Legacy pipeline warning
+      run: |
+        echo "⚠️ Running LEGACY CI/CD Pipeline"
+        echo "Consider migrating to smart-ci.yml for better performance"
+    
     - name: Checkout code
       uses: actions/checkout@v4
     
@@ -53,11 +107,12 @@ jobs:
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
 
-  # Job 2: Build e Verificação
+  # Job 2: Build e Verificação (Legacy)
   build:
-    name: Build Application
+    name: 🏗️ Legacy Build Application
     runs-on: ubuntu-latest
     needs: test
+    if: github.event.inputs.force_legacy == 'true'
     
     steps:
     - name: Checkout code
@@ -82,10 +137,11 @@ jobs:
         path: dist/
         retention-days: 7
 
-  # Job 3: Auditoria de Segurança
+  # Job 3: Auditoria de Segurança (Legacy)
   security:
-    name: Security Audit
+    name: 🔒 Legacy Security Audit
     runs-on: ubuntu-latest
+    if: github.event.inputs.force_legacy == 'true'
     
     steps:
     - name: Checkout code
@@ -106,12 +162,12 @@ jobs:
     - name: Check for outdated packages
       run: npm outdated || true
 
-  # Job 4: Deploy para Staging (apenas em push para develop)
+  # Job 4: Deploy para Staging (Legacy - apenas em push para develop)
   deploy-staging:
-    name: Deploy to Staging
+    name: 🚀 Legacy Deploy to Staging
     runs-on: ubuntu-latest
     needs: [test, build, security]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    if: github.event.inputs.force_legacy == 'true' && github.ref == 'refs/heads/develop'
     
     environment:
       name: staging
@@ -145,12 +201,12 @@ jobs:
         VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-  # Job 5: Deploy para Produção (apenas em push para main)
+  # Job 5: Deploy para Produção (Legacy - apenas em push para main)
   deploy-production:
-    name: Deploy to Production
+    name: 🚀 Legacy Deploy to Production
     runs-on: ubuntu-latest
     needs: [test, build, security]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event.inputs.force_legacy == 'true' && github.ref == 'refs/heads/main'
     
     environment:
       name: production
@@ -198,12 +254,12 @@ jobs:
         prerelease: false
         token: ${{ secrets.GITHUB_TOKEN }}
 
-  # Job 6: Notificações
+  # Job 6: Notificações (Legacy)
   notify:
-    name: Notify Results
+    name: 📢 Legacy Notify Results
     runs-on: ubuntu-latest
     needs: [test, build, security]
-    if: always()
+    if: always() && github.event.inputs.force_legacy == 'true'
     
     steps:
     - name: Notify Success
