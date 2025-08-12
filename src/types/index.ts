@@ -60,6 +60,15 @@ export interface Appointment {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  
+  // Optional backend-specific data for compatibility
+  _backendData?: {
+    clientName: string;
+    serviceName: string;
+    barberName: string;
+    price: number;
+    wppclient: string;
+  };
 }
 
 export type AppointmentStatus = 

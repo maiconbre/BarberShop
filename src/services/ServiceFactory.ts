@@ -1,6 +1,7 @@
 import { ApiServiceV2 } from './core/ApiServiceV2';
 import { UserRepository } from './repositories/UserRepository';
 import { ServiceRepository } from './repositories/ServiceRepository';
+import { AppointmentRepository } from './repositories/AppointmentRepository';
 import { cacheService } from './CacheService';
 import type { IApiService } from './interfaces/IApiService';
 
@@ -12,6 +13,7 @@ export class ServiceFactory {
   private static apiService: IApiService | null = null;
   private static userRepository: UserRepository | null = null;
   private static serviceRepository: ServiceRepository | null = null;
+  private static appointmentRepository: AppointmentRepository | null = null;
 
   /**
    * Obtém instância do ApiService (Singleton)
@@ -45,12 +47,23 @@ export class ServiceFactory {
   }
 
   /**
+   * Obtém instância do AppointmentRepository
+   */
+  static getAppointmentRepository(): AppointmentRepository {
+    if (!this.appointmentRepository) {
+      this.appointmentRepository = new AppointmentRepository(this.getApiService());
+    }
+    return this.appointmentRepository;
+  }
+
+  /**
    * Reseta todas as instâncias (útil para testes)
    */
   static reset(): void {
     this.apiService = null;
     this.userRepository = null;
     this.serviceRepository = null;
+    this.appointmentRepository = null;
   }
 
   /**
@@ -60,6 +73,7 @@ export class ServiceFactory {
     apiService?: IApiService;
     userRepository?: UserRepository;
     serviceRepository?: ServiceRepository;
+    appointmentRepository?: AppointmentRepository;
   }): void {
     if (dependencies.apiService) {
       this.apiService = dependencies.apiService;
@@ -70,6 +84,9 @@ export class ServiceFactory {
     if (dependencies.serviceRepository) {
       this.serviceRepository = dependencies.serviceRepository;
     }
+    if (dependencies.appointmentRepository) {
+      this.appointmentRepository = dependencies.appointmentRepository;
+    }
   }
 }
 
@@ -79,3 +96,4 @@ export class ServiceFactory {
 export const useApiService = () => ServiceFactory.getApiService();
 export const useUserRepository = () => ServiceFactory.getUserRepository();
 export const useServiceRepository = () => ServiceFactory.getServiceRepository();
+export const useAppointmentRepository = () => ServiceFactory.getAppointmentRepository();
