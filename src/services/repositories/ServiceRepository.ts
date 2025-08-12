@@ -1,6 +1,7 @@
 import type { IRepository, ISearchableRepository, SearchOptions } from '../interfaces/IRepository';
 import type { IApiService } from '../interfaces/IApiService';
 import type { Service as ServiceType, ServiceFormData } from '@/types';
+import type { BackendService } from '@/types/backend';
 import { Service } from '@/models/Service';
 
 /**
@@ -14,8 +15,8 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async findById(id: string): Promise<ServiceType | null> {
     try {
-      const service = await this.apiService.get<ServiceType>(`/api/services/${id}`);
-      return service;
+      const backendService = await this.apiService.get<BackendService>(`/api/services/${id}`);
+      return backendService ? this.adaptBackendServiceToFrontend(backendService) : null;
     } catch (error) {
       if (this.isNotFoundError(error)) {
         return null;
@@ -29,8 +30,11 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async findAll(filters?: Record<string, unknown>): Promise<ServiceType[]> {
     const queryParams = filters ? this.buildQueryParams(filters) : '';
-    const services = await this.apiService.get<ServiceType[]>(`/api/services${queryParams}`);
-    return Array.isArray(services) ? services : [];
+    const backendServices = await this.apiService.get<BackendService[]>(`/api/services${queryParams}`);
+    const services = Array.isArray(backendServices) ? backendServices : [];
+    
+    // Convert backend services to frontend format
+    return services.map(this.adaptBackendServiceToFrontend);
   }
 
   /**
@@ -40,15 +44,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
     return this.findAll({ isActive: true });
   }
 
-  /**
-   * Busca serviços por faixa de preço
-   */
-  async findByPriceRange(minPrice: number, maxPrice: number): Promise<ServiceType[]> {
-    return this.findAll({ 
-      minPrice: minPrice,
-      maxPrice: maxPrice 
-    });
-  }
+
 
   /**
    * Busca serviços por duração
@@ -90,16 +86,33 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   async create(serviceData: Omit<ServiceType, 'id' | 'createdAt' | 'updatedAt'>): Promise<ServiceType> {
     // Valida os dados antes de enviar
     const validatedData = Service.validateFormData(serviceData as ServiceFormData);
-    const newService = await this.apiService.post<ServiceType>('/api/services', validatedData);
-    return newService;
+    
+    // Adapta para formato do backend (apenas name e price são suportados)
+    const backendData = {
+      name: validatedData.name,
+      price: validatedData.price,
+    };
+    
+    const backendService = await this.apiService.post<BackendService>('/api/services', backendData);
+    return this.adaptBackendServiceToFrontend(backendService);
   }
 
   /**
    * Atualiza um serviço existente
    */
   async update(id: string, updates: Partial<ServiceType>): Promise<ServiceType> {
-    const updatedService = await this.apiService.patch<ServiceType>(`/api/services/${id}`, updates);
-    return updatedService;
+    // Adapta updates para formato do backend (apenas name e price são suportados)
+    const backendUpdates: Partial<BackendService> = {};
+    
+    if (updates.name !== undefined) {
+      backendUpdates.name = updates.name;
+    }
+    if (updates.price !== undefined) {
+      backendUpdates.price = updates.price;
+    }
+    
+    const backendService = await this.apiService.patch<BackendService>(`/api/services/${id}`, backendUpdates);
+    return this.adaptBackendServiceToFrontend(backendService);
   }
 
   /**
@@ -183,6 +196,68 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   }
 
   /**
+   * Busca serviços por barbeiro usando endpoint específico
+   * GET /api/services/barber/:barberId
+   */
+  async findByBarber(barberId: string): Promise<ServiceType[]> {
+    try {
+      const backendServices = await this.apiService.get<BackendService[]>(`/api/services/barber/${barberId}`);
+      const services = Array.isArray(backendServices) ? backendServices : [];
+      
+      // Convert backend services to frontend format
+      return services.map(this.adaptBackendServiceToFrontend);
+    } catch (error) {
+      if (this.isNotFoundError(error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Associa barbeiros a um serviço usando endpoint específico
+   * POST /api/services/:id/barbers (requer autenticação)
+   */
+  async associateBarbers(serviceId: string, barberIds: string[]): Promise<void> {
+    try {
+      await this.apiService.post(`/api/services/${serviceId}/barbers`, {
+        barberIds: barberIds
+      });
+    } catch (error) {
+      throw new Error(`Erro ao associar barbeiros ao serviço: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  }
+
+  /**
+   * Busca serviços por nome (filtro frontend)
+   */
+  async findByName(name: string): Promise<ServiceType[]> {
+    const allServices = await this.findAll();
+    return allServices.filter(service => 
+      service.name.toLowerCase().includes(name.toLowerCase())
+    );
+  }
+
+  /**
+   * Busca serviços por faixa de preço (filtro frontend otimizado)
+   */
+  async findByPriceRange(minPrice: number, maxPrice: number): Promise<ServiceType[]> {
+    const allServices = await this.findAll();
+    return allServices.filter(service => 
+      service.price >= minPrice && service.price <= maxPrice
+    );
+  }
+
+  /**
+   * Busca serviços associados a um barbeiro específico (filtro frontend)
+   * Nota: Este método requer que o backend retorne informações de associação
+   * ou pode ser implementado fazendo uma chamada para findByBarber
+   */
+  async findByAssociatedBarber(barberId: string): Promise<ServiceType[]> {
+    return this.findByBarber(barberId);
+  }
+
+  /**
    * Constrói parâmetros de query para filtros
    */
   private buildQueryParams(filters: Record<string, unknown>): string {
@@ -206,6 +281,23 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       'status' in error &&
       error.status === 404
     );
+  }
+
+  /**
+   * Adapta serviço do backend para formato do frontend
+   */
+  private adaptBackendServiceToFrontend(backendService: BackendService): ServiceType {
+    return {
+      id: backendService.id,
+      name: backendService.name,
+      price: backendService.price,
+      // Campos não disponíveis no backend - usar valores padrão
+      description: '', // Backend não tem description
+      duration: 60, // Backend não tem duration - assumir 60 minutos
+      isActive: true, // Backend não tem isActive - assumir ativo
+      createdAt: new Date(), // Backend não retorna timestamps
+      updatedAt: new Date(), // Backend não retorna timestamps
+    };
   }
 }
 

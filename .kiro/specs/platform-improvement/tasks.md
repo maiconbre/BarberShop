@@ -1,4 +1,4 @@
-# 🎯 MVP Enxuto - BarberShop SaaS
+# 🎯 BarberShop SaaS
 
 **Objetivo**: Produto vendável em **3-4 semanas** que geSupabase + API externa) e foca em criar uma integração eficiente e código limpo. 
 
@@ -72,11 +72,6 @@
 ## Fase 2.3: Implementação de Repositórios
 
 - [x] 3. Implementar AppointmentRepository baseado na estrutura real
-
-
-
-
-
   - Criar interface IAppointmentRepository baseada no modelo Sequelize:
     - Campos: id(string), clientName, serviceName, date, time, status, barberId, barberName, price, wppclient
     - GET /api/appointments (com query ?barberId para filtro)
@@ -96,7 +91,12 @@
   - Validar integração com rate limiting do backend
   - _Requirements: 3.3_
 
-- [ ] 4. Expandir ServiceRepository com endpoints específicos
+- [x] 4. Expandir ServiceRepository com endpoints específicos
+
+
+
+
+
   - Implementar método findByBarber usando GET /api/services/barber/:barberId
   - Adicionar método associateBarbers usando POST /api/services/:id/barbers (requer auth)
   - Implementar filtros frontend baseados no modelo real:
@@ -105,7 +105,9 @@
   - Aproveitar rate limiting generoso (300 req/min para leitura)
   - _Requirements: 3.2, 3.3, 6.1_
 
-- [ ] 4.1 Criar testes unitários para ServiceRepository expandido
+- [x] 4.1 Criar testes unitários para ServiceRepository expandido
+
+
   - Implementar testes para método findByBarber
   - Testar associateBarbers com autenticação
   - Validar filtros frontend baseados na estrutura real
