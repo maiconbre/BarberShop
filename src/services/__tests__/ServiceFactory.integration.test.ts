@@ -183,7 +183,6 @@ describe('ServiceFactory Integration', () => {
   describe('Dependency Injection Pattern', () => {
     it('should follow proper dependency injection principles', () => {
       // The factory should create repositories with proper dependencies
-      const apiService = ServiceFactory.getApiService();
       
       // All repositories should be created with the same ApiService
       const userRepository = ServiceFactory.getUserRepository();

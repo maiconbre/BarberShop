@@ -156,12 +156,13 @@
   - Manter padrão enxuto e limpo
   - _Requirements: 3.4, 5.1_
 
-## Fase 2.3: Implementação de Repositórios
-
 ## Fase 2.4: Migração de Componentes
 
-- [ ] 7. Criar hooks baseados na estrutura real do backend
-  - Implementar useAppointments hook com estrutura real:
+- [x] 7. Criar hooks baseados na estrutura real do backend
+
+
+
+ - Implementar useAppointments hook com estrutura real:
     - Campos: clientName, serviceName, date, time, status, barberId, barberName, price, wppclient
     - Filtros por barberId, data, status
     - Rate limiting otimizado (200 req/min leitura, 20 req/min escrita)
@@ -178,7 +179,9 @@
     - Filtros por status, operações admin
   - _Requirements: 2.1, 2.3_
 
-- [ ] 7.1 Criar testes para novos hooks baseados na API real
+- [x] 7.1 Criar testes para novos hooks baseados na API real
+
+
   - Implementar testes unitários para useAppointments (estrutura real)
   - Implementar testes unitários para useBarbers (IDs formatados)
   - Atualizar testes do useServices (UUIDs, associações)
