@@ -2,6 +2,8 @@ import { ApiServiceV2 } from './core/ApiServiceV2';
 import { UserRepository } from './repositories/UserRepository';
 import { ServiceRepository } from './repositories/ServiceRepository';
 import { AppointmentRepository } from './repositories/AppointmentRepository';
+import { BarberRepository } from './repositories/BarberRepository';
+import { CommentRepository } from './repositories/CommentRepository';
 import { cacheService } from './CacheService';
 import type { IApiService } from './interfaces/IApiService';
 
@@ -14,6 +16,8 @@ export class ServiceFactory {
   private static userRepository: UserRepository | null = null;
   private static serviceRepository: ServiceRepository | null = null;
   private static appointmentRepository: AppointmentRepository | null = null;
+  private static barberRepository: BarberRepository | null = null;
+  private static commentRepository: CommentRepository | null = null;
 
   /**
    * Obtém instância do ApiService (Singleton)
@@ -57,6 +61,26 @@ export class ServiceFactory {
   }
 
   /**
+   * Obtém instância do BarberRepository
+   */
+  static getBarberRepository(): BarberRepository {
+    if (!this.barberRepository) {
+      this.barberRepository = new BarberRepository(this.getApiService());
+    }
+    return this.barberRepository;
+  }
+
+  /**
+   * Obtém instância do CommentRepository
+   */
+  static getCommentRepository(): CommentRepository {
+    if (!this.commentRepository) {
+      this.commentRepository = new CommentRepository(this.getApiService());
+    }
+    return this.commentRepository;
+  }
+
+  /**
    * Reseta todas as instâncias (útil para testes)
    */
   static reset(): void {
@@ -64,6 +88,8 @@ export class ServiceFactory {
     this.userRepository = null;
     this.serviceRepository = null;
     this.appointmentRepository = null;
+    this.barberRepository = null;
+    this.commentRepository = null;
   }
 
   /**
@@ -74,6 +100,8 @@ export class ServiceFactory {
     userRepository?: UserRepository;
     serviceRepository?: ServiceRepository;
     appointmentRepository?: AppointmentRepository;
+    barberRepository?: BarberRepository;
+    commentRepository?: CommentRepository;
   }): void {
     if (dependencies.apiService) {
       this.apiService = dependencies.apiService;
@@ -87,6 +115,12 @@ export class ServiceFactory {
     if (dependencies.appointmentRepository) {
       this.appointmentRepository = dependencies.appointmentRepository;
     }
+    if (dependencies.barberRepository) {
+      this.barberRepository = dependencies.barberRepository;
+    }
+    if (dependencies.commentRepository) {
+      this.commentRepository = dependencies.commentRepository;
+    }
   }
 }
 
@@ -97,3 +131,5 @@ export const useApiService = () => ServiceFactory.getApiService();
 export const useUserRepository = () => ServiceFactory.getUserRepository();
 export const useServiceRepository = () => ServiceFactory.getServiceRepository();
 export const useAppointmentRepository = () => ServiceFactory.getAppointmentRepository();
+export const useBarberRepository = () => ServiceFactory.getBarberRepository();
+export const useCommentRepository = () => ServiceFactory.getCommentRepository();

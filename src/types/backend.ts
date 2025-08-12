@@ -1,12 +1,12 @@
 /**
- * Backend-specific types that match the real Sequelize models
+ * Backend-specific type definitions that match the real Sequelize models
  * These interfaces represent the exact structure returned by the backend API
  */
 
 export interface BackendUser {
   id: string;
   username: string;
-  password?: string; // Only for creation/update
+  password?: string; // Only for creation/update operations
   role: string;
   name: string;
   createdAt?: Date;
@@ -18,6 +18,8 @@ export interface BackendBarber {
   name: string;
   whatsapp: string;
   pix: string;
+  // Note: Backend also includes username from related User model
+  username?: string;
 }
 
 export interface BackendService {
@@ -53,19 +55,12 @@ export interface BackendApiResponse<T> {
   data?: T;
   message?: string;
   success?: boolean;
+  error?: string;
 }
 
-// Appointment status enum matching backend
-export type BackendAppointmentStatus = 
-  | 'pending'
-  | 'confirmed' 
-  | 'completed'
-  | 'cancelled';
-
-// Appointment filters for backend API
-export interface BackendAppointmentFilters {
-  barberId?: string;
-  status?: BackendAppointmentStatus;
-  date?: string;
-  clientName?: string;
+// Comment-specific filter types
+export interface BackendCommentFilters {
+  status?: 'pending' | 'approved' | 'rejected';
+  page?: number;
+  limit?: number;
 }

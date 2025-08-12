@@ -114,7 +114,13 @@
   - Testar integração com rate limiting otimizado do backend
   - _Requirements: 3.3_
 
-- [ ] 5. Implementar BarberRepository baseado na estrutura real
+- [x] 5. Implementar BarberRepository baseado na estrutura real
+
+
+
+
+
+
   - Criar interface IBarberRepository baseada no modelo Sequelize:
     - Campos: id(string), name, whatsapp, pix + username do User relacionado
     - GET /api/barbers (retorna barber + username)
@@ -126,7 +132,10 @@
   - Aproveitar rate limiting otimizado (150 req/min para leitura)
   - _Requirements: 3.1, 3.3, 6.1_
 
-- [ ] 5.1 Implementar CommentRepository baseado na estrutura real
+- [x] 5.1 Implementar CommentRepository baseado na estrutura real
+
+
+
   - Criar interface baseada no modelo Comment:
     - Campos: id(string), name, comment, status(enum: pending/approved/rejected)
     - GET /api/comments?status=X (filtro por status)
@@ -136,8 +145,9 @@
     - DELETE /api/comments/:id (remover comentário, requer admin)
   - Integrar com sistema de autenticação para operações admin
   - _Requirements: 3.2, 3.3_
+- [x] 6. Integrar todos os repositórios no ServiceFactory
 
-- [ ] 6. Integrar todos os repositórios no ServiceFactory
+
   - Adicionar AppointmentRepository ao ServiceFactory
   - Adicionar BarberRepository ao ServiceFactory
   - Adicionar CommentRepository ao ServiceFactory

@@ -50,6 +50,27 @@ describe('ServiceFactory', () => {
 
       expect(serviceRepo1).toBe(serviceRepo2);
     });
+
+    it('should return same AppointmentRepository instance', () => {
+      const appointmentRepo1 = ServiceFactory.getAppointmentRepository();
+      const appointmentRepo2 = ServiceFactory.getAppointmentRepository();
+
+      expect(appointmentRepo1).toBe(appointmentRepo2);
+    });
+
+    it('should return same BarberRepository instance', () => {
+      const barberRepo1 = ServiceFactory.getBarberRepository();
+      const barberRepo2 = ServiceFactory.getBarberRepository();
+
+      expect(barberRepo1).toBe(barberRepo2);
+    });
+
+    it('should return same CommentRepository instance', () => {
+      const commentRepo1 = ServiceFactory.getCommentRepository();
+      const commentRepo2 = ServiceFactory.getCommentRepository();
+
+      expect(commentRepo1).toBe(commentRepo2);
+    });
   });
 
   describe('Dependency Injection', () => {
@@ -57,10 +78,16 @@ describe('ServiceFactory', () => {
       const apiService = ServiceFactory.getApiService();
       const userRepository = ServiceFactory.getUserRepository();
       const serviceRepository = ServiceFactory.getServiceRepository();
+      const appointmentRepository = ServiceFactory.getAppointmentRepository();
+      const barberRepository = ServiceFactory.getBarberRepository();
+      const commentRepository = ServiceFactory.getCommentRepository();
 
       // Repositories should be created with the same ApiService instance
       expect(userRepository).toBeDefined();
       expect(serviceRepository).toBeDefined();
+      expect(appointmentRepository).toBeDefined();
+      expect(barberRepository).toBeDefined();
+      expect(commentRepository).toBeDefined();
     });
   });
 
@@ -106,6 +133,10 @@ describe('ServiceFactory', () => {
       // Create instances
       const apiService1 = ServiceFactory.getApiService();
       const userRepo1 = ServiceFactory.getUserRepository();
+      const serviceRepo1 = ServiceFactory.getServiceRepository();
+      const appointmentRepo1 = ServiceFactory.getAppointmentRepository();
+      const barberRepo1 = ServiceFactory.getBarberRepository();
+      const commentRepo1 = ServiceFactory.getCommentRepository();
 
       // Reset
       ServiceFactory.reset();
@@ -113,6 +144,10 @@ describe('ServiceFactory', () => {
       // Create new instances
       const apiService2 = ServiceFactory.getApiService();
       const userRepo2 = ServiceFactory.getUserRepository();
+      const serviceRepo2 = ServiceFactory.getServiceRepository();
+      const appointmentRepo2 = ServiceFactory.getAppointmentRepository();
+      const barberRepo2 = ServiceFactory.getBarberRepository();
+      const commentRepo2 = ServiceFactory.getCommentRepository();
 
       // Should be different instances (mocked instances might be the same, so we check if reset was called)
       expect(ServiceFactory.getApiService).toBeDefined();
