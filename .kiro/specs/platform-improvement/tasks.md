@@ -1,8 +1,12 @@
 # 🎯 BarberShop SaaS
 
-**Objetivo**: Produto vendável em **3-4 semanas** que geSupabase + API externa) e foca em criar uma integração eficiente e código limpo. 
+**Objetivo**: Produto vendável em **3-4 semanas** que gere receita real através de plataforma multi-tenant SaaS.
 
 **Estratégia de Desenvolvimento**: Para agilizar o desenvolvimento coordenado, o backend será temporariamente clonado para uma pasta `/backend` local, permitindo desenvolvimento e testes integrados. As mudanças serão posteriormente aplicadas ao repositório backend separado, mantendo os deploys automáticos independentes.
+
+## 🚨 ALERTA CRÍTICO - MULTI-TENANT
+
+**IMPORTANTE*
 
 ## Fase 2.1: Correção de Testes de Hooks
 
@@ -159,14 +163,11 @@
 ## Fase 2.4: Migração de Componentes
 
 - [x] 7. Criar hooks baseados na estrutura real do backend
-
-
-
- - Implementar useAppointments hook com estrutura real:
+- Implementar useAppointments hook com estrutura real:
     - Campos: clientName, serviceName, date, time, status, barberId, barberName, price, wppclient
     - Filtros por barberId, data, status
     - Rate limiting otimizado (200 req/min leitura, 20 req/min escrita)
-  - Implementar useBarbers hook:
+    - Implementar useBarbers hook:
     - Campos: id(string), name, whatsapp, pix, username
     - IDs formatados ("01", "02")
     - Operações CUD com User relacionado
@@ -189,119 +190,262 @@
   - Validar rate limiting e burst limits
   - _Requirements: 2.1, 2.3_
 
-- [ ] 8. Migrar componentes de agendamento
+## Fase 2.4: Implementação Multi-Tenant (PRIORIDADE MÁXIMA) 🚨
+
+**ATENÇÃO CRÍTICA**: Esta fase deve ser executada PRIMEIRO para evitar retrabalho massivo. O banco de dados pode ser recriado do zero sem problemas - não há necessidade de migração de dados.
+
+### Entrega 1 – Base do Banco e Modelos Multi-Tenant
+
+- [-] 8. Implementar Multi-Tenant no Backend Local (PRIORIDADE MÁXIMA)
+
+
+  - **Meta**: Backend pronto para armazenar e relacionar dados por barbearia (tenant), sem alterar ainda o fluxo de rotas e autenticação
+  - **BANCO PODE SER RECRIADO**: Dados atuais são obsoletos, sem necessidade de migração
+  - Implementar mudanças multi-tenant no backend local (/backend)
+  - Testar isolamento de dados localmente
+  - Validar funcionalidades básicas com nova estrutura
+  - _Requirements: 8.1, 8.2, 6.1_
+
+- [x] 8.1 Modelos e Associações (Sequelize) - RECRIAR BANCO
+
+
+  - **Criar modelo Barbershop**:
+    - id(UUID), name, slug, owner_email, plan_type, settings, created_at
+    - Validação de slug único
+    - Índice único em slug
+  - **Adicionar barbershopId (UUID) em todas as entidades**:
+    - User, Barber, Service, Appointment, Comment
+    - Foreign key: barbershopId → Barbershops.id
+    - Criar índices compostos: (barbershopId, id) para performance
+  - **IMPORTANTE**: Não criar lógicas de migração - banco será recriado
+  - **📦 Saída**: Estrutura de banco multi-tenant definida
+  - _Requirements: 8.1, 8.2_
+
+- [x] 8.2 Seeders para Desenvolvimento
+
+
+  - **Criar barbearia padrão**:
+    - slug: "dev-barbershop"
+    - Dados fake para desenvolvimento
+  - **Popular com dados de teste**:
+    - 1 usuário admin
+    - 2 barbeiros
+    - 2 serviços
+    - 3 agendamentos
+  - **Script npm run seed:reset**:
+    - Recriar banco completo
+    - Popular com dados de teste
+  - **📦 Saída**: Ambiente de desenvolvimento funcional com dados multi-tenant
+  - _Requirements: 8.1, 8.2_
+
+- [x] 8.3 Validação Local da Estrutura
+
+
+  - **Garantir limpeza**:
+    - Dados antigos não existem (banco recriado)
+    - Todas as tabelas têm barbershopId
+  - **Testar CRUD básico**:
+    - Todas as entidades (User, Barber, Service, Appointment, Comment)
+    - Validar chaves estrangeiras funcionando
+    - Confirmar que dados são criados com barbershopId
+  - **📦 Saída**: Backend com estrutura multi-tenant no banco, CRUD funcional, sem middleware ainda
+  - _Requirements: 8.1, 8.2_
+
+### Entrega 2 – Middleware e Isolamento de Dados
+
+- [x] 8.4 Middleware de Tenant
+
+
+  - **Meta**: Garantir que nenhuma query no backend possa acessar dados de outra barbearia
+  - **Detectar slug via rota**:
+    - Capturar de /app/:barbershopSlug/*
+    - Buscar barbershopId correspondente
+    - Injetar no req.context
+  - **Hooks Sequelize**:
+    - beforeFind: incluir automaticamente barbershopId em todas queries
+    - beforeCreate: incluir automaticamente barbershopId em todas criações
+    - beforeUpdate: validar que barbershopId não muda
+  - **📦 Saída**: Middleware funcional injetando tenant em todas as operações
+  - _Requirements: 8.1, 8.2_
+
+- [x] 8.5 Validação de Acesso e Segurança
+
+
+  - **Bloquear queries sem tenant**:
+    - Rejeitar requisições sem barbershopId válido
+    - Retornar erro 403 para tentativas de acesso cross-tenant
+  - **Logs de segurança**:
+    - Registrar tentativas de acesso indevido
+    - Log de queries executadas por tenant
+  - **Garantir isolamento**:
+    - Usuário só acessa dados da própria barbearia
+    - Validar que middleware está funcionando em todos os endpoints
+  - **📦 Saída**: Sistema de segurança ativo impedindo vazamento de dados
+  - _Requirements: 8.1, 8.2_
+
+- [x] 8.6 Testes de Isolamento Multi-Tenant
+
+
+
+  - **Teste unitário de middleware**:
+    - Validar detecção de slug
+    - Validar injeção de barbershopId
+    - Validar bloqueio de acesso indevido
+  - **Teste de integração com 2 barbearias**:
+    - Criar 2 barbearias diferentes
+    - Validar isolamento completo de dados
+    - Confirmar que queries não vazam entre tenants
+  - **📦 Saída**: Backend isolado por tenant, com segurança ativa e testada
+  - _Requirements: 8.1, 8.2_
+
+### Entrega 3 – Cadastro, Roteamento e Frontend Multi-Tenant
+
+- [x] 8.7 Endpoints de Cadastro e Gestão de Barbearias
+
+
+
+
+  - **Meta**: Permitir criar novas barbearias, acessar via slug e consumir dados isolados no frontend
+  - **Novos Endpoints**:
+    - POST /api/barbershops/register (cria barbearia + admin inicial)
+    - GET /api/barbershops/check-slug/:slug (verificar disponibilidade)
+    - GET /api/barbershops/current (dados do tenant logado)
+  - **Fluxo de Cadastro**:
+    - Validação de slug único
+    - Criação de estrutura inicial (primeiro admin, dados básicos)
+    - Retornar dados da barbearia criada
+  - **📦 Saída**: Endpoints funcionais para gestão de barbearias
+  - _Requirements: 8.3, 8.4, 8.6_
+
+- [x] 8.8 Frontend - Context e Routing Multi-Tenant
+
+
+
+
+
+
+
+
+  - **Criar TenantContext**:
+    - Armazenar barbershopId, slug, settings
+    - Provider para toda a aplicação
+    - Hook useTenant() para consumir context
+  - **Adaptar hooks existentes**:
+    - useAppointments, useBarbers, useServices, useComments
+    - Incluir tenant automaticamente em todas as requisições
+    - Cache por tenant
+  - **Roteamento**:
+    - Configurar rotas no formato /app/:barbershopSlug/*
+    - Capturar slug da URL
+    - Redirecionar usuário para /app/:slug/dashboard após login
+  - **📦 Saída**: Frontend preparado para multi-tenant
+  - _Requirements: 8.1, 8.2, 8.3_
+
+- [-] 8.9 Teste Final de Fluxo Multi-Tenant
+
+
+
+  - **Criar 2 barbearias**:
+    - Usar endpoint de cadastro
+    - Validar slugs únicos
+  - **Logar em cada barbearia**:
+    - Testar autenticação por tenant
+    - Validar redirecionamento correto
+  - **Validar isolamento no dashboard**:
+    - Cadastro, login, agendamento
+    - Listagem de serviços por slug
+    - Confirmar que dados não vazam entre tenants
+  - **📦 Saída**: Multi-tenant completo e funcional, pronto para migração de componentes
+  - _Requirements: 8.1, 8.2, 8.3_
+
+## Fase 2.5: Migração de Componentes (Após Multi-Tenant)
+
+- [ ] 9. Migrar componentes de agendamento
   - Identificar componentes que usam appointmentStore
-  - Migrar para usar useAppointments hook com estrutura real
-  - Atualizar BookingModal para campos: clientName, serviceName, wppclient
-  - Refatorar Calendar/CalendarView para filtros por barberId
+  - Migrar para usar useAppointments hook com estrutura real + barbershopId
+  - Atualizar BookingModal para campos: clientName, serviceName, wppclient, barbershopId
+  - Refatorar Calendar/CalendarView para filtros por barberId + tenant
   - Implementar tratamento de status: pending/confirmed/completed/cancelled
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 8.1 Migrar componentes de barbeiros
+- [ ] 9.1 Migrar componentes de barbeiros
   - Identificar componentes que usam barberStore
-  - Migrar para usar useBarbers hook com IDs formatados
-  - Atualizar componentes para campos: name, whatsapp, pix, username
-  - Implementar criação coordenada User + Barber
-  - Tratar exclusão em cascata (User + Barber + Appointments)
+  - Migrar para usar useBarbers hook com IDs formatados + barbershopId
+  - Atualizar componentes para campos: name, whatsapp, pix, username, barbershopId
+  - Implementar criação coordenada User + Barber + tenant
+  - Tratar exclusão em cascata (User + Barber + Appointments) por tenant
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 8.2 Migrar componentes de serviços
-  - Atualizar componentes para usar useServices expandido
-  - Implementar associação barbeiro-serviço (N:N)
-  - Usar endpoint específico /api/services/barber/:barberId
+- [ ] 9.2 Migrar componentes de serviços
+  - Atualizar componentes para usar useServices expandido + barbershopId
+  - Implementar associação barbeiro-serviço (N:N) por tenant
+  - Usar endpoint específico /api/services/barber/:barberId com tenant
   - Aplicar padrões SOLID na refatoração
   - Aproveitar rate limiting generoso para UX
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 9. Atualizar stores Zustand gradualmente
-  - Migrar appointmentStore para usar AppointmentRepository
-    - Adaptar para estrutura real (clientName, wppclient, etc.)
-    - Usar filtros por barberId
-  - Migrar barberStore para usar BarberRepository
-    - Adaptar para IDs formatados e User relacionado
-    - Implementar operações coordenadas
-  - Atualizar commentStore para usar CommentRepository
-    - Adaptar para enum status
-    - Implementar filtros por status
+- [ ] 9.3 Atualizar stores Zustand para Multi-Tenant
+  - Migrar appointmentStore para usar AppointmentRepository + tenant
+    - Adaptar para estrutura real (clientName, wppclient, etc.) + barbershopId
+    - Usar filtros por barberId + tenant
+  - Migrar barberStore para usar BarberRepository + tenant
+    - Adaptar para IDs formatados e User relacionado + barbershopId
+    - Implementar operações coordenadas por tenant
+  - Atualizar commentStore para usar CommentRepository + tenant
+    - Adaptar para enum status + barbershopId
+    - Implementar filtros por status + tenant
   - Manter compatibilidade durante transição
   - _Requirements: 2.1, 2.2_
 
-## Fase 2.5: Testes de Integração
+## Fase 2.6: Testes de Integração Multi-Tenant
 
-- [ ] 8. Implementar testes de integração de repositórios
-  - Criar testes que validam integração entre repositórios
-  - Testar fluxos de dados completos
-  - Validar comportamento com dados reais (mock)
+- [ ] 10. Implementar testes de integração multi-tenant
+  - Criar testes que validam isolamento de dados entre tenants
+  - Testar fluxos de dados completos por barbearia
+  - Validar comportamento com múltiplos tenants
   - _Requirements: 4.1, 4.3_
 
-- [ ] 8.1 Implementar testes de integração de componentes
-  - Criar testes que validam interação entre componentes
-  - Testar fluxos de usuário completos
-  - Validar integração com hooks e repositórios
+- [ ] 10.1 Implementar testes de integração de componentes multi-tenant
+  - Criar testes que validam interação entre componentes por tenant
+  - Testar fluxos de usuário completos por barbearia
+  - Validar integração com hooks e repositórios multi-tenant
   - _Requirements: 4.1, 4.2_
 
-- [ ] 9. Implementar testes end-to-end de fluxos críticos
-  - Criar testes para fluxo de agendamento completo
-  - Testar fluxo de gerenciamento de usuários
-  - Validar fluxo de gerenciamento de serviços
+- [ ] 10.2 Implementar testes end-to-end de fluxos críticos multi-tenant
+  - Criar testes para fluxo de agendamento completo por tenant
+  - Testar fluxo de gerenciamento de usuários por barbearia
+  - Validar fluxo de gerenciamento de serviços por tenant
   - _Requirements: 4.1, 4.3_
 
-- [ ] 9.1 Configurar ambiente de testes de integração
-  - Configurar dados de teste (fixtures)
-  - Implementar setup e teardown adequados
-  - Garantir isolamento entre testes de integração
+- [ ] 10.3 Configurar ambiente de testes multi-tenant
+  - Configurar dados de teste por tenant (fixtures)
+  - Implementar setup e teardown adequados para múltiplos tenants
+  - Garantir isolamento entre testes de diferentes barbearias
   - _Requirements: 4.4_
 
-## Fase 2.5: Sincronização com Backend Separado
+## Fase 2.7: Arquitetura SaaS Completa
 
-- [ ] 12. Identificar mudanças necessárias no backend
-  - Documentar todas as mudanças propostas para o backend
-  - Criar lista de endpoints que precisam ser adicionados/modificados
-  - Identificar melhorias de performance no backend
-  - Propor padronizações de resposta se necessário
-  - _Requirements: 6.2, 6.4_
+- [ ] 11. Implementar sistema de cadastro e onboarding
 
-- [ ] 12.1 Aplicar mudanças no repositório backend
-  - Aplicar mudanças identificadas no repositório backend separado
-  - Testar mudanças no ambiente de desenvolvimento
-  - Validar que não há breaking changes
-  - Fazer deploy das mudanças backend primeiro
-  - _Requirements: 6.1, 6.3_
-
-- [ ] 12.2 Sincronizar e limpar ambiente local
-  - Validar que frontend funciona com backend atualizado
-  - Remover pasta `/backend` do projeto frontend
-  - Atualizar configurações para apontar para backend remoto
-  - Documentar mudanças aplicadas em ambos os repositórios
-  - _Requirements: 6.3, 6.4_
-
-## Fase 2.6: Arquitetura Multi-Tenant SaaS
-
-- [ ] 10. Implementar arquitetura multi-tenant escalável
-  - Criar modelo de dados para isolamento por barbearia (tenant)
-  - Implementar middleware de tenant context
-  - Garantir isolamento completo de dados entre barbearias
-  - Criar sistema de roteamento dinâmico por tenant
-  - _Requirements: 8.1, 8.2, 8.3_
-
-- [ ] 10.1 Modelo de dados multi-tenant
-  - Adicionar campo `barbershopId` (tenant_id) em todas as tabelas
-  - Criar tabela `Barbershops` com dados da barbearia:
-    - id, name, slug, owner_email, plan_type, created_at, settings
-  - Implementar foreign keys e constraints para isolamento
-  - Criar índices otimizados para queries por tenant
-  - _Requirements: 8.1, 8.2_
-
-- [ ] 10.2 Sistema de cadastro gratuito com verificação de email
-  - Criar formulário de cadastro de barbearia
-  - Implementar validação de dados (nome da barbearia, email, etc.)
-  - Gerar slug único para cada barbearia (ex: /minha-barbearia)
-  - Implementar sistema de verificação de email com código
-  - Criar fluxo automático de setup inicial após confirmação
-  - Integrar com n8n para automação de emails
+- [ ] 11.1 Sistema de cadastro gratuito com verificação de email
+  - **Backend - Endpoints de Cadastro**:
+    - POST /api/barbershops/register - Cadastro de nova barbearia
+    - POST /api/barbershops/verify-email - Verificação de email
+    - GET /api/barbershops/check-slug/:slug - Verificar disponibilidade
+    - GET /api/barbershops/current - Dados da barbearia atual
+  - **Frontend - Fluxo de Cadastro**:
+    - Formulário de cadastro de barbearia (nome, email, slug)
+    - Validação de dados e disponibilidade de slug
+    - Página de verificação de email com código
+    - Redirecionamento para setup inicial da barbearia
+  - **Integração**:
+    - Gerar slug único para cada barbearia (ex: /minha-barbearia)
+    - Sistema de verificação de email com código de 6 dígitos
+    - Criar estrutura inicial: primeiro usuário admin, dados básicos
+    - Integrar com n8n para automação de emails
   - _Requirements: 8.3, 8.4, 8.6_
 
-- [ ] 10.2.1 Sistema de verificação de email
+- [ ] 11.2 Sistema de verificação de email e onboarding
   - Gerar código de verificação de 6 dígitos
   - Enviar email de confirmação via webhook n8n
   - Criar página de inserção do código de verificação
@@ -309,7 +453,7 @@
   - Bloquear criação da barbearia até confirmação do email
   - _Requirements: 8.6, 8.7_
 
-- [ ] 10.2.2 Integração com n8n para emails
+- [ ] 11.3 Integração com n8n para emails
   - Configurar webhook n8n para envio de emails
   - Criar template de email de verificação
   - Criar template de email de boas-vindas com link personalizado
@@ -317,7 +461,7 @@
   - Configurar logs de entrega de emails
   - _Requirements: 8.6, 8.7_
 
-- [ ] 10.2.3 Fluxo completo de onboarding
+- [ ] 11.4 Fluxo completo de onboarding
   - Email de verificação → Código → Confirmação
   - Criação automática da estrutura da barbearia
   - Setup inicial: primeiro barbeiro, serviços básicos
@@ -325,107 +469,67 @@
   - Tutorial inicial na primeira entrada
   - _Requirements: 8.4, 8.6, 8.7_
 
-- [ ] 10.3 Página de login com verificação de plano
+- [ ] 11.5 Página de login com verificação de plano
   - Atualizar página de login existente
   - Adicionar botão "Começar Grátis" que direciona para cadastro
   - Implementar verificação de status de pagamento
   - Criar redirecionamento para página específica da barbearia
   - _Requirements: 8.3, 8.4_
 
-- [ ] 10.4 Roteamento dinâmico por barbearia
-  - Implementar sistema de subdomínios ou paths únicos
-  - Criar middleware para detectar tenant pela URL
-  - Implementar context provider para tenant atual
-  - Garantir que todas as queries incluam filtro por tenant
-  - _Requirements: 8.1, 8.2_
+## Fase 2.8: Sistema de Planos e Billing
 
-## Fase 2.7: Sistema de Planos e Billing
-
-- [ ] 11. Planos e Billing Multi-Tenant
+- [ ] 12. Planos e Billing Multi-Tenant
   - Implementar estrutura de planos por barbearia
   - Integrar gateway de pagamento Mercado Pago
   - Criar middleware de verificação de limites por tenant
   - Implementar dashboard de billing por barbearia
   - _Requirements: 7.1, 7.2, 7.3, 8.2_
 
-- [ ] 11.1 Estrutura de planos por barbearia
+- [ ] 12.1 Estrutura de planos por barbearia
   - Plano Grátis: 1 barbeiro, 20 agendamentos/mês por barbearia
   - Plano Pro: Ilimitado, R$ 39/mês por barbearia
   - Middleware de verificação de limites por tenant
   - Sistema de upgrade/downgrade de planos
   - _Requirements: 7.1, 7.2, 8.2_
 
-- [ ] 11.2 Integração Mercado Pago Multi-Tenant
+- [ ] 12.2 Integração Mercado Pago Multi-Tenant
   - Configurar SDK do Mercado Pago com suporte a múltiplos tenants
   - Implementar fluxo de pagamento por barbearia
   - Criar webhook para confirmação de pagamento por tenant
   - Implementar renovação automática de assinaturas por barbearia
   - _Requirements: 7.2, 7.3, 8.2_
 
-- [ ] 11.3 Middleware de verificação por tenant
+- [ ] 12.3 Middleware de verificação por tenant
   - Criar middleware para verificar limites do plano por barbearia
   - Implementar bloqueio de funcionalidades quando limite excedido
   - Criar sistema de notificações de limite próximo por tenant
   - Implementar upgrade automático de plano quando necessário
   - _Requirements: 7.1, 7.3, 8.2_
 
-- [ ] 11.4 Interface de billing por barbearia
+- [ ] 12.4 Interface de billing por barbearia
   - Criar página de planos e preços personalizada por tenant
   - Implementar dashboard de uso atual por barbearia
   - Criar página de gerenciamento de assinatura por tenant
   - Implementar histórico de pagamentos por barbearia
   - _Requirements: 7.2, 7.4, 8.4_
 
-## Fase 2.8: Sistema de Emails e Notificações
-
-- [ ] 13. Implementar sistema de emails automatizados
-  - Integrar com n8n para automação de emails
-  - Criar templates de emails responsivos
-  - Implementar sistema de filas de email
-  - Configurar logs e monitoramento de entrega
-  - _Requirements: 8.6, 8.7, 8.8_
-
-- [ ] 13.1 Templates de emails
-  - Email de verificação de cadastro com código
-  - Email de boas-vindas com link personalizado
-  - Email de confirmação de agendamento
-  - Email de lembrete de agendamento (24h antes)
-  - Email de upgrade de plano
-  - Email de cobrança e renovação
-  - _Requirements: 8.7, 8.8_
-
-- [ ] 13.2 Webhooks n8n para automação
-  - Configurar webhook para verificação de email
-  - Configurar webhook para boas-vindas pós-cadastro
-  - Configurar webhook para notificações de agendamento
-  - Configurar webhook para billing e cobrança
-  - Implementar retry logic para falhas de webhook
-  - _Requirements: 8.6, 8.7_
-
-- [ ] 13.3 Sistema de notificações em tempo real
-  - Implementar notificações push no dashboard
-  - Criar sistema de notificações por email
-  - Implementar notificações WhatsApp (futuro)
-  - Configurar preferências de notificação por usuário
-  - _Requirements: 8.8, 8.9_
-
 ## Fase 2.9: Isolamento e Segurança Multi-Tenant
 
-- [ ] 14. Implementar isolamento completo de dados
+- [ ] 13. Implementar isolamento completo de dados
   - Garantir que todas as queries incluam filtro por barbershopId
   - Implementar testes de isolamento de dados
   - Criar auditoria de acesso cross-tenant
   - Implementar backup e restore por tenant
   - _Requirements: 8.1, 8.2, 8.5_
 
-- [ ] 14.1 Segurança e autenticação por tenant
+- [ ] 13.1 Segurança e autenticação por tenant
   - Implementar autenticação isolada por barbearia
   - Criar sistema de roles e permissões por tenant
   - Implementar JWT com claim de tenant
   - Garantir que usuários só acessem dados da própria barbearia
   - _Requirements: 8.2, 8.5_
 
-- [ ] 14.2 Configurações personalizadas por barbearia
+- [ ] 13.2 Configurações personalizadas por barbearia
   - Criar sistema de configurações por tenant (tema, logo, etc.)
   - Implementar personalização de domínio/subdomain
   - Criar sistema de templates personalizáveis
@@ -434,35 +538,35 @@
 
 ## Fase 2.10: Otimização e Limpeza (Código Enxuto)
 
-- [ ] 15. Auditoria e limpeza de código
+- [ ] 14. Auditoria e limpeza de código
   - Identificar e remover imports não utilizados
   - Limpar dependências desnecessárias do package.json
   - Refatorar código duplicado seguindo DRY
   - Remover console.logs e código de debug desnecessário
   - _Requirements: 5.2, 5.3_
 
-- [ ] 15.1 Otimizar integração com backend
+- [ ] 14.1 Otimizar integração com backend
   - Revisar e otimizar configurações de cache existentes
   - Validar se todos os fallback endpoints são necessários
   - Otimizar retry logic para reduzir latência
   - Implementar lazy loading onde apropriado
   - _Requirements: 5.1, 5.4, 6.3_
 
-- [ ] 15.2 Simplificar arquitetura onde possível
+- [ ] 14.2 Simplificar arquitetura onde possível
   - Identificar abstrações desnecessárias
   - Consolidar interfaces similares
   - Simplificar fluxos de dados complexos
   - Aplicar princípio KISS (Keep It Simple, Stupid)
   - _Requirements: 5.1, 5.3, 5.4_
 
-- [ ] 16. Documentar integração com backend
+- [ ] 15. Documentar integração com backend
   - Documentar endpoints utilizados e suas respostas
   - Criar guia de integração para novos desenvolvedores
   - Documentar configurações de ambiente necessárias
   - Listar mudanças propostas para o backend (se houver)
   - _Requirements: 2.4, 5.4, 6.2, 6.4_
 
-- [ ] 16.1 Validar implementação completa e enxuta
+- [ ] 15.1 Validar implementação completa e enxuta
   - Executar suite completa de testes (unitários + integração)
   - Verificar cobertura de código mantida/melhorada
   - Validar performance da aplicação (não degradar)

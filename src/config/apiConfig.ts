@@ -7,7 +7,7 @@ const isDebugEnabled = import.meta.env.VITE_DEBUG_API === 'true' || isDevMode;
 
 export const API_CONFIG = {
   // URLs e endpoints
-  BASE_URL: import.meta.env.VITE_API_URL || 'https://barber-backend-spm8.onrender.com',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:6543',
   IS_LOCAL_DEV: isLocalDev,
   IS_DEV_MODE: isDevMode,
   IS_DEBUG_ENABLED: isDebugEnabled,

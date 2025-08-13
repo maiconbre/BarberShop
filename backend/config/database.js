@@ -3,7 +3,7 @@
  * Este arquivo centraliza as configurações do banco de dados para diferentes ambientes
  */
 
-require('dotenv').config({ path: process.env.NODE_ENV === 'development' ? '../../.env.local' : '../../.env' });
+require('dotenv').config({ path: '.env' });
 
 const config = {
   development: {
@@ -17,10 +17,11 @@ const config = {
       keepAlive: true
     },
     pool: {
-      max: 5,
+      max: 3,
       min: 0,
       idle: 10000,
-      acquire: 30000
+      acquire: 30000,
+      evict: 1000
     },
     retry: {
       max: 5,
@@ -70,10 +71,11 @@ const config = {
       keepAlive: true
     },
     pool: {
-      max: 10,
+      max: 5,
       min: 0,
       idle: 10000,
-      acquire: 60000
+      acquire: 30000,
+      evict: 1000
     },
     retry: {
       max: 5,

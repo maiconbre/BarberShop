@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { TenantProvider } from './contexts/TenantContext';
 import Navbar from './components/ui/Navbar';
 import Home from './pages/Home';
+import BarbershopHomePage from './pages/BarbershopHomePage';
 import AboutPage from './pages/AboutPage';
 import ServicesPage from './pages/ServicesPage';
 import ContactPage from './pages/ContactPage';
 import ScheduleManagementPage from './pages/ScheduleManagementPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import BarbershopRegistrationPage from './pages/BarbershopRegistrationPage';
 import DashboardPageNew from './pages/DashboardPageNew';
 import AgendaPage from './pages/AgendaPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -30,12 +33,20 @@ const AppContent = () => {
     exit: { opacity: 0 },
     transition: { duration: 0.15, ease: "easeInOut" }
   };
+  const isPublicRoute = location.pathname === '/' || 
+                       location.pathname === '/about' || 
+                       location.pathname === '/services' || 
+                       location.pathname === '/contacts' || 
+                       location.pathname === '/login' || 
+                       location.pathname === '/register-barbershop';
+
+  const isTenantRoute = location.pathname.startsWith('/app/');
+  const isBarbershopHomePage = location.pathname.match(/^\/[a-zA-Z0-9-]+$/) && location.pathname !== '/';
+
   return (
     <div className="min-h-screen bg-[#0D121E] text-white">
-      {/* Carrega a navbar imediatamente para melhorar a experiência do usuário */}
-      {location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/trocar-senha' && location.pathname !== '/vendapage2' && location.pathname !== '/dashboard' && location.pathname !== '/agenda' && location.pathname !== '/analytics' && (
-        <Navbar />
-      )}
+      {/* Carrega a navbar apenas para rotas públicas (não para páginas isoladas das barbearias) */}
+      {isPublicRoute && !isBarbershopHomePage && <Navbar />}
       
       {/* Modal de agendamento */}
       <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
@@ -53,66 +64,36 @@ const AppContent = () => {
             transition={pageTransition.transition}
           >
             <Routes location={location}>
+              {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/contacts" element={<ContactPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPageNew />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/agenda"
-                element={
-                  <ProtectedRoute>
-                    <AgendaPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/analytics"
-                element={
-                  <ProtectedRoute>
-                    <AnalyticsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/trocar-senha"
-                element={
-                  <ProtectedRoute>
-                    <TrocaSenha />
-                    </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <ProtectedRoute>
-                    <RegisterPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/gerenciar-comentarios" element={
-                <ProtectedRoute>
-                  <CommentManagementPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/servicos" element={
-                <ProtectedRoute>
-                  <ServiceManagementPage />
-                </ProtectedRoute>
-              } />
-              <Route path='/gerenciar-horarios' element={
-                <ProtectedRoute>
-                  <ScheduleManagementPage />
-                </ProtectedRoute>
-              } />
+              <Route path="/register-barbershop" element={<BarbershopRegistrationPage />} />
+              
+              {/* Barbershop isolated home pages - deve vir antes das rotas multi-tenant */}
+              <Route path="/:barbershopSlug" element={<BarbershopHomePage />} />
+              
+              {/* Legacy routes - redirect to tenant-aware routes */}
+              <Route path="/dashboard" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
+              <Route path="/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
+              <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+              <Route path="/trocar-senha" element={<ProtectedRoute><TrocaSenha /></ProtectedRoute>} />
+              <Route path="/register" element={<ProtectedRoute><RegisterPage /></ProtectedRoute>} />
+              <Route path="/gerenciar-comentarios" element={<ProtectedRoute><CommentManagementPage /></ProtectedRoute>} />
+              <Route path="/servicos" element={<ProtectedRoute><ServiceManagementPage /></ProtectedRoute>} />
+              <Route path="/gerenciar-horarios" element={<ProtectedRoute><ScheduleManagementPage /></ProtectedRoute>} />
+              
+              {/* Multi-tenant routes */}
+              <Route path="/app/:barbershopSlug/dashboard" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/trocar-senha" element={<ProtectedRoute><TrocaSenha /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/register" element={<ProtectedRoute><RegisterPage /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/gerenciar-comentarios" element={<ProtectedRoute><CommentManagementPage /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/servicos" element={<ProtectedRoute><ServiceManagementPage /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/gerenciar-horarios" element={<ProtectedRoute><ScheduleManagementPage /></ProtectedRoute>} />
             </Routes>
           </motion.div>
         </AnimatePresence>
@@ -123,7 +104,9 @@ const AppContent = () => {
 function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <TenantProvider>
+        <AppContent />
+      </TenantProvider>
     </BrowserRouter>
   );
 }

@@ -8,18 +8,30 @@ const router = express.Router();
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://xxxsgvqbnkftoswascds.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
+// Determinar o tipo de chave baseado na fonte
+const keyType = process.env.SUPABASE_SERVICE_KEY ? 'SERVICE_ROLE' : 'ANON';
+
 // Log da configuração (sem expor a chave completa)
 console.log('[QR-CODES] Configuração Supabase:');
 console.log('- URL:', supabaseUrl);
-console.log('- Chave tipo:', supabaseServiceKey?.includes('service_role') ? 'SERVICE_ROLE' : 'ANON');
+console.log('- Chave tipo:', keyType);
 console.log('- Chave válida:', supabaseServiceKey ? 'SIM' : 'NÃO');
 
+// Verificar se a chave é válida antes de inicializar o cliente
+let supabase = null;
 if (!supabaseServiceKey || supabaseServiceKey === 'SUBSTITUA_PELA_CHAVE_SERVICE_ROLE_CORRETA_DO_PAINEL_SUPABASE') {
   console.warn('[QR-CODES] ⚠️  ATENÇÃO: SERVICE_KEY não configurada corretamente!');
   console.warn('[QR-CODES] Acesse o painel do Supabase > Settings > API > service_role para obter a chave correta');
+  console.warn('[QR-CODES] Rotas de QR Code funcionarão apenas com arquivos locais');
+} else {
+  try {
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('[QR-CODES] Cliente Supabase inicializado com sucesso');
+  } catch (error) {
+    console.error('[QR-CODES] Erro ao inicializar cliente Supabase:', error.message);
+    console.warn('[QR-CODES] Rotas de QR Code funcionarão apenas com arquivos locais');
+  }
 }
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Nome do bucket para armazenar os QR codes
 const QR_BUCKET = 'qr-codes';
@@ -79,6 +91,15 @@ router.post('/upload', async (req, res) => {
       });
     }
     
+    // Verificar se o Supabase está disponível
+    if (!supabase) {
+      return res.status(503).json({
+        success: false,
+        message: 'Serviço de armazenamento não disponível. Configure as credenciais do Supabase.',
+        code: 'SUPABASE_NOT_CONFIGURED'
+      });
+    }
+
     // Upload para o Supabase Storage
     const { data, error } = await supabase
       .storage
@@ -137,30 +158,34 @@ router.get('/list', async (req, res) => {
     let filesWithUrls = [];
     
     try {
-      // Tentar listar arquivos do bucket do Supabase primeiro
-      const { data: files, error } = await supabase
-        .storage
-        .from(QR_BUCKET)
-        .list();
+      // Tentar listar arquivos do bucket do Supabase primeiro (se disponível)
+      if (supabase) {
+        const { data: files, error } = await supabase
+          .storage
+          .from(QR_BUCKET)
+          .list();
       
       if (!error && files) {
         // Filtrar apenas arquivos SVG
         const svgFiles = files.filter(file => file.name.endsWith('.svg'));
         
-        // Obter URLs públicas para cada arquivo
-        filesWithUrls = svgFiles.map(file => {
-          const { data: urlData } = supabase
-            .storage
-            .from(QR_BUCKET)
-            .getPublicUrl(file.name);
-          
-          return {
-            filename: file.name,
-            name: file.name.replace('.svg', ''),
-            path: urlData.publicUrl,
-            source: 'supabase'
-          };
-        });
+          // Obter URLs públicas para cada arquivo
+          filesWithUrls = svgFiles.map(file => {
+            const { data: urlData } = supabase
+              .storage
+              .from(QR_BUCKET)
+              .getPublicUrl(file.name);
+            
+            return {
+              filename: file.name,
+              name: file.name.replace('.svg', ''),
+              path: urlData.publicUrl,
+              source: 'supabase'
+            };
+          });
+        }
+      } else {
+        console.log('Supabase não configurado, usando apenas arquivos locais');
       }
     } catch (supabaseError) {
       console.log('Supabase não disponível, listando arquivos locais:', supabaseError.message);
@@ -212,6 +237,15 @@ router.delete('/:filename', async (req, res) => {
       });
     }
     
+    // Verificar se o Supabase está disponível
+    if (!supabase) {
+      return res.status(503).json({
+        success: false,
+        message: 'Serviço de armazenamento não disponível. Configure as credenciais do Supabase.',
+        code: 'SUPABASE_NOT_CONFIGURED'
+      });
+    }
+    
     // Remover arquivo do Supabase Storage
     const { data, error } = await supabase
       .storage
@@ -249,6 +283,15 @@ router.delete('/:filename', async (req, res) => {
 // Endpoint para verificar se o bucket existe e criá-lo se necessário
 router.get('/check-bucket', async (req, res) => {
   try {
+    // Verificar se o Supabase está disponível
+    if (!supabase) {
+      return res.status(503).json({
+        success: false,
+        message: 'Serviço de armazenamento não disponível. Configure as credenciais do Supabase.',
+        code: 'SUPABASE_NOT_CONFIGURED'
+      });
+    }
+
     // Verificar se o bucket existe
     const { data: buckets, error: listError } = await supabase
       .storage
@@ -311,6 +354,15 @@ router.get('/check-bucket', async (req, res) => {
 // Endpoint para verificar o status do bucket (tamanho, limites, etc)
 router.get('/bucket-status', async (req, res) => {
   try {
+    // Verificar se o Supabase está disponível
+    if (!supabase) {
+      return res.status(503).json({
+        success: false,
+        message: 'Serviço de armazenamento não disponível. Configure as credenciais do Supabase.',
+        code: 'SUPABASE_NOT_CONFIGURED'
+      });
+    }
+
     // Verificar se o bucket existe
     const { data: buckets, error: listError } = await supabase
       .storage
@@ -394,20 +446,24 @@ router.get('/download/:username', async (req, res) => {
     const fullFilename = `${sanitizedFilename}.svg`;
     
     try {
-      // Tentar baixar do Supabase primeiro
-      const { data, error } = await supabase
-        .storage
-        .from(QR_BUCKET)
-        .download(fullFilename);
+      // Tentar baixar do Supabase primeiro (se disponível)
+      if (supabase) {
+        const { data, error } = await supabase
+          .storage
+          .from(QR_BUCKET)
+          .download(fullFilename);
       
       if (!error && data) {
         // Converter o blob para string
         const svgContent = await data.text();
         
-        // Enviar o SVG como resposta
-        res.setHeader('Content-Type', 'image/svg+xml');
-        res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
-        return res.send(svgContent);
+          // Enviar o SVG como resposta
+          res.setHeader('Content-Type', 'image/svg+xml');
+          res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
+          return res.send(svgContent);
+        }
+      } else {
+        console.log('Supabase não configurado, usando apenas arquivos locais');
       }
     } catch (supabaseError) {
       console.log('Supabase não disponível, tentando arquivo local:', supabaseError.message);

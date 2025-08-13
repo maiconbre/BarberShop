@@ -24,6 +24,7 @@ const appointmentRoutes = require('./routes/appointmentRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const securityRoutes = require('./routes/securityRoutes');
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
+const barbershopRoutes = require('./routes/barbershopRoutes');
 
 const app = express();
 
@@ -93,6 +94,24 @@ app.use('/api/security', securityRoutes);
 
 // Rotas de QR codes
 app.use('/api/qr-codes', qrCodeRoutes);
+
+// Rotas de barbearias (multi-tenant)
+app.use('/api/barbershops', barbershopRoutes);
+
+// Rotas com tenant context (formato: /api/app/:barbershopSlug/*)
+const { detectTenant, requireTenant, validateTenantAccess } = require('./middleware/tenantMiddleware');
+const { protect } = require('./middleware/authMiddleware');
+
+// Middleware para rotas com tenant context
+app.use('/api/app/:barbershopSlug/*', detectTenant);
+app.use('/api/app/:barbershopSlug/*', requireTenant);
+
+// Rotas tenant-aware (requerem autenticação e validação de tenant)
+app.use('/api/app/:barbershopSlug/barbershops', protect, validateTenantAccess, barbershopRoutes);
+app.use('/api/app/:barbershopSlug/barbers', protect, validateTenantAccess, barberRoutes);
+app.use('/api/app/:barbershopSlug/services', protect, validateTenantAccess, serviceRoutes);
+app.use('/api/app/:barbershopSlug/appointments', protect, validateTenantAccess, appointmentRoutes);
+app.use('/api/app/:barbershopSlug/comments', protect, validateTenantAccess, commentRoutes);
 
 // Rota principal para documentação da API
 app.get('/', (req, res) => {

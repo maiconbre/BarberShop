@@ -25,9 +25,25 @@ const User = sequelize.define('User', {
   name: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  barbershopId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Barbershops',
+      key: 'id'
+    }
   }
 }, {
   timestamps: true,
+  indexes: [
+    {
+      fields: ['barbershopId', 'id']
+    },
+    {
+      fields: ['barbershopId', 'username']
+    }
+  ],
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {

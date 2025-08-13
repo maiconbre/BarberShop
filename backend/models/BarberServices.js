@@ -17,7 +17,22 @@ const BarberServices = sequelize.define('BarberServices', {
       model: 'Services',
       key: 'id'
     }
+  },
+  barbershopId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Barbershops',
+      key: 'id'
+    }
   }
-}, { timestamps: false });
+}, { 
+  timestamps: false,
+  indexes: [
+    {
+      fields: ['barbershopId']
+    }
+  ]
+});
 
 module.exports = BarberServices;

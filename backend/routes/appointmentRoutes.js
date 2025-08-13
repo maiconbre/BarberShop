@@ -32,12 +32,26 @@ const writeLimiter = limitRepeatedRequests({
 router.get('/', readLimiter, async (req, res) => {
   try {
     const { barberId } = req.query;
+    
+    // Build where clause with tenant context if available
+    const whereClause = {};
+    
+    // Add tenant filter if available
+    if (req.tenant && req.tenant.barbershopId) {
+      whereClause.barbershopId = req.tenant.barbershopId;
+    }
+    
+    // Add barberId filter if provided
+    if (barberId) {
+      whereClause.barberId = barberId;
+    }
+    
     const appointments = await Appointment.findAll({
-      where: barberId ? { barberId } : {},
+      where: whereClause,
       order: [['date', 'DESC'], ['time', 'ASC']]
     });
 
-    res.json({ success: true, data: appointments });
+    res.json(appointments); // Return array directly for compatibility
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -46,15 +60,19 @@ router.get('/', readLimiter, async (req, res) => {
 // Rota para criar agendamentos com limitador para escrita
 router.post('/', writeLimiter, async (req, res) => {
   try {
-    const appointment = await Appointment.create({
+    const appointmentData = {
       id: Date.now().toString(),
       ...req.body
-    });
+    };
     
-    res.status(201).json({
-      success: true,
-      data: appointment
-    });
+    // Add tenant context if available
+    if (req.tenant && req.tenant.barbershopId) {
+      appointmentData.barbershopId = req.tenant.barbershopId;
+    }
+    
+    const appointment = await Appointment.create(appointmentData);
+    
+    res.status(201).json(appointment); // Return appointment directly for compatibility
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -69,13 +87,19 @@ router.patch('/:id', writeLimiter, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
-    const appointment = await Appointment.findByPk(id);
+    // Build where clause with tenant context
+    const whereClause = { id };
+    if (req.tenant && req.tenant.barbershopId) {
+      whereClause.barbershopId = req.tenant.barbershopId;
+    }
+    
+    const appointment = await Appointment.findOne({ where: whereClause });
     if (!appointment) {
       return res.status(404).json({ success: false, message: 'Agendamento não encontrado' });
     }
 
     await appointment.update({ status });
-    res.json({ success: true, data: appointment });
+    res.json(appointment); // Return appointment directly for compatibility
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

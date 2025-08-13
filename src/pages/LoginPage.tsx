@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from '../contexts/AuthContext';
+import { useTenant } from '../contexts/TenantContext';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
+import { getCurrentBarbershop } from '../services/BarbershopService';
 import { Loader2 } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { loadTenant } = useTenant();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -15,7 +19,7 @@ const LoginPage: React.FC = () => {
     rememberMe: false
   });
 
-  // Redirecionar se o usuário já estiver autenticado
+  // Redirecionar se o usuário já estiver autenticado (legacy route)
   useAuthRedirect('/dashboard');
 
   // Remover a lógica de salvar username - agora o checkbox controla persistência de login
@@ -34,7 +38,30 @@ const LoginPage: React.FC = () => {
       const result = await login(formData.username, formData.password, formData.rememberMe);
       
       if (result) {
-        navigate('/dashboard', { replace: true });
+        try {
+          // After successful login, load tenant context and redirect to tenant dashboard
+          logger.componentInfo('LoginPage', 'Login successful, loading tenant context');
+          
+          const barbershopData = await getCurrentBarbershop();
+          
+          if (barbershopData && barbershopData.slug) {
+            // Load tenant context
+            await loadTenant(barbershopData.slug);
+            
+            // Redirect to tenant-aware dashboard
+            logger.componentInfo('LoginPage', `Redirecting to tenant dashboard: /app/${barbershopData.slug}/dashboard`);
+            navigate(`/app/${barbershopData.slug}/dashboard`, { replace: true });
+          } else {
+            // No barbershop found, redirect to registration
+            logger.componentWarn('LoginPage', 'No barbershop found for user, redirecting to registration');
+            navigate('/register-barbershop', { replace: true });
+          }
+        } catch (tenantError) {
+          logger.componentError('LoginPage', 'Failed to load tenant context after login:', tenantError);
+          
+          // Fallback to legacy dashboard route
+          navigate('/dashboard', { replace: true });
+        }
       } else {
         setError('user ou senha incorretos');
       }
@@ -158,6 +185,16 @@ const LoginPage: React.FC = () => {
                 'Entrar'
               )}
             </button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => navigate('/register-barbershop')}
+                className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm font-medium transition-colors"
+              >
+                Não tem uma barbearia? Registre-se aqui
+              </button>
+            </div>
           </div>
         </form>
       </div>

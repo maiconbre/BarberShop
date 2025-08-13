@@ -19,9 +19,25 @@ const Comment = sequelize.define('Comment', {
     type: DataTypes.ENUM('pending', 'approved', 'rejected'),
     defaultValue: 'pending',
     allowNull: false
+  },
+  barbershopId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Barbershops',
+      key: 'id'
+    }
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['barbershopId', 'id']
+    },
+    {
+      fields: ['barbershopId', 'status']
+    }
+  ]
 });
 
 module.exports = Comment;

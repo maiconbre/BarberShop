@@ -304,6 +304,62 @@ class CacheService {
     this.cleanupIfNeeded();
     CacheLogger.log('FORCE_CLEANUP', 'all');
   }
+
+  /**
+   * Clear cache items by prefix
+   */
+  clearByPrefix(prefix: string): void {
+    // Clear from memory cache
+    const keysToDelete: string[] = [];
+    for (const key of this.memoryCache.keys()) {
+      if (key.startsWith(prefix)) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach(key => this.memoryCache.delete(key));
+
+    // Clear from localStorage
+    const storageKeysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        storageKeysToRemove.push(key);
+      }
+    }
+    storageKeysToRemove.forEach(key => localStorage.removeItem(key));
+
+    CacheLogger.log('CLEAR_BY_PREFIX', prefix, { cleared: keysToDelete.length + storageKeysToRemove.length });
+  }
+
+  /**
+   * Get cache statistics by prefix
+   */
+  getStatsByPrefix(prefix: string): { keys: number; memoryUsage: number } {
+    let keys = 0;
+    let memoryUsage = 0;
+
+    // Count memory cache items
+    for (const [key, value] of this.memoryCache.entries()) {
+      if (key.startsWith(prefix)) {
+        keys++;
+        memoryUsage += value.length;
+      }
+    }
+
+    // Count localStorage items
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        const value = localStorage.getItem(key);
+        if (value) {
+          keys++;
+          memoryUsage += value.length;
+        }
+      }
+    }
+
+    return { keys, memoryUsage };
+  }
 }
 
 // Create and export singleton instance

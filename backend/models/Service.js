@@ -8,13 +8,30 @@ const Service = sequelize.define('Service', {
   },
   name: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   price: {
     type: DataTypes.FLOAT,
     allowNull: false
+  },
+  barbershopId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Barbershops',
+      key: 'id'
+    }
   }
+}, {
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['barbershopId', 'id']
+    },
+    {
+      fields: ['barbershopId', 'name']
+    }
+  ]
 });
 
 // Relação muitos-para-muitos entre Serviços e Barbeiros

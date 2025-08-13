@@ -41,7 +41,31 @@ const Appointment = sequelize.define('Appointment', {
   wppclient: {
     type: DataTypes.STRING,
     allowNull: false
+  },
+  barbershopId: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Barbershops',
+      key: 'id'
+    }
   }
+}, {
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['barbershopId', 'id']
+    },
+    {
+      fields: ['barbershopId', 'date']
+    },
+    {
+      fields: ['barbershopId', 'barberId']
+    },
+    {
+      fields: ['barbershopId', 'status']
+    }
+  ]
 });
 
 module.exports = Appointment;  // Exportação correta
