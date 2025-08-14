@@ -72,12 +72,10 @@ export interface Appointment {
 }
 
 export type AppointmentStatus = 
-  | 'scheduled'
+  | 'pending'
   | 'confirmed'
-  | 'in_progress'
   | 'completed'
-  | 'cancelled'
-  | 'no_show';
+  | 'cancelled';
 
 export interface Comment {
   id: string;

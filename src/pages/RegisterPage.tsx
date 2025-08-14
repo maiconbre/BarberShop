@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Trash2, Edit, UserCog, Upload, X, Camera, Image as ImageIcon, CheckCircle, AlertCircle, Users, Phone, CreditCard, UserPlus, Eye } from 'lucide-react';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
-import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError, type Barber } from '../stores/barberStore';
+import { useBarbers } from '../hooks/useBarbers';
+import { useTenant } from '../contexts/TenantContext';
+import type { Barber } from '../types';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
@@ -31,12 +33,7 @@ interface QRCodeListResponse {
   files: QRCodeFile[];
 }
 
-interface UpdateBarberData {
-  name: string;
-  whatsapp: string;
-  pix: string;
-  password: string;
-}
+// UpdateBarberData interface removed - using Barber interface directly
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -241,28 +238,35 @@ const RegisterPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
 
-  // Use barber store
-  const barbers = useBarberList();
-  const fetchBarbers = useFetchBarbers();
-  const createBarber = useCreateBarber();
-  const updateBarber = useUpdateBarber();
-  const deleteBarber = useDeleteBarber();
-  const clearError = useClearBarberError();
-  const barberError = useBarberError();
+  // Use multi-tenant barber hooks
+  const { 
+    barbers, 
+    loadBarbers, 
+    createBarber, 
+    updateBarber, 
+    deleteBarber, 
+    loading: barbersLoading, 
+    error: barbersError,
+    createError,
+    updateError,
+    deleteError
+  } = useBarbers();
+  const { barbershopId, isValidTenant } = useTenant();
 
   useEffect(() => {
     fetchBarbers();
   }, [fetchBarbers]); // Add fetchBarbers to dependency array
 
+  // Load barbers on component mount
   useEffect(() => {
-    return () => {
-      clearError();
-    };
-  }, [clearError]); // Add clearError to dependency array
-  // Mostrar erros do store como toast (simplificado)
+    if (isValidTenant) {
+      loadBarbers();
+    }
+  }, [loadBarbers, isValidTenant]);
+  // Mostrar erros do hook como toast (simplificado)
   useEffect(() => {
-    if (barberError) {
-      toast.error(barberError, {
+    if (barbersError) {
+      toast.error(barbersError.message, {
         style: {
           fontSize: '12px',
           fontWeight: '500',
@@ -280,7 +284,7 @@ const RegisterPage: React.FC = () => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [barberError]);
+  }, [barbersError]);
 
   // Função para converter imagem para SVG com máxima qualidade otimizada para mobile
   const convertImageToSVG = (file: File): Promise<string> => {
@@ -491,8 +495,11 @@ const RegisterPage: React.FC = () => {
           handleImageUpload(formData.username.trim());
         }
         // Se estiver em modo de edição e temos um usuário selecionado com username
-        else if (isEditMode && selectedUser && selectedUser.username && selectedUser.username.trim()) {
-          handleImageUpload(selectedUser.username.trim());
+        else if (isEditMode && selectedUser && (selectedUser._backendData?.username || selectedUser.email)) {
+          const username = selectedUser._backendData?.username || selectedUser.email;
+          if (username.trim()) {
+            handleImageUpload(username.trim());
+          }
         }
         // Se não tiver nome de usuário, mostrar mensagem para preencher o nome primeiro
         else if (!isEditMode) {
@@ -594,14 +601,30 @@ const RegisterPage: React.FC = () => {
         return;
       }
 
-      // Criar novo barbeiro usando o store
+      // Criar novo barbeiro usando o hook multi-tenant
+      // Transform form data to match Barber interface
       const newBarber = {
         name: formData.name.trim(),
-        username: formData.username.trim(),
-        password: formData.password,
-        whatsapp: cleanWhatsapp,
-        pix: formData.pix.trim(),
-        role: 'barber'
+        email: formData.username.trim(), // Map username to email field
+        phone: cleanWhatsapp,
+        specialties: [], // Default empty array
+        isActive: true, // Default to active
+        workingHours: {
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+          saturday: [],
+          sunday: [],
+        }, // Default empty working hours
+        _backendData: {
+          whatsapp: cleanWhatsapp,
+          pix: formData.pix.trim(),
+          username: formData.username.trim(),
+          password: formData.password,
+          role: 'barber'
+        }
       };
       await createBarber(newBarber);
 
@@ -654,12 +677,16 @@ const RegisterPage: React.FC = () => {
         return;
       }
 
-      // Atualizar barbeiro existente usando o store
-      const updateData: UpdateBarberData = {
+      // Atualizar barbeiro existente usando o hook multi-tenant
+      // Transform form data to match Barber interface
+      const updateData = {
         name: formData.name.trim(),
-        whatsapp: cleanWhatsapp,
-        pix: formData.pix.trim(),
-        password: password // Usar a senha fornecida no modal
+        phone: cleanWhatsapp,
+        _backendData: {
+          whatsapp: cleanWhatsapp,
+          pix: formData.pix.trim(),
+          password: password // Usar a senha fornecida no modal
+        }
       };
 
       if (!selectedUser?.id) {
@@ -668,8 +695,9 @@ const RegisterPage: React.FC = () => {
       await updateBarber(selectedUser.id, updateData);
 
       // Processar e salvar a imagem se fornecida durante a edição
-      if (selectedImage && selectedUser.username) {
-        await handleImageUpload(selectedUser.username);
+      if (selectedImage && (selectedUser._backendData?.username || selectedUser.email)) {
+        const username = selectedUser._backendData?.username || selectedUser.email;
+        await handleImageUpload(username);
       }
 
       toast.success('Barbeiro atualizado com sucesso!', {
@@ -722,7 +750,8 @@ const RegisterPage: React.FC = () => {
   const prepareEditForm = async (user: Barber) => {
 
     // Formatar o número de WhatsApp para exibição (remover o prefixo 55)
-    let displayWhatsapp: string = user.whatsapp || '';
+    // Get whatsapp from phone field or _backendData
+    let displayWhatsapp: string = user.phone || user._backendData?.whatsapp || '';
     if (displayWhatsapp.startsWith('55')) {
       displayWhatsapp = displayWhatsapp.substring(2);
     }
@@ -730,10 +759,10 @@ const RegisterPage: React.FC = () => {
     // Preencher o formulário com os dados do usuário
     setFormData({
       name: user.name,
-      username: user.username || 'string',
+      username: user._backendData?.username || user.email || '',
       password: '', // Não preencher a senha por segurança
       whatsapp: displayWhatsapp,
-      pix: user.pix || 'string'
+      pix: user._backendData?.pix || ''
     });
 
     // Limpar estados de imagem com força para evitar cache
@@ -1243,11 +1272,11 @@ const RegisterPage: React.FC = () => {
                           <td className="px-6 py-4 rounded-l-lg">
                             <div>
                               <p className="font-medium text-white">{user.name}</p>
-                              <p className="text-xs text-gray-400">@{user.username}</p>
+                              <p className="text-xs text-gray-400">@{user._backendData?.username || user.email}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <p className="text-gray-300">{user.whatsapp}</p>
+                            <p className="text-gray-300">{user.phone || user._backendData?.whatsapp}</p>
                           </td>
                           <td className="px-6 py-4">
                             <p className="text-gray-300 font-mono text-xs">{user.pix}</p>
@@ -1301,7 +1330,7 @@ const RegisterPage: React.FC = () => {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="font-medium text-white text-lg">{user.name}</h3>
-                          <p className="text-sm text-gray-400">@{user.username}</p>
+                          <p className="text-sm text-gray-400">@{user._backendData?.username || user.email}</p>
                         </div>
                         <div className="flex space-x-2">
                           <button
@@ -1333,7 +1362,7 @@ const RegisterPage: React.FC = () => {
                       <div className="space-y-2">
                         <div className="flex items-center text-sm">
                           <Phone className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-gray-300">{user.whatsapp}</span>
+                          <span className="text-gray-300">{user.phone || user._backendData?.whatsapp}</span>
                         </div>
                         <div className="flex items-center text-sm">
                           <CreditCard className="w-4 h-4 text-gray-400 mr-2" />
@@ -1371,7 +1400,7 @@ const RegisterPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-xl">
                   {/* Carregando QR code para o usuário */}
-                  {selectedUser.username ? (
+                  {(selectedUser._backendData?.username || selectedUser.email) ? (
                     <div className="flex items-center justify-center h-48">
                       {/* Se estamos em modo de edição e temos um preview, mostrar o preview primeiro */}
                        {isEditMode && imagePreview ? (
@@ -1383,8 +1412,8 @@ const RegisterPage: React.FC = () => {
                          />
                        ) : (
                          <img
-                           key={`qr-${selectedUser.username}-${Date.now()}`}
-                           src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${selectedUser.username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}?t=${Date.now()}`}
+                           key={`qr-${selectedUser._backendData?.username || selectedUser.email}-${Date.now()}`}
+                           src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${(selectedUser._backendData?.username || selectedUser.email).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}?t=${Date.now()}`}
                            alt={`QR Code de ${selectedUser.name}`}
                            className="w-48 h-48 mx-auto object-contain"
                            onError={(e) => {
@@ -1431,7 +1460,7 @@ imgElement.src = `/qr-codes/${selectedUser?.username?.normalize("NFD").replace(/
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600">Barbeiro: <span className="font-medium">{selectedUser.name}</span></p>
                   <p className="text-xs text-gray-500">Escaneie o código ou use a chave PIX</p>
-                  <p className="text-sm font-mono text-gray-600">{selectedUser.pix || 'Chave PIX não disponível'}</p>
+                  <p className="text-sm font-mono text-gray-600">{selectedUser._backendData?.pix || 'Chave PIX não disponível'}</p>
                   
 
                   

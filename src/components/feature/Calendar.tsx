@@ -4,6 +4,8 @@ import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 import { loadAppointments, isTimeSlotAvailable as checkTimeSlotAvailability, checkLocalAvailability } from '../../services/AppointmentService';
+import { useAppointments } from '../../hooks/useAppointments';
+import { useTenant } from '../../contexts/TenantContext';
 import { toast } from 'react-hot-toast';
 import { logger } from '../../utils/logger';
 import CacheService from '../../services/CacheService';
@@ -44,6 +46,10 @@ const Calendar: React.FC<CalendarProps> = ({
   const [appointments, setAppointments] = useState<CalendarAppointment[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Multi-tenant hooks
+  const { loadAppointments: loadTenantAppointments, loading: appointmentsLoading } = useAppointments();
+  const { barbershopId, isValidTenant } = useTenant();
 
   // Gerar datas disponíveis (próximos 15 dias)
   const availableDates = useMemo(() => {
@@ -56,56 +62,41 @@ const Calendar: React.FC<CalendarProps> = ({
     });
   }, []);
 
-  // Carregar agendamentos
+  // Carregar agendamentos com contexto multi-tenant
   const fetchAppointments = useCallback(async () => {
-    if (!selectedBarber) return;
+    if (!selectedBarber || !isValidTenant) {
+      logger.componentWarn('Calendar: Barbeiro não selecionado ou tenant inválido');
+      return;
+    }
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const data = await loadAppointments();
+      // Usar o hook multi-tenant para carregar agendamentos
+      const filters = { barberId: selectedBarber };
+      const data = await loadTenantAppointments(filters);
       
       // Garantir que sempre seja um array
       let appointmentsArray: CalendarAppointment[] = [];
       
       if (Array.isArray(data)) {
         appointmentsArray = data.map(appointment => ({
-          ...appointment,
-          barberName: appointment.barberName || ''  // Ensure barberName is never undefined
+          id: appointment.id,
+          date: typeof appointment.date === 'string' ? appointment.date : appointment.date.toISOString().split('T')[0],
+          time: appointment.time,
+          barberId: appointment.barberId || '',
+          barberName: appointment.barberName || '',
+          isBlocked: false,
+          isRemoved: false,
+          isCancelled: appointment.status === 'cancelled'
         }));
-      } else if (data && typeof data === 'object' && 'data' in data) {
-        const response = data as AppointmentResponse;
-        appointmentsArray = Array.isArray(response.data) ? response.data : [];
       }
       
       setAppointments(appointmentsArray);
       
-      // Atualizar o cache global com os dados mais recentes
-      try {
-        // Atualizar o cache global geral de agendamentos
-        await CacheService.set('/api/appointments', appointmentsArray);
-        
-        // Agrupar agendamentos por barbeiro e atualizar caches específicos
-        const barberAppointments: Record<string, CalendarAppointment[]> = {};
-        
-        appointmentsArray.forEach((appointment: CalendarAppointment) => {
-          if (appointment.barberId) {
-            if (!barberAppointments[appointment.barberId]) {
-              barberAppointments[appointment.barberId] = [];
-            }
-            barberAppointments[appointment.barberId].push(appointment);
-          }
-        });
-        
-        // Atualizar cache para cada barbeiro
-        for (const [barberId, appointments] of Object.entries(barberAppointments)) {
-          const barberCacheKey = `schedule_appointments_${barberId}`;
-          await CacheService.set(barberCacheKey, appointments);
-        }
-      } catch (cacheError) {
-        logger.componentError('Erro ao atualizar cache global:', cacheError);
-      }
+      logger.componentDebug(`Calendar: ${appointmentsArray.length} agendamentos carregados para barbeiro ${selectedBarber}`);
+      
     } catch (err) {
       console.error('Erro ao carregar agendamentos:', err);
       setError('Não foi possível carregar os horários.');
@@ -113,7 +104,7 @@ const Calendar: React.FC<CalendarProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedBarber]);
+  }, [selectedBarber, isValidTenant, loadTenantAppointments]);
 
   // Carregar agendamentos quando barbeiro for selecionado
   useEffect(() => {

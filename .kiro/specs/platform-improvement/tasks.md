@@ -341,7 +341,11 @@
   - **📦 Saída**: Frontend preparado para multi-tenant
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [-] 8.9 Teste Final de Fluxo Multi-Tenant
+- [x] 8.9 Teste Final de Fluxo Multi-Tenant
+
+
+
+
 
 
 
@@ -360,7 +364,12 @@
 
 ## Fase 2.5: Migração de Componentes (Após Multi-Tenant)
 
-- [ ] 9. Migrar componentes de agendamento
+- [x] 9. Migrar componentes de agendamento
+
+
+
+
+
   - Identificar componentes que usam appointmentStore
   - Migrar para usar useAppointments hook com estrutura real + barbershopId
   - Atualizar BookingModal para campos: clientName, serviceName, wppclient, barbershopId
@@ -368,18 +377,29 @@
   - Implementar tratamento de status: pending/confirmed/completed/cancelled
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 9.1 Migrar componentes de barbeiros
+
+
+- [x] 9.1 Migrar componentes de barbeiros
+
+
+
+
+
   - Identificar componentes que usam barberStore
   - Migrar para usar useBarbers hook com IDs formatados + barbershopId
   - Atualizar componentes para campos: name, whatsapp, pix, username, barbershopId
   - Implementar criação coordenada User + Barber + tenant
   - Tratar exclusão em cascata (User + Barber + Appointments) por tenant
+
+
   - _Requirements: 2.1, 2.2, 2.4_
 
 - [ ] 9.2 Migrar componentes de serviços
   - Atualizar componentes para usar useServices expandido + barbershopId
   - Implementar associação barbeiro-serviço (N:N) por tenant
   - Usar endpoint específico /api/services/barber/:barberId com tenant
+
+
   - Aplicar padrões SOLID na refatoração
   - Aproveitar rate limiting generoso para UX
   - _Requirements: 2.1, 2.2, 2.4_

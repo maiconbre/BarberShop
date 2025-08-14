@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, CalendarIcon, Calendar, Search, CalendarDays, CalendarRange, Grid } from 'lucide-react';
 import { format, addDays, startOfWeek, isSameDay, startOfMonth, endOfMonth, getMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface Appointment {
   id: string;
@@ -32,6 +33,7 @@ interface CalendarViewProps {
   onToggleRangeFilter?: () => void;
   onResetFilters?: () => void;
   totalValue?: number;
+  barbershopId?: string; // Add barbershopId for tenant filtering
 }
 
 
@@ -42,8 +44,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   startDate,
   endDate,
   currentUser,
-
+  barbershopId: propBarbershopId,
 }) => {
+  // Multi-tenant context
+  const { barbershopId: contextBarbershopId, isValidTenant } = useTenant();
+  const activeBarbershopId = propBarbershopId || contextBarbershopId;
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentDay, setCurrentDay] = useState(new Date());
@@ -183,6 +188,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     // Primeiro aplicar filtros que podem reduzir significativamente o conjunto de dados
     filtered = filtered.filter(app => !app.isBlocked);
 
+    // Filtro por tenant (barbershopId) - crítico para multi-tenant
+    if (activeBarbershopId && isValidTenant) {
+      // Note: Assuming appointments already come filtered by tenant from the backend
+      // This is an additional safety check
+      filtered = filtered.filter(app => {
+        // If appointment has barbershopId, check it matches
+        const appBarbershopId = (app as any).barbershopId;
+        return !appBarbershopId || appBarbershopId === activeBarbershopId;
+      });
+    }
+
     // Filtro por usuário logado (se não for admin)
     if (currentUser?.role !== 'admin' && currentUser?.id) {
       filtered = filtered.filter(app => app.barberId === currentUser.id);
@@ -190,8 +206,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Aplicar filtros específicos
     return filtered.filter(app => {
-
-
       // Filtro por termo de busca (nome do cliente)
       if (searchTerm && !app.clientName?.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
@@ -199,7 +213,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
       return true;
     });
-  }, [appointments, searchTerm, currentUser]);
+  }, [appointments, searchTerm, currentUser, activeBarbershopId, isValidTenant]);
 
   // Função para verificar se uma data tem agendamentos com memoização
   const hasAppointments = useCallback((date: string) => {
@@ -574,7 +588,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         return 'bg-blue-500/20 text-blue-300 border-l-2 border-blue-500 pl-1';
       case 'cancelled':
         return 'bg-red-500/20 text-red-300 border-l-2 border-red-500 pl-1';
-      default: // pending
+      case 'pending':
+      default:
         return 'bg-yellow-500/20 text-yellow-300 border-l-2 border-yellow-500 pl-1';
     }
   };

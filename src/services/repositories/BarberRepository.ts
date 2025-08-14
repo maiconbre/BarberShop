@@ -260,14 +260,24 @@ export class BarberRepository implements IRepository<Barber> {
 
   /**
    * Adapt frontend barber to backend format for creation
+   * Handles both User and Barber creation data
    */
-  private adaptToBackend(barber: Omit<Barber, 'id' | 'createdAt' | 'updatedAt'>): Partial<BackendBarber> {
-    return {
+  private adaptToBackend(barber: Omit<Barber, 'id' | 'createdAt' | 'updatedAt'>): Partial<BackendBarber & { username?: string; password?: string; role?: string }> {
+    const backendData: any = {
       name: barber.name,
       whatsapp: barber.phone || '',
-      pix: (barber as any)._backendData?.pix || '', // Use existing pix or empty
-      // username will be handled by backend when creating User
+      pix: (barber as any)._backendData?.pix || '',
     };
+
+    // Handle User creation data if provided in _backendData
+    if ((barber as any)._backendData) {
+      const backendInfo = (barber as any)._backendData;
+      if (backendInfo.username) backendData.username = backendInfo.username;
+      if (backendInfo.password) backendData.password = backendInfo.password;
+      if (backendInfo.role) backendData.role = backendInfo.role;
+    }
+
+    return backendData;
   }
 
   /**
@@ -304,6 +314,8 @@ declare module '@/types' {
       whatsapp: string;
       pix: string;
       username?: string;
+      password?: string;
+      role?: string;
     };
   }
 }

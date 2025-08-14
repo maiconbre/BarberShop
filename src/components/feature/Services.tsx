@@ -1,6 +1,7 @@
 import { Scissors, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import ApiService from '../../services/ApiService';
+import { useServices } from '../../hooks/useServices';
+import { useTenant } from '../../contexts/TenantContext';
 import { logger } from '../../utils/logger';
 
 // Dados estáticos para fallback
@@ -38,6 +39,10 @@ interface ServicesProps {
 }
 
 const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isShowcase = false }) => {
+  // Multi-tenant hooks
+  const { services: tenantServices, loadServices, loading: servicesLoading, error: servicesError } = useServices();
+  const { isValidTenant } = useTenant();
+  
   // Estados para visibilidade de cada seção
   const [headerVisible] = useState(true);
   const [services, setServices] = useState<typeof staticServices>(staticServices);
@@ -64,7 +69,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
     }));
   };
 
-  // Carregar serviços do backend apenas se não for vitrine
+  // Carregar serviços usando hook multi-tenant
   useEffect(() => {
     logger.componentDebug(`useEffect iniciado, isShowcase: ${isShowcase}`);
     
@@ -77,129 +82,27 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
       return;
     }
     
-    // Flag para controlar se o componente está montado
-    let isMounted = true;
-    logger.componentDebug(`Iniciando carregamento de serviços do backend`);
+    // Se não tiver tenant válido, não carregar
+    if (!isValidTenant) {
+      logger.componentWarn(`Tenant inválido, não carregando serviços`);
+      return;
+    }
     
-    // Variável para controlar tentativas de carregamento
-    let retryTimeout: NodeJS.Timeout | null = null;
-    
-    const loadServices = async () => {
+    const loadServicesData = async () => {
       try {
-        // Se não for vitrine, carregar do backend sem bloquear a interface
-        if (isMounted) {
-          logger.componentDebug(`Definindo estado de carregamento`);
-          setIsLoading(true);
-          // Limpar mensagem de erro anterior
-          setError('');
-        }
+        logger.componentDebug(`Carregando serviços usando hook multi-tenant`);
+        setIsLoading(true);
+        setError('');
         
-        // Chamar diretamente o método getServices do ApiService que já implementa cache
-        logger.componentDebug(`Chamando ApiService.getServices()`);
-        const startTime = Date.now();
-        const response = await ApiService.getServices();
-        const endTime = Date.now();
-        logger.componentDebug(`Resposta recebida de ApiService.getServices() em ${endTime - startTime}ms: ${response ? 'dados recebidos' : 'sem dados'}`);
+        await loadServices();
         
-        if (isMounted && response) {
-          // Formatar os dados da API
-          let formattedServices;
-          
-          if (Array.isArray(response)) {
-            // Se já for um array, usar diretamente
-            logger.componentDebug(`Resposta é um array com ${response.length} itens, formatando serviços`);
-            formattedServices = formatServices(response as Service[]);
-          } else if (response && typeof response === 'object' && 'data' in (response as { data: unknown }) && Array.isArray((response as { data: unknown }).data)) {
-            // Se for um objeto com propriedade data que é um array
-            logger.componentDebug(`Resposta é um objeto com propriedade data contendo ${((response as { data: Service[] }).data).length} itens, formatando serviços`);
-            formattedServices = formatServices((response as { data: Service[] }).data);
-          }
-          
-          if (formattedServices && formattedServices.length > 0) {
-            logger.componentDebug(`Atualizando estado com serviços formatados, quantidade: ${formattedServices.length}`);
-            setServices(formattedServices);
-            setCardsVisible(formattedServices.map(() => true));
-            cardRefs.current = formattedServices.map(() => null);
-          }
-        }
       } catch (err: unknown) {
         logger.componentError(`Erro ao carregar serviços:`, err);
-        
-        // Verificar se é um erro de limite de chamadas repetidas
-        const errorObj = err as { isRateLimitError?: boolean; retryAfter?: number };
-        if (errorObj.isRateLimitError) {
-          const retryAfter = errorObj.retryAfter || 60; // Padrão de 60 segundos se não especificado
-          const errorMessage = `Muitas requisições em um curto período. Aguarde ${retryAfter} segundos ou use os dados em cache.`;
-          logger.componentWarn(`${errorMessage}`);
-          
-          if (isMounted) {
-            // Desabilitar o botão de recarregar e iniciar o contador regressivo
-            setRetryDisabled(true);
-            setRetryCountdown(retryAfter);
-            setError(errorMessage);
-            
-            // Usar os serviços estáticos como fallback
-            setServices(staticServices);
-            setCardsVisible(staticServices.map(() => true));
-            cardRefs.current = staticServices.map(() => null);
-            
-            // Limpar qualquer tentativa anterior de recarregar
-            if (retryTimeout) {
-              clearTimeout(retryTimeout);
-            }
-            
-            // Iniciar contador regressivo
-             let remainingSeconds = retryAfter;
-             
-             // Limpar qualquer intervalo existente
-             if (countdownInterval) {
-               clearInterval(countdownInterval);
-             }
-             
-             // Criar novo intervalo e armazenar a referência
-             countdownInterval = setInterval(() => {
-               if (isMounted) {
-                 remainingSeconds--;
-                 setRetryCountdown(remainingSeconds);
-                 
-                 // Atualizar a mensagem de erro com o tempo restante
-                 setError(`Muitas requisições em um curto período. Aguarde ${remainingSeconds} segundos ou use os dados em cache.`);
-                 
-                 if (remainingSeconds <= 0) {
-                   if (countdownInterval) {
-                     clearInterval(countdownInterval);
-                     countdownInterval = null;
-                   }
-                   setRetryDisabled(false);
-                   setError('');
-                 }
-               } else if (countdownInterval) {
-                 clearInterval(countdownInterval);
-                 countdownInterval = null;
-               }
-             }, 1000);
-            
-            // Configurar uma tentativa automática de recarregar após o período de limitação
-            const retryDelayMs = (retryAfter + 2) * 1000; // Adiciona 2 segundos de margem
-            logger.componentDebug(`Agendando nova tentativa automática em ${retryAfter + 2}s`);
-            
-            retryTimeout = setTimeout(() => {
-              if (isMounted) {
-                logger.componentDebug(`Executando tentativa automática após período de limitação`);
-                loadServices();
-              }
-            }, retryDelayMs);
-          }
-        } else {
-          // Para outros tipos de erro
-          if (isMounted) {
-            setError('Erro ao carregar serviços. Por favor, tente novamente mais tarde.');
-            // Em caso de erro, usar os serviços estáticos como fallback
-            setServices(staticServices);
-            setCardsVisible(staticServices.map(() => true));
-            cardRefs.current = staticServices.map(() => null);
-          }
-        }
+        setError('Erro ao carregar serviços. Usando dados estáticos como fallback.');
+        // Em caso de erro, usar os serviços estáticos como fallback
+        setServices(staticServices);
+        setCardsVisible(staticServices.map(() => true));
+        cardRefs.current = staticServices.map(() => null);
       } finally {
         if (isMounted) {
           logger.componentDebug(`Finalizando carregamento de serviços`);
@@ -232,7 +135,33 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
         countdownInterval = null;
       }
     };
-  }, [isShowcase]);
+  }, [isShowcase, isValidTenant, loadServices]);
+  
+  // Update services when tenant services change
+  useEffect(() => {
+    if (tenantServices && tenantServices.length > 0 && !isShowcase) {
+      logger.componentDebug(`Atualizando serviços com dados do tenant: ${tenantServices.length} serviços`);
+      const formattedServices = formatServices(tenantServices);
+      setServices(formattedServices);
+      setCardsVisible(formattedServices.map(() => true));
+      cardRefs.current = formattedServices.map(() => null);
+      setIsLoading(false);
+    }
+  }, [tenantServices, isShowcase]);
+  
+  // Handle loading and error states from hook
+  useEffect(() => {
+    if (!isShowcase) {
+      setIsLoading(servicesLoading);
+      if (servicesError) {
+        setError(servicesError.message);
+        // Use static services as fallback
+        setServices(staticServices);
+        setCardsVisible(staticServices.map(() => true));
+        cardRefs.current = staticServices.map(() => null);
+      }
+    }
+  }, [servicesLoading, servicesError, isShowcase]);
   
   // Função para lidar com o clique em um serviço (toggle seleção)
   const handleServiceClick = (serviceName: string) => {
@@ -303,38 +232,20 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
   //     cardObservers.forEach(observer => observer?.disconnect());
   //   };
   // }, []);
-  // Função para recarregar os serviços manualmente
-  const handleReload = () => {
-    if (!retryDisabled) {
-      logger.componentDebug(`Recarregando serviços manualmente`);
+  // Função para recarregar os serviços manualmente usando hook multi-tenant
+  const handleReload = async () => {
+    if (!retryDisabled && isValidTenant) {
+      logger.componentDebug(`Recarregando serviços manualmente usando hook multi-tenant`);
       setError('');
       setIsLoading(true);
-      ApiService.getServices()
-        .then(response => {
-          if (response) {
-            // Formatar os dados da API
-            let formattedServices;
-            
-            if (Array.isArray(response)) {
-              formattedServices = formatServices(response as Service[]);
-            } else if (response && typeof response === 'object' && 'data' in (response as { data: unknown }) && Array.isArray((response as { data: unknown }).data)) {
-              formattedServices = formatServices((response as { data: Service[] }).data);
-            }
-            
-            if (formattedServices && formattedServices.length > 0) {
-              setServices(formattedServices);
-              setCardsVisible(formattedServices.map(() => true));
-              cardRefs.current = formattedServices.map(() => null);
-            }
-          }
-        })
-        .catch(err => {
-          logger.componentError('Erro ao recarregar serviços:', err);
-          setError('Erro ao recarregar serviços. Por favor, tente novamente mais tarde.');
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      
+      try {
+        await loadServices();
+      } catch (err) {
+        logger.componentError('Erro ao recarregar serviços:', err);
+        setError('Erro ao recarregar serviços. Por favor, tente novamente mais tarde.');
+        setIsLoading(false);
+      }
     }
   };
 

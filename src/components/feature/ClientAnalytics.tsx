@@ -3,7 +3,8 @@ import { Search, X, BarChart2, Users, DollarSign, TrendingUp, Calendar, User } f
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBarberStore } from '../../stores/barberStore';
+import { useBarbers } from '../../hooks/useBarbers';
+import { useTenant } from '../../contexts/TenantContext';
 import { formatPhoneNumber } from '../../utils/formatters';
 import { logger } from '../../utils/logger';
 
@@ -86,7 +87,8 @@ const getUserId = (user: unknown): string | null => {
 
 const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
     const { getCurrentUser } = useAuth();
-  const { barbers, fetchBarbers } = useBarberStore();
+  const { barbers, loadBarbers } = useBarbers();
+  const { isValidTenant } = useTenant();
   const currentUser = getCurrentUser();
   
   // Estados
@@ -121,12 +123,12 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     // Carregar barbeiros ao montar o componente
     useEffect(() => {
-        if (isAdmin && barbers.length === 0) {
-            fetchBarbers().catch(err => {
+        if (isAdmin && isValidTenant && (!barbers || barbers.length === 0)) {
+            loadBarbers().catch(err => {
                 logger.componentError('Erro ao carregar barbeiros:', err);
             });
         }
-    }, [isAdmin, barbers.length, fetchBarbers]);
+    }, [isAdmin, isValidTenant, barbers, loadBarbers]);
 
     // Filtrar agendamentos baseado no usuário
     const filteredAppointments = useMemo(() => {

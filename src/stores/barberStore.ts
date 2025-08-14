@@ -59,6 +59,9 @@ const initialFilters: BarberFilters = {
 };
 
 /**
+ * @deprecated Use useBarbers hook from hooks/useBarbers.ts instead
+ * This store is kept for backward compatibility but should not be used in new code
+ * 
  * Barber store with caching and rate limiting
  */
 export const useBarberStore = create<BarberState>()(

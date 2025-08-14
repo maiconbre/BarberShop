@@ -37,6 +37,9 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const MIN_FETCH_INTERVAL = 30 * 1000; // 30 seconds minimum between fetches
 
 /**
+ * @deprecated Use useComments hook from hooks/useComments.ts instead
+ * This store is kept for backward compatibility but should not be used in new code
+ * 
  * Comment management store with intelligent caching
  */
 export const useCommentStore = create<CommentState>()(

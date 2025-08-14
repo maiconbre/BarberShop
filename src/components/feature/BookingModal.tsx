@@ -1,39 +1,25 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import ApiService from '../../services/ApiService';
 import { logger } from '../../utils/logger';
 import { X, MessageCircle, ArrowRight, CheckCircle, Eye } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
 import { cacheService } from '../../services/CacheService';
-import { useBarberList, useFetchBarbers } from '../../stores';
+import { useBarbers } from '../../hooks/useBarbers';
+import { useAppointments } from '../../hooks/useAppointments';
+import { useServices } from '../../hooks/useServices';
+import { useTenant } from '../../contexts/TenantContext';
 import { CURRENT_ENV } from '../../config/environmentConfig';
 
 // Importando constantes e funções do serviço de agendamentos
 import {
   loadAppointments,
-  createAppointment,
   formatWhatsappMessage,
   formatDisplayDate
 } from '../../services/AppointmentService';
 
-// Interfaces para tipagem
-interface Service {
-  id: string;
-  name: string;
-  price: number;
-  duration?: number;
-  description?: string;
-}
 
-interface Barber {
-  id: string;
-  name: string;
-  whatsapp?: string;
-  pix?: string;
-  avatar?: string;
-  specialties?: string[];
-}
+// Using Barber type from types/index.ts - no need for local interface
 
 interface Appointment {
   id: string;
@@ -75,19 +61,27 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     return '/api/appointments';
   };
 
-  // Hooks do barberStore
-  const barberList = useBarberList();
-  const fetchBarbers = useFetchBarbers();
+  // Hooks multi-tenant
+  const { 
+    barbers, 
+    loadBarbers, 
+    loading: barbersLoading, 
+    error: barbersError 
+  } = useBarbers();
+  const { createWithBackendData, creating: appointmentCreating } = useAppointments();
+  const { barbershopId, isValidTenant } = useTenant();
 
   // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Combine loading states
+  const isCreatingAppointment = appointmentCreating || isLoading;
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
   const [servicesError, setServicesError] = useState('');
-  const [barbersError, setBarbersError] = useState('');
 
   // Estado para armazenar os dados do formulário (agora com suporte a múltiplos serviços)
   const [formData, setFormData] = useState({
@@ -140,50 +134,25 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const getServicePrice = useCallback((serviceName: string): number => {
     return serviceData[serviceName] || 0;
   }, [serviceData]);
-  // Estado para armazenar os barbeiros (carregados dinamicamente da API)
-  const [barbers, setBarbers] = useState<Barber[]>([]);
+  // Estado para armazenar os serviços (barbeiros vêm do hook useBarbers)
   const [services, setServices] = useState<string[]>([]);
 
-  // Buscar serviços da API ao carregar o componente
+  // Multi-tenant services hook
+  const { services: tenantServices, loadServices: loadTenantServices, loading: tenantServicesLoading, error: tenantServicesError } = useServices();
+
+  // Buscar serviços usando hook multi-tenant
   React.useEffect(() => {
     const fetchServices = async () => {
+      if (!isValidTenant) {
+        logger.componentWarn('BookingModal: Tenant inválido, não carregando serviços');
+        return;
+      }
+
       try {
         setIsLoadingServices(true);
         setServicesError('');
-        logger.componentDebug('Carregando serviços no BookingModal');
-        const result = await ApiService.getServices();
-
-        if (result && Array.isArray(result)) {
-          // Armazenar os nomes dos serviços
-          const serviceNames = result.map((service: unknown) => (service as Service).name);
-
-          // Consolidar serviços diretamente no useEffect para evitar dependências desnecessárias
-          const consolidatedServices = [...serviceNames];
-
-          // Adicionar serviços iniciais se não estiverem na lista da API
-          if (initialService && !consolidatedServices.includes(initialService)) {
-            consolidatedServices.push(initialService);
-          }
-          if (initialServices && initialServices.length > 0) {
-            initialServices.forEach(service => {
-              if (!consolidatedServices.includes(service)) {
-                consolidatedServices.push(service);
-              }
-            });
-          }
-
-          setServices(consolidatedServices);
-
-          // Armazenar os preços dos serviços em um objeto para fácil acesso
-          const priceMap: Record<string, number> = {};
-          result.forEach((service: unknown) => {
-            if ((service as Service).name && (service as Service).price) {
-              priceMap[(service as Service).name] = (service as Service).price;
-            }
-          });
-          setServiceData(priceMap);
-          logger.componentDebug(`Carregados ${result.length} serviços no BookingModal`);
-        }
+        logger.componentDebug('Carregando serviços no BookingModal usando hook multi-tenant');
+        await loadTenantServices();
       } catch (error) {
         logger.componentError('Erro ao buscar serviços:', error);
         setServicesError('Erro ao carregar serviços. Tente novamente.');
@@ -211,32 +180,80 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     fetchServices();
-  }, []); // Executar apenas uma vez ao montar o componente
-  // Buscar barbeiros usando o store
+  }, [loadTenantServices, isValidTenant]); // Executar quando tenant mudar
+
+  // Update services when tenant services change
   React.useEffect(() => {
-    const loadBarbers = async () => {
+    if (tenantServices && tenantServices.length > 0) {
+      // Armazenar os nomes dos serviços
+      const serviceNames = tenantServices.map(service => service.name);
+
+      // Consolidar serviços
+      const consolidatedServices = [...serviceNames];
+
+      // Adicionar serviços iniciais se não estiverem na lista da API
+      if (initialService && !consolidatedServices.includes(initialService)) {
+        consolidatedServices.push(initialService);
+      }
+      if (initialServices && initialServices.length > 0) {
+        initialServices.forEach(service => {
+          if (!consolidatedServices.includes(service)) {
+            consolidatedServices.push(service);
+          }
+        });
+      }
+
+      setServices(consolidatedServices);
+
+      // Armazenar os preços dos serviços em um objeto para fácil acesso
+      const priceMap: Record<string, number> = {};
+      tenantServices.forEach(service => {
+        if (service.name && service.price) {
+          priceMap[service.name] = service.price;
+        }
+      });
+      setServiceData(priceMap);
+      setIsLoadingServices(false);
+      logger.componentDebug(`Carregados ${tenantServices.length} serviços no BookingModal`);
+    }
+  }, [tenantServices, initialService, initialServices]);
+
+  // Handle loading and error states from services hook
+  React.useEffect(() => {
+    setIsLoadingServices(tenantServicesLoading);
+    if (tenantServicesError) {
+      setServicesError(tenantServicesError.message);
+      setIsLoadingServices(false);
+    }
+  }, [tenantServicesLoading, tenantServicesError]);
+  // Buscar barbeiros usando o hook multi-tenant
+  React.useEffect(() => {
+    const loadBarbersData = async () => {
+      if (!isValidTenant) {
+        logger.componentWarn('BookingModal: Tenant inválido, não carregando barbeiros');
+        return;
+      }
+
       try {
         setIsLoadingBarbers(true);
-        setBarbersError('');
-        await fetchBarbers();
-        // Não usar barberList aqui para evitar loop - será atualizado no próximo useEffect
+        await loadBarbers();
+        logger.componentDebug(`BookingModal: ${barbers?.length || 0} barbeiros carregados`);
       } catch (error) {
         logger.componentError('Erro ao buscar barbeiros:', error);
-        setBarbersError('Erro ao carregar barbeiros. Tente novamente.');
+      } finally {
         setIsLoadingBarbers(false);
       }
     };
 
-    loadBarbers();
-  }, [fetchBarbers]); // Inclui fetchBarbers como dependência
+    loadBarbersData();
+  }, [loadBarbers, isValidTenant]); // Inclui isValidTenant como dependência
 
-  // Atualizar barbeiros quando o store mudar
+  // Atualizar loading state quando barbeiros mudarem
   React.useEffect(() => {
-    setBarbers(barberList);
-    if (barberList.length > 0) {
-      setIsLoadingBarbers(false); // Finalizar loading quando os dados chegarem
+    if (barbers) {
+      setIsLoadingBarbers(false);
     }
-  }, [barberList]);
+  }, [barbers]);
 
   // Efeito para atualizar os horários pré-carregados quando as props mudarem
   useEffect(() => {
@@ -562,19 +579,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         logger.componentError('Erro ao atualizar localStorage:', err);
       }
 
-      // Usar a função createAppointment importada do AppointmentService
+      // Usar o hook multi-tenant para criar agendamento
       const appointmentData = {
         clientName: formData.name,
         wppclient: formData.whatsapp,
         serviceName: formData.services.join(', '),
-        date: formData.date,
+        date: new Date(formData.date),
         time: formData.time,
         barberId: formData.barberId,
         barberName: formData.barber,
-        price: calculateTotalPrice()
+        price: calculateTotalPrice(),
+        status: 'pending' as const
       };
 
-      const result = await createAppointment(appointmentData);
+      const result = await createWithBackendData(appointmentData);
 
       // Verificar se a resposta é válida
       if (!result || (result.success === false)) {

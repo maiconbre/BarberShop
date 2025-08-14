@@ -48,6 +48,9 @@ const initialFilters: AppointmentFilters = {
 };
 
 /**
+ * @deprecated Use useAppointments hook from hooks/useAppointments.ts instead
+ * This store is kept for backward compatibility but should not be used in new code
+ * 
  * Appointment store
  */
 export const useAppointmentStore = create<AppointmentState>()(
