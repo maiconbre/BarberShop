@@ -394,7 +394,12 @@
 
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 9.2 Migrar componentes de serviços
+- [x] 9.2 Migrar componentes de serviços
+
+
+
+
+
   - Atualizar componentes para usar useServices expandido + barbershopId
   - Implementar associação barbeiro-serviço (N:N) por tenant
   - Usar endpoint específico /api/services/barber/:barberId com tenant

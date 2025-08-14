@@ -2,8 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useServiceRepository } from '../services/ServiceFactory';
 import { useTenant } from '../contexts/TenantContext';
 import { createTenantAwareRepository } from '../services/TenantAwareRepository';
-import { useOptimizedCache } from './useOptimizedCache';
-import { useTenantMemo } from './useTenantMemo';
+import { useCache } from './useCache';
 import type { Service } from '../types';
 import type { ServiceStatistics } from '../services/repositories/ServiceRepository';
 import type { SearchOptions } from '../services/interfaces/IRepository';
@@ -24,16 +23,12 @@ export const useServices = () => {
   const baseRepository = useServiceRepository();
   const { barbershopId, isValidTenant } = useTenant();
 
-  // Create tenant-aware repository with optimized cache
-  const tenantRepository = useTenantMemo(() => {
+  // Create tenant-aware repository
+  const tenantRepository = useMemo(() => {
     return createTenantAwareRepository(baseRepository, () => barbershopId);
   }, [baseRepository, barbershopId]);
 
-  const tenantCache = useOptimizedCache({
-    defaultTTL: 5 * 60 * 1000, // 5 minutes (services change less frequently)
-    debounceMs: 100, // 100ms debounce
-    maxRetries: 3
-  });
+  const tenantCache = useCache();
 
   // State for services list
   const [services, setServices] = useState<Service[] | null>(null);
@@ -328,9 +323,19 @@ export const useServices = () => {
         setAssociating(true);
         setAssociateError(null);
 
-        // Note: This would need to be implemented in the tenant-aware repository
-        // For now, we'll use the update method to associate barbers
-        await tenantRepository.update(serviceId, { barberIds } as Partial<Service>);
+        // First verify the service belongs to the current tenant
+        const service = await tenantRepository.findById(serviceId);
+        if (!service) {
+          throw new Error('Serviço não encontrado ou acesso negado');
+        }
+
+        // Use the base repository's associateBarbers method
+        // Note: We need to access the base repository method directly
+        if ('associateBarbers' in baseRepository && typeof baseRepository.associateBarbers === 'function') {
+          await baseRepository.associateBarbers(serviceId, barberIds);
+        } else {
+          throw new Error('Funcionalidade de associação de barbeiros não disponível');
+        }
 
         // Clear cache to force refresh
         tenantCache.clear();
@@ -342,7 +347,7 @@ export const useServices = () => {
         setAssociating(false);
       }
     },
-    [tenantRepository, tenantCache, ensureTenant]
+    [baseRepository, tenantRepository, tenantCache, ensureTenant]
   );
 
   /**

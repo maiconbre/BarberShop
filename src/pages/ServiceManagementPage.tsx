@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Scissors, Edit, Trash2 } from 'lucide-react';
+import { Scissors, Edit, Trash2, RefreshCw, Users, X } from 'lucide-react';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
 import EditServiceModal from '../components/ui/EditServiceModal';
-import ApiService from '../services/ApiService';
+import { useServices } from '../hooks/useServices';
+import { useBarbers } from '../hooks/useBarbers';
+import { useTenant } from '../contexts/TenantContext';
 import { logger } from '../utils/logger';
-import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
 
@@ -13,11 +14,40 @@ interface Service {
   id: string;
   name: string;
   price: number;
-  barbers: string[];
+  barbers?: string[];
   selected?: boolean;
 }
 
 const ServiceManagementPage: React.FC = () => {
+  // Multi-tenant hooks
+  const { 
+    services, 
+    loadServices, 
+    createService, 
+    updateService, 
+    deleteService,
+    associateBarbers,
+    getServicesByBarber,
+    loading, 
+    creating, 
+    updating, 
+    deleting,
+    associating,
+    error: servicesError,
+    createError,
+    updateError,
+    deleteError,
+    associateError,
+    isValidTenant
+  } = useServices();
+  
+  const { 
+    barbers, 
+    loadBarbers, 
+    loading: barbersLoading 
+  } = useBarbers();
+  
+  const { barbershopId } = useTenant();
 
   // Adicionar estilos CSS para animação do ícone de refresh
   React.useEffect(() => {
@@ -41,40 +71,52 @@ const ServiceManagementPage: React.FC = () => {
     };
   }, []);
 
-  const [services, setServices] = useState<Service[]>([]);
   const [newService, setNewService] = useState({ name: '', price: '' as unknown as number });
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
+  const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
+  const [serviceToAssociate, setServiceToAssociate] = useState<Service | null>(null);
+  const [selectedBarbers, setSelectedBarbers] = useState<string[]>([]);
   
+  // Load services and barbers on component mount and when tenant changes
   useEffect(() => {
-    fetchServices();
-  }, []);
-
-  const fetchServices = async (forceRefresh: boolean = false) => {
-    try {
-      logger.componentDebug('Carregando serviços no ServiceManagementPage');
-      const result = forceRefresh 
-        ? await ApiService.get('/api/services', { forceRefresh: true })
-        : await ApiService.getServices();
-      
-      if (result && Array.isArray(result)) {
-        setServices(result);
-        logger.componentDebug(`Carregados ${result.length} serviços`);
-      }
-    } catch (err) {
-      logger.componentError('Erro ao buscar serviços:', err);
+    if (isValidTenant) {
+      Promise.all([
+        loadServices().catch(err => {
+          logger.componentError('Erro ao carregar serviços:', err);
+          setError('Erro ao carregar serviços. Tente novamente.');
+        }),
+        loadBarbers().catch(err => {
+          logger.componentError('Erro ao carregar barbeiros:', err);
+        })
+      ]);
     }
-  };
+  }, [isValidTenant, loadServices, loadBarbers]);
+
+  // Handle errors from hooks
+  useEffect(() => {
+    if (servicesError) {
+      setError(servicesError.message);
+    } else if (createError) {
+      setError(createError.message);
+    } else if (updateError) {
+      setError(updateError.message);
+    } else if (deleteError) {
+      setError(deleteError.message);
+    } else if (associateError) {
+      setError(associateError.message);
+    } else {
+      setError('');
+    }
+  }, [servicesError, createError, updateError, deleteError, associateError]);
 
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
     try {
@@ -86,84 +128,95 @@ const ServiceManagementPage: React.FC = () => {
         throw new Error('Por favor, informe um valor válido');
       }
 
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
-        body: JSON.stringify(newService)
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erro ao adicionar serviço');
+      if (!isValidTenant) {
+        throw new Error('Contexto de barbearia inválido');
       }
 
-      setSuccess('Serviço adicionado com sucesso!');
-      setTimeout(() => setSuccess(''), 3000);
+      // Use the multi-tenant hook to create service
+      await createService({
+        name: newService.name.trim(),
+        price: newService.price,
+        description: '', // Default empty description
+        duration: 60, // Default 60 minutes
+        isActive: true // Default active
+      });
+
+      // Toast de sucesso padronizado
+      toast.success('Serviço adicionado com sucesso!', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #F0B35B',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#F0B35B',
+          secondary: '#1A1F2E'
+        }
+      });
+
       setNewService({ name: '', price: '' as unknown as number });
-      fetchServices();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleDeleteService = async () => {
     if (!serviceToDelete) return;
     
-    setIsLoading(true);
     setError('');
 
     try {
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/services/${serviceToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
+      if (!isValidTenant) {
+        throw new Error('Contexto de barbearia inválido');
+      }
+
+      // Use the multi-tenant hook to delete service
+      await deleteService(serviceToDelete.id);
+
+      // Toast de sucesso padronizado
+      toast.success('Serviço removido com sucesso!', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #F0B35B',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#F0B35B',
+          secondary: '#1A1F2E'
         }
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Erro ao remover serviço');
-      }
-
-      setSuccess('Serviço removido com sucesso!');
-      setTimeout(() => setSuccess(''), 3000);
       setServiceToDelete(null);
-      fetchServices();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleUpdateService = async (updatedService: Service) => {
-    setIsLoading(true);
     setError('');
 
     try {
-      // Usar o ApiService para requisições PATCH com retry e cache
-      await ApiService.patch(`/api/services/${updatedService.id}`, {
+      if (!isValidTenant) {
+        throw new Error('Contexto de barbearia inválido');
+      }
+
+      // Use the multi-tenant hook to update service
+      await updateService(updatedService.id, {
         name: updatedService.name,
         price: updatedService.price
       });
 
-      // Se chegou aqui, a requisição foi bem-sucedida
-
-      // Atualiza o estado local imediatamente com os novos dados
-      setServices(prevServices => 
-        prevServices.map(service => 
-          service.id === updatedService.id 
-            ? { ...service, name: updatedService.name, price: updatedService.price }
-            : service
-        )
-      );
-
-      // Toast de sucesso padronizado como no BookingModal
+      // Toast de sucesso padronizado
       toast.success('Serviço atualizado com sucesso!', {
         duration: 4000,
         style: {
@@ -183,29 +236,47 @@ const ServiceManagementPage: React.FC = () => {
       
       setServiceToEdit(null);
       setIsEditModalOpen(false);
-      
-      // Invalida apenas o cache de serviços para próximas requisições
-      try {
-        // Remove especificamente o cache de serviços
-        const cacheKeys = ['GET-/api/services', '/api/services'];
-        cacheKeys.forEach(key => {
-          localStorage.removeItem(key);
-          sessionStorage.removeItem(key);
-        });
-        
-        // Força uma nova busca em background para sincronizar com o servidor
-        setTimeout(() => {
-          fetchServices(true).catch(err => 
-            logger.componentError('Erro na sincronização em background:', err)
-          );
-        }, 1000);
-      } catch (cacheError) {
-        logger.componentWarn('Erro ao limpar cache:', cacheError);
-      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  const handleAssociateBarbers = async () => {
+    if (!serviceToAssociate || selectedBarbers.length === 0) return;
+    
+    setError('');
+
+    try {
+      if (!isValidTenant) {
+        throw new Error('Contexto de barbearia inválido');
+      }
+
+      // Use the multi-tenant hook to associate barbers
+      await associateBarbers(serviceToAssociate.id, selectedBarbers);
+
+      // Toast de sucesso padronizado
+      toast.success(`Barbeiros associados ao serviço "${serviceToAssociate.name}" com sucesso!`, {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #F0B35B',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#F0B35B',
+          secondary: '#1A1F2E'
+        }
+      });
+
+      setServiceToAssociate(null);
+      setSelectedBarbers([]);
+      setIsAssociateModalOpen(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
     }
   };
 
@@ -268,12 +339,19 @@ const ServiceManagementPage: React.FC = () => {
               </div>
               <motion.button 
                 type="submit" 
-                disabled={isLoading}
+                disabled={creating || !isValidTenant}
                 className="relative overflow-hidden group md:col-span-2 w-full py-3 bg-[#F0B35B] text-black rounded-xl font-semibold hover:shadow-lg transition-all duration-300 border-2 border-[#F0B35B]/70 flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {isLoading ? 'Adicionando...' : 'Adicionar Serviço'}
+                {creating ? (
+                  <>
+                    <RefreshCw className="animate-spin h-4 w-4 mr-2" />
+                    Adicionando...
+                  </>
+                ) : (
+                  'Adicionar Serviço'
+                )}
                 <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
               </motion.button>
             </form>
@@ -285,11 +363,27 @@ const ServiceManagementPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="flex justify-end items-center mb-4">
-              <span className="bg-[#F0B35B] text-black text-xs font-bold px-2 py-0.5 rounded-full">{services.length}</span>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-3">
+                <Scissors className="text-[#F0B35B] w-5 h-5" />
+                <span>Serviços Cadastrados</span>
+              </h2>
+              <div className="flex items-center gap-2">
+                {loading && <RefreshCw className="animate-spin h-4 w-4 text-[#F0B35B]" />}
+                <span className="bg-[#F0B35B] text-black text-xs font-bold px-2 py-0.5 rounded-full">
+                  {services?.length || 0}
+                </span>
+              </div>
             </div>
             
-            {services.length === 0 ? (
+            {!isValidTenant ? (
+              <p className="text-center text-gray-400 py-10">Contexto de barbearia inválido. Verifique se você está logado corretamente.</p>
+            ) : loading ? (
+              <div className="text-center py-10">
+                <RefreshCw className="animate-spin h-8 w-8 text-[#F0B35B] mx-auto mb-4" />
+                <p className="text-gray-400">Carregando serviços...</p>
+              </div>
+            ) : !services || services.length === 0 ? (
               <p className="text-center text-gray-400 py-10">Nenhum serviço cadastrado ainda.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -318,7 +412,21 @@ const ServiceManagementPage: React.FC = () => {
                         </motion.div>
                       </div>
                       
-                      <div className="mt-3 pt-3 border-t border-[#F0B35B]/10 flex justify-end gap-2">
+                      <div className="mt-3 pt-3 border-t border-[#F0B35B]/10 flex justify-end gap-2 flex-wrap">
+                        <motion.button 
+                          onClick={() => {
+                            setServiceToAssociate(service);
+                            setSelectedBarbers([]);
+                            setIsAssociateModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 text-blue-400 hover:text-white hover:bg-blue-500 rounded-lg transition-all duration-300 border border-blue-500/30 text-sm font-medium flex items-center gap-1"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          disabled={!barbers || barbers.length === 0}
+                        >
+                          <Users size={14} />
+                          <span>Barbeiros</span>
+                        </motion.button>
                         <motion.button 
                           onClick={() => {
                             setServiceToEdit(service);
@@ -364,7 +472,7 @@ const ServiceManagementPage: React.FC = () => {
         message={`Tem certeza que deseja remover o serviço "${serviceToDelete?.name}"?`}
         confirmButtonText="Remover"
         cancelButtonText="Cancelar"
-        isLoading={isLoading}
+        isLoading={deleting}
       />
       
       <EditServiceModal
@@ -375,8 +483,109 @@ const ServiceManagementPage: React.FC = () => {
         }}
         onConfirm={handleUpdateService}
         service={serviceToEdit}
-        isLoading={isLoading}
+        isLoading={updating}
       />
+
+      {/* Barber Association Modal */}
+      {isAssociateModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] rounded-xl p-6 w-full max-w-md border border-[#F0B35B]/20"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Users className="text-[#F0B35B] w-5 h-5" />
+                Associar Barbeiros
+              </h3>
+              <button
+                onClick={() => {
+                  setIsAssociateModalOpen(false);
+                  setServiceToAssociate(null);
+                  setSelectedBarbers([]);
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {serviceToAssociate && (
+              <div className="mb-4">
+                <p className="text-gray-300 text-sm mb-2">
+                  Serviço: <span className="text-[#F0B35B] font-medium">{serviceToAssociate.name}</span>
+                </p>
+                <p className="text-gray-300 text-sm">
+                  Selecione os barbeiros que podem realizar este serviço:
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
+              {barbersLoading ? (
+                <div className="text-center py-4">
+                  <RefreshCw className="animate-spin h-6 w-6 text-[#F0B35B] mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm">Carregando barbeiros...</p>
+                </div>
+              ) : !barbers || barbers.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-4">
+                  Nenhum barbeiro cadastrado ainda.
+                </p>
+              ) : (
+                barbers.map((barber) => (
+                  <label
+                    key={barber.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-[#0D121E] hover:bg-[#0D121E]/80 transition-colors cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedBarbers.includes(barber.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedBarbers(prev => [...prev, barber.id]);
+                        } else {
+                          setSelectedBarbers(prev => prev.filter(id => id !== barber.id));
+                        }
+                      }}
+                      className="w-4 h-4 text-[#F0B35B] bg-transparent border-gray-600 rounded focus:ring-[#F0B35B] focus:ring-2"
+                    />
+                    <span className="text-white text-sm">{barber.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setIsAssociateModalOpen(false);
+                  setServiceToAssociate(null);
+                  setSelectedBarbers([]);
+                }}
+                className="flex-1 px-4 py-2 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAssociateBarbers}
+                disabled={selectedBarbers.length === 0 || associating}
+                className="flex-1 px-4 py-2 bg-[#F0B35B] text-black rounded-lg hover:bg-[#F0B35B]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {associating ? (
+                  <>
+                    <RefreshCw className="animate-spin h-4 w-4" />
+                    Associando...
+                  </>
+                ) : (
+                  'Associar'
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </StandardLayout>
   );
 };
