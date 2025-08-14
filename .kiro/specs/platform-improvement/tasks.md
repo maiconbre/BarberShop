@@ -409,7 +409,12 @@
   - Aproveitar rate limiting generoso para UX
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 9.3 Atualizar stores Zustand para Multi-Tenant
+- [x] 9.3 Atualizar stores Zustand para Multi-Tenant
+
+
+
+
+
   - Migrar appointmentStore para usar AppointmentRepository + tenant
     - Adaptar para estrutura real (clientName, wppclient, etc.) + barbershopId
     - Usar filtros por barberId + tenant

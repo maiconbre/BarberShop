@@ -1,11 +1,14 @@
 /**
- * Appointment store using Zustand
+ * Appointment store using Zustand with multi-tenant support
+ * @deprecated Use useAppointments hook from hooks/useAppointments.ts instead
+ * This store is kept for backward compatibility but should not be used in new code
  */
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { Appointment, BookingFormData, AppointmentFilters } from '@/types';
-import { API_CONFIG, API_ENDPOINTS, PAGINATION } from '@/constants';
-import { Appointment as AppointmentModel } from '@/models';
+import type { Appointment, BookingFormData, AppointmentFilters, AppointmentStatus } from '@/types';
+import { useAppointmentRepository } from '@/services/ServiceFactory';
+import { createTenantAwareRepository } from '@/services/TenantAwareRepository';
+import { createTenantAwareCache } from '@/services/TenantAwareCache';
 
 interface AppointmentState {
   // State
@@ -14,28 +17,49 @@ interface AppointmentState {
   isLoading: boolean;
   error: string | null;
   filters: AppointmentFilters;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    hasMore: boolean;
-  };
+  
+  // Multi-tenant state
+  barbershopId: string | null;
+  tenantRepository: any | null;
+  tenantCache: any | null;
 
   // Actions
+  initializeTenant: (barbershopId: string) => void;
   fetchAppointments: (filters?: AppointmentFilters) => Promise<void>;
   fetchAppointmentById: (id: string) => Promise<void>;
   createAppointment: (data: BookingFormData) => Promise<Appointment>;
+  createWithBackendData: (data: {
+    clientName: string;
+    serviceName: string;
+    date: Date;
+    time: string;
+    barberId: string;
+    barberName: string;
+    price: number;
+    wppclient: string;
+    status?: AppointmentStatus;
+  }) => Promise<Appointment>;
   updateAppointment: (id: string, data: Partial<Appointment>) => Promise<void>;
+  updateAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>;
   cancelAppointment: (id: string, reason?: string) => Promise<void>;
   confirmAppointment: (id: string) => Promise<void>;
   rescheduleAppointment: (id: string, newDateTime: string) => Promise<void>;
   completeAppointment: (id: string, notes?: string) => Promise<void>;
+  
+  // Multi-tenant filtering actions
+  fetchByBarberId: (barberId: string) => Promise<void>;
+  fetchByStatus: (status: AppointmentStatus) => Promise<void>;
+  fetchByDate: (date: Date) => Promise<void>;
+  fetchByClientName: (clientName: string) => Promise<void>;
+  fetchUpcoming: () => Promise<void>;
+  fetchPending: () => Promise<void>;
+  
   setFilters: (filters: Partial<AppointmentFilters>) => void;
   clearFilters: () => void;
   setCurrentAppointment: (appointment: Appointment | null) => void;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
-  loadMore: () => Promise<void>;
+  clearTenantCache: () => void;
 }
 
 const initialFilters: AppointmentFilters = {
@@ -51,7 +75,7 @@ const initialFilters: AppointmentFilters = {
  * @deprecated Use useAppointments hook from hooks/useAppointments.ts instead
  * This store is kept for backward compatibility but should not be used in new code
  * 
- * Appointment store
+ * Multi-tenant appointment store with repository pattern
  */
 export const useAppointmentStore = create<AppointmentState>()(
   subscribeWithSelector((set, get) => ({
@@ -61,49 +85,53 @@ export const useAppointmentStore = create<AppointmentState>()(
     isLoading: false,
     error: null,
     filters: initialFilters,
-    pagination: {
-      page: 1,
-      limit: PAGINATION.DEFAULT_LIMIT,
-      total: 0,
-      hasMore: false,
-    },
+    
+    // Multi-tenant state
+    barbershopId: null,
+    tenantRepository: null,
+    tenantCache: null,
 
     // Actions
+    initializeTenant: (barbershopId: string) => {
+      const baseRepository = useAppointmentRepository();
+      const tenantRepository = createTenantAwareRepository(baseRepository, () => barbershopId);
+      const tenantCache = createTenantAwareCache(() => barbershopId);
+      
+      set({
+        barbershopId,
+        tenantRepository,
+        tenantCache,
+      });
+    },
+
     fetchAppointments: async (filters?: AppointmentFilters) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
       set({ isLoading: true, error: null });
       
       try {
         const currentFilters = filters || get().filters;
-        const { pagination } = get();
+        const cacheKey = `appointments:${JSON.stringify(currentFilters)}`;
         
-        const queryParams = new URLSearchParams({
-          page: pagination.page.toString(),
-          limit: pagination.limit.toString(),
-          ...Object.fromEntries(
-            Object.entries(currentFilters).filter(([, value]) => value !== undefined)
-          ),
-        });
-
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}${API_ENDPOINTS.APPOINTMENTS}?${queryParams}`
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to load appointments');
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ appointments: cached, isLoading: false });
+          return;
         }
-
-        const data = await response.json();
-        const appointments = data.appointments.map((apt: Appointment) => 
-          AppointmentModel.fromApiData(apt).toJSON()
-        );
-
+        
+        const appointments = await tenantRepository.findAll(currentFilters);
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, appointments, { ttl: 2 * 60 * 1000 }); // 2 minutes
+        
         set({
-          appointments: pagination.page === 1 ? appointments : [...get().appointments, ...appointments],
-          pagination: {
-            ...pagination,
-            total: data.total,
-            hasMore: data.hasMore,
-          },
+          appointments,
           isLoading: false,
           error: null,
         });
@@ -116,19 +144,21 @@ export const useAppointmentStore = create<AppointmentState>()(
     },
 
     fetchAppointmentById: async (id: string) => {
+      const { tenantRepository, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
       set({ isLoading: true, error: null });
       
       try {
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}${API_ENDPOINTS.APPOINTMENTS}/${id}`
-        );
-
-        if (!response.ok) {
+        const appointment = await tenantRepository.findById(id);
+        
+        if (!appointment) {
           throw new Error('Appointment not found');
         }
-
-        const data = await response.json();
-        const appointment = AppointmentModel.fromApiData(data).toJSON();
 
         set({
           currentAppointment: appointment,
@@ -144,35 +174,98 @@ export const useAppointmentStore = create<AppointmentState>()(
     },
 
     createAppointment: async (data: BookingFormData) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        throw new Error('Tenant not initialized');
+      }
+      
       set({ isLoading: true, error: null });
       
       try {
-        // Get client ID from authentication or state
-        const clientId = 'current-user-id'; // This should be replaced with actual client ID
-        
-        // Get service duration from service data
-        const serviceDuration = 60; // This should be replaced with actual service duration
-        
-        // Use the correct fromBookingForm method with all required parameters
-        const appointmentData = AppointmentModel.fromBookingForm(data, clientId, serviceDuration);
-        
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}${API_ENDPOINTS.APPOINTMENTS}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(appointmentData),
+        // Convert BookingFormData to Appointment format
+        const appointmentData = {
+          clientId: data.clientName || 'unknown',
+          serviceId: data.serviceId,
+          barberId: data.barberId,
+          date: new Date(data.date),
+          startTime: data.time,
+          status: 'scheduled' as AppointmentStatus,
+          notes: data.notes,
+          // Backend-specific data
+          _backendData: {
+            clientName: data.clientName,
+            serviceName: data.serviceName || '',
+            barberName: data.barberName || '',
+            price: data.price || 0,
+            wppclient: data.phone || '',
           }
-        );
+        } as Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>;
 
-        if (!response.ok) {
-          throw new Error('Failed to create appointment');
-        }
+        const newAppointment = await tenantRepository.create(appointmentData);
 
-        const responseData = await response.json();
-        const newAppointment = AppointmentModel.fromApiData(responseData).toJSON();
+        // Clear cache to force refresh
+        tenantCache?.clearTenantCache();
+
+        set((state) => ({
+          appointments: [newAppointment, ...state.appointments],
+          isLoading: false,
+          error: null,
+        }));
+
+        return newAppointment;
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to create appointment',
+        });
+        throw error;
+      }
+    },
+
+    createWithBackendData: async (data: {
+      clientName: string;
+      serviceName: string;
+      date: Date;
+      time: string;
+      barberId: string;
+      barberName: string;
+      price: number;
+      wppclient: string;
+      status?: AppointmentStatus;
+    }) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        throw new Error('Tenant not initialized');
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const appointmentData = {
+          clientId: data.clientName,
+          serviceId: data.serviceName,
+          barberId: data.barberId,
+          date: data.date,
+          startTime: data.time,
+          status: data.status || 'scheduled' as AppointmentStatus,
+          // Backend-specific data
+          _backendData: {
+            clientName: data.clientName,
+            serviceName: data.serviceName,
+            barberName: data.barberName,
+            price: data.price,
+            wppclient: data.wppclient,
+          }
+        } as Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>;
+
+        const newAppointment = await tenantRepository.create(appointmentData);
+
+        // Clear cache to force refresh
+        tenantCache?.clearTenantCache();
 
         set((state) => ({
           appointments: [newAppointment, ...state.appointments],
@@ -191,26 +284,20 @@ export const useAppointmentStore = create<AppointmentState>()(
     },
 
     updateAppointment: async (id: string, data: Partial<Appointment>) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
       set({ isLoading: true, error: null });
       
       try {
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}${API_ENDPOINTS.APPOINTMENTS}/${id}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-          }
-        );
+        const updatedAppointment = await tenantRepository.update(id, data);
 
-        if (!response.ok) {
-          throw new Error('Failed to update appointment');
-        }
-
-        const responseData = await response.json();
-        const updatedAppointment = AppointmentModel.fromApiData(responseData).toJSON();
+        // Clear cache to force refresh
+        tenantCache?.clearTenantCache();
 
         set((state) => ({
           appointments: state.appointments.map((apt) =>
@@ -229,88 +316,300 @@ export const useAppointmentStore = create<AppointmentState>()(
       }
     },
 
+    updateAppointmentStatus: async (id: string, status: AppointmentStatus) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const updatedAppointment = await tenantRepository.updateStatus(id, status);
+
+        // Clear cache to force refresh
+        tenantCache?.clearTenantCache();
+
+        set((state) => ({
+          appointments: state.appointments.map((apt) =>
+            apt.id === id ? updatedAppointment : apt
+          ),
+          currentAppointment: state.currentAppointment?.id === id ? updatedAppointment : state.currentAppointment,
+          isLoading: false,
+          error: null,
+        }));
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to update appointment status',
+        });
+        throw error;
+      }
+    },
+
     cancelAppointment: async (id: string, reason?: string) => {
-      const appointment = get().appointments.find(apt => apt.id === id);
-      if (!appointment) {
-        throw new Error('Appointment not found');
+      await get().updateAppointmentStatus(id, 'cancelled');
+      
+      if (reason) {
+        await get().updateAppointment(id, {
+          notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
+        });
       }
-
-      const appointmentModel = AppointmentModel.fromApiData(appointment);
-      if (!appointmentModel.canBeCancelled()) {
-        throw new Error('This appointment cannot be cancelled');
-      }
-
-      await get().updateAppointment(id, {
-        status: 'cancelled',
-        notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
-      });
     },
 
     confirmAppointment: async (id: string) => {
-      const appointment = get().appointments.find(apt => apt.id === id);
-      if (!appointment) {
-        throw new Error('Appointment not found');
-      }
-
-      const appointmentModel = AppointmentModel.fromApiData(appointment);
-      if (!appointmentModel.canBeConfirmed()) {
-        throw new Error('This appointment cannot be confirmed');
-      }
-
-      await get().updateAppointment(id, {
-        status: 'confirmed',
-      });
+      await get().updateAppointmentStatus(id, 'confirmed');
     },
 
     rescheduleAppointment: async (id: string, newDateTime: string) => {
-      const appointment = get().appointments.find(apt => apt.id === id);
-      if (!appointment) {
-        throw new Error('Appointment not found');
-      }
-
       // Parse the newDateTime to get date and time
       const [dateStr, timeStr] = newDateTime.split('T');
       const newDate = new Date(dateStr);
       const newTime = timeStr.substring(0, 5); // Extract HH:MM format
-      
-      // Get service duration from the current appointment
-      const appointmentModel = AppointmentModel.fromApiData(appointment);
-      const serviceDuration = appointmentModel.getDurationMinutes();
-      
-      // Use the correct reschedule method with all required parameters
-      const rescheduledAppointment = appointmentModel.reschedule(newDate, newTime, serviceDuration);
 
-      await get().updateAppointment(id, rescheduledAppointment.toJSON());
+      await get().updateAppointment(id, {
+        date: newDate,
+        startTime: newTime,
+      });
     },
 
     completeAppointment: async (id: string, notes?: string) => {
-      const appointment = get().appointments.find(apt => apt.id === id);
-      if (!appointment) {
-        throw new Error('Appointment not found');
+      await get().updateAppointmentStatus(id, 'completed');
+      
+      if (notes) {
+        await get().updateAppointment(id, { notes });
       }
+    },
 
-      const appointmentModel = AppointmentModel.fromApiData(appointment);
-      if (!appointmentModel.canBeCompleted()) {
-        throw new Error('This appointment cannot be completed');
+    // Multi-tenant filtering actions
+    fetchByBarberId: async (barberId: string) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
       }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const cacheKey = `appointments:barber:${barberId}`;
+        
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ appointments: cached, isLoading: false });
+          return;
+        }
+        
+        const appointments = await tenantRepository.findByBarberId(barberId);
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, appointments, { ttl: 2 * 60 * 1000 });
+        
+        set({
+          appointments,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to load appointments by barber',
+        });
+      }
+    },
 
-      await get().updateAppointment(id, {
-        status: 'completed',
-        notes: notes || appointment.notes,
-      });
+    fetchByStatus: async (status: AppointmentStatus) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const cacheKey = `appointments:status:${status}`;
+        
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ appointments: cached, isLoading: false });
+          return;
+        }
+        
+        const appointments = await tenantRepository.findByStatus(status);
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, appointments, { ttl: 2 * 60 * 1000 });
+        
+        set({
+          appointments,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to load appointments by status',
+        });
+      }
+    },
+
+    fetchByDate: async (date: Date) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const dateStr = date.toISOString().split('T')[0];
+        const cacheKey = `appointments:date:${dateStr}`;
+        
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ appointments: cached, isLoading: false });
+          return;
+        }
+        
+        const appointments = await tenantRepository.findByDate(date);
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, appointments, { ttl: 2 * 60 * 1000 });
+        
+        set({
+          appointments,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to load appointments by date',
+        });
+      }
+    },
+
+    fetchByClientName: async (clientName: string) => {
+      const { tenantRepository, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const appointments = await tenantRepository.findByClientName(clientName);
+        
+        set({
+          appointments,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to load appointments by client name',
+        });
+      }
+    },
+
+    fetchUpcoming: async () => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const cacheKey = 'appointments:upcoming';
+        
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ appointments: cached, isLoading: false });
+          return;
+        }
+        
+        const appointments = await tenantRepository.findUpcoming();
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, appointments, { ttl: 5 * 60 * 1000 }); // 5 minutes
+        
+        set({
+          appointments,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to load upcoming appointments',
+        });
+      }
+    },
+
+    fetchPending: async () => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const cacheKey = 'appointments:pending';
+        
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ appointments: cached, isLoading: false });
+          return;
+        }
+        
+        const appointments = await tenantRepository.findPending();
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, appointments, { ttl: 2 * 60 * 1000 });
+        
+        set({
+          appointments,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        set({
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to load pending appointments',
+        });
+      }
     },
 
     setFilters: (filters: Partial<AppointmentFilters>) => {
       set((state) => ({
         filters: { ...state.filters, ...filters },
-        pagination: { ...state.pagination, page: 1 },
       }));
     },
 
     clearFilters: () => {
       set({
         filters: initialFilters,
-        pagination: { ...get().pagination, page: 1 },
       });
     },
 
@@ -326,31 +625,32 @@ export const useAppointmentStore = create<AppointmentState>()(
       set({ isLoading: loading });
     },
 
-    loadMore: async () => {
-      const { pagination } = get();
-      
-      if (!pagination.hasMore || get().isLoading) {
-        return;
-      }
-
-      set((state) => ({
-        pagination: { ...state.pagination, page: state.pagination.page + 1 },
-      }));
-
-      await get().fetchAppointments();
+    clearTenantCache: () => {
+      const { tenantCache } = get();
+      tenantCache?.clearTenantCache();
     },
   }))
 );
 
-// Selectors
-export const useAppointments = () => {
-  const store = useAppointmentStore();
-  return { ...store };
-};
-
-// Specific selectors
+// Selectors for backward compatibility
 export const useAppointmentList = () => useAppointmentStore((state) => state.appointments);
 export const useCurrentAppointment = () => useAppointmentStore((state) => state.currentAppointment);
 export const useAppointmentLoading = () => useAppointmentStore((state) => state.isLoading);
 export const useAppointmentError = () => useAppointmentStore((state) => state.error);
 export const useAppointmentFilters = () => useAppointmentStore((state) => state.filters);
+
+// Multi-tenant selectors
+export const useAppointmentTenant = () => useAppointmentStore((state) => ({
+  barbershopId: state.barbershopId,
+  isInitialized: Boolean(state.barbershopId && state.tenantRepository)
+}));
+
+// Actions for backward compatibility
+export const useAppointmentActions = () => ({
+  initializeTenant: useAppointmentStore.getState().initializeTenant,
+  fetchAppointments: useAppointmentStore.getState().fetchAppointments,
+  createAppointment: useAppointmentStore.getState().createAppointment,
+  updateAppointment: useAppointmentStore.getState().updateAppointment,
+  clearError: useAppointmentStore.getState().clearError,
+  clearTenantCache: useAppointmentStore.getState().clearTenantCache
+});
