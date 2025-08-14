@@ -52,7 +52,7 @@ const CommentManagementPage: React.FC = () => {
     
     loadCommentsData();
     setCurrentPage(1); // Reset para a primeira página ao mudar de tab
-  }, [activeTab, isValidTenant, loadComments]);
+  }, [activeTab, isValidTenant, loadComments, setCurrentPage]);
 
   // Memoized total de páginas
   const totalPages = useMemo(() => {

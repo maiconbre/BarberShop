@@ -1,11 +1,9 @@
 import React from 'react';
 import { MapPin, Phone, Clock, Instagram, Facebook, Mail } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
-import useBarbershopNavigation from '../../hooks/useBarbershopNavigation';
 
 const BarbershopFooter: React.FC = () => {
   const { barbershopData } = useTenant();
-  const { currentSlug } = useBarbershopNavigation();
 
   const currentYear = new Date().getFullYear();
 
@@ -50,7 +48,7 @@ const BarbershopFooter: React.FC = () => {
             </div>
             
             <p className="text-gray-400 mb-6 max-w-md">
-              {barbershopData?.description || 
+              {barbershopData?.description ||
                'Transformamos seu visual com estilo e profissionalismo. Venha conhecer nossos serviços exclusivos.'}
             </p>
 

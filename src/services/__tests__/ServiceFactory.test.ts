@@ -126,8 +126,7 @@ describe('ServiceFactory', () => {
       };
 
       ServiceFactory.configure({ 
-        apiService: mockApiService,
-        userRepository: mockUserRepository
+        apiService: mockApiService
       });
 
       const userRepository = ServiceFactory.getUserRepository();

@@ -2,6 +2,32 @@ const { Barbershop, User } = require('../models');
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
 
+// In-memory store for email verification codes (in production, use Redis or database)
+const verificationCodes = new Map();
+
+// Helper function to generate 6-digit verification code
+const generateVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Helper function to send email via n8n webhook (placeholder for now)
+const sendVerificationEmail = async (email, code, barbershopName) => {
+  try {
+    // TODO: Implement n8n webhook integration
+    console.log(`Sending verification email to ${email} with code ${code} for barbershop ${barbershopName}`);
+    
+    // For now, just log the code (in development)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔐 VERIFICATION CODE for ${email}: ${code}`);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 /**
  * Controller para gerenciar barbearias (tenants)
  */
@@ -25,6 +51,163 @@ const generateRefreshToken = (user) => {
 };
 
 /**
+ * Iniciar processo de verificação de email
+ * POST /api/barbershops/verify-email
+ */
+exports.initiateEmailVerification = async (req, res) => {
+  try {
+    const { email, barbershopName } = req.body;
+
+    if (!email || !barbershopName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email e nome da barbearia são obrigatórios',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Formato de email inválido',
+        code: 'INVALID_EMAIL_FORMAT'
+      });
+    }
+
+    // Check if email is already registered
+    const existingBarbershop = await Barbershop.findOne({ where: { owner_email: email.toLowerCase() } });
+    if (existingBarbershop) {
+      return res.status(409).json({
+        success: false,
+        message: 'Este email já está cadastrado',
+        code: 'EMAIL_ALREADY_EXISTS'
+      });
+    }
+
+    // Generate verification code
+    const code = generateVerificationCode();
+    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+    // Store verification code
+    verificationCodes.set(email.toLowerCase(), {
+      code,
+      expiresAt,
+      barbershopName: barbershopName.trim(),
+      attempts: 0
+    });
+
+    // Send verification email
+    const emailResult = await sendVerificationEmail(email, code, barbershopName);
+    
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao enviar email de verificação',
+        code: 'EMAIL_SEND_FAILED'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Código de verificação enviado para seu email',
+      data: {
+        email: email.toLowerCase(),
+        expiresIn: 15 * 60 // 15 minutes in seconds
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao iniciar verificação de email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR'
+    });
+  }
+};
+
+/**
+ * Verificar código de email
+ * POST /api/barbershops/verify-code
+ */
+exports.verifyEmailCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email e código são obrigatórios',
+        code: 'MISSING_FIELDS'
+      });
+    }
+
+    const verification = verificationCodes.get(email.toLowerCase());
+    
+    if (!verification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Código de verificação não encontrado ou expirado',
+        code: 'CODE_NOT_FOUND'
+      });
+    }
+
+    // Check if code is expired
+    if (Date.now() > verification.expiresAt) {
+      verificationCodes.delete(email.toLowerCase());
+      return res.status(410).json({
+        success: false,
+        message: 'Código de verificação expirado',
+        code: 'CODE_EXPIRED'
+      });
+    }
+
+    // Check attempts limit
+    if (verification.attempts >= 3) {
+      verificationCodes.delete(email.toLowerCase());
+      return res.status(429).json({
+        success: false,
+        message: 'Muitas tentativas. Solicite um novo código',
+        code: 'TOO_MANY_ATTEMPTS'
+      });
+    }
+
+    // Verify code
+    if (verification.code !== code.toString()) {
+      verification.attempts++;
+      return res.status(400).json({
+        success: false,
+        message: 'Código de verificação inválido',
+        code: 'INVALID_CODE',
+        attemptsLeft: 3 - verification.attempts
+      });
+    }
+
+    // Code is valid - mark as verified
+    verification.verified = true;
+
+    res.json({
+      success: true,
+      message: 'Email verificado com sucesso',
+      data: {
+        email: email.toLowerCase(),
+        verified: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao verificar código:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR'
+    });
+  }
+};
+
+/**
  * Registrar nova barbearia
  * POST /api/barbershops/register
  */
@@ -40,6 +223,16 @@ exports.registerBarbershop = async (req, res) => {
         success: false,
         message: 'Todos os campos são obrigatórios',
         code: 'MISSING_FIELDS'
+      });
+    }
+
+    // Check if email was verified
+    const verification = verificationCodes.get(ownerEmail.toLowerCase());
+    if (!verification || !verification.verified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email deve ser verificado antes do cadastro',
+        code: 'EMAIL_NOT_VERIFIED'
       });
     }
 
@@ -144,6 +337,9 @@ exports.registerBarbershop = async (req, res) => {
       token,
       refreshToken
     };
+
+    // Clean up verification code after successful registration
+    verificationCodes.delete(ownerEmail.toLowerCase());
 
     console.log('Registro de barbearia concluído com sucesso');
 
@@ -327,6 +523,58 @@ exports.updateCurrentBarbershop = async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao atualizar barbearia:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR'
+    });
+  }
+};
+
+/**
+ * Obter barbearia por slug (público)
+ * GET /api/barbershops/slug/:slug
+ */
+exports.getBarbershopBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      return res.status(400).json({
+        success: false,
+        message: 'Slug é obrigatório',
+        code: 'MISSING_SLUG'
+      });
+    }
+
+    const barbershop = await Barbershop.findOne({ 
+      where: { slug },
+      attributes: ['id', 'name', 'slug', 'owner_email', 'plan_type', 'settings', 'created_at']
+    });
+
+    if (!barbershop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Barbearia não encontrada',
+        code: 'BARBERSHOP_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: barbershop.id,
+        name: barbershop.name,
+        slug: barbershop.slug,
+        ownerEmail: barbershop.owner_email,
+        planType: barbershop.plan_type,
+        settings: barbershop.settings,
+        createdAt: barbershop.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao obter barbearia por slug:', error);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor',

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { logger } from '../../utils/logger';
 import { X, MessageCircle, ArrowRight, CheckCircle, Eye } from 'lucide-react';
 import Calendar from './Calendar';
@@ -65,18 +65,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const { 
     barbers, 
     loadBarbers, 
-    loading: barbersLoading, 
     error: barbersError 
   } = useBarbers();
   const { createWithBackendData, creating: appointmentCreating } = useAppointments();
-  const { barbershopId, isValidTenant } = useTenant();
+  const { isValidTenant } = useTenant();
 
   // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Combine loading states
-  const isCreatingAppointment = appointmentCreating || isLoading;
+  // Combine loading states - appointmentCreating is used in the hook
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
@@ -378,7 +376,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         window.removeEventListener(event, handler);
       });
     };
-  }, [isOpen]);
+  }, [isOpen, fetchAppointmentsData, filterAppointmentsBySlot]);
 
   // Atualizar função handleTimeSelect do Calendar
   const handleTimeSelect = useCallback((date: Date, time: string) => {

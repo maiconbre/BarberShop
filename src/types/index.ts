@@ -61,6 +61,10 @@ export interface Appointment {
   createdAt: Date;
   updatedAt: Date;
   
+  // Additional properties for compatibility with existing components
+  time?: string; // Alias for startTime
+  barberName?: string; // Barber name for display
+  
   // Optional backend-specific data for compatibility
   _backendData?: {
     clientName: string;

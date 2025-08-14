@@ -42,7 +42,7 @@ const ScheduleManagementPage: React.FC = () => {
     };
 
     loadBarbersData();
-  }, [currentUser, isValidTenant, loadBarbers]);
+  }, [currentUser, isValidTenant, loadBarbers, setIsLoading, setBarbers]);
   
   // Atualizar barbeiros quando os dados do hook mudarem
   const currentUserRole = currentUser && typeof currentUser === 'object' && 'role' in currentUser ? currentUser.role : undefined;
@@ -56,7 +56,7 @@ const ScheduleManagementPage: React.FC = () => {
       setBarbers(formattedBarbers);
       setIsLoading(false); // Finalizar loading quando os dados chegarem
     }
-  }, [tenantBarbers, currentUserRole]);
+  }, [tenantBarbers, currentUserRole, currentUser, setBarbers, setIsLoading]);
 
   if (!currentUser) return null;
 

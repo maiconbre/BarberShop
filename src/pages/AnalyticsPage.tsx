@@ -55,7 +55,9 @@ const AnalyticsPage: React.FC = () => {
         
         if (!Array.isArray(fetchedAppointments)) {
           throw new Error('Invalid appointments data received');
-        };
+        }
+        
+        setAppointments(fetchedAppointments);
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
         if (isSubscribed) {

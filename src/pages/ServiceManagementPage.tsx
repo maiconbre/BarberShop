@@ -95,7 +95,7 @@ const ServiceManagementPage: React.FC = () => {
         })
       ]);
     }
-  }, [isValidTenant, loadServices, loadBarbers]);
+  }, [isValidTenant, loadServices, loadBarbers, setError]);
 
   // Handle errors from hooks
   useEffect(() => {

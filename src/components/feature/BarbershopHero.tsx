@@ -39,7 +39,7 @@ const BarbershopHero: React.FC<BarbershopHeroProps> = ({ setIsModalOpen, preload
     }
     
     return () => clearTimeout(timer);
-  }, [preloadAppointments]);
+  }, [preloadAppointments, setBgLoaded]);
 
   // Efeito para rotacionar os features automaticamente com animação lateral
   useEffect(() => {
@@ -59,7 +59,7 @@ const BarbershopHero: React.FC<BarbershopHeroProps> = ({ setIsModalOpen, preload
       }, 300);
     }, 3000);
     return () => clearInterval(interval);
-  }, [features.length]);
+  }, [features.length, setActiveFeature, setIsFeatureChanging, setFeatureDirection]);
 
   // Efeito de parallax no scroll
   useEffect(() => {

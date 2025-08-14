@@ -37,7 +37,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
     }
     
     return () => clearTimeout(timer);
-  }, [preloadAppointments]);
+  }, [preloadAppointments, setBgLoaded]);
 
   // Efeito para rotacionar os features automaticamente com animação lateral
   useEffect(() => {
@@ -57,7 +57,7 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
       }, 300);
     }, 3000);
     return () => clearInterval(interval);
-  }, [features.length]);
+  }, [features.length, setActiveFeature, setIsFeatureChanging, setFeatureDirection]);
 
   // Efeito de parallax no scroll
   useEffect(() => {

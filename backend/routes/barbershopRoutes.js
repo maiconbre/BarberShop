@@ -9,6 +9,8 @@ const { detectTenant, requireTenant, validateTenantAccess } = require('../middle
  */
 
 // Rotas públicas (não requerem autenticação nem tenant)
+router.post('/verify-email', barbershopController.initiateEmailVerification);
+router.post('/verify-code', barbershopController.verifyEmailCode);
 router.post('/register', barbershopController.registerBarbershop);
 router.get('/check-slug/:slug', barbershopController.checkSlugAvailability);
 

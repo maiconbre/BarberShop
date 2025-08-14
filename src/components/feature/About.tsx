@@ -66,7 +66,7 @@ const About = () => {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [setIsVisible]);
 
   // Efeito para carregar os comentários aprovados
   useEffect(() => {
@@ -82,7 +82,7 @@ const About = () => {
         let commentsData: Comment[] = [];
         
         if (Array.isArray(response)) {
-          commentsData = response;
+          commentsData = response as Comment[];
         } else if (response && typeof response === 'object' && 'data' in response) {
           commentsData = Array.isArray((response as { data: Comment[] }).data) ? (response as { data: Comment[] }).data : [];
         }
@@ -143,7 +143,7 @@ const About = () => {
     };
     
     fetchApprovedComments();
-  }, [commentsPerPage]);
+  }, [commentsPerPage, setIsLoadingComments, setCommentsError, setComments, setTotalPages]);
   const features = [
     {
       icon: <Scissors className="w-6 h-6" />,
@@ -161,7 +161,7 @@ const About = () => {
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [setIsVisible]);
   
   // Função para recarregar comentários
   const reloadComments = () => {

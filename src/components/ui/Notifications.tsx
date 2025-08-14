@@ -375,7 +375,7 @@ export const useNotifications = () => {
       clearTimeout(initialFetchTimeout);
       if (interval) clearInterval(interval);
     };
-  }, [getCurrentUser, loadPendingComments, loadAppointments, lastFetchTime, pendingComments.length, newAppointments.length]);
+  }, [getCurrentUser, loadPendingComments, loadAppointments, lastFetchTime, pendingComments.length, newAppointments.length, setHasError]);
 
   const toggleNotificationDropdown = () => {
     setIsNotificationDropdownOpen(!isNotificationDropdownOpen);

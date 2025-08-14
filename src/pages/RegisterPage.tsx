@@ -284,7 +284,7 @@ const RegisterPage: React.FC = () => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [barbersError]);
+  }, [barbersError, clearError]);
 
   // Função para converter imagem para SVG com máxima qualidade otimizada para mobile
   const convertImageToSVG = (file: File): Promise<string> => {

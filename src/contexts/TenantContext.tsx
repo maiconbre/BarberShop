@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getBarbershopBySlug, getCurrentBarbershop, type BarbershopData } from '../services/BarbershopService';
+import { getBarbershopBySlug, type BarbershopData } from '../services/BarbershopService';
 import { logger } from '../utils/logger';
 
 interface TenantContextType {

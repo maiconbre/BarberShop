@@ -228,7 +228,7 @@ const AgendaPage: React.FC = memo(() => {
         });
       }
     }
-  }, [appointments, selectedAppointment]);
+  }, [appointments, selectedAppointment, deleteAppointment, updateAppointmentStatus]);
 
   // useEffect removido - agendamentos agora são gerenciados pelo hook useAppointments
 

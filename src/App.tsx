@@ -12,6 +12,7 @@ import ScheduleManagementPage from './pages/ScheduleManagementPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BarbershopRegistrationPage from './pages/BarbershopRegistrationPage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 import DashboardPageNew from './pages/DashboardPageNew';
 import AgendaPage from './pages/AgendaPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -38,7 +39,8 @@ const AppContent = () => {
                        location.pathname === '/services' || 
                        location.pathname === '/contacts' || 
                        location.pathname === '/login' || 
-                       location.pathname === '/register-barbershop';
+                       location.pathname === '/register-barbershop' ||
+                       location.pathname === '/verify-email';
 
   const isBarbershopHomePage = location.pathname.match(/^\/[a-zA-Z0-9-]+$/) && location.pathname !== '/';
 
@@ -69,6 +71,7 @@ const AppContent = () => {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/contacts" element={<ContactPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/verify-email" element={<EmailVerificationPage />} />
               <Route path="/register-barbershop" element={<BarbershopRegistrationPage />} />
               
               {/* Barbershop isolated home pages - deve vir antes das rotas multi-tenant */}

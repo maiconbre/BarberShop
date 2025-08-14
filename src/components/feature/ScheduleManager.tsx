@@ -85,7 +85,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     });
   }, []);
 
-  const fetchAppointments = async (forceRefresh = false) => {
+  const fetchAppointments = useCallback(async (forceRefresh = false) => {
     try {
       const cacheKey = `schedule_appointments_${selectedBarber}`;
       
@@ -144,7 +144,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         setAppointments(Array.isArray(cachedData) ? cachedData : []);
       }
     }
-  };
+  }, [selectedBarber]);
 
   useEffect(() => {
     if (selectedBarber) {

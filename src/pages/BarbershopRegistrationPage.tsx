@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, Store, User, Mail, Lock, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import {
     registerBarbershop,
@@ -10,9 +10,17 @@ import {
 } from '../services/BarbershopService';
 import { useAuth } from '../contexts/AuthContext';
 
+interface LocationState {
+  email?: string;
+  barbershopName?: string;
+  emailVerified?: boolean;
+}
+
 const BarbershopRegistrationPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
+    const state = location.state as LocationState;
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -25,15 +33,28 @@ const BarbershopRegistrationPage: React.FC = () => {
     const [slugMessage, setSlugMessage] = useState('');
 
     const [formData, setFormData] = useState<BarbershopRegistrationData & { confirmPassword: string }>({
-        name: '',
+        name: state?.barbershopName || '',
         slug: '',
-        ownerEmail: '',
+        ownerEmail: state?.email || '',
         ownerName: '',
         ownerUsername: '',
         ownerPassword: '',
         confirmPassword: '',
         planType: 'free'
     });
+
+    // Check if email was verified
+    useEffect(() => {
+        if (!state?.emailVerified) {
+            // Redirect to email verification if not verified
+            navigate('/verify-email', {
+                state: {
+                    email: formData.ownerEmail,
+                    barbershopName: formData.name
+                }
+            });
+        }
+    }, [state?.emailVerified, navigate, formData.ownerEmail, formData.name]);
 
     // Gerar slug automaticamente quando o nome muda
     useEffect(() => {
@@ -161,12 +182,12 @@ const BarbershopRegistrationPage: React.FC = () => {
             // Atualizar contexto de autenticação
             await login(formData.ownerUsername, formData.ownerPassword, true);
 
-            setSuccess('Barbearia registrada com sucesso! Redirecionando...');
+            setSuccess('🎉 Barbearia registrada com sucesso! Bem-vindo ao BarberShop! Redirecionando para seu dashboard...');
 
             // Redirecionar para o dashboard da barbearia
             setTimeout(() => {
                 navigate(`/app/${response.data.barbershop.slug}/dashboard`, { replace: true });
-            }, 2000);
+            }, 3000);
 
         } catch (err: unknown) {
             console.error('Erro no registro:', err);
@@ -213,8 +234,19 @@ const BarbershopRegistrationPage: React.FC = () => {
                         </h2>
                     </div>
                     <p className="text-gray-400">
-                        Crie sua conta e comece a gerenciar sua barbearia hoje mesmo
+                        {state?.emailVerified 
+                            ? `✅ Email verificado! Agora complete os dados da sua barbearia`
+                            : 'Crie sua conta e comece a gerenciar sua barbearia hoje mesmo'
+                        }
                     </p>
+                    
+                    {state?.emailVerified && (
+                        <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                            <p className="text-green-400 text-sm">
+                                🎉 Parabéns! Você está a poucos passos de ter sua barbearia online
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <form className="space-y-6" onSubmit={handleSubmit}>

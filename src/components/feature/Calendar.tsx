@@ -78,16 +78,18 @@ const Calendar: React.FC<CalendarProps> = ({
       let appointmentsArray: CalendarAppointment[] = [];
       
       if (Array.isArray(data)) {
-        appointmentsArray = data.map(appointment => ({
-          id: appointment.id,
-          date: typeof appointment.date === 'string' ? appointment.date : appointment.date.toISOString().split('T')[0],
-          time: appointment.time,
-          barberId: appointment.barberId || '',
-          barberName: appointment.barberName || '',
-          isBlocked: false,
-          isRemoved: false,
-          isCancelled: appointment.status === 'cancelled'
-        }));
+        appointmentsArray = data
+          .filter(appointment => appointment.time) // Filtrar apenas appointments com time
+          .map(appointment => ({
+            id: appointment.id,
+            date: typeof appointment.date === 'string' ? appointment.date : appointment.date.toISOString().split('T')[0],
+            time: appointment.time,
+            barberId: appointment.barberId || '',
+            barberName: appointment.barberName || '',
+            isBlocked: false,
+            isRemoved: false,
+            isCancelled: appointment.status === 'cancelled'
+          }));
       }
       
       setAppointments(appointmentsArray);

@@ -14,7 +14,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
   const [isScrolled, setIsScrolled] = useState(false);
   
   const { barbershopData, slug } = useTenant();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   // Detectar scroll para mudar o estilo da navbar

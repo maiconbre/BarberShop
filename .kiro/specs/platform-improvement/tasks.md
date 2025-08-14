@@ -429,13 +429,23 @@
 
 ## Fase 2.6: Testes de Integração Multi-Tenant
 
-- [ ] 10. Implementar testes de integração multi-tenant
+- [-] 10. Implementar testes de integração multi-tenant
+
+
+
+
+
+
   - Criar testes que validam isolamento de dados entre tenants
   - Testar fluxos de dados completos por barbearia
-  - Validar comportamento com múltiplos tenants
+  - Validar alterações anteriores e erros sanar erros presentes
+  - Validar sempre usando "npm run lint" ao final. 
+  - Codigo limpo e manutenível
   - _Requirements: 4.1, 4.3_
 
-- [ ] 10.1 Implementar testes de integração de componentes multi-tenant
+- [-] 10.1 Implementar testes de integração de componentes multi-tenant
+
+
   - Criar testes que validam interação entre componentes por tenant
   - Testar fluxos de usuário completos por barbearia
   - Validar integração com hooks e repositórios multi-tenant
@@ -447,7 +457,9 @@
   - Validar fluxo de gerenciamento de serviços por tenant
   - _Requirements: 4.1, 4.3_
 
-- [ ] 10.3 Configurar ambiente de testes multi-tenant
+- [x] 10.3 Configurar ambiente de testes multi-tenant
+
+
   - Configurar dados de teste por tenant (fixtures)
   - Implementar setup e teardown adequados para múltiplos tenants
   - Garantir isolamento entre testes de diferentes barbearias
@@ -455,9 +467,14 @@
 
 ## Fase 2.7: Arquitetura SaaS Completa
 
-- [ ] 11. Implementar sistema de cadastro e onboarding
+- [-] 11. Implementar sistema de cadastro e onboarding
 
-- [ ] 11.1 Sistema de cadastro gratuito com verificação de email
+
+
+
+- [x] 11.1 Sistema de cadastro gratuito com verificação de email fake(inicial)
+
+
   - **Backend - Endpoints de Cadastro**:
     - POST /api/barbershops/register - Cadastro de nova barbearia
     - POST /api/barbershops/verify-email - Verificação de email
@@ -476,8 +493,10 @@
   - _Requirements: 8.3, 8.4, 8.6_
 
 - [ ] 11.2 Sistema de verificação de email e onboarding
+
+
   - Gerar código de verificação de 6 dígitos
-  - Enviar email de confirmação via webhook n8n
+  - Enviar email de confirmação via webhook n8n (logica pronta para inserção webhookurl)
   - Criar página de inserção do código de verificação
   - Implementar validação e expiração do código (15 minutos)
   - Bloquear criação da barbearia até confirmação do email

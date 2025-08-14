@@ -51,8 +51,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [retryDisabled, setRetryDisabled] = useState(false);
-  const [retryCountdown, setRetryCountdown] = useState(0);
+
   
   // Referências para cada seção
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -88,29 +87,6 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
       return;
     }
     
-    const loadServicesData = async () => {
-      try {
-        logger.componentDebug(`Carregando serviços usando hook multi-tenant`);
-        setIsLoading(true);
-        setError('');
-        
-        await loadServices();
-        
-      } catch (err: unknown) {
-        logger.componentError(`Erro ao carregar serviços:`, err);
-        setError('Erro ao carregar serviços. Usando dados estáticos como fallback.');
-        // Em caso de erro, usar os serviços estáticos como fallback
-        setServices(staticServices);
-        setCardsVisible(staticServices.map(() => true));
-        cardRefs.current = staticServices.map(() => null);
-      } finally {
-        if (isMounted) {
-          logger.componentDebug(`Finalizando carregamento de serviços`);
-          setIsLoading(false);
-        }
-      }
-    };
-    
     loadServices();
     
     // Variável para armazenar o intervalo de contagem regressiva
@@ -119,16 +95,8 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
     // Cleanup function para evitar memory leaks
     return () => {
       logger.componentDebug(`Componente desmontado, limpando recursos`);
-      isMounted = false;
       
-      // Limpar qualquer timeout pendente
-      if (retryTimeout) {
-        logger.componentDebug(`Limpando timeout de retry pendente`);
-        clearTimeout(retryTimeout);
-        retryTimeout = null;
-      }
-      
-      // Limpar intervalo de contagem regressiva
+      // Clear any pending timeouts
       if (countdownInterval) {
         logger.componentDebug(`Limpando intervalo de contagem regressiva`);
         clearInterval(countdownInterval);
@@ -234,7 +202,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
   // }, []);
   // Função para recarregar os serviços manualmente usando hook multi-tenant
   const handleReload = async () => {
-    if (!retryDisabled && isValidTenant) {
+    if (isValidTenant) {
       logger.componentDebug(`Recarregando serviços manualmente usando hook multi-tenant`);
       setError('');
       setIsLoading(true);
@@ -279,12 +247,9 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
               {!isShowcase && (
                 <button 
                   onClick={handleReload}
-                  disabled={retryDisabled}
-                  className="mt-2 px-4 py-2 text-sm font-medium rounded-md bg-[#1A1F2E] text-white border border-[#F0B35B]/30 hover:border-[#F0B35B] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="mt-2 px-4 py-2 text-sm font-medium rounded-md bg-[#1A1F2E] text-white border border-[#F0B35B]/30 hover:border-[#F0B35B] transition-all duration-300"
                 >
-                  {retryDisabled 
-                    ? `Recarregar (${retryCountdown}s)` 
-                    : 'Recarregar'}
+                  Recarregar
                 </button>
               )}
             </div>

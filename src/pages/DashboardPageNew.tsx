@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTenant } from '../contexts/TenantContext';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import StandardLayout from '../components/layout/StandardLayout';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
+import OnboardingModal from '../components/onboarding/OnboardingModal';
 import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
 import ApiService from '../services/ApiService';
 import toast from 'react-hot-toast';
@@ -74,9 +76,9 @@ const DashboardPageNew: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterMode]);
+  }, [filterMode, setCurrentPage]);
 
-  const handleAppointmentAction = async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
+  const handleAppointmentAction = useCallback(async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
     if (!appointmentId) return;
     try {
       if (action === 'view') {
@@ -254,7 +256,7 @@ const DashboardPageNew: React.FC = () => {
         });
       }
     }
-  };
+  }, [appointments, selectedAppointment, currentUser]);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -307,7 +309,7 @@ const DashboardPageNew: React.FC = () => {
       isSubscribed = false;
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [setAppointments]);
 
   useEffect(() => {
     const handleOpenAppointmentModal = (event: CustomEvent) => {
@@ -322,7 +324,7 @@ const DashboardPageNew: React.FC = () => {
     return () => {
       window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
     };
-  }, [appointments]);
+  }, [appointments, handleAppointmentAction]);
 
   return (
     <StandardLayout>

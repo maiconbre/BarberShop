@@ -186,13 +186,21 @@ const LoginPage: React.FC = () => {
               )}
             </button>
 
+            <button
+              type="button"
+              onClick={() => navigate('/verify-email')}
+              className="group relative w-full flex justify-center py-2 px-4 border border-[#F0B35B] text-sm font-medium rounded-md text-[#F0B35B] bg-transparent hover:bg-[#F0B35B]/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] transition-all duration-200"
+            >
+              Começar Grátis
+            </button>
+
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => navigate('/register-barbershop')}
+                onClick={() => navigate('/verify-email')}
                 className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm font-medium transition-colors"
               >
-                Não tem uma barbearia? Registre-se aqui
+                Não tem uma barbearia? Crie sua conta
               </button>
             </div>
           </div>

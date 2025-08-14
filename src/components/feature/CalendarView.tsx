@@ -386,7 +386,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       return 'bg-[#F0B35B]/20 text-white';
     }
     return hasApps ? 'bg-[#1A1F2E] text-white' : 'bg-[#252B3B]/50 text-gray-400';
-  }, [selectedDate, startDate, endDate]);
+  }, [selectedDate, startDate, endDate, isToday, isDateInRange]);
 
   // Gera o grid do calendário com memoização
   const generateCalendarGrid = useCallback(() => {
@@ -436,7 +436,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
 
     return grid;
-  }, [currentMonth, hasAppointments, getDateStyles, onDateSelect]);
+  }, [currentMonth, hasAppointments, getDateStyles, onDateSelect, filteredAppointments, getFirstDayOfMonth, getDaysInMonth]);
 
   // Renderiza a visualização semanal
   const renderWeekView = useCallback(() => {
