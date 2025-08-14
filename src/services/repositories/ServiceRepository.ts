@@ -1,4 +1,4 @@
-import type { IRepository, ISearchableRepository, SearchOptions } from '../interfaces/IRepository';
+import type { ISearchableRepository, SearchOptions } from '../interfaces/IRepository';
 import type { IApiService } from '../interfaces/IApiService';
 import type { Service as ServiceType, ServiceFormData } from '@/types';
 import type { BackendService } from '@/types/backend';

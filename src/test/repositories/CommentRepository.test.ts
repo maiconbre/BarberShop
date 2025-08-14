@@ -4,6 +4,11 @@ import type { IApiService } from '@/services/interfaces/IApiService';
 import type { BackendComment } from '@/types/backend';
 import type { PublicComment } from '@/types';
 
+// Type for mock API errors
+interface MockApiError extends Error {
+  status: number;
+}
+
 // Mock API Service
 const mockApiService: IApiService = {
   get: vi.fn(),
@@ -51,7 +56,7 @@ describe('CommentRepository', () => {
     });
 
     it('should return null when comment not found', async () => {
-      const notFoundError = new Error('Not found') as any;
+      const notFoundError = new Error('Not found') as MockApiError;
       notFoundError.status = 404;
       vi.mocked(mockApiService.get).mockRejectedValue(notFoundError);
 
@@ -208,7 +213,7 @@ describe('CommentRepository', () => {
     });
 
     it('should return false when comment does not exist', async () => {
-      const notFoundError = new Error('Not found') as any;
+      const notFoundError = new Error('Not found') as MockApiError;
       notFoundError.status = 404;
       vi.mocked(mockApiService.get).mockRejectedValue(notFoundError);
 

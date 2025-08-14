@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ServiceFactory } from '../ServiceFactory';
 import type { IApiService } from '../interfaces/IApiService';
+import type { IPaginatedRepository } from '../interfaces/IRepository';
+import type { User } from '@/types';
 
 // Mock das dependências
 vi.mock('../core/ApiServiceV2', () => ({
@@ -75,7 +77,6 @@ describe('ServiceFactory', () => {
 
   describe('Dependency Injection', () => {
     it('should inject ApiService into repositories', () => {
-      const apiService = ServiceFactory.getApiService();
       const userRepository = ServiceFactory.getUserRepository();
       const serviceRepository = ServiceFactory.getServiceRepository();
       const appointmentRepository = ServiceFactory.getAppointmentRepository();
@@ -114,13 +115,19 @@ describe('ServiceFactory', () => {
         delete: vi.fn(),
       };
 
-      const mockUserRepository = new (class {
-        constructor(public apiService: IApiService) {}
-      })(mockApiService);
+      const mockUserRepository: IPaginatedRepository<User> = {
+        findById: vi.fn(),
+        findAll: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        exists: vi.fn(),
+        findPaginated: vi.fn(),
+      };
 
       ServiceFactory.configure({ 
         apiService: mockApiService,
-        userRepository: mockUserRepository as any 
+        userRepository: mockUserRepository
       });
 
       const userRepository = ServiceFactory.getUserRepository();
@@ -131,23 +138,23 @@ describe('ServiceFactory', () => {
   describe('Reset Functionality', () => {
     it('should reset all instances', () => {
       // Create instances
-      const apiService1 = ServiceFactory.getApiService();
-      const userRepo1 = ServiceFactory.getUserRepository();
-      const serviceRepo1 = ServiceFactory.getServiceRepository();
-      const appointmentRepo1 = ServiceFactory.getAppointmentRepository();
-      const barberRepo1 = ServiceFactory.getBarberRepository();
-      const commentRepo1 = ServiceFactory.getCommentRepository();
+      ServiceFactory.getApiService();
+      ServiceFactory.getUserRepository();
+      ServiceFactory.getServiceRepository();
+      ServiceFactory.getAppointmentRepository();
+      ServiceFactory.getBarberRepository();
+      ServiceFactory.getCommentRepository();
 
       // Reset
       ServiceFactory.reset();
 
-      // Create new instances
-      const apiService2 = ServiceFactory.getApiService();
-      const userRepo2 = ServiceFactory.getUserRepository();
-      const serviceRepo2 = ServiceFactory.getServiceRepository();
-      const appointmentRepo2 = ServiceFactory.getAppointmentRepository();
-      const barberRepo2 = ServiceFactory.getBarberRepository();
-      const commentRepo2 = ServiceFactory.getCommentRepository();
+      // Create new instances after reset
+      ServiceFactory.getApiService();
+      ServiceFactory.getUserRepository();
+      ServiceFactory.getServiceRepository();
+      ServiceFactory.getAppointmentRepository();
+      ServiceFactory.getBarberRepository();
+      ServiceFactory.getCommentRepository();
 
       // Should be different instances (mocked instances might be the same, so we check if reset was called)
       expect(ServiceFactory.getApiService).toBeDefined();

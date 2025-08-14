@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { useServiceRepository } from '../services/ServiceFactory';
 import { useTenant } from '../contexts/TenantContext';
 import { createTenantAwareRepository } from '../services/TenantAwareRepository';
-import { createTenantAwareCache } from '../services/TenantAwareCache';
+import { useOptimizedCache } from './useOptimizedCache';
+import { useTenantMemo } from './useTenantMemo';
 import type { Service } from '../types';
 import type { ServiceStatistics } from '../services/repositories/ServiceRepository';
 import type { SearchOptions } from '../services/interfaces/IRepository';
@@ -23,14 +24,16 @@ export const useServices = () => {
   const baseRepository = useServiceRepository();
   const { barbershopId, isValidTenant } = useTenant();
 
-  // Create tenant-aware repository and cache
-  const tenantRepository = useMemo(() => {
+  // Create tenant-aware repository with optimized cache
+  const tenantRepository = useTenantMemo(() => {
     return createTenantAwareRepository(baseRepository, () => barbershopId);
   }, [baseRepository, barbershopId]);
 
-  const tenantCache = useMemo(() => {
-    return createTenantAwareCache(() => barbershopId);
-  }, [barbershopId]);
+  const tenantCache = useOptimizedCache({
+    defaultTTL: 5 * 60 * 1000, // 5 minutes (services change less frequently)
+    debounceMs: 100, // 100ms debounce
+    maxRetries: 3
+  });
 
   // State for services list
   const [services, setServices] = useState<Service[] | null>(null);
@@ -217,7 +220,7 @@ export const useServices = () => {
         const newService = await tenantRepository.create(serviceData);
 
         // Clear cache to force refresh
-        tenantCache.clearTenantCache();
+        tenantCache.clear();
 
         // Atualiza a lista local se existir
         if (services) {
@@ -251,7 +254,7 @@ export const useServices = () => {
         const updatedService = await tenantRepository.update(id, updates);
 
         // Clear cache to force refresh
-        tenantCache.clearTenantCache();
+        tenantCache.clear();
 
         // Atualiza a lista local se existir
         if (services) {
@@ -285,7 +288,7 @@ export const useServices = () => {
         await tenantRepository.delete(id);
 
         // Clear cache to force refresh
-        tenantCache.clearTenantCache();
+        tenantCache.clear();
 
         // Atualiza a lista local se existir
         if (services) {
@@ -330,7 +333,7 @@ export const useServices = () => {
         await tenantRepository.update(serviceId, { barberIds } as Partial<Service>);
 
         // Clear cache to force refresh
-        tenantCache.clearTenantCache();
+        tenantCache.clear();
       } catch (error) {
         const errorObj = error instanceof Error ? error : new Error(String(error));
         setAssociateError(errorObj);
@@ -450,7 +453,7 @@ export const useServices = () => {
         const duplicatedService = await tenantRepository.create(duplicateData);
 
         // Clear cache to force refresh
-        tenantCache.clearTenantCache();
+        tenantCache.clear();
 
         // Atualiza a lista local se existir
         if (services) {

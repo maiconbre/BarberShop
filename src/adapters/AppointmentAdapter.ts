@@ -1,6 +1,13 @@
 import type { Appointment, AppointmentStatus } from '@/types';
 import type { BackendAppointment, BackendAppointmentStatus, CreateAppointmentData } from '@/types/backend';
 
+interface AppointmentWithBackendData extends Appointment {
+  _backendData?: {
+    clientName?: string;
+    serviceName?: string;
+  };
+}
+
 /**
  * Adapter para converter entre formatos de agendamento do backend e frontend
  */
@@ -38,7 +45,7 @@ export class AppointmentAdapter {
    */
   static toBackend(appointment: Appointment): Partial<BackendAppointment> {
     // Try to get backend data from _backendData if available
-    const backendData = (appointment as any)._backendData;
+    const backendData = (appointment as AppointmentWithBackendData)._backendData;
     
     return {
       id: appointment.id,
@@ -163,7 +170,7 @@ export class AppointmentAdapter {
   static filterByClientName(appointments: Appointment[], clientName: string): Appointment[] {
     const searchTerm = clientName.toLowerCase();
     return appointments.filter(appointment => {
-      const backendData = (appointment as any)._backendData;
+      const backendData = (appointment as AppointmentWithBackendData)._backendData;
       const name = backendData?.clientName || appointment.clientId;
       return name.toLowerCase().includes(searchTerm);
     });

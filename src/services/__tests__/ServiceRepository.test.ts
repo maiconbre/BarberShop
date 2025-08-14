@@ -1,16 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ServiceRepository } from '../repositories/ServiceRepository';
 import type { IApiService } from '../interfaces/IApiService';
-import type { Service as ServiceType } from '@/types';
+import type { Service } from '@/types';
 import type { BackendService } from '@/types/backend';
 
+interface MockApiService extends IApiService {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+}
+
 // Mock ApiService
-const mockApiService: IApiService = {
+const mockApiService: MockApiService = {
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
   delete: vi.fn(),
-};
+} as MockApiService;
 
 describe('ServiceRepository', () => {
   let serviceRepository: ServiceRepository;
@@ -27,7 +34,7 @@ describe('ServiceRepository', () => {
     price: 25.0,
   };
 
-  const mockFrontendService: ServiceType = {
+  const mockFrontendService: Service = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     name: 'Corte de Cabelo',
     description: '',
@@ -40,7 +47,7 @@ describe('ServiceRepository', () => {
 
   describe('findById', () => {
     it('should return service when found', async () => {
-      (mockApiService.get as any).mockResolvedValue(mockBackendService);
+      mockApiService.get.mockResolvedValue(mockBackendService);
 
       const result = await serviceRepository.findById('123e4567-e89b-12d3-a456-426614174000');
 
@@ -50,7 +57,7 @@ describe('ServiceRepository', () => {
 
     it('should return null when service not found', async () => {
       const notFoundError = Object.assign(new Error('Not Found'), { status: 404 });
-      (mockApiService.get as any).mockRejectedValue(notFoundError);
+      mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await serviceRepository.findById('nonexistent-id');
 
@@ -59,7 +66,7 @@ describe('ServiceRepository', () => {
 
     it('should throw error for other API errors', async () => {
       const serverError = Object.assign(new Error('Server Error'), { status: 500 });
-      (mockApiService.get as any).mockRejectedValue(serverError);
+      mockApiService.get.mockRejectedValue(serverError);
 
       await expect(serviceRepository.findById('123e4567-e89b-12d3-a456-426614174000')).rejects.toThrow('Server Error');
     });
@@ -68,7 +75,7 @@ describe('ServiceRepository', () => {
   describe('findAll', () => {
     it('should return all services without filters', async () => {
       const mockBackendServices: BackendService[] = [mockBackendService];
-      (mockApiService.get as any).mockResolvedValue(mockBackendServices);
+      mockApiService.get.mockResolvedValue(mockBackendServices);
 
       const result = await serviceRepository.findAll();
 
@@ -78,7 +85,7 @@ describe('ServiceRepository', () => {
 
     it('should return services with filters', async () => {
       const mockBackendServices: BackendService[] = [mockBackendService];
-      (mockApiService.get as any).mockResolvedValue(mockBackendServices);
+      mockApiService.get.mockResolvedValue(mockBackendServices);
 
       const result = await serviceRepository.findAll({ name: 'Corte' });
 
@@ -87,7 +94,7 @@ describe('ServiceRepository', () => {
     });
 
     it('should return empty array when API returns non-array', async () => {
-      (mockApiService.get as any).mockResolvedValue(null);
+      mockApiService.get.mockResolvedValue(null);
 
       const result = await serviceRepository.findAll();
 
@@ -98,7 +105,7 @@ describe('ServiceRepository', () => {
   describe('findByBarber', () => {
     it('should return services for a specific barber', async () => {
       const mockBackendServices: BackendService[] = [mockBackendService];
-      (mockApiService.get as any).mockResolvedValue(mockBackendServices);
+      mockApiService.get.mockResolvedValue(mockBackendServices);
 
       const result = await serviceRepository.findByBarber('barber-123');
 
@@ -107,7 +114,7 @@ describe('ServiceRepository', () => {
     });
 
     it('should return empty array when barber has no services', async () => {
-      (mockApiService.get as any).mockResolvedValue([]);
+      mockApiService.get.mockResolvedValue([]);
 
       const result = await serviceRepository.findByBarber('barber-456');
 
@@ -117,7 +124,7 @@ describe('ServiceRepository', () => {
 
     it('should return empty array when barber not found', async () => {
       const notFoundError = Object.assign(new Error('Not Found'), { status: 404 });
-      (mockApiService.get as any).mockRejectedValue(notFoundError);
+      mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await serviceRepository.findByBarber('nonexistent-barber');
 
@@ -126,13 +133,13 @@ describe('ServiceRepository', () => {
 
     it('should throw error for other API errors', async () => {
       const serverError = Object.assign(new Error('Server Error'), { status: 500 });
-      (mockApiService.get as any).mockRejectedValue(serverError);
+      mockApiService.get.mockRejectedValue(serverError);
 
       await expect(serviceRepository.findByBarber('barber-123')).rejects.toThrow('Server Error');
     });
 
     it('should handle non-array response from API', async () => {
-      (mockApiService.get as any).mockResolvedValue(null);
+      mockApiService.get.mockResolvedValue(null);
 
       const result = await serviceRepository.findByBarber('barber-123');
 
@@ -142,7 +149,7 @@ describe('ServiceRepository', () => {
 
   describe('associateBarbers', () => {
     it('should associate barbers to a service successfully', async () => {
-      (mockApiService.post as any).mockResolvedValue(undefined);
+      mockApiService.post.mockResolvedValue(undefined);
 
       await serviceRepository.associateBarbers('service-123', ['barber-1', 'barber-2']);
 
@@ -153,7 +160,7 @@ describe('ServiceRepository', () => {
 
     it('should handle authentication errors', async () => {
       const authError = Object.assign(new Error('Unauthorized'), { status: 401 });
-      (mockApiService.post as any).mockRejectedValue(authError);
+      mockApiService.post.mockRejectedValue(authError);
 
       await expect(
         serviceRepository.associateBarbers('service-123', ['barber-1'])
@@ -162,7 +169,7 @@ describe('ServiceRepository', () => {
 
     it('should handle server errors', async () => {
       const serverError = Object.assign(new Error('Internal Server Error'), { status: 500 });
-      (mockApiService.post as any).mockRejectedValue(serverError);
+      mockApiService.post.mockRejectedValue(serverError);
 
       await expect(
         serviceRepository.associateBarbers('service-123', ['barber-1'])
@@ -170,7 +177,7 @@ describe('ServiceRepository', () => {
     });
 
     it('should handle unknown errors', async () => {
-      (mockApiService.post as any).mockRejectedValue('Unknown error');
+      mockApiService.post.mockRejectedValue('Unknown error');
 
       await expect(
         serviceRepository.associateBarbers('service-123', ['barber-1'])
@@ -185,7 +192,7 @@ describe('ServiceRepository', () => {
         { id: '2', name: 'Barba', price: 15.0 },
         { id: '3', name: 'Corte + Barba', price: 35.0 },
       ];
-      (mockApiService.get as any).mockResolvedValue(mockServices);
+      mockApiService.get.mockResolvedValue(mockServices);
 
       const result = await serviceRepository.findByName('corte');
 
@@ -198,7 +205,7 @@ describe('ServiceRepository', () => {
       const mockServices: BackendService[] = [
         { id: '1', name: 'Barba', price: 15.0 },
       ];
-      (mockApiService.get as any).mockResolvedValue(mockServices);
+      mockApiService.get.mockResolvedValue(mockServices);
 
       const result = await serviceRepository.findByName('manicure');
 
@@ -213,7 +220,7 @@ describe('ServiceRepository', () => {
         { id: '2', name: 'Corte Premium', price: 50.0 },
         { id: '3', name: 'Barba', price: 15.0 },
       ];
-      (mockApiService.get as any).mockResolvedValue(mockServices);
+      mockApiService.get.mockResolvedValue(mockServices);
 
       const result = await serviceRepository.findByPriceRange(15.0, 25.0);
 
@@ -226,7 +233,7 @@ describe('ServiceRepository', () => {
       const mockServices: BackendService[] = [
         { id: '1', name: 'Corte Premium', price: 50.0 },
       ];
-      (mockApiService.get as any).mockResolvedValue(mockServices);
+      mockApiService.get.mockResolvedValue(mockServices);
 
       const result = await serviceRepository.findByPriceRange(10.0, 20.0);
 
@@ -239,7 +246,7 @@ describe('ServiceRepository', () => {
         { id: '2', name: 'Service Max', price: 30.0 },
         { id: '3', name: 'Service Out', price: 35.0 },
       ];
-      (mockApiService.get as any).mockResolvedValue(mockServices);
+      mockApiService.get.mockResolvedValue(mockServices);
 
       const result = await serviceRepository.findByPriceRange(20.0, 30.0);
 
@@ -252,7 +259,7 @@ describe('ServiceRepository', () => {
   describe('findByAssociatedBarber', () => {
     it('should delegate to findByBarber method', async () => {
       const mockBackendServices: BackendService[] = [mockBackendService];
-      (mockApiService.get as any).mockResolvedValue(mockBackendServices);
+      mockApiService.get.mockResolvedValue(mockBackendServices);
 
       const result = await serviceRepository.findByAssociatedBarber('barber-123');
 
@@ -282,7 +289,7 @@ describe('ServiceRepository', () => {
         price: 30.0,
       };
 
-      (mockApiService.post as any).mockResolvedValue(createdBackendService);
+      mockApiService.post.mockResolvedValue(createdBackendService);
 
       const result = await serviceRepository.create(serviceData);
 
@@ -320,7 +327,7 @@ describe('ServiceRepository', () => {
         price: 35.0,
       };
 
-      (mockApiService.patch as any).mockResolvedValue(updatedBackendService);
+      mockApiService.patch.mockResolvedValue(updatedBackendService);
 
       const result = await serviceRepository.update('service-123', updates);
 
@@ -347,7 +354,7 @@ describe('ServiceRepository', () => {
         price: 25.0,
       };
 
-      (mockApiService.patch as any).mockResolvedValue(updatedBackendService);
+      mockApiService.patch.mockResolvedValue(updatedBackendService);
 
       await serviceRepository.update('service-123', updates);
 
@@ -358,14 +365,14 @@ describe('ServiceRepository', () => {
   describe('Rate Limiting Integration', () => {
     it('should handle rate limiting for read operations', async () => {
       const rateLimitError = Object.assign(new Error('Too Many Requests'), { status: 429 });
-      (mockApiService.get as any).mockRejectedValue(rateLimitError);
+      mockApiService.get.mockRejectedValue(rateLimitError);
 
       await expect(serviceRepository.findAll()).rejects.toThrow('Too Many Requests');
     });
 
     it('should handle rate limiting for write operations', async () => {
       const rateLimitError = Object.assign(new Error('Too Many Requests'), { status: 429 });
-      (mockApiService.post as any).mockRejectedValue(rateLimitError);
+      mockApiService.post.mockRejectedValue(rateLimitError);
 
       const serviceData = {
         name: 'Test Service',
@@ -380,7 +387,7 @@ describe('ServiceRepository', () => {
 
     it('should handle rate limiting for barber association', async () => {
       const rateLimitError = Object.assign(new Error('Too Many Requests'), { status: 429 });
-      (mockApiService.post as any).mockRejectedValue(rateLimitError);
+      mockApiService.post.mockRejectedValue(rateLimitError);
 
       await expect(
         serviceRepository.associateBarbers('service-123', ['barber-1'])
@@ -396,7 +403,7 @@ describe('ServiceRepository', () => {
         price: 42.5,
       };
 
-      (mockApiService.get as any).mockResolvedValue(backendService);
+      mockApiService.get.mockResolvedValue(backendService);
 
       const result = await serviceRepository.findById('uuid-123');
 
@@ -419,7 +426,7 @@ describe('ServiceRepository', () => {
         price: 25.0,
       };
 
-      (mockApiService.get as any).mockResolvedValue([uuidService]);
+      mockApiService.get.mockResolvedValue([uuidService]);
 
       const result = await serviceRepository.findAll();
 

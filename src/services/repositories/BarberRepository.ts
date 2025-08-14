@@ -3,6 +3,28 @@ import type { IApiService } from '../interfaces/IApiService';
 import type { Barber } from '@/types';
 import type { BackendBarber } from '@/types/backend';
 
+// Interface for barber creation data with backend-specific fields
+interface BarberCreationData extends Partial<BackendBarber> {
+  username?: string;
+  password?: string;
+  role?: string;
+}
+
+// Interface for barber with backend data
+interface BarberWithBackendData extends Barber {
+  _backendData?: {
+    pix?: string;
+    username?: string;
+    password?: string;
+    role?: string;
+  };
+}
+
+// Interface for API errors with status
+interface ApiError extends Error {
+  status?: number;
+}
+
 /**
  * Repository for barbers following Repository Pattern
  * Based on the real backend Barber model structure
@@ -50,7 +72,7 @@ export class BarberRepository implements IRepository<Barber> {
   /**
    * Find barbers by service (frontend filter using service associations)
    */
-  async findByService(serviceId: string): Promise<Barber[]> {
+  async findByService(): Promise<Barber[]> {
     // This would require checking service associations
     // For now, return all barbers and let the frontend handle service filtering
     return this.findAll();
@@ -262,16 +284,17 @@ export class BarberRepository implements IRepository<Barber> {
    * Adapt frontend barber to backend format for creation
    * Handles both User and Barber creation data
    */
-  private adaptToBackend(barber: Omit<Barber, 'id' | 'createdAt' | 'updatedAt'>): Partial<BackendBarber & { username?: string; password?: string; role?: string }> {
-    const backendData: any = {
+  private adaptToBackend(barber: Omit<Barber, 'id' | 'createdAt' | 'updatedAt'>): BarberCreationData {
+    const barberWithBackend = barber as BarberWithBackendData;
+    const backendData: BarberCreationData = {
       name: barber.name,
       whatsapp: barber.phone || '',
-      pix: (barber as any)._backendData?.pix || '',
+      pix: barberWithBackend._backendData?.pix || '',
     };
 
     // Handle User creation data if provided in _backendData
-    if ((barber as any)._backendData) {
-      const backendInfo = (barber as any)._backendData;
+    if (barberWithBackend._backendData) {
+      const backendInfo = barberWithBackend._backendData;
       if (backendInfo.username) backendData.username = backendInfo.username;
       if (backendInfo.password) backendData.password = backendInfo.password;
       if (backendInfo.role) backendData.role = backendInfo.role;
@@ -284,12 +307,13 @@ export class BarberRepository implements IRepository<Barber> {
    * Adapt partial frontend barber updates to backend format
    */
   private adaptPartialToBackend(updates: Partial<Barber>): Partial<BackendBarber> {
+    const updatesWithBackend = updates as Partial<BarberWithBackendData>;
     const backendUpdates: Partial<BackendBarber> = {};
     
     if (updates.name) backendUpdates.name = updates.name;
     if (updates.phone) backendUpdates.whatsapp = updates.phone;
-    if ((updates as any)._backendData?.pix) {
-      backendUpdates.pix = (updates as any)._backendData.pix;
+    if (updatesWithBackend._backendData?.pix) {
+      backendUpdates.pix = updatesWithBackend._backendData.pix;
     }
     
     return backendUpdates;
@@ -302,7 +326,7 @@ export class BarberRepository implements IRepository<Barber> {
     return (
       error instanceof Error &&
       'status' in error &&
-      (error as any).status === 404
+      (error as ApiError).status === 404
     );
   }
 }

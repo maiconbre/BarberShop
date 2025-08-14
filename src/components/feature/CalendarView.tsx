@@ -17,6 +17,7 @@ interface Appointment {
   service?: string;
   isBlocked?: boolean;
   duration?: number; // Duração em minutos
+  barbershopId?: string;
 }
 
 interface CalendarViewProps {
@@ -194,7 +195,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       // This is an additional safety check
       filtered = filtered.filter(app => {
         // If appointment has barbershopId, check it matches
-        const appBarbershopId = (app as any).barbershopId;
+        const appBarbershopId = app.barbershopId;
         return !appBarbershopId || appBarbershopId === activeBarbershopId;
       });
     }

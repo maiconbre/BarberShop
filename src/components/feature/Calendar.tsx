@@ -3,12 +3,11 @@ import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Loader2 } from 'lucide-react';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
-import { loadAppointments, isTimeSlotAvailable as checkTimeSlotAvailability, checkLocalAvailability } from '../../services/AppointmentService';
+import { isTimeSlotAvailable as checkTimeSlotAvailability, checkLocalAvailability } from '../../services/AppointmentService';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useTenant } from '../../contexts/TenantContext';
 import { toast } from 'react-hot-toast';
 import { logger } from '../../utils/logger';
-import CacheService from '../../services/CacheService';
 
 interface CalendarProps {
   selectedBarber: string;
@@ -27,9 +26,7 @@ interface CalendarAppointment {
   isCancelled?: boolean;
 }
 
-interface AppointmentResponse {
-  data?: CalendarAppointment[];
-}
+
 
 const timeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
@@ -48,8 +45,8 @@ const Calendar: React.FC<CalendarProps> = ({
   const [error, setError] = useState<string | null>(null);
   
   // Multi-tenant hooks
-  const { loadAppointments: loadTenantAppointments, loading: appointmentsLoading } = useAppointments();
-  const { barbershopId, isValidTenant } = useTenant();
+  const { loadAppointments: loadTenantAppointments } = useAppointments();
+  const { isValidTenant } = useTenant();
 
   // Gerar datas disponíveis (próximos 15 dias)
   const availableDates = useMemo(() => {

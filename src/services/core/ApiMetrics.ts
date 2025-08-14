@@ -132,7 +132,7 @@ export class ApiMetrics implements IApiMetrics {
    * Obtém métricas de todos os endpoints
    */
   getAllEndpointMetrics(): EndpointMetricsData[] {
-    return Array.from(this.metrics.entries()).map(([key, metrics]) => {
+    return Array.from(this.metrics.entries()).map(([key]) => {
       const [endpoint, method] = key.split('::');
       return this.getEndpointMetrics(endpoint, method)!;
     });

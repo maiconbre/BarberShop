@@ -40,7 +40,6 @@ const AppContent = () => {
                        location.pathname === '/login' || 
                        location.pathname === '/register-barbershop';
 
-  const isTenantRoute = location.pathname.startsWith('/app/');
   const isBarbershopHomePage = location.pathname.match(/^\/[a-zA-Z0-9-]+$/) && location.pathname !== '/';
 
   return (

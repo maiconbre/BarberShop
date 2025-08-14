@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -7,17 +7,17 @@ import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import CalendarView from '../components/feature/CalendarView';
 import StandardLayout from '../components/layout/StandardLayout';
-import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
-import ApiService from '../services/ApiService';
+import { useAppointments } from '../hooks/useAppointments';
+import type { Appointment as BaseAppointment, AppointmentStatus } from '@/types';
 
-
+// Interface local para compatibilidade com componentes
 interface Appointment {
   id: string;
   clientName: string;
   service: string;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'completed';
+  status: AppointmentStatus;
   barberId: string;
   barberName: string;
   price: number;
@@ -26,37 +26,50 @@ interface Appointment {
   viewed?: boolean;
   isBlocked?: boolean;
 }
+import ApiService from '../services/ApiService';
 
-interface Service {
-  id: string;
-  name: string;
-}
-
-interface RawAppointmentData {
-  id: string;
-  clientName: string;
-  service?: string;
-  serviceName?: string;
-  serviceId?: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'completed';
-  barberId: string;
-  barberName: string;
-  price: number;
-  createdAt?: string;
-  updatedAt?: string;
-  viewed?: boolean;
-  isBlocked?: boolean;
-}
+// Interfaces Service e RawAppointmentData removidas - gerenciadas pelo hook useAppointments
 
 const APPOINTMENTS_PER_PAGE = 6;
 
-const AgendaPage: React.FC = () => {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
+// Função para converter BaseAppointment para Appointment local
+const convertAppointment = (baseAppointment: BaseAppointment): Appointment => {
+  return {
+    id: baseAppointment.id,
+    clientName: baseAppointment._backendData?.clientName || baseAppointment.clientName || baseAppointment.clientId,
+    service: baseAppointment._backendData?.serviceName || baseAppointment.service || baseAppointment.serviceId,
+    date: baseAppointment.date.toISOString().split('T')[0],
+    time: baseAppointment._backendData ? baseAppointment.startTime : (baseAppointment.time || baseAppointment.startTime),
+    status: baseAppointment.status,
+    barberId: baseAppointment.barberId,
+    barberName: baseAppointment._backendData?.barberName || baseAppointment.barberName || '',
+    price: baseAppointment._backendData?.price || baseAppointment.price || 0,
+    createdAt: baseAppointment.createdAt?.toISOString(),
+    updatedAt: baseAppointment.updatedAt?.toISOString(),
+    viewed: baseAppointment.viewed,
+    isBlocked: baseAppointment.isBlocked
+  };
+};
 
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+const AgendaPage: React.FC = memo(() => {
+  const { getCurrentUser } = useAuth();
+  const currentUser = useMemo(() => getCurrentUser(), [getCurrentUser]);
+
+  // Hook de agendamentos com suporte a tenant
+  const { 
+    appointments: baseAppointments, 
+    deleteAppointment, 
+    updateAppointmentStatus,
+    deleting,
+    updating 
+  } = useAppointments();
+  
+  // Converter appointments para o tipo local
+  const appointments = useMemo(() => {
+    if (!baseAppointments) return null;
+    return baseAppointments.map(convertAppointment);
+  }, [baseAppointments]);
+
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,7 +77,7 @@ const AgendaPage: React.FC = () => {
 
 
   const calendarFilteredAppointments = useMemo(() => {
-    if (!appointments.length) return [];
+    if (!appointments || !appointments.length) return [];
 
     let filtered = appointments;
 
@@ -74,7 +87,7 @@ const AgendaPage: React.FC = () => {
     }
 
     return filtered.filter(app => {
-      if (app.isBlocked) return false;
+      if (app.isBlocked === true) return false;
       return app.date === selectedDate;
     });
   }, [appointments, selectedDate, currentUser]);
@@ -101,7 +114,7 @@ const AgendaPage: React.FC = () => {
     if (!appointmentId) return;
     try {
       if (action === 'view') {
-        const appointment = appointments.find(app => app.id === appointmentId);
+        const appointment = (appointments || []).find(app => app.id === appointmentId);
         if (appointment) {
           setSelectedAppointment(appointment);
           setIsViewModalOpen(true);
@@ -121,107 +134,60 @@ const AgendaPage: React.FC = () => {
           return;
         }
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          mode: 'cors'
-        });
-
-        if (response.ok) {
-          setAppointments(prevAppointments => prevAppointments.filter(app => app.id !== appointmentId));
-
-          if (selectedAppointment?.id === appointmentId) {
-            setIsViewModalOpen(false);
-            setSelectedAppointment(null);
-          }
-
-          toast.success('Agendamento excluído com sucesso!', {
-            duration: 4000,
-            style: {
-              background: '#1A1F2E',
-              color: '#fff',
-              border: '1px solid #F0B35B',
-              borderRadius: '12px',
-              padding: '16px',
-              fontSize: '12px',
-              fontWeight: '500'
-            },
-            iconTheme: {
-              primary: '#F0B35B',
-              secondary: '#1A1F2E'
-            }
-          });
-        } else {
-          const errorData = await response.json().catch(() => null);
-          console.error('Erro ao deletar agendamento:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData
-          });
-          throw new Error(`Erro ao deletar agendamento: ${response.status} ${response.statusText}`);
-        }
-      } else {
-        const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
+        // Usar o método tenant-aware do hook
+        await deleteAppointment(appointmentId);
         
-        try {
-          // Usar o ApiService para requisições PATCH com retry e cache
-          await ApiService.patch(`/api/appointments/${appointmentId}`, { status: newStatus });
-          
-          // Se chegou aqui, a requisição foi bem-sucedida
-          setAppointments(prevAppointments =>
-            prevAppointments.map(app =>
-              app.id === appointmentId ? { ...app, status: newStatus } : app
-            )
-          );
-          if (selectedAppointment?.id === appointmentId) {
-            setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
-          }
-
-          // Invalidar cache específico do usuário após atualização
-          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-          const userId = currentUser?.id;
-          if (userId) {
-            // Disparar evento para notificar outros componentes sobre a atualização
-            window.dispatchEvent(new CustomEvent('cacheUpdated', {
-              detail: {
-                keys: [
-                  `/api/appointments_user_${userId}`,
-                  '/api/appointments',
-                  `schedule_appointments_${userId}`
-                ],
-                timestamp: Date.now()
-              }
-            }));
-          }
-
-          const statusMessage = newStatus === 'completed'
-            ? 'Agendamento marcado como concluído!'
-            : 'Agendamento marcado como pendente!';
-
-          toast.success(statusMessage, {
-            duration: 4000,
-            style: {
-              background: '#1A1F2E',
-              color: '#fff',
-              border: '1px solid #F0B35B',
-              borderRadius: '12px',
-              padding: '16px',
-              fontSize: '12px',
-              fontWeight: '500'
-            },
-            iconTheme: {
-              primary: '#F0B35B',
-              secondary: '#1A1F2E'
-            }
-          });
-        } catch (patchError) {
-          console.error('Erro ao atualizar status:', patchError);
-          throw patchError;
+        if (selectedAppointment?.id === appointmentId) {
+          setIsViewModalOpen(false);
+          setSelectedAppointment(null);
         }
+
+        toast.success('Agendamento excluído com sucesso!', {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #F0B35B',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#F0B35B',
+            secondary: '#1A1F2E'
+          }
+        });
+      } else {
+        const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'scheduled' : 'completed');
+        
+        // Usar o método tenant-aware do hook
+        await updateAppointmentStatus(appointmentId, newStatus as any);
+        
+        if (selectedAppointment?.id === appointmentId) {
+          setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as any } : null);
+        }
+
+        const statusMessage = newStatus === 'completed'
+          ? 'Agendamento marcado como concluído!'
+          : 'Agendamento marcado como pendente!';
+
+        toast.success(statusMessage, {
+          duration: 4000,
+          style: {
+            background: '#1A1F2E',
+            color: '#fff',
+            border: '1px solid #F0B35B',
+            borderRadius: '12px',
+            padding: '16px',
+            fontSize: '12px',
+            fontWeight: '500'
+          },
+          iconTheme: {
+            primary: '#F0B35B',
+            secondary: '#1A1F2E'
+          }
+        });
       }
     } catch (error) {
       console.error(`Erro na ação ${action}:`, error);
@@ -264,56 +230,7 @@ const AgendaPage: React.FC = () => {
     }
   }, [appointments, selectedAppointment]);
 
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const fetchData = async () => {
-      if (!isSubscribed || !navigator.onLine) return;
-
-      try {
-        // Carregar agendamentos e serviços simultaneamente
-        const [appointmentsData, servicesData] = await Promise.all([
-          loadAppointmentsService(),
-          ApiService.getServices()
-        ]);
-
-        if (isSubscribed && Array.isArray(appointmentsData)) {
-          // Criar mapa de serviceId para serviceName
-          const serviceMap = new Map<string, string>();
-          if (Array.isArray(servicesData)) {
-            servicesData.forEach((service: unknown) => {
-              if (typeof service === 'object' && service !== null && 'id' in service && 'name' in service) {
-                const typedService = service as Service;
-                serviceMap.set(typedService.id, typedService.name);
-              }
-            });
-          }
-
-          // Transformar agendamentos para incluir o campo service
-          const transformedAppointments = appointmentsData.map((appointment: { status?: 'pending' | 'confirmed' | 'completed' } & Partial<RawAppointmentData>) => ({
-            ...appointment,
-            service: appointment?.service || appointment?.serviceName || serviceMap.get(appointment?.serviceId ?? '') || 'Serviço não especificado'
-          })).filter((appointment): appointment is Appointment => {
-            return appointment.status !== undefined;
-          });
-
-          setAppointments(transformedAppointments);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar agendamentos:', error);
-        if (isSubscribed) {
-          setAppointments(prev => prev.length > 0 ? prev : []);
-        }
-      }
-    };
-
-    const timeoutId = setTimeout(fetchData, 50);
-
-    return () => {
-      isSubscribed = false;
-      clearTimeout(timeoutId);
-    };
-  }, []);
+  // useEffect removido - agendamentos agora são gerenciados pelo hook useAppointments
 
   useEffect(() => {
     const handleOpenAppointmentModal = (event: CustomEvent) => {
@@ -380,7 +297,7 @@ const AgendaPage: React.FC = () => {
         {/* Calendário */}
         <div className="bg-[#1A1F2E]/50 p-4 border border-[#F0B35B]/20">
           <CalendarView
-            appointments={appointments.filter(app => !app.isBlocked)}
+            appointments={(appointments || []).filter(app => !app.isBlocked)}
             onDateSelect={handleDateSelection}
             selectedDate={selectedDate}
           />
@@ -459,10 +376,10 @@ const AgendaPage: React.FC = () => {
         appointment={selectedAppointment}
         onDelete={() => handleAppointmentAction(selectedAppointment?.id || '', 'delete')}
         onToggleStatus={() => handleAppointmentAction(selectedAppointment?.id || '', 'toggle', selectedAppointment?.status)}
-        allAppointments={appointments}
+        allAppointments={appointments || []}
       />
     </StandardLayout>
   );
-};
+});
 
 export default AgendaPage;

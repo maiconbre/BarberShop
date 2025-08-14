@@ -1,15 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UserRepository } from '../repositories/UserRepository';
 import type { IApiService } from '../interfaces/IApiService';
-import type { User as UserType } from '@/types';
+
+interface MockApiService extends IApiService {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+}
 
 // Mock ApiService
-const mockApiService: IApiService = {
+const mockApiService: MockApiService = {
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
   delete: vi.fn(),
-};
+} as MockApiService;
 
 describe('UserRepository', () => {
   let userRepository: UserRepository;
@@ -30,7 +36,7 @@ describe('UserRepository', () => {
         updatedAt: new Date(),
       };
 
-      (mockApiService.get as any).mockResolvedValue(mockUser);
+      mockApiService.get.mockResolvedValue(mockUser);
 
       const result = await userRepository.findById('1');
 
@@ -40,7 +46,7 @@ describe('UserRepository', () => {
 
     it('should return null when user not found', async () => {
       const notFoundError = Object.assign(new Error('Not Found'), { status: 404 });
-      (mockApiService.get as any).mockRejectedValue(notFoundError);
+      mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await userRepository.findById('999');
 
@@ -49,7 +55,7 @@ describe('UserRepository', () => {
 
     it('should throw error for other API errors', async () => {
       const serverError = Object.assign(new Error('Server Error'), { status: 500 });
-      (mockApiService.get as any).mockRejectedValue(serverError);
+      mockApiService.get.mockRejectedValue(serverError);
 
       await expect(userRepository.findById('1')).rejects.toThrow('Server Error');
     });
@@ -76,7 +82,7 @@ describe('UserRepository', () => {
         },
       ];
 
-      (mockApiService.get as any).mockResolvedValue(mockUsers);
+      mockApiService.get.mockResolvedValue(mockUsers);
 
       const result = await userRepository.findAll();
 
@@ -96,7 +102,7 @@ describe('UserRepository', () => {
         },
       ];
 
-      (mockApiService.get as any).mockResolvedValue(mockUsers);
+      mockApiService.get.mockResolvedValue(mockUsers);
 
       const result = await userRepository.findAll({ role: 'barber' });
 
@@ -105,7 +111,7 @@ describe('UserRepository', () => {
     });
 
     it('should return empty array when API returns non-array', async () => {
-      (mockApiService.get as any).mockResolvedValue(null);
+      mockApiService.get.mockResolvedValue(null);
 
       const result = await userRepository.findAll();
 
@@ -132,7 +138,7 @@ describe('UserRepository', () => {
         totalPages: 2,
       };
 
-      (mockApiService.get as any).mockResolvedValue(mockPaginatedResult);
+      mockApiService.get.mockResolvedValue(mockPaginatedResult);
 
       const result = await userRepository.findPaginated({
         page: 1,
@@ -164,7 +170,7 @@ describe('UserRepository', () => {
         updatedAt: new Date(),
       };
 
-      (mockApiService.post as any).mockResolvedValue(createdUser);
+      mockApiService.post.mockResolvedValue(createdUser);
 
       const result = await userRepository.create(userData);
 
@@ -190,7 +196,7 @@ describe('UserRepository', () => {
         updatedAt: new Date(),
       };
 
-      (mockApiService.patch as any).mockResolvedValue(updatedUser);
+      mockApiService.patch.mockResolvedValue(updatedUser);
 
       const result = await userRepository.update('1', updates);
 
@@ -201,7 +207,7 @@ describe('UserRepository', () => {
 
   describe('delete', () => {
     it('should delete user', async () => {
-      (mockApiService.delete as any).mockResolvedValue(undefined);
+      mockApiService.delete.mockResolvedValue(undefined);
 
       await userRepository.delete('1');
 
@@ -211,7 +217,7 @@ describe('UserRepository', () => {
 
   describe('exists', () => {
     it('should return true when user exists', async () => {
-      (mockApiService.get as any).mockResolvedValue({ exists: true });
+      mockApiService.get.mockResolvedValue({ exists: true });
 
       const result = await userRepository.exists('1');
 
@@ -221,7 +227,7 @@ describe('UserRepository', () => {
 
     it('should return false when user does not exist', async () => {
       const notFoundError = Object.assign(new Error('Not Found'), { status: 404 });
-      (mockApiService.get as any).mockRejectedValue(notFoundError);
+      mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await userRepository.exists('999');
 
@@ -240,7 +246,7 @@ describe('UserRepository', () => {
         updatedAt: new Date(),
       };
 
-      (mockApiService.get as any).mockResolvedValue(mockUser);
+      mockApiService.get.mockResolvedValue(mockUser);
 
       const result = await userRepository.findByEmail('john@example.com');
 
@@ -250,7 +256,7 @@ describe('UserRepository', () => {
 
     it('should return null when user not found by email', async () => {
       const notFoundError = Object.assign(new Error('Not Found'), { status: 404 });
-      (mockApiService.get as any).mockRejectedValue(notFoundError);
+      mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await userRepository.findByEmail('nonexistent@example.com');
 
@@ -271,7 +277,7 @@ describe('UserRepository', () => {
         },
       ];
 
-      (mockApiService.get as any).mockResolvedValue(mockBarbers);
+      mockApiService.get.mockResolvedValue(mockBarbers);
 
       const result = await userRepository.findByRole('barber');
 
@@ -282,7 +288,7 @@ describe('UserRepository', () => {
 
   describe('updatePassword', () => {
     it('should update user password', async () => {
-      (mockApiService.patch as any).mockResolvedValue(undefined);
+      mockApiService.patch.mockResolvedValue(undefined);
 
       await userRepository.updatePassword('1', 'oldPassword', 'newPassword');
 
@@ -304,7 +310,7 @@ describe('UserRepository', () => {
         updatedAt: new Date(),
       };
 
-      (mockApiService.patch as any).mockResolvedValue(updatedUser);
+      mockApiService.patch.mockResolvedValue(updatedUser);
 
       const result = await userRepository.toggleActive('1', false);
 

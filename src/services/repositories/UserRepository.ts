@@ -1,4 +1,4 @@
-import type { IRepository, IPaginatedRepository, PaginationOptions, PaginatedResult } from '../interfaces/IRepository';
+import type { IPaginatedRepository, PaginationOptions, PaginatedResult } from '../interfaces/IRepository';
 import type { IApiService } from '../interfaces/IApiService';
 import type { User as UserType } from '@/types';
 import { User } from '@/models/User';

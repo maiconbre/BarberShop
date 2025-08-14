@@ -4,19 +4,30 @@ import type { IApiService } from '../interfaces/IApiService';
 import type { Appointment, AppointmentStatus } from '@/types';
 import type { BackendAppointment } from '@/types/backend';
 
+interface MockApiError extends Error {
+  status?: number;
+}
+
+interface MockApiService extends IApiService {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+}
+
 // Mock ApiService
-const mockApiService: Partial<IApiService> = {
+const mockApiService: MockApiService = {
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
   delete: vi.fn(),
-};
+} as MockApiService;
 
 describe('AppointmentRepository', () => {
   let appointmentRepository: AppointmentRepository;
 
   beforeEach(() => {
-    appointmentRepository = new AppointmentRepository(mockApiService as IApiService);
+    appointmentRepository = new AppointmentRepository(mockApiService);
     vi.clearAllMocks();
   });
 
@@ -33,30 +44,31 @@ describe('AppointmentRepository', () => {
     wppclient: '+5511999999999'
   };
 
-  const mockFrontendAppointment: Appointment = {
-    id: '1',
-    clientId: 'John Doe',
-    barberId: 'barber1',
-    serviceId: 'Haircut',
-    date: new Date('2024-01-15'),
-    startTime: '10:00',
-    endTime: '11:00',
-    status: 'scheduled',
-    notes: 'Cliente: John Doe | Serviço: Haircut | Barbeiro: Joe Barber | Preço: R$ 50 | WhatsApp: +5511999999999',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    _backendData: {
-      clientName: 'John Doe',
-      serviceName: 'Haircut',
-      barberName: 'Joe Barber',
-      price: 50.0,
-      wppclient: '+5511999999999'
-    }
-  };
+  // Mock frontend appointment structure for reference
+  // const mockFrontendAppointment: Appointment = {
+  //   id: '1',
+  //   clientId: 'John Doe',
+  //   barberId: 'barber1',
+  //   serviceId: 'Haircut',
+  //   date: new Date('2024-01-15'),
+  //   startTime: '10:00',
+  //   endTime: '11:00',
+  //   status: 'pending' as AppointmentStatus,
+  //   notes: 'Cliente: John Doe | Serviço: Haircut | Barbeiro: Joe Barber | Preço: R$ 50 | WhatsApp: +5511999999999',
+  //   createdAt: new Date(),
+  //   updatedAt: new Date(),
+  //   _backendData: {
+  //     clientName: 'John Doe',
+  //     serviceName: 'Haircut',
+  //     barberName: 'Joe Barber',
+  //     price: 50.0,
+      //     wppclient: '+5511999999999'
+  //   }
+  // };
 
   describe('findById', () => {
     it('should find appointment by id successfully', async () => {
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointment);
+      mockApiService.get.mockResolvedValue(mockBackendAppointment);
 
       const result = await appointmentRepository.findById('1');
 
@@ -70,9 +82,9 @@ describe('AppointmentRepository', () => {
     });
 
     it('should return null when appointment not found', async () => {
-      const notFoundError = new Error('Not Found');
-      (notFoundError as any).status = 404;
-      (mockApiService.get as any).mockRejectedValue(notFoundError);
+      const notFoundError: MockApiError = new Error('Not Found');
+      notFoundError.status = 404;
+      mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await appointmentRepository.findById('999');
 
@@ -81,7 +93,7 @@ describe('AppointmentRepository', () => {
 
     it('should throw error for other API errors', async () => {
       const serverError = new Error('Server Error');
-      (mockApiService.get as any).mockRejectedValue(serverError);
+      mockApiService.get.mockRejectedValue(serverError);
 
       await expect(appointmentRepository.findById('1')).rejects.toThrow('Server Error');
     });
@@ -90,7 +102,7 @@ describe('AppointmentRepository', () => {
   describe('findAll', () => {
     it('should find all appointments successfully', async () => {
       const mockBackendAppointments = [mockBackendAppointment];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findAll();
 
@@ -102,7 +114,7 @@ describe('AppointmentRepository', () => {
 
     it('should find appointments with filters', async () => {
       const mockBackendAppointments = [mockBackendAppointment];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findAll({ barberId: 'barber1' });
 
@@ -111,7 +123,7 @@ describe('AppointmentRepository', () => {
     });
 
     it('should return empty array when API returns non-array', async () => {
-      (mockApiService.get as any).mockResolvedValue(null);
+      mockApiService.get.mockResolvedValue(null);
 
       const result = await appointmentRepository.findAll();
 
@@ -122,7 +134,7 @@ describe('AppointmentRepository', () => {
   describe('findByBarberId', () => {
     it('should find appointments by barberId using query parameter', async () => {
       const mockBackendAppointments = [mockBackendAppointment];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findByBarberId('barber1');
 
@@ -138,9 +150,9 @@ describe('AppointmentRepository', () => {
         mockBackendAppointment,
         { ...mockBackendAppointment, id: '2', status: 'confirmed' }
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
-      const result = await appointmentRepository.findByStatus('scheduled');
+      const result = await appointmentRepository.findByStatus('pending' as AppointmentStatus);
 
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('scheduled');
@@ -154,7 +166,7 @@ describe('AppointmentRepository', () => {
         mockBackendAppointment,
         { ...mockBackendAppointment, id: '2', date: '2024-01-16' }
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findByDate(new Date('2024-01-15'));
 
@@ -171,7 +183,7 @@ describe('AppointmentRepository', () => {
         { ...mockBackendAppointment, id: '2', date: '2024-01-16' },
         { ...mockBackendAppointment, id: '3', date: '2024-01-20' }
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findByDateRange(
         new Date('2024-01-15'),
@@ -189,7 +201,7 @@ describe('AppointmentRepository', () => {
         mockBackendAppointment,
         { ...mockBackendAppointment, id: '2', clientName: 'Jane Smith' }
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findByClientName('John');
 
@@ -212,7 +224,7 @@ describe('AppointmentRepository', () => {
         { ...mockBackendAppointment, id: '2', date: tomorrow.toISOString().split('T')[0] },
         { ...mockBackendAppointment, id: '3', date: dayAfterTomorrow.toISOString().split('T')[0] }
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findUpcoming();
 
@@ -227,7 +239,7 @@ describe('AppointmentRepository', () => {
         mockBackendAppointment,
         { ...mockBackendAppointment, id: '2', status: 'confirmed' }
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findPending();
 
@@ -245,7 +257,7 @@ describe('AppointmentRepository', () => {
         { ...mockBackendAppointment, id: '2', status: 'pending', date: '2024-01-15' },   // Wrong status
         { ...mockBackendAppointment, id: '3', status: 'confirmed', date: '2024-01-16' }  // Wrong date
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.findConfirmedByBarberAndDate(
         'barber1',
@@ -270,7 +282,7 @@ describe('AppointmentRepository', () => {
         date: new Date('2024-01-15'),
         startTime: '10:00',
         endTime: '11:00',
-        status: 'scheduled',
+        status: 'pending' as AppointmentStatus,
         _backendData: {
           clientName: 'John Doe',
           serviceName: 'Haircut',
@@ -280,7 +292,7 @@ describe('AppointmentRepository', () => {
         }
       };
 
-      (mockApiService.post as any).mockResolvedValue(mockBackendAppointment);
+      mockApiService.post.mockResolvedValue(mockBackendAppointment);
 
       const result = await appointmentRepository.create(appointmentData);
 
@@ -315,7 +327,7 @@ describe('AppointmentRepository', () => {
       };
 
       const updatedBackendAppointment = { ...mockBackendAppointment, time: '11:00', status: 'confirmed', price: 60.0 };
-      (mockApiService.patch as any).mockResolvedValue(updatedBackendAppointment);
+      mockApiService.patch.mockResolvedValue(updatedBackendAppointment);
 
       const result = await appointmentRepository.update('1', updates);
 
@@ -336,7 +348,7 @@ describe('AppointmentRepository', () => {
   describe('updateStatus', () => {
     it('should update appointment status successfully', async () => {
       const updatedBackendAppointment = { ...mockBackendAppointment, status: 'confirmed' };
-      (mockApiService.patch as any).mockResolvedValue(updatedBackendAppointment);
+      mockApiService.patch.mockResolvedValue(updatedBackendAppointment);
 
       const result = await appointmentRepository.updateStatus('1', 'confirmed');
 
@@ -349,9 +361,9 @@ describe('AppointmentRepository', () => {
 
     it('should map frontend status to backend status correctly', async () => {
       const updatedBackendAppointment = { ...mockBackendAppointment, status: 'cancelled' };
-      (mockApiService.patch as any).mockResolvedValue(updatedBackendAppointment);
+      mockApiService.patch.mockResolvedValue(updatedBackendAppointment);
 
-      await appointmentRepository.updateStatus('1', 'no_show');
+      await appointmentRepository.updateStatus('1', 'cancelled' as AppointmentStatus);
 
       expect(mockApiService.patch).toHaveBeenCalledWith('/api/appointments/1', {
         status: 'cancelled'
@@ -361,7 +373,7 @@ describe('AppointmentRepository', () => {
 
   describe('delete', () => {
     it('should delete appointment successfully', async () => {
-      (mockApiService.delete as any).mockResolvedValue(undefined);
+      mockApiService.delete.mockResolvedValue(undefined);
 
       await appointmentRepository.delete('1');
 
@@ -371,7 +383,7 @@ describe('AppointmentRepository', () => {
 
   describe('exists', () => {
     it('should return true when appointment exists', async () => {
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointment);
+      mockApiService.get.mockResolvedValue(mockBackendAppointment);
 
       const result = await appointmentRepository.exists('1');
 
@@ -380,8 +392,8 @@ describe('AppointmentRepository', () => {
 
     it('should return false when appointment does not exist', async () => {
       const notFoundError = new Error('Not Found');
-      (notFoundError as any).status = 404;
-      (mockApiService.get as any).mockRejectedValue(notFoundError);
+      notFoundError.status = 404;
+      mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await appointmentRepository.exists('999');
 
@@ -390,7 +402,7 @@ describe('AppointmentRepository', () => {
 
     it('should throw error for other API errors in exists', async () => {
       const serverError = new Error('Server Error');
-      (mockApiService.get as any).mockRejectedValue(serverError);
+      mockApiService.get.mockRejectedValue(serverError);
 
       await expect(appointmentRepository.exists('1')).rejects.toThrow('Server Error');
     });
@@ -410,7 +422,7 @@ describe('AppointmentRepository', () => {
         status: 'scheduled' as AppointmentStatus
       };
 
-      (mockApiService.post as any).mockResolvedValue(mockBackendAppointment);
+      mockApiService.post.mockResolvedValue(mockBackendAppointment);
 
       const result = await appointmentRepository.createWithBackendData(backendData);
 
@@ -438,12 +450,12 @@ describe('AppointmentRepository', () => {
         { ...mockBackendAppointment, id: '3', status: 'completed' },
         { ...mockBackendAppointment, id: '4', status: 'cancelled' }
       ];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       const result = await appointmentRepository.getStatistics();
 
       expect(result.total).toBe(4);
-      expect(result.byStatus.scheduled).toBe(1);
+      expect(result.byStatus.pending).toBe(1);
       expect(result.byStatus.confirmed).toBe(1);
       expect(result.byStatus.completed).toBe(1);
       expect(result.byStatus.cancelled).toBe(1);
@@ -457,15 +469,15 @@ describe('AppointmentRepository', () => {
   describe('rate limiting integration', () => {
     it('should handle rate limiting gracefully', async () => {
       const rateLimitError = new Error('Rate limit exceeded');
-      (rateLimitError as any).status = 429;
-      (mockApiService.get as any).mockRejectedValue(rateLimitError);
+      rateLimitError.status = 429;
+      mockApiService.get.mockRejectedValue(rateLimitError);
 
       await expect(appointmentRepository.findAll()).rejects.toThrow('Rate limit exceeded');
     });
 
     it('should work within rate limits (200 req/min for reading)', async () => {
       const mockBackendAppointments = [mockBackendAppointment];
-      (mockApiService.get as any).mockResolvedValue(mockBackendAppointments);
+      mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
       // Simulate multiple read operations within rate limit
       const promises = Array.from({ length: 5 }, () => appointmentRepository.findAll());
@@ -493,7 +505,7 @@ describe('AppointmentRepository', () => {
         wppclient: '+5511987654321'
       };
 
-      (mockApiService.get as any).mockResolvedValue(backendAppointment);
+      mockApiService.get.mockResolvedValue(backendAppointment);
 
       const result = await appointmentRepository.findById('appointment123');
 
@@ -518,7 +530,7 @@ describe('AppointmentRepository', () => {
         date: new Date('2024-01-15'),
         startTime: '10:00',
         endTime: '11:00',
-        status: 'scheduled',
+        status: 'pending' as AppointmentStatus,
         _backendData: {
           clientName: 'Test Client',
           serviceName: 'Test Service',
@@ -535,7 +547,7 @@ describe('AppointmentRepository', () => {
         serviceName: 'Test Service'
       };
 
-      (mockApiService.post as any).mockResolvedValue(createdAppointment);
+      mockApiService.post.mockResolvedValue(createdAppointment);
 
       const result = await appointmentRepository.create(appointmentData);
 

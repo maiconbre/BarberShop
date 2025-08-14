@@ -3,6 +3,11 @@ import { BarberRepository } from '@/services/repositories/BarberRepository';
 import type { IApiService } from '@/services/interfaces/IApiService';
 import type { BackendBarber } from '@/types/backend';
 
+// Type for mock API errors
+interface MockApiError extends Error {
+  status: number;
+}
+
 // Mock API Service
 const mockApiService: IApiService = {
   get: vi.fn(),
@@ -44,7 +49,7 @@ describe('BarberRepository', () => {
     });
 
     it('should return null when barber not found', async () => {
-      const notFoundError = new Error('Not found') as any;
+      const notFoundError = new Error('Not found') as MockApiError;
       notFoundError.status = 404;
       vi.mocked(mockApiService.get).mockRejectedValue(notFoundError);
 
@@ -220,7 +225,7 @@ describe('BarberRepository', () => {
     });
 
     it('should return false when barber does not exist', async () => {
-      const notFoundError = new Error('Not found') as any;
+      const notFoundError = new Error('Not found') as MockApiError;
       notFoundError.status = 404;
       vi.mocked(mockApiService.get).mockRejectedValue(notFoundError);
 
@@ -264,7 +269,7 @@ describe('BarberRepository', () => {
     });
 
     it('should throw error when barber not found', async () => {
-      const notFoundError = new Error('Not found') as any;
+      const notFoundError = new Error('Not found') as MockApiError;
       notFoundError.status = 404;
       vi.mocked(mockApiService.get).mockRejectedValue(notFoundError);
 

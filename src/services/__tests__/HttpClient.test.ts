@@ -259,7 +259,7 @@ describe('HttpClient', () => {
 
       const interceptor: IResponseInterceptor = {
         onResponse: vi.fn(),
-        onResponseError: vi.fn().mockImplementation(async (error) => {
+        onResponseError: vi.fn().mockImplementation(async () => {
           throw new Error('Custom error handling');
         }),
       };
@@ -285,11 +285,11 @@ describe('HttpClient', () => {
         abort: vi.fn(),
       };
       
-      global.AbortController = vi.fn(() => mockAbortController) as any;
+      global.AbortController = vi.fn(() => mockAbortController) as unknown as typeof AbortController;
       
       // Mock fetch to simulate timeout
       mockFetch.mockImplementation(() => {
-        return new Promise((_, reject) => {
+        return new Promise((resolve, reject) => {
           setTimeout(() => {
             const error = new Error('The operation was aborted');
             error.name = 'AbortError';

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ServiceFactory } from '../ServiceFactory';
 import type { IApiService } from '../interfaces/IApiService';
+import type { IPaginatedRepository, ISearchableRepository, IRepository } from '../interfaces/IRepository';
+import type { IAppointmentRepository } from '../interfaces/IAppointmentRepository';
+import type { User, Service, Barber, PublicComment } from '@/types';
 
 // Mock the ApiServiceV2 and CacheService
 vi.mock('../core/ApiServiceV2', () => ({
@@ -82,11 +85,62 @@ describe('ServiceFactory Integration', () => {
         delete: vi.fn(),
       };
 
-      const mockUserRepository = { mockRepo: 'user' } as any;
-      const mockServiceRepository = { mockRepo: 'service' } as any;
-      const mockAppointmentRepository = { mockRepo: 'appointment' } as any;
-      const mockBarberRepository = { mockRepo: 'barber' } as any;
-      const mockCommentRepository = { mockRepo: 'comment' } as any;
+      const mockUserRepository: IPaginatedRepository<User> = {
+        findById: vi.fn(),
+        findAll: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        exists: vi.fn(),
+        findPaginated: vi.fn(),
+      };
+
+      const mockServiceRepository: ISearchableRepository<Service> = {
+        findById: vi.fn(),
+        findAll: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        exists: vi.fn(),
+        search: vi.fn(),
+      };
+
+      const mockAppointmentRepository: IAppointmentRepository = {
+        findById: vi.fn(),
+        findAll: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        exists: vi.fn(),
+        findByBarberId: vi.fn(),
+        findByStatus: vi.fn(),
+        findByDate: vi.fn(),
+        findByDateRange: vi.fn(),
+        findByClientName: vi.fn(),
+        updateStatus: vi.fn(),
+        findUpcoming: vi.fn(),
+        findConfirmedByBarberAndDate: vi.fn(),
+        createWithBackendData: vi.fn(),
+        getStatistics: vi.fn(),
+      };
+
+      const mockBarberRepository: IRepository<Barber> = {
+        findById: vi.fn(),
+        findAll: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        exists: vi.fn(),
+      };
+
+      const mockCommentRepository: IRepository<PublicComment> = {
+        findById: vi.fn(),
+        findAll: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        exists: vi.fn(),
+      };
 
       ServiceFactory.configure({
         apiService: mockApiService,

@@ -1,6 +1,6 @@
 import type { IRepository } from './IRepository';
 import type { Appointment, AppointmentStatus } from '@/types';
-import type { BackendAppointment, BackendAppointmentStatus } from '@/types/backend';
+import type { BackendAppointmentStatus } from '@/types/backend';
 
 /**
  * Interface específica para repositório de agendamentos

@@ -4,6 +4,11 @@ import type { Appointment, AppointmentStatus } from '@/types';
 import type { BackendAppointment } from '@/types/backend';
 import { AppointmentAdapter } from '@/adapters/AppointmentAdapter';
 
+// Interface for API errors with status
+interface ApiError extends Error {
+  status?: number;
+}
+
 /**
  * Repositório para agendamentos seguindo Repository Pattern
  * Baseado na estrutura real do backend Sequelize
@@ -293,7 +298,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     return (
       error instanceof Error &&
       'status' in error &&
-      (error as any).status === 404
+      (error as ApiError).status === 404
     );
   }
 }

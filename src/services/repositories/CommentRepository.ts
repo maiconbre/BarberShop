@@ -1,7 +1,12 @@
 import type { IRepository } from '../interfaces/IRepository';
 import type { IApiService } from '../interfaces/IApiService';
-import type { PublicComment, CommentFilters } from '@/types';
-import type { BackendComment, BackendCommentFilters } from '@/types/backend';
+import type { PublicComment } from '@/types';
+import type { BackendComment } from '@/types/backend';
+
+// Interface for API errors with status
+interface ApiError extends Error {
+  status?: number;
+}
 
 /**
  * Repository for comments following Repository Pattern
@@ -207,7 +212,7 @@ export class CommentRepository implements IRepository<PublicComment> {
     return (
       error instanceof Error &&
       'status' in error &&
-      (error as any).status === 404
+      (error as ApiError).status === 404
     );
   }
 }
