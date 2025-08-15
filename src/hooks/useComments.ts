@@ -326,7 +326,7 @@ export const useComments = () => {
       ensureTenant();
       
       const cacheKey = 'comments:statistics';
-      const cached = tenantCache.get<any>(cacheKey);
+      const cached = tenantCache.get<{ total: number; pending: number; approved: number; rejected: number }>(cacheKey);
       if (cached) {
         return cached;
       }

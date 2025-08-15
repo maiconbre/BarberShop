@@ -87,6 +87,8 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
       return;
     }
     
+
+    
     loadServices();
     
     // Variável para armazenar o intervalo de contagem regressiva
@@ -102,8 +104,15 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
         clearInterval(countdownInterval);
         countdownInterval = null;
       }
+      
+      // Limpar intervalo de contagem regressiva
+      if (countdownInterval) {
+        logger.componentDebug(`Limpando intervalo de contagem regressiva`);
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
     };
-  }, [isShowcase, isValidTenant, loadServices]);
+  }, [isShowcase, isValidTenant, loadServices, setServices, setCardsVisible]);
   
   // Update services when tenant services change
   useEffect(() => {
@@ -115,7 +124,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
       cardRefs.current = formattedServices.map(() => null);
       setIsLoading(false);
     }
-  }, [tenantServices, isShowcase]);
+  }, [tenantServices, isShowcase, setServices, setCardsVisible, setIsLoading]);
   
   // Handle loading and error states from hook
   useEffect(() => {
@@ -129,7 +138,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
         cardRefs.current = staticServices.map(() => null);
       }
     }
-  }, [servicesLoading, servicesError, isShowcase]);
+  }, [servicesLoading, servicesError, isShowcase, setIsLoading, setError, setServices, setCardsVisible]);
   
   // Função para lidar com o clique em um serviço (toggle seleção)
   const handleServiceClick = (serviceName: string) => {

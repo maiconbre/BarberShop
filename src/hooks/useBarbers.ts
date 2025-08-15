@@ -305,7 +305,7 @@ export const useBarbers = () => {
       ensureTenant();
       
       const cacheKey = 'barbers:statistics';
-      const cached = tenantCache.get<any>(cacheKey);
+      const cached = tenantCache.get<{ total: number; active: number; inactive: number }>(cacheKey);
       if (cached) {
         return cached;
       }
@@ -315,8 +315,8 @@ export const useBarbers = () => {
       
       const stats = {
         total: allBarbers.length,
-        active: allBarbers.filter(b => (b as any).isActive !== false).length,
-        inactive: allBarbers.filter(b => (b as any).isActive === false).length,
+        active: allBarbers.filter(b => (b as Barber & { isActive?: boolean }).isActive !== false).length,
+        inactive: allBarbers.filter(b => (b as Barber & { isActive?: boolean }).isActive === false).length,
       };
       
       tenantCache.set(cacheKey, stats, { ttl: 5 * 60 * 1000 }); // 5 minutes

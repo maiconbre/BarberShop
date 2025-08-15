@@ -144,7 +144,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         setAppointments(Array.isArray(cachedData) ? cachedData : []);
       }
     }
-  }, [selectedBarber]);
+  }, [selectedBarber, timeSlots]);
 
   useEffect(() => {
     if (selectedBarber) {

@@ -60,7 +60,7 @@ export const useCache = <T>(
         setLoading(false);
       }
     }
-  }, [key, fetchFn, options]);
+  }, [key, fetchFn]);
 
   const refetch = useCallback(async () => {
     await fetchData();

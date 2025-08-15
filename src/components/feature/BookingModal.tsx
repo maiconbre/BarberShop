@@ -67,14 +67,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     loadBarbers, 
     error: barbersError 
   } = useBarbers();
-  const { createWithBackendData, creating: appointmentCreating } = useAppointments();
+  const { createWithBackendData } = useAppointments();
   const { isValidTenant } = useTenant();
 
   // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Combine loading states - appointmentCreating is used in the hook
+  // Combine loading states
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
@@ -178,7 +178,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     fetchServices();
-  }, [loadTenantServices, isValidTenant]); // Executar quando tenant mudar
+  }, [loadTenantServices, isValidTenant, initialService, initialServices]); // Executar quando tenant mudar
 
   // Update services when tenant services change
   React.useEffect(() => {
@@ -244,7 +244,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     loadBarbersData();
-  }, [loadBarbers, isValidTenant]); // Inclui isValidTenant como dependência
+  }, [loadBarbers, isValidTenant, barbers?.length]); // Inclui barbers?.length como dependência
 
   // Atualizar loading state quando barbeiros mudarem
   React.useEffect(() => {
@@ -593,7 +593,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       const result = await createWithBackendData(appointmentData);
 
       // Verificar se a resposta é válida
-      if (!result || (result.success === false)) {
+      if (!result || ('success' in result && result.success === false)) {
         // Reverter atualização otimista em caso de erro
         setCachedAppointments(prev => Array.isArray(prev) ? prev.filter(app => app.id !== tempAppointment.id) : []);
 
@@ -636,7 +636,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       // Atualizar o appointment com o ID real
       const confirmedAppointment = {
         ...tempAppointment,
-        id: result.data?.id || (result as ApiResponse).id || tempAppointment.id
+        id: (result as ApiResponse<Appointment>)?.data?.id || (result as ApiResponse)?.id || tempAppointment.id
       };
 
       // Atualizar o cache global com o ID real
@@ -787,10 +787,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
   // Função para obter informações do barbeiro selecionado
   const getSelectedBarberInfo = () => {
-    const barber = barbers.find(b => b.name === formData.barber);
+    const barber = barbers?.find(b => b.name === formData.barber);
     return {
-      whatsapp: barber?.whatsapp || '',
-      pix: barber?.pix || ''
+      whatsapp: barber?.phone || barber?._backendData?.whatsapp || '',
+      pix: barber?._backendData?.pix || ''
     };
   };
 
@@ -1134,7 +1134,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                     </div>
                   ) : barbersError ? (
                     <div className="col-span-2 text-center py-4">
-                      <p className="text-red-400 text-sm mb-2">{barbersError}</p>
+                      <p className="text-red-400 text-sm mb-2">{barbersError?.toString()}</p>
                       <button
                         type="button"
                         onClick={() => window.location.reload()}
@@ -1143,7 +1143,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                         Tentar novamente
                       </button>
                     </div>
-                  ) : barbers.length > 0 ? (
+                  ) : barbers && barbers.length > 0 ? (
                     barbers.map((barber) => (
                       <button
                         key={barber.id}

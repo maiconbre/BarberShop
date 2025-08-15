@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useComments } from '../useComments';
-import type { CommentRepository } from '@/services/repositories/CommentRepository';
 import type { PublicComment } from '@/types';
 
-// Mock ServiceFactory
-const mockCommentRepository: Partial<CommentRepository> = {
+
+
+const mockCommentRepository = {
   findAll: vi.fn(),
   findById: vi.fn(),
   findByStatus: vi.fn(),
@@ -44,7 +44,7 @@ describe('useComments', () => {
   describe('loadComments', () => {
     it('should load comments successfully', async () => {
       const mockComments = [mockComment];
-      (mockCommentRepository.findAll as any).mockResolvedValue(mockComments);
+      mockCommentRepository.findAll.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -59,7 +59,7 @@ describe('useComments', () => {
 
     it('should handle loading error', async () => {
       const error = new Error('Failed to load comments');
-      (mockCommentRepository.findAll as any).mockRejectedValue(error);
+      mockCommentRepository.findAll.mockRejectedValue(error);
 
       const { result } = renderHook(() => useComments());
 
@@ -78,7 +78,7 @@ describe('useComments', () => {
     it('should load comments with filters', async () => {
       const mockComments = [mockComment];
       const filters = { status: 'approved' };
-      (mockCommentRepository.findAll as any).mockResolvedValue(mockComments);
+      mockCommentRepository.findAll.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -94,7 +94,7 @@ describe('useComments', () => {
   describe('getCommentsByStatus', () => {
     it('should get approved comments', async () => {
       const mockComments = [mockComment];
-      (mockCommentRepository.findByStatus as any).mockResolvedValue(mockComments);
+      mockCommentRepository.findByStatus.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -145,7 +145,7 @@ describe('useComments', () => {
   describe('getApprovedComments', () => {
     it('should get approved comments for public display', async () => {
       const mockComments = [mockComment];
-      (mockCommentRepository.findApproved as any).mockResolvedValue(mockComments);
+      mockCommentRepository.findApproved.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -163,7 +163,7 @@ describe('useComments', () => {
     it('should get pending comments for admin review', async () => {
       const pendingComment = { ...mockComment, status: 'pending' as const };
       const mockComments = [pendingComment];
-      (mockCommentRepository.findPending as any).mockResolvedValue(mockComments);
+      mockCommentRepository.findPending.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -184,7 +184,7 @@ describe('useComments', () => {
         { ...mockComment, id: '2', status: 'pending' as const },
         { ...mockComment, id: '3', status: 'rejected' as const },
       ];
-      (mockCommentRepository.findAllForAdmin as any).mockResolvedValue(allComments);
+      mockCommentRepository.findAllForAdmin.mockResolvedValue(allComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -213,7 +213,7 @@ describe('useComments', () => {
         createdAt: '2024-01-15T11:00:00.000Z',
       };
       
-      (mockCommentRepository.create as any).mockResolvedValue(createdComment);
+      mockCommentRepository.create.mockResolvedValue(createdComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -230,7 +230,7 @@ describe('useComments', () => {
 
     it('should handle create error', async () => {
       const error = new Error('Failed to create comment');
-      (mockCommentRepository.create as any).mockRejectedValue(error);
+      mockCommentRepository.create.mockRejectedValue(error);
 
       const { result } = renderHook(() => useComments());
 
@@ -253,7 +253,7 @@ describe('useComments', () => {
   describe('updateCommentStatus', () => {
     it('should approve comment successfully', async () => {
       const approvedComment = { ...mockComment, status: 'approved' as const };
-      (mockCommentRepository.updateStatus as any).mockResolvedValue(approvedComment);
+      mockCommentRepository.updateStatus.mockResolvedValue(approvedComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -303,7 +303,7 @@ describe('useComments', () => {
   describe('admin operations', () => {
     it('should approve comment using admin method', async () => {
       const approvedComment = { ...mockComment, status: 'approved' as const };
-      (mockCommentRepository.approve as any).mockResolvedValue(approvedComment);
+      mockCommentRepository.approve.mockResolvedValue(approvedComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -318,7 +318,7 @@ describe('useComments', () => {
 
     it('should reject comment using admin method', async () => {
       const rejectedComment = { ...mockComment, status: 'rejected' as const };
-      (mockCommentRepository.reject as any).mockResolvedValue(rejectedComment);
+      mockCommentRepository.reject.mockResolvedValue(rejectedComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -333,7 +333,7 @@ describe('useComments', () => {
 
     it('should reset comment to pending using admin method', async () => {
       const pendingComment = { ...mockComment, status: 'pending' as const };
-      (mockCommentRepository.resetToPending as any).mockResolvedValue(pendingComment);
+      mockCommentRepository.resetToPending.mockResolvedValue(pendingComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -349,7 +349,7 @@ describe('useComments', () => {
 
   describe('deleteComment', () => {
     it('should delete comment successfully (admin operation)', async () => {
-      (mockCommentRepository.delete as any).mockResolvedValue(undefined);
+      mockCommentRepository.delete.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useComments());
 
@@ -363,7 +363,7 @@ describe('useComments', () => {
 
     it('should handle delete error', async () => {
       const error = new Error('Failed to delete comment');
-      (mockCommentRepository.delete as any).mockRejectedValue(error);
+      mockCommentRepository.delete.mockRejectedValue(error);
 
       const { result } = renderHook(() => useComments());
 
@@ -389,16 +389,16 @@ describe('useComments', () => {
         rejected: 2,
       };
       
-      (mockCommentRepository.getStatistics as any).mockResolvedValue(mockStats);
+      mockCommentRepository.getStatistics.mockResolvedValue(mockStats);
 
       const { result } = renderHook(() => useComments());
 
-      let stats: any;
+      let stats: { total: number; pending: number; approved: number; rejected: number; };
       await act(async () => {
         stats = await result.current.getStatistics();
       });
 
-      expect(stats).toEqual(mockStats);
+      expect(stats!).toEqual(mockStats);
       expect(mockCommentRepository.getStatistics).toHaveBeenCalled();
     });
   });
@@ -437,12 +437,12 @@ describe('useComments', () => {
       ];
 
       for (const transition of transitions) {
-        const updatedComment = { ...mockComment, status: transition.to as any };
-        (mockCommentRepository.updateStatus as any).mockResolvedValue(updatedComment);
+        const updatedComment = { ...mockComment, status: transition.to };
+        mockCommentRepository.updateStatus.mockResolvedValue(updatedComment);
 
         let comment: PublicComment | undefined;
         await act(async () => {
-          comment = await result.current.updateCommentStatus('1', transition.to as any);
+          comment = await result.current.updateCommentStatus('1', transition.to as 'pending' | 'approved' | 'rejected');
         });
 
         expect(comment?.status).toBe(transition.to);
@@ -466,13 +466,13 @@ describe('useComments', () => {
       const { result } = renderHook(() => useComments());
 
       // Mock successful responses for admin operations
-      (mockCommentRepository.findAllForAdmin as any).mockResolvedValue([mockComment]);
-      (mockCommentRepository.updateStatus as any).mockResolvedValue(mockComment);
-      (mockCommentRepository.approve as any).mockResolvedValue(mockComment);
-      (mockCommentRepository.reject as any).mockResolvedValue(mockComment);
-      (mockCommentRepository.resetToPending as any).mockResolvedValue(mockComment);
-      (mockCommentRepository.delete as any).mockResolvedValue(undefined);
-      (mockCommentRepository.getStatistics as any).mockResolvedValue({ total: 1, pending: 0, approved: 1, rejected: 0 });
+      mockCommentRepository.findAllForAdmin.mockResolvedValue([mockComment]);
+      mockCommentRepository.updateStatus.mockResolvedValue(mockComment);
+      mockCommentRepository.approve.mockResolvedValue(mockComment);
+      mockCommentRepository.reject.mockResolvedValue(mockComment);
+      mockCommentRepository.resetToPending.mockResolvedValue(mockComment);
+      mockCommentRepository.delete.mockResolvedValue(undefined);
+      mockCommentRepository.getStatistics.mockResolvedValue({ total: 1, pending: 0, approved: 1, rejected: 0 });
 
       // All admin operations should work when properly authenticated
       for (const operation of adminOperations) {
@@ -497,8 +497,8 @@ describe('useComments', () => {
       const { result } = renderHook(() => useComments());
 
       // Public operations (no auth required)
-      (mockCommentRepository.findApproved as any).mockResolvedValue([mockComment]);
-      (mockCommentRepository.create as any).mockResolvedValue(mockComment);
+      mockCommentRepository.findApproved.mockResolvedValue([mockComment]);
+      mockCommentRepository.create.mockResolvedValue(mockComment);
 
       await act(async () => {
         await result.current.getApprovedComments(); // Public
@@ -509,8 +509,8 @@ describe('useComments', () => {
       expect(mockCommentRepository.create).toHaveBeenCalled();
 
       // Admin operations (auth required)
-      (mockCommentRepository.findAllForAdmin as any).mockResolvedValue([mockComment]);
-      (mockCommentRepository.approve as any).mockResolvedValue(mockComment);
+      mockCommentRepository.findAllForAdmin.mockResolvedValue([mockComment]);
+      mockCommentRepository.approve.mockResolvedValue(mockComment);
 
       await act(async () => {
         await result.current.getAllCommentsForAdmin(); // Admin only
@@ -527,8 +527,8 @@ describe('useComments', () => {
       const { result } = renderHook(() => useComments());
 
       // Test that different operations use different endpoints
-      (mockCommentRepository.findByStatus as any).mockResolvedValue([mockComment]);
-      (mockCommentRepository.findAllForAdmin as any).mockResolvedValue([mockComment]);
+      mockCommentRepository.findByStatus.mockResolvedValue([mockComment]);
+      mockCommentRepository.findAllForAdmin.mockResolvedValue([mockComment]);
 
       await act(async () => {
         // Uses GET /api/comments?status=approved

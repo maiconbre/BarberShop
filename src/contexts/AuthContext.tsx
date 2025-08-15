@@ -25,7 +25,7 @@ export const useAuth = () => {
 
 const SESSION_EXPIRY = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = React.memo<AuthProviderProps>(({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const isInitialized = useRef(false);
 
@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       clearInterval(interval);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, checkSessionValidity]);
 
   const clearUserSpecificCache = async (userId?: string) => {
     try {
@@ -233,6 +233,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+});
+
+AuthProvider.displayName = 'AuthProvider';
 
 export default AuthContext;

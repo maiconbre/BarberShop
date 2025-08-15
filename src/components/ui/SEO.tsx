@@ -8,7 +8,9 @@ interface SEOProps {
   type?: string;
 }
 
-const SEO: React.FC<SEOProps> = ({
+import React from 'react';
+
+const SEO = React.memo<SEOProps>(({
   title = 'BarberShop - Barbearia Moderna',
   description = 'Agende seu horário na BarberShop. Cortes modernos e clássicos, profissionais qualificados e ambiente acolhedor.',
   image = '/img/fotohero.avif',
@@ -85,6 +87,8 @@ const SEO: React.FC<SEOProps> = ({
       </script>
     </Helmet>
   );
-};
+});
+
+SEO.displayName = 'SEO';
 
 export default SEO;

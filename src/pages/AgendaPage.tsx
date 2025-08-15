@@ -23,10 +23,8 @@ interface Appointment {
   price: number;
   createdAt?: string;
   updatedAt?: string;
-  viewed?: boolean;
   isBlocked?: boolean;
 }
-import ApiService from '../services/ApiService';
 
 // Interfaces Service e RawAppointmentData removidas - gerenciadas pelo hook useAppointments
 
@@ -36,18 +34,17 @@ const APPOINTMENTS_PER_PAGE = 6;
 const convertAppointment = (baseAppointment: BaseAppointment): Appointment => {
   return {
     id: baseAppointment.id,
-    clientName: baseAppointment._backendData?.clientName || baseAppointment.clientName || baseAppointment.clientId,
-    service: baseAppointment._backendData?.serviceName || baseAppointment.service || baseAppointment.serviceId,
+    clientName: baseAppointment._backendData?.clientName || (baseAppointment as unknown as { clientName: string }).clientName || baseAppointment.clientId,
+
+    service: baseAppointment._backendData?.serviceName || (baseAppointment as unknown as { serviceName: string }).serviceName || baseAppointment.serviceId,
     date: baseAppointment.date.toISOString().split('T')[0],
     time: baseAppointment._backendData ? baseAppointment.startTime : (baseAppointment.time || baseAppointment.startTime),
     status: baseAppointment.status,
     barberId: baseAppointment.barberId,
     barberName: baseAppointment._backendData?.barberName || baseAppointment.barberName || '',
-    price: baseAppointment._backendData?.price || baseAppointment.price || 0,
+    price: baseAppointment._backendData?.price || (baseAppointment as unknown as { price: number }).price || 0,
     createdAt: baseAppointment.createdAt?.toISOString(),
-    updatedAt: baseAppointment.updatedAt?.toISOString(),
-    viewed: baseAppointment.viewed,
-    isBlocked: baseAppointment.isBlocked
+    updatedAt: baseAppointment.updatedAt?.toISOString()
   };
 };
 
@@ -59,9 +56,7 @@ const AgendaPage: React.FC = memo(() => {
   const { 
     appointments: baseAppointments, 
     deleteAppointment, 
-    updateAppointmentStatus,
-    deleting,
-    updating 
+    updateAppointmentStatus
   } = useAppointments();
   
   // Converter appointments para o tipo local
@@ -328,7 +323,7 @@ const AgendaPage: React.FC = memo(() => {
                     transition={{ duration: 0.3 }}
                   >
                     <AppointmentCardNew
-                      appointment={appointment}
+                      appointment={appointment as any}
                       onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
                       onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
                       onView={() => handleAppointmentAction(appointment.id, 'view')}
@@ -373,10 +368,10 @@ const AgendaPage: React.FC = memo(() => {
           setIsViewModalOpen(false);
           setSelectedAppointment(null);
         }}
-        appointment={selectedAppointment}
+        appointment={selectedAppointment as any}
         onDelete={() => handleAppointmentAction(selectedAppointment?.id || '', 'delete')}
         onToggleStatus={() => handleAppointmentAction(selectedAppointment?.id || '', 'toggle', selectedAppointment?.status)}
-        allAppointments={appointments || []}
+        allAppointments={(appointments || []) as any}
       />
     </StandardLayout>
   );

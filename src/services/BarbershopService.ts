@@ -60,35 +60,6 @@ export interface BarbershopResponse {
   data: BarbershopData;
 }
 
-export interface EmailVerificationRequest {
-  email: string;
-  barbershopName: string;
-}
-
-export interface EmailVerificationResponse {
-  success: boolean;
-  message: string;
-  data: {
-    email: string;
-    expiresIn: number; // seconds
-  };
-}
-
-export interface CodeVerificationRequest {
-  email: string;
-  code: string;
-}
-
-export interface CodeVerificationResponse {
-  success: boolean;
-  message: string;
-  data: {
-    email: string;
-    verified: boolean;
-  };
-  attemptsLeft?: number;
-}
-
 // Configuração do axios
 const axiosInstance = axios.create({
   timeout: 30000, // 30 segundos
@@ -110,115 +81,6 @@ const retryRequest = async <T>(fn: () => Promise<T>, retries = 2, delay = 1000):
       return retryRequest(fn, retries - 1, delay * 2);
     }
     throw error;
-  }
-};
-
-/**
- * Iniciar verificação de email
- */
-export const initiateEmailVerification = async (data: EmailVerificationRequest): Promise<EmailVerificationResponse> => {
-  try {
-    console.log('Iniciando verificação de email:', data.email);
-
-    const response = await retryRequest(() =>
-      axiosInstance.post<EmailVerificationResponse>('/barbershops/verify-email', data, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-    );
-
-    if (!response.data || !response.data.success) {
-      throw new Error(response.data?.message || 'Erro ao enviar código de verificação');
-    }
-
-    console.log('Código de verificação enviado para:', data.email);
-    return response.data;
-
-  } catch (error: unknown) {
-    console.error('Erro ao iniciar verificação de email:', error);
-
-    // Tratar erros de timeout
-    if ((error as { code?: string }).code === 'ECONNABORTED' || 
-        (error as { message?: string }).message?.includes('timeout')) {
-      throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
-    }
-
-    // Tratar erros de resposta da API
-    if ((error as { response?: { data?: { message?: string; code?: string } } }).response?.data) {
-      const errorData = (error as { response: { data: { message?: string; code?: string } } }).response.data;
-      
-      switch (errorData.code) {
-        case 'EMAIL_ALREADY_EXISTS':
-          throw new Error('Este email já está cadastrado. Use outro email.');
-        case 'INVALID_EMAIL_FORMAT':
-          throw new Error('Formato de email inválido.');
-        case 'MISSING_FIELDS':
-          throw new Error('Email e nome da barbearia são obrigatórios.');
-        case 'EMAIL_SEND_FAILED':
-          throw new Error('Erro ao enviar email. Tente novamente.');
-        default:
-          throw new Error(errorData.message || 'Erro ao enviar código de verificação');
-      }
-    }
-
-    throw new Error('Erro inesperado ao enviar código de verificação. Tente novamente.');
-  }
-};
-
-/**
- * Verificar código de email
- */
-export const verifyEmailCode = async (data: CodeVerificationRequest): Promise<CodeVerificationResponse> => {
-  try {
-    console.log('Verificando código de email:', data.email);
-
-    const response = await retryRequest(() =>
-      axiosInstance.post<CodeVerificationResponse>('/barbershops/verify-code', data, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-    );
-
-    if (!response.data || !response.data.success) {
-      throw new Error(response.data?.message || 'Erro ao verificar código');
-    }
-
-    console.log('Código verificado com sucesso para:', data.email);
-    return response.data;
-
-  } catch (error: unknown) {
-    console.error('Erro ao verificar código:', error);
-
-    // Tratar erros de timeout
-    if ((error as { code?: string }).code === 'ECONNABORTED' || 
-        (error as { message?: string }).message?.includes('timeout')) {
-      throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
-    }
-
-    // Tratar erros de resposta da API
-    if ((error as { response?: { data?: { message?: string; code?: string; attemptsLeft?: number } } }).response?.data) {
-      const errorData = (error as { response: { data: { message?: string; code?: string; attemptsLeft?: number } } }).response.data;
-      
-      switch (errorData.code) {
-        case 'CODE_NOT_FOUND':
-          throw new Error('Código de verificação não encontrado ou expirado. Solicite um novo código.');
-        case 'CODE_EXPIRED':
-          throw new Error('Código de verificação expirado. Solicite um novo código.');
-        case 'INVALID_CODE':
-          const attemptsMsg = errorData.attemptsLeft ? ` (${errorData.attemptsLeft} tentativas restantes)` : '';
-          throw new Error(`Código inválido${attemptsMsg}`);
-        case 'TOO_MANY_ATTEMPTS':
-          throw new Error('Muitas tentativas. Solicite um novo código.');
-        case 'MISSING_FIELDS':
-          throw new Error('Email e código são obrigatórios.');
-        default:
-          throw new Error(errorData.message || 'Erro ao verificar código');
-      }
-    }
-
-    throw new Error('Erro inesperado ao verificar código. Tente novamente.');
   }
 };
 
@@ -336,12 +198,10 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
     // Primeiro, tentar verificar se o slug existe
     const slugCheckResponse = await checkSlugAvailability(slug);
     
-    // Se o slug está disponível, significa que a barbearia NÃO existe
     if (slugCheckResponse.available) {
       throw new Error('Barbearia não encontrada');
     }
 
-    // Se chegou aqui, o slug não está disponível, então a barbearia existe
     // Por enquanto, retornar dados mock baseados no slug
     // TODO: Implementar endpoint real no backend
     const mockData: BarbershopData = {
@@ -350,15 +210,12 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' '),
       slug: slug,
-      ownerEmail: `owner@${slug}.com`,
-      planType: 'free',
-      settings: {},
-      createdAt: new Date().toISOString(),
       description: `Barbearia ${slug.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ')} - Estilo e qualidade em cada corte`,
       address: 'Rua das Barbearias, 123 - Centro',
-      phone: '(21) 99999-9999'
+      phone: '(21) 99999-9999',
+      email: `contato@${slug}.com`
     };
 
     console.log('Barbearia encontrada (mock):', mockData.name);
@@ -378,23 +235,19 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
       throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
     }
 
-    // Para outros erros de rede, assumir que a barbearia existe e retornar dados mock
-    // Isso permite que o sistema funcione mesmo com problemas de conectividade
+    // Para outros erros, assumir que a barbearia existe e retornar dados mock
     const mockData: BarbershopData = {
       id: `mock-${slug}`,
       name: slug.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' '),
       slug: slug,
-      ownerEmail: `owner@${slug}.com`,
-      planType: 'free',
-      settings: {},
-      createdAt: new Date().toISOString(),
       description: `Barbearia ${slug.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ')} - Estilo e qualidade em cada corte`,
       address: 'Rua das Barbearias, 123 - Centro',
-      phone: '(21) 99999-9999'
+      phone: '(21) 99999-9999',
+      email: `contato@${slug}.com`
     };
 
     console.log('Retornando dados mock para:', mockData.name);

@@ -430,7 +430,7 @@ export const useNotifications = () => {
   };
 };
 
-const Notifications: React.FC = () => {
+const Notifications = React.memo(() => {
   const {
     pendingComments,
     newAppointments,
@@ -630,6 +630,8 @@ const Notifications: React.FC = () => {
       )}
     </div>
   );
-};
+});
+
+Notifications.displayName = 'Notifications';
 
 export default Notifications;

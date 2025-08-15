@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTenant } from '../contexts/TenantContext';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import StandardLayout from '../components/layout/StandardLayout';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
-import OnboardingModal from '../components/onboarding/OnboardingModal';
 import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
 import ApiService from '../services/ApiService';
 import toast from 'react-hot-toast';

@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useUsers, useBarbers, useClients } from '../useUsers';
-import type { UserRepository } from '@/services/repositories/UserRepository';
 import type { User as UserType } from '@/types';
 
 // Mock ServiceFactory
-const mockUserRepository: Partial<UserRepository> = {
+
+
+
+const mockUserRepository = {
   findAll: vi.fn(),
   findById: vi.fn(),
   findByEmail: vi.fn(),
@@ -40,7 +42,7 @@ describe('useUsers', () => {
   describe('loadUsers', () => {
     it('should load users successfully', async () => {
       const mockUsers = [mockUser];
-      (mockUserRepository.findAll as any).mockResolvedValue(mockUsers);
+      mockUserRepository.findAll.mockResolvedValue(mockUsers);
 
       const { result } = renderHook(() => useUsers());
 
@@ -55,7 +57,7 @@ describe('useUsers', () => {
 
     it('should handle loading error', async () => {
       const error = new Error('Failed to load users');
-      (mockUserRepository.findAll as any).mockRejectedValue(error);
+      mockUserRepository.findAll.mockRejectedValue(error);
 
       const { result } = renderHook(() => useUsers());
 
@@ -74,7 +76,7 @@ describe('useUsers', () => {
     it('should load users with filters', async () => {
       const mockUsers = [mockUser];
       const filters = { role: 'client' };
-      (mockUserRepository.findAll as any).mockResolvedValue(mockUsers);
+      mockUserRepository.findAll.mockResolvedValue(mockUsers);
 
       const { result } = renderHook(() => useUsers());
 
@@ -96,7 +98,7 @@ describe('useUsers', () => {
         limit: 10,
         totalPages: 1,
       };
-      (mockUserRepository.findPaginated as any).mockResolvedValue(mockPaginatedResult);
+      mockUserRepository.findPaginated.mockResolvedValue(mockPaginatedResult);
 
       const { result } = renderHook(() => useUsers());
 
@@ -114,7 +116,7 @@ describe('useUsers', () => {
 
   describe('getUserById', () => {
     it('should get user by id', async () => {
-      (mockUserRepository.findById as any).mockResolvedValue(mockUser);
+      mockUserRepository.findById.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useUsers());
 
@@ -130,7 +132,7 @@ describe('useUsers', () => {
 
   describe('getUserByEmail', () => {
     it('should get user by email', async () => {
-      (mockUserRepository.findByEmail as any).mockResolvedValue(mockUser);
+      mockUserRepository.findByEmail.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useUsers());
 
@@ -147,7 +149,7 @@ describe('useUsers', () => {
   describe('getUsersByRole', () => {
     it('should get users by role', async () => {
       const mockUsers = [mockUser];
-      (mockUserRepository.findByRole as any).mockResolvedValue(mockUsers);
+      mockUserRepository.findByRole.mockResolvedValue(mockUsers);
 
       const { result } = renderHook(() => useUsers());
 
@@ -170,7 +172,7 @@ describe('useUsers', () => {
       };
       const createdUser = { ...userData, id: '2', createdAt: new Date(), updatedAt: new Date() };
       
-      (mockUserRepository.create as any).mockResolvedValue(createdUser);
+      mockUserRepository.create.mockResolvedValue(createdUser);
 
       const { result } = renderHook(() => useUsers());
 
@@ -186,7 +188,7 @@ describe('useUsers', () => {
 
     it('should handle create error', async () => {
       const error = new Error('Failed to create user');
-      (mockUserRepository.create as any).mockRejectedValue(error);
+      mockUserRepository.create.mockRejectedValue(error);
 
       const { result } = renderHook(() => useUsers());
 
@@ -212,7 +214,7 @@ describe('useUsers', () => {
       const updates = { name: 'Updated Name' };
       const updatedUser = { ...mockUser, ...updates };
       
-      (mockUserRepository.update as any).mockResolvedValue(updatedUser);
+      mockUserRepository.update.mockResolvedValue(updatedUser);
 
       const { result } = renderHook(() => useUsers());
 
@@ -228,7 +230,7 @@ describe('useUsers', () => {
 
   describe('deleteUser', () => {
     it('should delete user successfully', async () => {
-      (mockUserRepository.delete as any).mockResolvedValue(undefined);
+      mockUserRepository.delete.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useUsers());
 
@@ -243,7 +245,7 @@ describe('useUsers', () => {
 
   describe('updatePassword', () => {
     it('should update password successfully', async () => {
-      (mockUserRepository.updatePassword as any).mockResolvedValue(undefined);
+      mockUserRepository.updatePassword.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useUsers());
 
@@ -258,7 +260,7 @@ describe('useUsers', () => {
   describe('toggleUserActive', () => {
     it('should toggle user active status', async () => {
       const updatedUser = { ...mockUser };
-      (mockUserRepository.toggleActive as any).mockResolvedValue(updatedUser);
+      mockUserRepository.toggleActive.mockResolvedValue(updatedUser);
 
       const { result } = renderHook(() => useUsers());
 
@@ -274,7 +276,7 @@ describe('useUsers', () => {
 
   describe('checkUserExists', () => {
     it('should check if user exists', async () => {
-      (mockUserRepository.exists as any).mockResolvedValue(true);
+      mockUserRepository.exists.mockResolvedValue(true);
 
       const { result } = renderHook(() => useUsers());
 
@@ -305,7 +307,7 @@ describe('useBarbers', () => {
         updatedAt: new Date(),
       },
     ];
-    (mockUserRepository.findByRole as any).mockResolvedValue(mockBarbers);
+    mockUserRepository.findByRole.mockResolvedValue(mockBarbers);
 
     const { result } = renderHook(() => useBarbers());
 
@@ -335,7 +337,7 @@ describe('useClients', () => {
         updatedAt: new Date(),
       },
     ];
-    (mockUserRepository.findByRole as any).mockResolvedValue(mockClients);
+    mockUserRepository.findByRole.mockResolvedValue(mockClients);
 
     const { result } = renderHook(() => useClients());
 

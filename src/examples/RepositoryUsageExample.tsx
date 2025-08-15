@@ -87,7 +87,7 @@ export const RepositoryUsageExample: React.FC = () => {
       try {
         const pendingComments = await commentRepository.findPending();
         console.log('Comentários pendentes:', pendingComments);
-      } catch (err) {
+      } catch (_) {
         console.log('Acesso negado para comentários pendentes (requer admin)');
       }
     } catch (err) {

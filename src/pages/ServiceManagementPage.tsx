@@ -5,7 +5,6 @@ import ConfirmationModal from '../components/ui/ConfirmationModal';
 import EditServiceModal from '../components/ui/EditServiceModal';
 import { useServices } from '../hooks/useServices';
 import { useBarbers } from '../hooks/useBarbers';
-import { useTenant } from '../contexts/TenantContext';
 import { logger } from '../utils/logger';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
@@ -27,7 +26,6 @@ const ServiceManagementPage: React.FC = () => {
     updateService, 
     deleteService,
     associateBarbers,
-    getServicesByBarber,
     loading, 
     creating, 
     updating, 
@@ -46,8 +44,6 @@ const ServiceManagementPage: React.FC = () => {
     loadBarbers, 
     loading: barbersLoading 
   } = useBarbers();
-  
-  const { barbershopId } = useTenant();
 
   // Adicionar estilos CSS para animação do ícone de refresh
   React.useEffect(() => {
@@ -73,7 +69,7 @@ const ServiceManagementPage: React.FC = () => {
 
   const [newService, setNewService] = useState({ name: '', price: '' as unknown as number });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [success] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

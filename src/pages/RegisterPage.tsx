@@ -245,17 +245,11 @@ const RegisterPage: React.FC = () => {
     createBarber, 
     updateBarber, 
     deleteBarber, 
-    loading: barbersLoading, 
     error: barbersError,
-    createError,
-    updateError,
-    deleteError
   } = useBarbers();
-  const { barbershopId, isValidTenant } = useTenant();
+  const {  isValidTenant } = useTenant();
 
-  useEffect(() => {
-    fetchBarbers();
-  }, [fetchBarbers]); // Add fetchBarbers to dependency array
+
 
   // Load barbers on component mount
   useEffect(() => {
@@ -279,12 +273,13 @@ const RegisterPage: React.FC = () => {
       });
       // Limpar erro após mostrar o toast
       const timeoutId = setTimeout(() => {
-        clearError();
+        // No need to manually clear error since it will be handled by the hook
+        null; // No-op since we can't clear error directly
       }, 100);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [barbersError, clearError]);
+  }, [barbersError]);
 
   // Função para converter imagem para SVG com máxima qualidade otimizada para mobile
   const convertImageToSVG = (file: File): Promise<string> => {
@@ -788,7 +783,7 @@ const RegisterPage: React.FC = () => {
         if (data.success) {
           // Procurar o QR code do barbeiro na lista
           const userQrCode = data.files.find(
-            (file: QRCodeFile) => file.name.toLowerCase() === user?.username?.toLowerCase()
+            (file: QRCodeFile) => file.name.toLowerCase() === user?.email?.toLowerCase()
           );
           
           if (userQrCode) {
@@ -800,7 +795,7 @@ const RegisterPage: React.FC = () => {
       }
     } catch {
       // Se não existe ou houve erro, não fazer nada (preview permanece null)
-      console.log('QR code não encontrado para o barbeiro:', user.username);
+      console.log('QR code não encontrado para o barbeiro:', user.email); // Using email instead of username since it's the correct property
     }
 
     // Definir o modo de edição
@@ -1233,14 +1228,14 @@ const RegisterPage: React.FC = () => {
                 <Users className="w-6 h-6 mr-2 text-[#F0B35B]" />
                 Barbeiros Cadastrados
                 <span className="ml-2 px-2 py-1 bg-[#F0B35B]/20 text-[#F0B35B] text-sm rounded-full">
-                  {barbers.length}
+                  {barbers?.length || 0}
                 </span>
               </h2>
             </div>
 
 
 
-            {barbers.length === 0 ? (
+            {barbers?.length === 0 ? (
               <div className="text-center py-12">
                 <div className="flex flex-col items-center space-y-4">
                   <div className="p-4 bg-gray-700/50 rounded-full">
@@ -1267,7 +1262,7 @@ const RegisterPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="space-y-2">
-                      {barbers.map((user: Barber) => (
+                      {barbers?.map((user: Barber) => (
                         <tr key={user.id} className="bg-[#1A1F2E] border border-gray-700 hover:bg-[#252A3A] transition-all duration-200 rounded-lg">
                           <td className="px-6 py-4 rounded-l-lg">
                             <div>
@@ -1279,7 +1274,7 @@ const RegisterPage: React.FC = () => {
                             <p className="text-gray-300">{user.phone || user._backendData?.whatsapp}</p>
                           </td>
                           <td className="px-6 py-4">
-                            <p className="text-gray-300 font-mono text-xs">{user.pix}</p>
+                          <p className="text-gray-300 font-mono text-xs">{user._backendData?.pix || 'Chave PIX não disponível'}</p>
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
@@ -1325,7 +1320,7 @@ const RegisterPage: React.FC = () => {
 
                 {/* Mobile Cards */}
                 <div className="md:hidden space-y-4">
-                  {barbers.map((user: Barber) => (
+                  {barbers?.map((user: Barber) => (
                     <div key={user.id} className="bg-[#1A1F2E] border border-gray-700 rounded-xl p-4 hover:bg-[#252A3A] transition-all duration-200">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -1366,7 +1361,7 @@ const RegisterPage: React.FC = () => {
                         </div>
                         <div className="flex items-center text-sm">
                           <CreditCard className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-gray-300 font-mono text-xs">{user.pix}</span>
+                          <span className="text-gray-300 font-mono text-xs">{user._backendData?.pix || 'Chave PIX não disponível'}</span>
                         </div>
                         <div className="flex items-center text-sm">
                           <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
@@ -1419,7 +1414,7 @@ const RegisterPage: React.FC = () => {
                            onError={(e) => {
                              // Tentar caminho local como fallback
                              const imgElement = e.currentTarget;
-imgElement.src = `/qr-codes/${selectedUser?.username?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || 'default'}.svg?t=${Date.now()}`;
+imgElement.src = `/qr-codes/${selectedUser?.email?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || 'default'}.svg?t=${Date.now()}`;
                              
                              // Adicionar outro handler de erro para o fallback
                              imgElement.onerror = () => {

@@ -21,8 +21,10 @@ const CommentManagementPage: React.FC = () => {
   } = useComments();
   const { isValidTenant } = useTenant();
   
-  // Filter comments by active tab
-  const filteredComments = comments?.filter(comment => comment.status === activeTab) || [];
+  // Filter comments by active tab - memoized to prevent dependency issues
+  const filteredComments = useMemo(() => {
+    return comments?.filter(comment => comment.status === activeTab) || [];
+  }, [comments, activeTab]);
   
   // Local state
   const [currentPage, setCurrentPage] = useState(1);
@@ -169,9 +171,9 @@ const CommentManagementPage: React.FC = () => {
             </div>
           ) : error ? (
             <div className="p-6 bg-red-500/10 text-red-400 rounded-lg text-center">
-              <p>{error}</p>
+              <p>{error?.toString()}</p>
               <button 
-                onClick={() => fetchComments(activeTab, true)}
+                onClick={() => loadComments()}
                 className="mt-3 px-4 py-2 bg-[#F0B35B] text-black rounded-lg hover:bg-[#F0B35B]/80 transition-colors"
               >
                 Tentar novamente

@@ -57,8 +57,8 @@ const AnalyticsPage: React.FC = () => {
           throw new Error('Invalid appointments data received');
         }
         
-        setAppointments(fetchedAppointments);
-      } catch (error) {
+        setAppointments(fetchedAppointments as Appointment[]);
+      } catch (error: unknown) {
         console.error('Erro ao carregar agendamentos:', error);
         if (isSubscribed) {
           setAppointments(prev => prev.length > 0 ? prev : []);

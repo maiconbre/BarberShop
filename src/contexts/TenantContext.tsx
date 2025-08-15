@@ -37,7 +37,7 @@ export const useTenant = () => {
   return context;
 };
 
-export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
+export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => {
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
   const [barbershopData, setBarbershopData] = useState<BarbershopData | null>(null);
@@ -193,6 +193,8 @@ export const TenantProvider: React.FC<TenantProviderProps> = ({ children }) => {
       {children}
     </TenantContext.Provider>
   );
-};
+});
+
+TenantProvider.displayName = 'TenantProvider';
 
 export default TenantContext;

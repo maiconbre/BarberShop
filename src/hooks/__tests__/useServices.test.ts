@@ -5,7 +5,11 @@ import type { ServiceRepository } from '@/services/repositories/ServiceRepositor
 import type { Service } from '@/types';
 
 // Mock ServiceFactory
-const mockServiceRepository: Partial<ServiceRepository> = {
+type MockedServiceRepository = {
+  [K in keyof ServiceRepository]: vi.MockedFunction<ServiceRepository[K]>;
+};
+
+const mockServiceRepository = {
   findAll: vi.fn(),
   findById: vi.fn(),
   findActive: vi.fn(),
@@ -25,7 +29,7 @@ const mockServiceRepository: Partial<ServiceRepository> = {
   getByCategory: vi.fn(),
   duplicate: vi.fn(),
   search: vi.fn(),
-};
+} as MockedServiceRepository;
 
 vi.mock('@/services/ServiceFactory', () => ({
   useServiceRepository: () => mockServiceRepository,
@@ -50,7 +54,7 @@ describe('useServices', () => {
   describe('loadServices', () => {
     it('should load services successfully', async () => {
       const mockServices = [mockService];
-      (mockServiceRepository.findAll as any).mockResolvedValue(mockServices);
+      mockServiceRepository.findAll.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -65,7 +69,7 @@ describe('useServices', () => {
 
     it('should handle loading error', async () => {
       const error = new Error('Failed to load services');
-      (mockServiceRepository.findAll as any).mockRejectedValue(error);
+      mockServiceRepository.findAll.mockRejectedValue(error);
 
       const { result } = renderHook(() => useServices());
 
@@ -84,7 +88,7 @@ describe('useServices', () => {
     it('should load services with filters', async () => {
       const mockServices = [mockService];
       const filters = { isActive: true };
-      (mockServiceRepository.findAll as any).mockResolvedValue(mockServices);
+      mockServiceRepository.findAll.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -99,7 +103,7 @@ describe('useServices', () => {
 
   describe('getServiceById', () => {
     it('should get service by UUID', async () => {
-      (mockServiceRepository.findById as any).mockResolvedValue(mockService);
+      mockServiceRepository.findById.mockResolvedValue(mockService);
 
       const { result } = renderHook(() => useServices());
 
@@ -114,7 +118,7 @@ describe('useServices', () => {
 
     it('should handle UUID format correctly', async () => {
       const uuidService = { ...mockService, id: '123e4567-e89b-12d3-a456-426614174000' };
-      (mockServiceRepository.findById as any).mockResolvedValue(uuidService);
+      mockServiceRepository.findById.mockResolvedValue(uuidService);
 
       const { result } = renderHook(() => useServices());
 
@@ -131,7 +135,7 @@ describe('useServices', () => {
   describe('getActiveServices', () => {
     it('should get active services', async () => {
       const mockServices = [mockService];
-      (mockServiceRepository.findActive as any).mockResolvedValue(mockServices);
+      mockServiceRepository.findActive.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -148,7 +152,7 @@ describe('useServices', () => {
   describe('getServicesByBarber', () => {
     it('should get services by barber using specific endpoint', async () => {
       const mockServices = [mockService];
-      (mockServiceRepository.findByBarber as any).mockResolvedValue(mockServices);
+      mockServiceRepository.findByBarber.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -184,7 +188,7 @@ describe('useServices', () => {
   describe('getServicesByPriceRange', () => {
     it('should get services by price range', async () => {
       const mockServices = [mockService];
-      (mockServiceRepository.findByPriceRange as any).mockResolvedValue(mockServices);
+      mockServiceRepository.findByPriceRange.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -215,7 +219,7 @@ describe('useServices', () => {
         updatedAt: new Date(),
       };
       
-      (mockServiceRepository.create as any).mockResolvedValue(createdService);
+      mockServiceRepository.create.mockResolvedValue(createdService);
 
       const { result } = renderHook(() => useServices());
 
@@ -232,7 +236,7 @@ describe('useServices', () => {
 
     it('should handle create error', async () => {
       const error = new Error('Failed to create service');
-      (mockServiceRepository.create as any).mockRejectedValue(error);
+      mockServiceRepository.create.mockRejectedValue(error);
 
       const { result } = renderHook(() => useServices());
 
@@ -263,7 +267,7 @@ describe('useServices', () => {
       };
       const updatedService = { ...mockService, ...updates };
       
-      (mockServiceRepository.update as any).mockResolvedValue(updatedService);
+      mockServiceRepository.update.mockResolvedValue(updatedService);
 
       const { result } = renderHook(() => useServices());
 
@@ -279,7 +283,7 @@ describe('useServices', () => {
 
   describe('deleteService', () => {
     it('should delete service successfully', async () => {
-      (mockServiceRepository.delete as any).mockResolvedValue(undefined);
+      mockServiceRepository.delete.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useServices());
 
@@ -294,7 +298,7 @@ describe('useServices', () => {
 
   describe('associateBarbers', () => {
     it('should associate barbers to service successfully', async () => {
-      (mockServiceRepository.associateBarbers as any).mockResolvedValue(undefined);
+      mockServiceRepository.associateBarbers.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useServices());
 
@@ -310,7 +314,7 @@ describe('useServices', () => {
 
     it('should handle association error', async () => {
       const error = new Error('Failed to associate barbers');
-      (mockServiceRepository.associateBarbers as any).mockRejectedValue(error);
+      mockServiceRepository.associateBarbers.mockRejectedValue(error);
 
       const { result } = renderHook(() => useServices());
 
@@ -330,7 +334,7 @@ describe('useServices', () => {
   describe('toggleActive', () => {
     it('should toggle service active status', async () => {
       const updatedService = { ...mockService, isActive: false };
-      (mockServiceRepository.toggleActive as any).mockResolvedValue(updatedService);
+      mockServiceRepository.toggleActive.mockResolvedValue(updatedService);
 
       const { result } = renderHook(() => useServices());
 
@@ -357,11 +361,11 @@ describe('useServices', () => {
         categoryDistribution: { quick: 3, standard: 5, long: 2 },
       };
       
-      (mockServiceRepository.getStatistics as any).mockResolvedValue(mockStats);
+      mockServiceRepository.getStatistics.mockResolvedValue(mockStats);
 
       const { result } = renderHook(() => useServices());
 
-      let stats: any;
+      let stats: { total: number; active: number; inactive: number; };
       await act(async () => {
         stats = await result.current.getStatistics();
       });
@@ -374,7 +378,7 @@ describe('useServices', () => {
   describe('searchServices', () => {
     it('should search services with query', async () => {
       const mockServices = [mockService];
-      (mockServiceRepository.search as any).mockResolvedValue(mockServices);
+      mockServiceRepository.search.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -390,7 +394,7 @@ describe('useServices', () => {
     it('should search services with options', async () => {
       const mockServices = [mockService];
       const searchOptions = { limit: 5, fuzzy: true };
-      (mockServiceRepository.search as any).mockResolvedValue(mockServices);
+      mockServiceRepository.search.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -408,7 +412,7 @@ describe('useServices', () => {
     it('should handle generous rate limiting for read operations (300 req/min)', async () => {
       // Simulate multiple rapid read requests
       const mockServices = [mockService];
-      (mockServiceRepository.findAll as any).mockResolvedValue(mockServices);
+      mockServiceRepository.findAll.mockResolvedValue(mockServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -424,7 +428,7 @@ describe('useServices', () => {
 
     it('should handle rate limiting for write operations', async () => {
       // Simulate multiple rapid write requests
-      (mockServiceRepository.create as any).mockResolvedValue(mockService);
+      mockServiceRepository.create.mockResolvedValue(mockService);
 
       const { result } = renderHook(() => useServices());
 
@@ -457,7 +461,7 @@ describe('useServices', () => {
 
       for (const uuid of validUUIDs) {
         const service = { ...mockService, id: uuid };
-        (mockServiceRepository.findById as any).mockResolvedValue(service);
+        mockServiceRepository.findById.mockResolvedValue(service);
 
         const { result } = renderHook(() => useServices());
 
@@ -477,7 +481,7 @@ describe('useServices', () => {
       const serviceId = '550e8400-e29b-41d4-a716-446655440000';
       const barberIds = ['01', '02', '03'];
 
-      (mockServiceRepository.associateBarbers as any).mockResolvedValue(undefined);
+      mockServiceRepository.associateBarbers.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useServices());
 
@@ -495,7 +499,7 @@ describe('useServices', () => {
         { ...mockService, id: '550e8400-e29b-41d4-a716-446655440002', name: 'Barba' },
       ];
 
-      (mockServiceRepository.findByBarber as any).mockResolvedValue(barberServices);
+      mockServiceRepository.findByBarber.mockResolvedValue(barberServices);
 
       const { result } = renderHook(() => useServices());
 
@@ -530,7 +534,7 @@ describe('useServices', () => {
         updatedAt: new Date(),
       };
 
-      (mockServiceRepository.findById as any).mockResolvedValue(adaptedService);
+      mockServiceRepository.findById.mockResolvedValue(adaptedService);
 
       const { result } = renderHook(() => useServices());
 

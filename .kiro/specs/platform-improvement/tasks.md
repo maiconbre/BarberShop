@@ -519,7 +519,7 @@
   - _Requirements: 8.4, 8.6, 8.7_
 
 - [ ] 11.5 Página de login com verificação de plano
-  - Atualizar página de login existente
+  - Atualizar página de login existente para ser pagina home/lading
   - Adicionar botão "Começar Grátis" que direciona para cadastro
   - Implementar verificação de status de pagamento
   - Criar redirecionamento para página específica da barbearia

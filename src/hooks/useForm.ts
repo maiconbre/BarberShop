@@ -58,12 +58,11 @@ export const useForm = <T extends Record<string, unknown>>({
   // Create debounced validation function
   const debouncedValidateField = useCallback(
     debounce(() => {
-
       if (schema && validateOnChange) {
         // Validation will be handled by the setValue function since field and value are not accessible here
       }
     }, debounceMs),
-    [schema, validateOnChange, validation, debounceMs]
+    [schema, validateOnChange, debounceMs]
   );
 
   const setValue = useCallback(

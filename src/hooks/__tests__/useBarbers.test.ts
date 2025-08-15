@@ -4,8 +4,12 @@ import { useBarbers } from '../useBarbers';
 import type { BarberRepository } from '@/services/repositories/BarberRepository';
 import type { Barber } from '@/types';
 
-// Mock ServiceFactory
-const mockBarberRepository: Partial<BarberRepository> = {
+// Mock BarberRepository
+type MockedBarberRepository = {
+  [K in keyof BarberRepository]: vi.MockedFunction<BarberRepository[K]>;
+} as MockedBarberRepository;
+
+const mockBarberRepository = {
   findAll: vi.fn(),
   findById: vi.fn(),
   findActive: vi.fn(),
@@ -59,7 +63,7 @@ describe('useBarbers', () => {
   describe('loadBarbers', () => {
     it('should load barbers successfully', async () => {
       const mockBarbers = [mockBarber];
-      (mockBarberRepository.findAll as any).mockResolvedValue(mockBarbers);
+      mockBarberRepository.findAll.mockResolvedValue(mockBarbers);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -74,7 +78,7 @@ describe('useBarbers', () => {
 
     it('should handle loading error', async () => {
       const error = new Error('Failed to load barbers');
-      (mockBarberRepository.findAll as any).mockRejectedValue(error);
+      mockBarberRepository.findAll.mockRejectedValue(error);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -93,7 +97,7 @@ describe('useBarbers', () => {
     it('should load barbers with filters', async () => {
       const mockBarbers = [mockBarber];
       const filters = { isActive: true };
-      (mockBarberRepository.findAll as any).mockResolvedValue(mockBarbers);
+      mockBarberRepository.findAll.mockResolvedValue(mockBarbers);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -108,7 +112,7 @@ describe('useBarbers', () => {
 
   describe('getBarberById', () => {
     it('should get barber by formatted ID', async () => {
-      (mockBarberRepository.findById as any).mockResolvedValue(mockBarber);
+      mockBarberRepository.findById.mockResolvedValue(mockBarber);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -123,7 +127,7 @@ describe('useBarbers', () => {
 
     it('should handle formatted IDs correctly', async () => {
       const barber02 = { ...mockBarber, id: '02', name: 'João Barbeiro' };
-      (mockBarberRepository.findById as any).mockResolvedValue(barber02);
+      mockBarberRepository.findById.mockResolvedValue(barber02);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -140,7 +144,7 @@ describe('useBarbers', () => {
   describe('getActiveBarbers', () => {
     it('should get active barbers', async () => {
       const mockBarbers = [mockBarber];
-      (mockBarberRepository.findActive as any).mockResolvedValue(mockBarbers);
+      mockBarberRepository.findActive.mockResolvedValue(mockBarbers);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -157,7 +161,7 @@ describe('useBarbers', () => {
   describe('getBarbersByService', () => {
     it('should get barbers by service', async () => {
       const mockBarbers = [mockBarber];
-      (mockBarberRepository.findByService as any).mockResolvedValue(mockBarbers);
+      mockBarberRepository.findByService.mockResolvedValue(mockBarbers);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -202,7 +206,7 @@ describe('useBarbers', () => {
         },
       };
       
-      (mockBarberRepository.create as any).mockResolvedValue(createdBarber);
+      mockBarberRepository.create.mockResolvedValue(createdBarber);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -219,7 +223,7 @@ describe('useBarbers', () => {
 
     it('should handle create error', async () => {
       const error = new Error('Failed to create barber');
-      (mockBarberRepository.create as any).mockRejectedValue(error);
+      mockBarberRepository.create.mockRejectedValue(error);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -261,7 +265,7 @@ describe('useBarbers', () => {
         },
       };
       
-      (mockBarberRepository.update as any).mockResolvedValue(updatedBarber);
+      mockBarberRepository.update.mockResolvedValue(updatedBarber);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -277,7 +281,7 @@ describe('useBarbers', () => {
 
   describe('deleteBarber', () => {
     it('should delete barber and cascade User + Appointments', async () => {
-      (mockBarberRepository.delete as any).mockResolvedValue(undefined);
+      mockBarberRepository.delete.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -291,7 +295,7 @@ describe('useBarbers', () => {
 
     it('should handle delete error', async () => {
       const error = new Error('Failed to delete barber');
-      (mockBarberRepository.delete as any).mockRejectedValue(error);
+      mockBarberRepository.delete.mockRejectedValue(error);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -319,7 +323,7 @@ describe('useBarbers', () => {
         },
       };
       
-      (mockBarberRepository.updateContact as any).mockResolvedValue(updatedBarber);
+      mockBarberRepository.updateContact.mockResolvedValue(updatedBarber);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -343,7 +347,7 @@ describe('useBarbers', () => {
         },
       };
       
-      (mockBarberRepository.updatePaymentInfo as any).mockResolvedValue(updatedBarber);
+      mockBarberRepository.updatePaymentInfo.mockResolvedValue(updatedBarber);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -360,7 +364,7 @@ describe('useBarbers', () => {
   describe('toggleActive', () => {
     it('should toggle barber active status', async () => {
       const updatedBarber = { ...mockBarber, isActive: false };
-      (mockBarberRepository.toggleActive as any).mockResolvedValue(updatedBarber);
+      mockBarberRepository.toggleActive.mockResolvedValue(updatedBarber);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -382,11 +386,11 @@ describe('useBarbers', () => {
         inactive: 1,
       };
       
-      (mockBarberRepository.getStatistics as any).mockResolvedValue(mockStats);
+      mockBarberRepository.getStatistics.mockResolvedValue(mockStats);
 
       const { result } = renderHook(() => useBarbers());
 
-      let stats: any;
+      let stats: { total: number; active: number; inactive: number; };
       await act(async () => {
         stats = await result.current.getStatistics();
       });
@@ -407,7 +411,7 @@ describe('useBarbers', () => {
         },
       };
 
-      (mockBarberRepository.findById as any).mockResolvedValue(barberWithBackendData);
+      mockBarberRepository.findById.mockResolvedValue(barberWithBackendData);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -428,7 +432,7 @@ describe('useBarbers', () => {
       
       for (const id of formattedIds) {
         const barber = { ...mockBarber, id };
-        (mockBarberRepository.findById as any).mockResolvedValue(barber);
+        mockBarberRepository.findById.mockResolvedValue(barber);
 
         const { result } = renderHook(() => useBarbers());
 
@@ -469,7 +473,7 @@ describe('useBarbers', () => {
         },
       };
 
-      (mockBarberRepository.create as any).mockResolvedValue(createdBarber);
+      mockBarberRepository.create.mockResolvedValue(createdBarber);
 
       const { result } = renderHook(() => useBarbers());
 
@@ -487,7 +491,7 @@ describe('useBarbers', () => {
 
     it('should handle coordinated User + Barber + Appointments deletion', async () => {
       // Mock successful deletion (backend handles cascade)
-      (mockBarberRepository.delete as any).mockResolvedValue(undefined);
+      mockBarberRepository.delete.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useBarbers());
 

@@ -5,7 +5,11 @@ import type { AppointmentRepository } from '@/services/repositories/AppointmentR
 import type { Appointment, AppointmentStatus } from '@/types';
 
 // Mock ServiceFactory
-const mockAppointmentRepository: Partial<AppointmentRepository> = {
+type MockedAppointmentRepository = {
+  [K in keyof AppointmentRepository]: vi.MockedFunction<AppointmentRepository[K]>;
+};
+
+const mockAppointmentRepository = {
   findAll: vi.fn(),
   findById: vi.fn(),
   findByBarberId: vi.fn(),
@@ -23,7 +27,7 @@ const mockAppointmentRepository: Partial<AppointmentRepository> = {
   delete: vi.fn(),
   exists: vi.fn(),
   getStatistics: vi.fn(),
-};
+} as MockedAppointmentRepository;
 
 vi.mock('@/services/ServiceFactory', () => ({
   useAppointmentRepository: () => mockAppointmentRepository,
@@ -57,7 +61,7 @@ describe('useAppointments', () => {
   describe('loadAppointments', () => {
     it('should load appointments successfully', async () => {
       const mockAppointments = [mockAppointment];
-      (mockAppointmentRepository.findAll as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findAll.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -72,7 +76,7 @@ describe('useAppointments', () => {
 
     it('should handle loading error', async () => {
       const error = new Error('Failed to load appointments');
-      (mockAppointmentRepository.findAll as any).mockRejectedValue(error);
+      mockAppointmentRepository.findAll.mockRejectedValue(error);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -91,7 +95,7 @@ describe('useAppointments', () => {
     it('should load appointments with filters', async () => {
       const mockAppointments = [mockAppointment];
       const filters = { barberId: '01' };
-      (mockAppointmentRepository.findAll as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findAll.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -107,7 +111,7 @@ describe('useAppointments', () => {
   describe('getAppointmentsByBarberId', () => {
     it('should get appointments by barber ID', async () => {
       const mockAppointments = [mockAppointment];
-      (mockAppointmentRepository.findByBarberId as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findByBarberId.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -124,7 +128,7 @@ describe('useAppointments', () => {
   describe('getAppointmentsByStatus', () => {
     it('should get appointments by status', async () => {
       const mockAppointments = [mockAppointment];
-      (mockAppointmentRepository.findByStatus as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findByStatus.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -142,7 +146,7 @@ describe('useAppointments', () => {
     it('should get appointments by date', async () => {
       const mockAppointments = [mockAppointment];
       const date = new Date('2024-01-15');
-      (mockAppointmentRepository.findByDate as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findByDate.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -168,7 +172,7 @@ describe('useAppointments', () => {
         status: 'scheduled' as AppointmentStatus,
       };
       
-      (mockAppointmentRepository.create as any).mockResolvedValue(mockAppointment);
+      mockAppointmentRepository.create.mockResolvedValue(mockAppointment);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -184,7 +188,7 @@ describe('useAppointments', () => {
 
     it('should handle create error', async () => {
       const error = new Error('Failed to create appointment');
-      (mockAppointmentRepository.create as any).mockRejectedValue(error);
+      mockAppointmentRepository.create.mockRejectedValue(error);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -223,7 +227,7 @@ describe('useAppointments', () => {
         status: 'scheduled' as AppointmentStatus,
       };
       
-      (mockAppointmentRepository.createWithBackendData as any).mockResolvedValue(mockAppointment);
+      mockAppointmentRepository.createWithBackendData.mockResolvedValue(mockAppointment);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -240,7 +244,7 @@ describe('useAppointments', () => {
   describe('updateAppointmentStatus', () => {
     it('should update appointment status successfully', async () => {
       const updatedAppointment = { ...mockAppointment, status: 'completed' as AppointmentStatus };
-      (mockAppointmentRepository.updateStatus as any).mockResolvedValue(updatedAppointment);
+      mockAppointmentRepository.updateStatus.mockResolvedValue(updatedAppointment);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -256,7 +260,7 @@ describe('useAppointments', () => {
 
   describe('deleteAppointment', () => {
     it('should delete appointment successfully', async () => {
-      (mockAppointmentRepository.delete as any).mockResolvedValue(undefined);
+      mockAppointmentRepository.delete.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -272,7 +276,7 @@ describe('useAppointments', () => {
   describe('getUpcomingAppointments', () => {
     it('should get upcoming appointments', async () => {
       const mockAppointments = [mockAppointment];
-      (mockAppointmentRepository.findUpcoming as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findUpcoming.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -289,7 +293,7 @@ describe('useAppointments', () => {
   describe('getPendingAppointments', () => {
     it('should get pending appointments', async () => {
       const mockAppointments = [mockAppointment];
-      (mockAppointmentRepository.findPending as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findPending.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -323,11 +327,11 @@ describe('useAppointments', () => {
         cancelled: 1,
       };
       
-      (mockAppointmentRepository.getStatistics as any).mockResolvedValue(mockStats);
+      mockAppointmentRepository.getStatistics.mockResolvedValue(mockStats);
 
       const { result } = renderHook(() => useAppointments());
 
-      let stats: any;
+      let stats: { total: number; pending: number; confirmed: number; completed: number; cancelled: number; };
       await act(async () => {
         stats = await result.current.getStatistics();
       });
@@ -341,7 +345,7 @@ describe('useAppointments', () => {
     it('should handle rate limiting for read operations (200 req/min)', async () => {
       // Simulate multiple rapid read requests
       const mockAppointments = [mockAppointment];
-      (mockAppointmentRepository.findAll as any).mockResolvedValue(mockAppointments);
+      mockAppointmentRepository.findAll.mockResolvedValue(mockAppointments);
 
       const { result } = renderHook(() => useAppointments());
 
@@ -357,7 +361,7 @@ describe('useAppointments', () => {
 
     it('should handle rate limiting for write operations (20 req/min)', async () => {
       // Simulate multiple rapid write requests
-      (mockAppointmentRepository.create as any).mockResolvedValue(mockAppointment);
+      mockAppointmentRepository.create.mockResolvedValue(mockAppointment);
 
       const { result } = renderHook(() => useAppointments());
 
