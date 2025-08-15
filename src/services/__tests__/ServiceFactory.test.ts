@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ServiceFactory } from '../ServiceFactory';
 import type { IApiService } from '../interfaces/IApiService';
-import type { IPaginatedRepository } from '../interfaces/IRepository';
-import type { User } from '@/types';
 
 // Mock das dependências
 vi.mock('../core/ApiServiceV2', () => ({
@@ -115,7 +113,7 @@ describe('ServiceFactory', () => {
         delete: vi.fn(),
       };
 
-      const mockUserRepository: IPaginatedRepository<User> = {
+      const mockUserRepository = {
         findById: vi.fn(),
         findAll: vi.fn(),
         create: vi.fn(),
@@ -123,7 +121,11 @@ describe('ServiceFactory', () => {
         delete: vi.fn(),
         exists: vi.fn(),
         findPaginated: vi.fn(),
-      };
+        findByEmail: vi.fn(),
+        findByRole: vi.fn(),
+        updatePassword: vi.fn(),
+        toggleActive: vi.fn(),
+      } as any;
 
       ServiceFactory.configure({ 
         apiService: mockApiService,

@@ -1,6 +1,7 @@
 import type { IRepository } from './IRepository';
 import type { Appointment, AppointmentStatus } from '@/types';
 import type { BackendAppointmentStatus } from '@/types/backend';
+import type { AppointmentStatistics } from '../repositories/AppointmentRepository';
 
 /**
  * Interface específica para repositório de agendamentos
@@ -62,6 +63,27 @@ export interface IAppointmentRepository extends IRepository<Appointment> {
    * Combinação de filtros implementados no frontend
    */
   findConfirmedByBarberAndDate(barberId: string, date: Date): Promise<Appointment[]>;
+  
+  /**
+   * Cria agendamento com dados específicos do backend
+   * Usa a estrutura real: clientName, serviceName, barberName, price, wppclient
+   */
+  createWithBackendData(data: {
+    clientName: string;
+    serviceName: string;
+    date: Date;
+    time: string;
+    barberId: string;
+    barberName: string;
+    price: number;
+    wppclient: string;
+    status?: AppointmentStatus;
+  }): Promise<Appointment>;
+  
+  /**
+   * Obtém estatísticas de agendamentos
+   */
+  getStatistics(): Promise<AppointmentStatistics>;
 }
 
 /**

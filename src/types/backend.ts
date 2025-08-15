@@ -50,6 +50,9 @@ export interface BackendComment {
   updatedAt: Date;
 }
 
+// Backend appointment status type
+export type BackendAppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+
 // API Response types for backend
 export interface BackendApiResponse<T> {
   data?: T;

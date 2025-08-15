@@ -122,7 +122,7 @@ describe('useComments', () => {
   describe('getCommentsByStatus', () => {
     it('should get approved comments', async () => {
       const mockComments = [mockComment];
-      mockCommentRepository.findByStatus.mockResolvedValue(mockComments);
+      mockCommentRepository.findAll.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -132,13 +132,13 @@ describe('useComments', () => {
       });
 
       expect(comments).toEqual(mockComments);
-      expect(mockCommentRepository.findByStatus).toHaveBeenCalledWith('approved');
+      expect(mockCommentRepository.findAll).toHaveBeenCalledWith({ status: 'approved' });
     });
 
     it('should get pending comments', async () => {
       const pendingComment = { ...mockComment, status: 'pending' as const };
       const mockComments = [pendingComment];
-      (mockCommentRepository.findByStatus as any).mockResolvedValue(mockComments);
+      mockCommentRepository.findAll.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -149,13 +149,13 @@ describe('useComments', () => {
 
       expect(comments).toEqual(mockComments);
       expect(comments[0].status).toBe('pending');
-      expect(mockCommentRepository.findByStatus).toHaveBeenCalledWith('pending');
+      expect(mockCommentRepository.findAll).toHaveBeenCalledWith({ status: 'pending' });
     });
 
     it('should get rejected comments', async () => {
       const rejectedComment = { ...mockComment, status: 'rejected' as const };
       const mockComments = [rejectedComment];
-      (mockCommentRepository.findByStatus as any).mockResolvedValue(mockComments);
+      mockCommentRepository.findAll.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -166,14 +166,14 @@ describe('useComments', () => {
 
       expect(comments).toEqual(mockComments);
       expect(comments[0].status).toBe('rejected');
-      expect(mockCommentRepository.findByStatus).toHaveBeenCalledWith('rejected');
+      expect(mockCommentRepository.findAll).toHaveBeenCalledWith({ status: 'rejected' });
     });
   });
 
   describe('getApprovedComments', () => {
     it('should get approved comments for public display', async () => {
       const mockComments = [mockComment];
-      mockCommentRepository.findApproved.mockResolvedValue(mockComments);
+      mockCommentRepository.findAll.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -183,7 +183,7 @@ describe('useComments', () => {
       });
 
       expect(comments).toEqual(mockComments);
-      expect(mockCommentRepository.findApproved).toHaveBeenCalled();
+      expect(mockCommentRepository.findAll).toHaveBeenCalledWith({ status: 'approved' });
     });
   });
 
@@ -191,7 +191,7 @@ describe('useComments', () => {
     it('should get pending comments for admin review', async () => {
       const pendingComment = { ...mockComment, status: 'pending' as const };
       const mockComments = [pendingComment];
-      mockCommentRepository.findPending.mockResolvedValue(mockComments);
+      mockCommentRepository.findAll.mockResolvedValue(mockComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -201,7 +201,7 @@ describe('useComments', () => {
       });
 
       expect(comments).toEqual(mockComments);
-      expect(mockCommentRepository.findPending).toHaveBeenCalled();
+      expect(mockCommentRepository.findAll).toHaveBeenCalledWith({ status: 'pending' });
     });
   });
 
@@ -212,7 +212,7 @@ describe('useComments', () => {
         { ...mockComment, id: '2', status: 'pending' as const },
         { ...mockComment, id: '3', status: 'rejected' as const },
       ];
-      mockCommentRepository.findAllForAdmin.mockResolvedValue(allComments);
+      mockCommentRepository.findAll.mockResolvedValue(allComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -223,7 +223,7 @@ describe('useComments', () => {
 
       expect(comments).toEqual(allComments);
       expect(comments).toHaveLength(3);
-      expect(mockCommentRepository.findAllForAdmin).toHaveBeenCalled();
+      expect(mockCommentRepository.findAll).toHaveBeenCalled();
     });
   });
 
@@ -252,7 +252,10 @@ describe('useComments', () => {
 
       expect(comment).toEqual(createdComment);
       expect(comment?.status).toBe('pending'); // Default status
-      expect(mockCommentRepository.create).toHaveBeenCalledWith(commentData);
+      expect(mockCommentRepository.create).toHaveBeenCalledWith({
+        ...commentData,
+        status: 'pending'
+      });
       expect(result.current.creating).toBe(false);
     });
 
@@ -281,7 +284,7 @@ describe('useComments', () => {
   describe('updateCommentStatus', () => {
     it('should approve comment successfully', async () => {
       const approvedComment = { ...mockComment, status: 'approved' as const };
-      mockCommentRepository.updateStatus.mockResolvedValue(approvedComment);
+      mockCommentRepository.update.mockResolvedValue(approvedComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -292,12 +295,12 @@ describe('useComments', () => {
 
       expect(comment).toEqual(approvedComment);
       expect(comment?.status).toBe('approved');
-      expect(mockCommentRepository.updateStatus).toHaveBeenCalledWith('1', 'approved');
+      expect(mockCommentRepository.update).toHaveBeenCalledWith('1', { status: 'approved' });
     });
 
     it('should reject comment successfully', async () => {
       const rejectedComment = { ...mockComment, status: 'rejected' as const };
-      (mockCommentRepository.updateStatus as any).mockResolvedValue(rejectedComment);
+      mockCommentRepository.update.mockResolvedValue(rejectedComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -308,12 +311,12 @@ describe('useComments', () => {
 
       expect(comment).toEqual(rejectedComment);
       expect(comment?.status).toBe('rejected');
-      expect(mockCommentRepository.updateStatus).toHaveBeenCalledWith('1', 'rejected');
+      expect(mockCommentRepository.update).toHaveBeenCalledWith('1', { status: 'rejected' });
     });
 
     it('should reset comment to pending', async () => {
       const pendingComment = { ...mockComment, status: 'pending' as const };
-      (mockCommentRepository.updateStatus as any).mockResolvedValue(pendingComment);
+      mockCommentRepository.update.mockResolvedValue(pendingComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -324,14 +327,14 @@ describe('useComments', () => {
 
       expect(comment).toEqual(pendingComment);
       expect(comment?.status).toBe('pending');
-      expect(mockCommentRepository.updateStatus).toHaveBeenCalledWith('1', 'pending');
+      expect(mockCommentRepository.update).toHaveBeenCalledWith('1', { status: 'pending' });
     });
   });
 
   describe('admin operations', () => {
     it('should approve comment using admin method', async () => {
       const approvedComment = { ...mockComment, status: 'approved' as const };
-      mockCommentRepository.approve.mockResolvedValue(approvedComment);
+      mockCommentRepository.update.mockResolvedValue(approvedComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -341,12 +344,12 @@ describe('useComments', () => {
       });
 
       expect(comment).toEqual(approvedComment);
-      expect(mockCommentRepository.approve).toHaveBeenCalledWith('1');
+      expect(mockCommentRepository.update).toHaveBeenCalledWith('1', { status: 'approved' });
     });
 
     it('should reject comment using admin method', async () => {
       const rejectedComment = { ...mockComment, status: 'rejected' as const };
-      mockCommentRepository.reject.mockResolvedValue(rejectedComment);
+      mockCommentRepository.update.mockResolvedValue(rejectedComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -356,12 +359,12 @@ describe('useComments', () => {
       });
 
       expect(comment).toEqual(rejectedComment);
-      expect(mockCommentRepository.reject).toHaveBeenCalledWith('1');
+      expect(mockCommentRepository.update).toHaveBeenCalledWith('1', { status: 'rejected' });
     });
 
     it('should reset comment to pending using admin method', async () => {
       const pendingComment = { ...mockComment, status: 'pending' as const };
-      mockCommentRepository.resetToPending.mockResolvedValue(pendingComment);
+      mockCommentRepository.update.mockResolvedValue(pendingComment);
 
       const { result } = renderHook(() => useComments());
 
@@ -371,7 +374,7 @@ describe('useComments', () => {
       });
 
       expect(comment).toEqual(pendingComment);
-      expect(mockCommentRepository.resetToPending).toHaveBeenCalledWith('1');
+      expect(mockCommentRepository.update).toHaveBeenCalledWith('1', { status: 'pending' });
     });
   });
 
@@ -410,14 +413,25 @@ describe('useComments', () => {
 
   describe('getStatistics', () => {
     it('should get comment statistics (admin operation)', async () => {
-      const mockStats = {
-        total: 15,
-        pending: 5,
-        approved: 8,
-        rejected: 2,
-      };
+      const allComments = [
+        { ...mockComment, id: '1', status: 'approved' as const },
+        { ...mockComment, id: '2', status: 'pending' as const },
+        { ...mockComment, id: '3', status: 'pending' as const },
+        { ...mockComment, id: '4', status: 'pending' as const },
+        { ...mockComment, id: '5', status: 'pending' as const },
+        { ...mockComment, id: '6', status: 'pending' as const },
+        { ...mockComment, id: '7', status: 'approved' as const },
+        { ...mockComment, id: '8', status: 'approved' as const },
+        { ...mockComment, id: '9', status: 'approved' as const },
+        { ...mockComment, id: '10', status: 'approved' as const },
+        { ...mockComment, id: '11', status: 'approved' as const },
+        { ...mockComment, id: '12', status: 'approved' as const },
+        { ...mockComment, id: '13', status: 'approved' as const },
+        { ...mockComment, id: '14', status: 'rejected' as const },
+        { ...mockComment, id: '15', status: 'rejected' as const },
+      ];
       
-      mockCommentRepository.getStatistics.mockResolvedValue(mockStats);
+      mockCommentRepository.findAll.mockResolvedValue(allComments);
 
       const { result } = renderHook(() => useComments());
 
@@ -426,8 +440,13 @@ describe('useComments', () => {
         stats = await result.current.getStatistics();
       });
 
-      expect(stats!).toEqual(mockStats);
-      expect(mockCommentRepository.getStatistics).toHaveBeenCalled();
+      expect(stats!).toEqual({
+        total: 15,
+        pending: 5,
+        approved: 8,
+        rejected: 2,
+      });
+      expect(mockCommentRepository.findAll).toHaveBeenCalled();
     });
   });
 
@@ -437,7 +456,7 @@ describe('useComments', () => {
       
       for (const status of statuses) {
         const comment = { ...mockComment, status };
-        (mockCommentRepository.findByStatus as any).mockResolvedValue([comment]);
+        mockCommentRepository.findAll.mockResolvedValue([comment]);
 
         const { result } = renderHook(() => useComments());
 
@@ -466,7 +485,7 @@ describe('useComments', () => {
 
       for (const transition of transitions) {
         const updatedComment = { ...mockComment, status: transition.to };
-        mockCommentRepository.updateStatus.mockResolvedValue(updatedComment);
+        mockCommentRepository.update.mockResolvedValue(updatedComment);
 
         let comment: PublicComment | undefined;
         await act(async () => {
@@ -494,13 +513,9 @@ describe('useComments', () => {
       const { result } = renderHook(() => useComments());
 
       // Mock successful responses for admin operations
-      mockCommentRepository.findAllForAdmin.mockResolvedValue([mockComment]);
-      mockCommentRepository.updateStatus.mockResolvedValue(mockComment);
-      mockCommentRepository.approve.mockResolvedValue(mockComment);
-      mockCommentRepository.reject.mockResolvedValue(mockComment);
-      mockCommentRepository.resetToPending.mockResolvedValue(mockComment);
+      mockCommentRepository.findAll.mockResolvedValue([mockComment]);
+      mockCommentRepository.update.mockResolvedValue(mockComment);
       mockCommentRepository.delete.mockResolvedValue(undefined);
-      mockCommentRepository.getStatistics.mockResolvedValue({ total: 1, pending: 0, approved: 1, rejected: 0 });
 
       // All admin operations should work when properly authenticated
       for (const operation of adminOperations) {
@@ -510,13 +525,9 @@ describe('useComments', () => {
       }
 
       // Verify all admin operations were called
-      expect(mockCommentRepository.findAllForAdmin).toHaveBeenCalled();
-      expect(mockCommentRepository.updateStatus).toHaveBeenCalled();
-      expect(mockCommentRepository.approve).toHaveBeenCalled();
-      expect(mockCommentRepository.reject).toHaveBeenCalled();
-      expect(mockCommentRepository.resetToPending).toHaveBeenCalled();
+      expect(mockCommentRepository.findAll).toHaveBeenCalled();
+      expect(mockCommentRepository.update).toHaveBeenCalled();
       expect(mockCommentRepository.delete).toHaveBeenCalled();
-      expect(mockCommentRepository.getStatistics).toHaveBeenCalled();
     });
   });
 
@@ -525,7 +536,7 @@ describe('useComments', () => {
       const { result } = renderHook(() => useComments());
 
       // Public operations (no auth required)
-      mockCommentRepository.findApproved.mockResolvedValue([mockComment]);
+      mockCommentRepository.findAll.mockResolvedValue([mockComment]);
       mockCommentRepository.create.mockResolvedValue(mockComment);
 
       await act(async () => {
@@ -533,20 +544,20 @@ describe('useComments', () => {
         await result.current.createComment({ name: 'Test', comment: 'Test' }); // Public
       });
 
-      expect(mockCommentRepository.findApproved).toHaveBeenCalled();
+      expect(mockCommentRepository.findAll).toHaveBeenCalled();
       expect(mockCommentRepository.create).toHaveBeenCalled();
 
       // Admin operations (auth required)
-      mockCommentRepository.findAllForAdmin.mockResolvedValue([mockComment]);
-      mockCommentRepository.approve.mockResolvedValue(mockComment);
+      mockCommentRepository.findAll.mockResolvedValue([mockComment]);
+      mockCommentRepository.update.mockResolvedValue(mockComment);
 
       await act(async () => {
         await result.current.getAllCommentsForAdmin(); // Admin only
         await result.current.approveComment('1'); // Admin only
       });
 
-      expect(mockCommentRepository.findAllForAdmin).toHaveBeenCalled();
-      expect(mockCommentRepository.approve).toHaveBeenCalled();
+      expect(mockCommentRepository.findAll).toHaveBeenCalled();
+      expect(mockCommentRepository.update).toHaveBeenCalled();
     });
   });
 
@@ -555,8 +566,7 @@ describe('useComments', () => {
       const { result } = renderHook(() => useComments());
 
       // Test that different operations use different endpoints
-      mockCommentRepository.findByStatus.mockResolvedValue([mockComment]);
-      mockCommentRepository.findAllForAdmin.mockResolvedValue([mockComment]);
+      mockCommentRepository.findAll.mockResolvedValue([mockComment]);
 
       await act(async () => {
         // Uses GET /api/comments?status=approved
@@ -566,8 +576,8 @@ describe('useComments', () => {
         await result.current.getAllCommentsForAdmin();
       });
 
-      expect(mockCommentRepository.findByStatus).toHaveBeenCalledWith('approved');
-      expect(mockCommentRepository.findAllForAdmin).toHaveBeenCalled();
+      expect(mockCommentRepository.findAll).toHaveBeenCalledWith({ status: 'approved' });
+      expect(mockCommentRepository.findAll).toHaveBeenCalled();
     });
   });
 });

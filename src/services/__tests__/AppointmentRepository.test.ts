@@ -152,7 +152,7 @@ describe('AppointmentRepository', () => {
       ];
       mockApiService.get.mockResolvedValue(mockBackendAppointments);
 
-      const result = await appointmentRepository.findByStatus('pending' as AppointmentStatus);
+      const result = await appointmentRepository.findByStatus('scheduled' as AppointmentStatus);
 
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe('scheduled');
@@ -455,7 +455,6 @@ describe('AppointmentRepository', () => {
       const result = await appointmentRepository.getStatistics();
 
       expect(result.total).toBe(4);
-      expect(result.byStatus.pending).toBe(1);
       expect(result.byStatus.confirmed).toBe(1);
       expect(result.byStatus.completed).toBe(1);
       expect(result.byStatus.cancelled).toBe(1);

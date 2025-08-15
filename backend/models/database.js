@@ -2,16 +2,27 @@ const { Sequelize } = require('sequelize');
 const dbConfig = require('../config/database');
 
 // Criar instância do Sequelize com a configuração do ambiente atual
-const sequelize = new Sequelize(dbConfig.url, {
-  dialect: dbConfig.dialect,
-  dialectOptions: dbConfig.dialectOptions,
-  pool: dbConfig.pool,
-  retry: dbConfig.retry,
-  dialectModule: require('pg'),
-  logging: dbConfig.logging,
-  native: dbConfig.native,
-  define: dbConfig.define
-});
+let sequelize;
+if (dbConfig.dialect === 'sqlite') {
+  sequelize = new Sequelize({
+    dialect: dbConfig.dialect,
+    storage: dbConfig.storage,
+    pool: dbConfig.pool,
+    logging: dbConfig.logging,
+    define: dbConfig.define
+  });
+} else {
+  sequelize = new Sequelize(dbConfig.url, {
+    dialect: dbConfig.dialect,
+    dialectOptions: dbConfig.dialectOptions,
+    pool: dbConfig.pool,
+    retry: dbConfig.retry,
+    dialectModule: require('pg'),
+    logging: dbConfig.logging,
+    native: dbConfig.native,
+    define: dbConfig.define
+  });
+}
 
 // Função de teste de conexão melhorada
 const testConnection = async () => {

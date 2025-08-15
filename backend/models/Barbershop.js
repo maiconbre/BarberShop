@@ -39,7 +39,7 @@ const Barbershop = sequelize.define('Barbershop', {
     allowNull: false
   },
   settings: {
-    type: DataTypes.JSONB,
+    type: process.env.NODE_ENV === 'test' ? DataTypes.JSON : DataTypes.JSONB,
     defaultValue: {},
     allowNull: false
   }
