@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useServiceRepository } from '../services/ServiceFactory';
 import { useTenant } from '../contexts/TenantContext';
 import { createTenantAwareRepository } from '../services/TenantAwareRepository';
-import { useCache } from './useCache';
+import { createTenantAwareCache } from '../services/TenantAwareCache';
 import type { Service } from '../types';
 import type { ServiceStatistics } from '../services/repositories/ServiceRepository';
 import type { SearchOptions } from '../services/interfaces/IRepository';
@@ -28,7 +28,9 @@ export const useServices = () => {
     return createTenantAwareRepository(baseRepository, () => barbershopId);
   }, [baseRepository, barbershopId]);
 
-  const tenantCache = useCache();
+  const tenantCache = useMemo(() => {
+    return createTenantAwareCache(() => barbershopId);
+  }, [barbershopId]);
 
   // State for services list
   const [services, setServices] = useState<Service[] | null>(null);
@@ -215,7 +217,7 @@ export const useServices = () => {
         const newService = await tenantRepository.create(serviceData);
 
         // Clear cache to force refresh
-        tenantCache.clear();
+        tenantCache.clearTenantCache();
 
         // Atualiza a lista local se existir
         if (services) {
@@ -249,7 +251,7 @@ export const useServices = () => {
         const updatedService = await tenantRepository.update(id, updates);
 
         // Clear cache to force refresh
-        tenantCache.clear();
+        tenantCache.clearTenantCache();
 
         // Atualiza a lista local se existir
         if (services) {
@@ -283,7 +285,7 @@ export const useServices = () => {
         await tenantRepository.delete(id);
 
         // Clear cache to force refresh
-        tenantCache.clear();
+        tenantCache.clearTenantCache();
 
         // Atualiza a lista local se existir
         if (services) {
@@ -338,7 +340,7 @@ export const useServices = () => {
         }
 
         // Clear cache to force refresh
-        tenantCache.clear();
+        tenantCache.clearTenantCache();
       } catch (error) {
         const errorObj = error instanceof Error ? error : new Error(String(error));
         setAssociateError(errorObj);
@@ -458,7 +460,7 @@ export const useServices = () => {
         const duplicatedService = await tenantRepository.create(duplicateData);
 
         // Clear cache to force refresh
-        tenantCache.clear();
+        tenantCache.clearTenantCache();
 
         // Atualiza a lista local se existir
         if (services) {

@@ -276,6 +276,8 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
   }
 };
 
+
+
 /**
  * Verificar disponibilidade de slug
  */
@@ -332,27 +334,33 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
   try {
     console.log('Buscando barbearia pelo slug:', slug);
 
-    // Primeiro, tentar verificar se o slug existe
-    const slugCheckResponse = await checkSlugAvailability(slug);
+    // Por enquanto, sempre retornar dados mock para qualquer slug válido
+    // TODO: Implementar endpoint real no backend quando disponível
     
-    if (slugCheckResponse.available) {
-      throw new Error('Barbearia não encontrada');
+    // Validar formato do slug
+    const slugValidation = validateSlugFormat(slug);
+    if (!slugValidation.valid) {
+      throw new Error(`Slug inválido: ${slugValidation.message}`);
     }
 
-    // Por enquanto, retornar dados mock baseados no slug
-    // TODO: Implementar endpoint real no backend
     const mockData: BarbershopData = {
       id: `mock-${slug}`,
       name: slug.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' '),
       slug: slug,
+      ownerEmail: `contato@${slug}.com`,
+      planType: 'free',
+      settings: {
+        theme: 'default',
+        timezone: 'America/Sao_Paulo'
+      },
+      createdAt: new Date().toISOString(),
       description: `Barbearia ${slug.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ')} - Estilo e qualidade em cada corte`,
       address: 'Rua das Barbearias, 123 - Centro',
-      phone: '(21) 99999-9999',
-      email: `contato@${slug}.com`
+      phone: '(21) 99999-9999'
     };
 
     console.log('Barbearia encontrada (mock):', mockData.name);
@@ -361,15 +369,15 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
   } catch (error: unknown) {
     console.error('Erro ao obter barbearia pelo slug:', error);
 
-    // Se o erro for de slug disponível, significa que a barbearia não existe
-    if ((error as Error).message === 'Barbearia não encontrada') {
-      throw error;
-    }
-
     // Tratar erros de timeout
     if ((error as { code?: string }).code === 'ECONNABORTED' || 
         (error as { message?: string }).message?.includes('timeout')) {
       throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
+    }
+
+    // Re-throw validation errors
+    if ((error as Error).message?.includes('Slug inválido')) {
+      throw error;
     }
 
     // Para outros erros, assumir que a barbearia existe e retornar dados mock
@@ -379,12 +387,18 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' '),
       slug: slug,
+      ownerEmail: `contato@${slug}.com`,
+      planType: 'free',
+      settings: {
+        theme: 'default',
+        timezone: 'America/Sao_Paulo'
+      },
+      createdAt: new Date().toISOString(),
       description: `Barbearia ${slug.split('-').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ')} - Estilo e qualidade em cada corte`,
       address: 'Rua das Barbearias, 123 - Centro',
-      phone: '(21) 99999-9999',
-      email: `contato@${slug}.com`
+      phone: '(21) 99999-9999'
     };
 
     console.log('Retornando dados mock para:', mockData.name);
@@ -404,7 +418,7 @@ export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
     }
 
     const response = await retryRequest(() =>
-      axiosInstance.get<BarbershopResponse>('/barbershops/current', {
+      axiosInstance.get<BarbershopResponse>('/barbershops/my-barbershop', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -430,6 +444,11 @@ export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
     // Tratar erros de autenticação
     if ((error as { response?: { status: number } }).response?.status === 401) {
       throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    // Tratar erro de usuário sem barbearia
+    if ((error as { response?: { status: number } }).response?.status === 404) {
+      throw new Error('Usuário não possui barbearia associada');
     }
 
     // Tratar erros de resposta da API

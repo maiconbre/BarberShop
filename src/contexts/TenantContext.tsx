@@ -144,7 +144,11 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       if (pathMatch) {
         const potentialSlug = pathMatch[1];
         // Verificar se não é uma rota pública conhecida
-        const publicRoutes = ['about', 'services', 'contacts', 'login', 'register-barbershop'];
+        const publicRoutes = [
+          'about', 'services', 'contacts', 'login', 'register-barbershop', 'verify-email',
+          'showcase', 'dashboard', 'agenda', 'analytics', 'trocar-senha', 'register',
+          'gerenciar-comentarios', 'servicos', 'gerenciar-horarios'
+        ];
         if (!publicRoutes.includes(potentialSlug)) {
           urlSlug = potentialSlug;
         }
@@ -156,14 +160,10 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       
       loadTenant(urlSlug).catch(error => {
         logger.componentError('TenantContext', 'Auto-load tenant failed:', error);
-        
-        // Redirect to registration if tenant not found
-        if (error.message?.includes('not found') || error.message?.includes('404')) {
-          navigate('/register-barbershop', { replace: true });
-        }
+        // Removido redirecionamento automático para permitir acesso direto
       });
-    } else if (!urlSlug && slug) {
-      // Clear tenant if no slug in URL
+    } else if (!urlSlug && slug && !location.pathname.startsWith('/app/')) {
+      // Clear tenant if no slug in URL, but not for app routes during navigation
       clearTenant();
     }
   }, [params.barbershopSlug, location.pathname, slug, loadTenant, clearTenant, navigate]);

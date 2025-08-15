@@ -19,8 +19,8 @@ const LoginPage: React.FC = () => {
     rememberMe: false
   });
 
-  // Redirecionar se o usuário já estiver autenticado (legacy route)
-  useAuthRedirect('/dashboard');
+  // Redirecionar se o usuário já estiver autenticado
+  useAuthRedirect();
 
   // Remover a lógica de salvar username - agora o checkbox controla persistência de login
 
@@ -59,8 +59,8 @@ const LoginPage: React.FC = () => {
         } catch (tenantError) {
           logger.componentError('LoginPage', 'Failed to load tenant context after login:', tenantError);
           
-          // Fallback to legacy dashboard route
-          navigate('/dashboard', { replace: true });
+          // Fallback to registration if tenant loading fails
+          navigate('/register-barbershop', { replace: true });
         }
       } else {
         setError('user ou senha incorretos');
@@ -92,7 +92,7 @@ const LoginPage: React.FC = () => {
       </div>
 
       {/* Logo clicável */}
-      <div onClick={() => navigate('/dashboard')} className="absolute top-8 left-1/2 -translate-x-1/2 cursor-pointer z-20">
+      <div onClick={() => navigate('/')} className="absolute top-8 left-1/2 -translate-x-1/2 cursor-pointer z-20">
         <div className="transform hover:scale-110 transition-transform duration-300">
           <div className="inline-block relative">
             <div className="text-[#F0B35B] text-xl font-medium tracking-wider border border-[#F0B35B]/70 px-3 py-1.5 rounded">
@@ -111,6 +111,16 @@ const LoginPage: React.FC = () => {
           <p className="mt-2 text-center text-sm text-gray-400">
             Faça login para acessar o painel
           </p>
+          
+          {/* Mensagem exclusiva para barbeiros */}
+          <div className="mt-4 p-3 bg-[#F0B35B]/10 border border-[#F0B35B]/30 rounded-lg">
+            <p className="text-center text-sm text-[#F0B35B] font-medium">
+              🔒 Acesso exclusivo para barbeiros
+            </p>
+            <p className="text-center text-xs text-gray-400 mt-1">
+              Esta área é restrita aos profissionais cadastrados
+            </p>
+          </div>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (

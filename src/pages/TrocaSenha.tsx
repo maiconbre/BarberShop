@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useBarbershopNavigation } from '../hooks/useBarbershopNavigation';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
 import { CURRENT_ENV } from '../config/environmentConfig';
 
 const TrocaSenha: React.FC = () => {
   const { getCurrentUser } = useAuth();
+  const { goToDashboard } = useBarbershopNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     senhaAtual: '',
@@ -142,7 +144,7 @@ const TrocaSenha: React.FC = () => {
 
       // Redirecionar para o dashboard após 2 segundos
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        goToDashboard();
       }, 2000);
     } catch (err: unknown) {
       console.error('Erro ao alterar senha:', err);

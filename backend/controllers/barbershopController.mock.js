@@ -115,6 +115,19 @@ exports.registerBarbershop = async (req, res) => {
 
     console.log('[MOCK] Usuário admin criado:', adminUser.id);
 
+    // Criar barbeiro automaticamente com o nome do proprietário (mock)
+    const firstBarberId = '01';
+    const firstBarber = {
+      id: firstBarberId,
+      name: ownerName.trim(),
+      whatsapp: '', // Será preenchido posteriormente pelo usuário
+      pix: '', // Será preenchido posteriormente pelo usuário
+      barbershopId: barbershopId
+    };
+
+    // Simular armazenamento do barbeiro (em produção seria salvo no banco)
+    console.log('[MOCK] Primeiro barbeiro criado:', firstBarber.id, firstBarber.name);
+
     // Gerar tokens para login automático
     const token = generateToken(adminUser);
     const refreshToken = generateRefreshToken(adminUser);

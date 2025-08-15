@@ -94,10 +94,7 @@ const BarbershopHomePage: React.FC = () => {
     );
   }
 
-  // Redirect se não for um tenant válido
-  if (!isValidTenant) {
-    return <Navigate to="/" replace />;
-  }
+  // Removido redirecionamento automático para permitir acesso direto
 
   return (
     <motion.div

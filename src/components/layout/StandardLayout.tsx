@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
+import { useBarbershopNavigation } from '../../hooks/useBarbershopNavigation';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
@@ -33,6 +35,8 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const currentUser = getCurrentUser();
   const navigate = useNavigate();
   const pageConfig = usePageConfig();
+  const { goToPage, goToHome, currentSlug } = useBarbershopNavigation();
+  const { barbershopData } = useTenant();
   
   // Use props if provided, otherwise use dynamic page config
   const pageTitle = title || pageConfig.title;
@@ -72,7 +76,23 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   };
 
   const navigateToPage = (path: string) => {
-    navigate(path);
+    if (currentSlug) {
+      goToPage(path);
+    } else {
+      navigate(path);
+    }
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const navigateToSite = () => {
+    if (currentSlug) {
+      // Navegar para a área pública da barbearia
+      navigate(`/${currentSlug}`);
+    } else {
+      navigate('/');
+    }
     if (isMobile) {
       setIsSidebarOpen(false);
     }
@@ -248,7 +268,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   )}
 
                   <button
-                    onClick={() => navigateToPage('/dashboard')}
+                    onClick={() => navigateToPage('dashboard')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Dashboard' : ''}
                   >
@@ -257,7 +277,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('/analytics')}
+                    onClick={() => navigateToPage('analytics')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Analytics' : ''}
                   >
@@ -266,7 +286,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('/agenda')}
+                    onClick={() => navigateToPage('agenda')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Agenda' : ''}
                   >
@@ -282,7 +302,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   )}
 
                   <button
-                    onClick={() => navigateToPage('/servicos')}
+                    onClick={() => navigateToPage('servicos')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Serviços' : ''}
                   >
@@ -292,7 +312,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   {(currentUser as { role?: string })?.role === 'admin' && (
                     <button
-                      onClick={() => navigateToPage('/register')}
+                      onClick={() => navigateToPage('register')}
                       className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                       title={isSidebarCollapsed ? 'Barbeiros' : ''}
                     >
@@ -302,7 +322,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   )}
 
                   <button
-                    onClick={() => navigateToPage('/gerenciar-horarios')}
+                    onClick={() => navigateToPage('gerenciar-horarios')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Horários' : ''}
                   >
@@ -311,7 +331,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('/gerenciar-comentarios')}
+                    onClick={() => navigateToPage('gerenciar-comentarios')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Comentários' : ''}
                   >
@@ -327,7 +347,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   )}
 
                   <button
-                    onClick={() => navigateToPage('/trocar-senha')}
+                    onClick={() => navigateToPage('trocar-senha')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Alterar Senha' : ''}
                   >
@@ -336,7 +356,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('/')}
+                    onClick={navigateToSite}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Ir para Site' : ''}
                   >

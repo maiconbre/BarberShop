@@ -17,6 +17,9 @@ router.get('/check-slug/:slug', barbershopController.checkSlugAvailability);
 // Rota de desenvolvimento (apenas em desenvolvimento)
 router.get('/list', barbershopController.listBarbershops);
 
+// Rota para obter barbearia do usuário autenticado (sem tenant context)
+router.get('/my-barbershop', protect, barbershopController.getMyBarbershop);
+
 // Rotas que requerem tenant context
 router.use('/current', detectTenant);
 router.use('/current', requireTenant);

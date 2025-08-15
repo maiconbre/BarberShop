@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Calendar, User, LogIn } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { getCurrentBarbershop } from '../../services/BarbershopService';
 
 interface BarbershopNavbarProps {
   onBookingClick?: () => void;
@@ -28,12 +29,43 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
   }, []);
 
   const handleLoginClick = () => {
+    // Sempre redirecionar para login global quando não estiver logado
     navigate('/login');
   };
 
-  const handleDashboardClick = () => {
-    if (slug) {
-      navigate(`/app/${slug}/dashboard`);
+  const handleDashboardClick = async () => {
+    if (isAuthenticated) {
+      try {
+        // Verificar se o usuário pertence a esta barbearia
+        const currentUser = useAuth().getCurrentUser();
+        if (currentUser && (currentUser as any).barbershopId) {
+          // Obter dados da barbearia do usuário
+          const barbershopData = await getCurrentBarbershop();
+          if (barbershopData && barbershopData.slug) {
+            // Verificar se o slug da barbearia do usuário corresponde ao slug atual
+            if (barbershopData.slug === slug) {
+              // Usuário pertence a esta barbearia, ir para dashboard
+              navigate(`/app/${slug}/dashboard`);
+            } else {
+              // Usuário pertence a outra barbearia, redirecionar para sua própria
+              navigate(`/app/${barbershopData.slug}/dashboard`);
+            }
+          } else {
+             // Fallback: ir para login
+             navigate('/login');
+           }
+        } else {
+          // Usuário sem barbershopId, redirecionar para login
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar dados da barbearia:', error);
+        // Em caso de erro, redirecionar para login
+        navigate('/login');
+      }
+    } else {
+      // Não deveria chegar aqui, mas por segurança
+      navigate('/login');
     }
   };
 
@@ -110,13 +142,24 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                 <span>Dashboard</span>
               </button>
             ) : (
-              <button
-                onClick={handleLoginClick}
-                className="text-gray-300 hover:text-[#F0B35B] transition-colors duration-200 flex items-center space-x-2"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Entrar</span>
-              </button>
+              <>
+                <button
+                  onClick={handleLoginClick}
+                  className="text-gray-300 hover:text-[#F0B35B] transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Entrar</span>
+                </button>
+                
+                {/* Botão discreto para barbeiros */}
+                <button
+                  onClick={handleLoginClick}
+                  className="text-xs text-gray-500 hover:text-gray-400 transition-colors duration-200 px-2 py-1 rounded border border-gray-600 hover:border-gray-500"
+                  title="Acesso para barbeiros"
+                >
+                  Login Barbeiros
+                </button>
+              </>
             )}
           </div>
 
@@ -176,16 +219,30 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                     <span>Dashboard</span>
                   </button>
                 ) : (
-                  <button
-                    onClick={() => {
-                      handleLoginClick();
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full text-gray-300 hover:text-[#F0B35B] transition-colors duration-200 flex items-center justify-center space-x-2 py-2"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    <span>Entrar</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        handleLoginClick();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-gray-300 hover:text-[#F0B35B] transition-colors duration-200 flex items-center justify-center space-x-2 py-2"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span>Entrar</span>
+                    </button>
+                    
+                    {/* Botão discreto para barbeiros - Mobile */}
+                    <button
+                      onClick={() => {
+                        handleLoginClick();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full text-xs text-gray-500 hover:text-gray-400 transition-colors duration-200 py-2 rounded border border-gray-600 hover:border-gray-500"
+                      title="Acesso para barbeiros"
+                    >
+                      Login Barbeiros
+                    </button>
+                  </>
                 )}
               </div>
             </div>

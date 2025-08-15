@@ -110,14 +110,10 @@ export const SUCCESS_MESSAGES = {
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/register',
-  DASHBOARD: '/dashboard',
-  SERVICES: '/services',
-  APPOINTMENTS: '/appointments',
-  PROFILE: '/profile',
-  ADMIN: '/admin',
-  BARBER_MANAGEMENT: '/admin/barbers',
-  SERVICE_MANAGEMENT: '/admin/services',
+  REGISTER_BARBERSHOP: '/register-barbershop',
+  // Tenant-aware routes are dynamically generated
+  // Ex: /app/:barbershopSlug/dashboard
+  TENANT_BASE: '/app',
 } as const;
 
 // API Endpoints

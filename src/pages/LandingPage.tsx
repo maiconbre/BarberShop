@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
+import { getCurrentBarbershop } from '../services/BarbershopService';
 import { 
   Scissors, 
   Calendar, 
@@ -16,6 +18,18 @@ import {
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, getCurrentUser } = useAuth();
+
+  const handleLoginClick = async () => {
+    if (isAuthenticated) {
+      // Usuário já está logado, redirecionar para o dashboard usando useAuthRedirect
+      // Não tentar obter dados da barbearia aqui para evitar conflitos de contexto
+      navigate('/login'); // Isso ativará o useAuthRedirect que fará o redirecionamento correto
+    } else {
+      // Usuário não está logado, redirecionar para login
+      navigate('/login');
+    }
+  };
 
   const features = [
     {
@@ -120,7 +134,7 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => navigate('/login')}
+                onClick={handleLoginClick}
                 className="text-gray-300 hover:text-white transition-colors font-medium"
               >
                 Entrar
@@ -443,7 +457,7 @@ const LandingPage: React.FC = () => {
               Plataforma SaaS completa para barbearias modernas
             </p>
             <div className="flex justify-center space-x-8 text-sm text-gray-400 mb-6">
-              <button onClick={() => navigate('/login')} className="hover:text-[#F0B35B] transition-colors font-medium">
+              <button onClick={handleLoginClick} className="hover:text-[#F0B35B] transition-colors font-medium">
                 Já tem uma conta? Entrar
               </button>
               <button onClick={() => navigate('/verify-email')} className="hover:text-[#F0B35B] transition-colors font-medium">

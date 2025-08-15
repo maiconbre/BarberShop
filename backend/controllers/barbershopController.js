@@ -1,4 +1,4 @@
-const { Barbershop, User } = require('../models');
+const { Barbershop, User, Barber } = require('../models');
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
 
@@ -363,6 +363,17 @@ exports.registerBarbershop = async (req, res) => {
 
     console.log('Usuário admin criado:', adminUser.id);
 
+    // Criar barbeiro automaticamente com o nome do proprietário
+    const firstBarber = await Barber.create({
+      id: '01', // Primeiro barbeiro sempre terá ID '01'
+      name: ownerName.trim(),
+      whatsapp: '', // Será preenchido posteriormente pelo usuário
+      pix: '', // Será preenchido posteriormente pelo usuário
+      barbershopId: barbershop.id
+    });
+
+    console.log('Primeiro barbeiro criado:', firstBarber.id, firstBarber.name);
+
     // Gerar tokens para login automático
     const token = generateToken(adminUser);
     const refreshToken = generateRefreshToken(adminUser);
@@ -489,6 +500,55 @@ exports.getCurrentBarbershop = async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao obter barbearia atual:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR'
+    });
+  }
+};
+
+/**
+ * Obter dados da barbearia do usuário autenticado (sem tenant context)
+ * GET /api/barbershops/my-barbershop
+ */
+exports.getMyBarbershop = async (req, res) => {
+  try {
+    if (!req.user || !req.user.barbershopId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não possui barbearia associada',
+        code: 'NO_BARBERSHOP_ASSOCIATED'
+      });
+    }
+
+    const barbershop = await Barbershop.findByPk(req.user.barbershopId, {
+      attributes: ['id', 'name', 'slug', 'owner_email', 'plan_type', 'settings', 'created_at']
+    });
+
+    if (!barbershop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Barbearia não encontrada',
+        code: 'BARBERSHOP_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: barbershop.id,
+        name: barbershop.name,
+        slug: barbershop.slug,
+        ownerEmail: barbershop.owner_email,
+        planType: barbershop.plan_type,
+        settings: barbershop.settings,
+        createdAt: barbershop.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao obter minha barbearia:', error);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor',

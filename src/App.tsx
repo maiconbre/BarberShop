@@ -80,17 +80,8 @@ const AppContent = () => {
               {/* Barbershop isolated home pages - deve vir antes das rotas multi-tenant */}
               <Route path="/:barbershopSlug" element={<BarbershopHomePage />} />
               
-              {/* Legacy routes - redirect to tenant-aware routes */}
-              <Route path="/dashboard" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
-              <Route path="/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-              <Route path="/trocar-senha" element={<ProtectedRoute><TrocaSenha /></ProtectedRoute>} />
-              <Route path="/register" element={<ProtectedRoute><RegisterPage /></ProtectedRoute>} />
-              <Route path="/gerenciar-comentarios" element={<ProtectedRoute><CommentManagementPage /></ProtectedRoute>} />
-              <Route path="/servicos" element={<ProtectedRoute><ServiceManagementPage /></ProtectedRoute>} />
-              <Route path="/gerenciar-horarios" element={<ProtectedRoute><ScheduleManagementPage /></ProtectedRoute>} />
-              
               {/* Multi-tenant routes */}
+              <Route path="/app/:barbershopSlug" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
               <Route path="/app/:barbershopSlug/dashboard" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
               <Route path="/app/:barbershopSlug/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
               <Route path="/app/:barbershopSlug/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />

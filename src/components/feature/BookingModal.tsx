@@ -177,8 +177,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       }
     };
 
-    fetchServices();
-  }, [loadTenantServices, isValidTenant, initialService, initialServices]); // Executar quando tenant mudar
+    if (isOpen) {
+      fetchServices();
+    }
+  }, [isValidTenant, isOpen]); // Executar apenas quando tenant ou modal abrir
 
   // Update services when tenant services change
   React.useEffect(() => {
