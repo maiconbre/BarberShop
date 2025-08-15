@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import Stats from '../components/feature/Stats';
 import StandardLayout from '../components/layout/StandardLayout';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
+import OnboardingModal from '../components/onboarding/OnboardingModal';
 import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
 import ApiService from '../services/ApiService';
+import { isFirstAccess, clearFirstAccess, isOnboardingCompleted } from '../services/SetupService';
+import { useTenant } from '../contexts/TenantContext';
 import toast from 'react-hot-toast';
 
 interface Appointment {
@@ -30,10 +34,13 @@ const APPOINTMENTS_PER_PAGE = 6;
 const DashboardPageNew: React.FC = () => {
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
+  const location = useLocation();
+  const { currentTenant } = useTenant();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [filterMode, setFilterMode] = useState('today');
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,6 +82,29 @@ const DashboardPageNew: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterMode, setCurrentPage]);
+
+  // Verificar se deve mostrar onboarding
+  useEffect(() => {
+    const shouldShowOnboarding = () => {
+      // Mostrar se veio do registro (state) ou se é primeiro acesso e não completou onboarding
+      const fromRegistration = location.state?.showOnboarding;
+      const firstAccess = isFirstAccess();
+      const onboardingCompleted = isOnboardingCompleted();
+      
+      return fromRegistration || (firstAccess && !onboardingCompleted);
+    };
+
+    if (shouldShowOnboarding()) {
+      // Pequeno delay para garantir que a página carregou
+      const timer = setTimeout(() => {
+        setShowOnboarding(true);
+        // Limpar flag de primeiro acesso
+        clearFirstAccess();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   const handleAppointmentAction = useCallback(async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
     if (!appointmentId) return;
@@ -490,6 +520,15 @@ const DashboardPageNew: React.FC = () => {
           }
         }}
       />
+
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <OnboardingModal
+          isOpen={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          barbershopName={currentTenant?.name || 'Sua Barbearia'}
+        />
+      )}
     </StandardLayout>
   );
 };

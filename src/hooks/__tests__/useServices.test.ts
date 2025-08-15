@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import React from 'react';
 import { useServices } from '../useServices';
 import type { ServiceRepository } from '@/services/repositories/ServiceRepository';
 import type { Service } from '@/types';
@@ -29,11 +30,30 @@ const mockServiceRepository = {
   getByCategory: vi.fn(),
   duplicate: vi.fn(),
   search: vi.fn(),
-} as MockedServiceRepository;
+};
 
 vi.mock('@/services/ServiceFactory', () => ({
   useServiceRepository: () => mockServiceRepository,
 }));
+
+// Mock TenantContext
+vi.mock('@/contexts/TenantContext', () => ({
+  TenantProvider: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
+  useTenant: () => ({
+    barbershopId: 'test-barbershop-id',
+    isValidTenant: true,
+    slug: 'test-barbershop',
+    barbershopData: { id: 'test-barbershop-id', name: 'Test Barbershop' },
+    loading: false,
+    error: null
+  })
+}));
+
+// Test wrapper with providers
+const createWrapper = () => {
+  return ({ children }: { children: React.ReactNode }) => 
+    React.createElement('div', null, children);
+};
 
 describe('useServices', () => {
   beforeEach(() => {
@@ -56,7 +76,7 @@ describe('useServices', () => {
       const mockServices = [mockService];
       mockServiceRepository.findAll.mockResolvedValue(mockServices);
 
-      const { result } = renderHook(() => useServices());
+      const { result } = renderHook(() => useServices(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.loadServices();

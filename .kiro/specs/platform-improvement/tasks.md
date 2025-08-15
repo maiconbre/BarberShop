@@ -492,7 +492,13 @@
     - Integrar com n8n para automação de emails
   - _Requirements: 8.3, 8.4, 8.6_
 
-- [ ] 11.2 Sistema de verificação de email e onboarding
+- [x] 11.2 Sistema de verificação de email e onboarding
+
+
+
+
+
+
 
 
   - Gerar código de verificação de 6 dígitos
@@ -502,26 +508,29 @@
   - Bloquear criação da barbearia até confirmação do email
   - _Requirements: 8.6, 8.7_
 
-- [ ] 11.3 Integração com n8n para emails
-  - Configurar webhook n8n para envio de emails
-  - Criar template de email de verificação
-  - Criar template de email de boas-vindas com link personalizado
-  - Implementar fallback para envio direto caso n8n falhe
-  - Configurar logs de entrega de emails
-  - _Requirements: 8.6, 8.7_
 
-- [ ] 11.4 Fluxo completo de onboarding
-  - Email de verificação → Código → Confirmação
-  - Criação automática da estrutura da barbearia
-  - Setup inicial: primeiro barbeiro, serviços básicos
-  - Email de boas-vindas com link de acesso personalizado
+- [x] 11.4 Fluxo completo de onboarding
+
+
+
+
+
+  - Landing page com botao " comece gratis" 
+  - Email de verificação → Código → Confirmação -> formulario dados barbearia
+  - Criação automática da estrutura da barbearia slug [nome da barbearia] url 
+  - Setup inicial: admin, serviços básicos (Militar - $45, Tesoura $50 )
   - Tutorial inicial na primeira entrada
   - _Requirements: 8.4, 8.6, 8.7_
 
-- [ ] 11.5 Página de login com verificação de plano
-  - Atualizar página de login existente para ser pagina home/lading
+- [x] 11.5 Página de login com verificação de plano
+
+
+
+
+  - Atualizar página de "/"  para ser nova landing page sass
+  - hero autentico e lading page padrao concisa
+  - Pricing plano free e plano pro por 39,90
   - Adicionar botão "Começar Grátis" que direciona para cadastro
-  - Implementar verificação de status de pagamento
   - Criar redirecionamento para página específica da barbearia
   - _Requirements: 8.3, 8.4_
 

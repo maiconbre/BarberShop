@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // Disable React Fast Refresh in test environment
+      fastRefresh: false,
+    }),
+  ],
   test: {
     globals: true,
     environment: 'jsdom',

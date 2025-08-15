@@ -60,6 +60,34 @@ export interface BarbershopResponse {
   data: BarbershopData;
 }
 
+export interface EmailVerificationRequest {
+  email: string;
+  barbershopName: string;
+}
+
+export interface EmailVerificationResponse {
+  success: boolean;
+  message: string;
+  data: {
+    email: string;
+    expiresIn: number; // seconds
+  };
+}
+
+export interface EmailCodeVerificationRequest {
+  email: string;
+  code: string;
+}
+
+export interface EmailCodeVerificationResponse {
+  success: boolean;
+  message: string;
+  data: {
+    email: string;
+    verified: boolean;
+  };
+}
+
 // Configuração do axios
 const axiosInstance = axios.create({
   timeout: 30000, // 30 segundos
@@ -81,6 +109,115 @@ const retryRequest = async <T>(fn: () => Promise<T>, retries = 2, delay = 1000):
       return retryRequest(fn, retries - 1, delay * 2);
     }
     throw error;
+  }
+};
+
+/**
+ * Iniciar processo de verificação de email
+ */
+export const initiateEmailVerification = async (data: EmailVerificationRequest): Promise<EmailVerificationResponse> => {
+  try {
+    console.log('Iniciando verificação de email:', data.email);
+
+    const response = await retryRequest(() =>
+      axiosInstance.post<EmailVerificationResponse>('/barbershops/verify-email', data, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+    );
+
+    if (!response.data || !response.data.success) {
+      throw new Error(response.data?.message || 'Erro ao enviar código de verificação');
+    }
+
+    console.log('Código de verificação enviado para:', data.email);
+    return response.data;
+
+  } catch (error: unknown) {
+    console.error('Erro ao iniciar verificação de email:', error);
+
+    // Tratar erros de timeout
+    if ((error as { code?: string }).code === 'ECONNABORTED' || 
+        (error as { message?: string }).message?.includes('timeout')) {
+      throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
+    }
+
+    // Tratar erros de resposta da API
+    if ((error as { response?: { data?: { message?: string; code?: string } } }).response?.data) {
+      const errorData = (error as { response: { data: { message?: string; code?: string } } }).response.data;
+      
+      switch (errorData.code) {
+        case 'EMAIL_ALREADY_EXISTS':
+          throw new Error('Este email já está cadastrado. Use outro email.');
+        case 'INVALID_EMAIL_FORMAT':
+          throw new Error('Formato de email inválido.');
+        case 'MISSING_FIELDS':
+          throw new Error('Email e nome da barbearia são obrigatórios.');
+        case 'EMAIL_SEND_FAILED':
+          throw new Error('Erro ao enviar email. Tente novamente.');
+        default:
+          throw new Error(errorData.message || 'Erro ao enviar código de verificação');
+      }
+    }
+
+    throw new Error('Erro inesperado ao enviar código de verificação. Tente novamente.');
+  }
+};
+
+/**
+ * Verificar código de email
+ */
+export const verifyEmailCode = async (data: EmailCodeVerificationRequest): Promise<EmailCodeVerificationResponse> => {
+  try {
+    console.log('Verificando código de email:', data.email);
+
+    const response = await retryRequest(() =>
+      axiosInstance.post<EmailCodeVerificationResponse>('/barbershops/verify-code', data, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+    );
+
+    if (!response.data || !response.data.success) {
+      throw new Error(response.data?.message || 'Erro ao verificar código');
+    }
+
+    console.log('Código verificado com sucesso para:', data.email);
+    return response.data;
+
+  } catch (error: unknown) {
+    console.error('Erro ao verificar código:', error);
+
+    // Tratar erros de timeout
+    if ((error as { code?: string }).code === 'ECONNABORTED' || 
+        (error as { message?: string }).message?.includes('timeout')) {
+      throw new Error('Tempo de resposta do servidor excedido. Tente novamente.');
+    }
+
+    // Tratar erros de resposta da API
+    if ((error as { response?: { data?: { message?: string; code?: string; attemptsLeft?: number } } }).response?.data) {
+      const errorData = (error as { response: { data: { message?: string; code?: string; attemptsLeft?: number } } }).response.data;
+      
+      switch (errorData.code) {
+        case 'CODE_NOT_FOUND':
+          throw new Error('Código de verificação não encontrado ou expirado. Solicite um novo código.');
+        case 'CODE_EXPIRED':
+          throw new Error('Código de verificação expirado. Solicite um novo código.');
+        case 'INVALID_CODE':
+          const attemptsMsg = errorData.attemptsLeft ? ` (${errorData.attemptsLeft} tentativas restantes)` : '';
+          throw new Error(`Código inválido${attemptsMsg}`);
+        case 'TOO_MANY_ATTEMPTS':
+          throw new Error('Muitas tentativas. Solicite um novo código.');
+        case 'MISSING_FIELDS':
+          throw new Error('Email e código são obrigatórios.');
+        default:
+          throw new Error(errorData.message || 'Erro ao verificar código');
+      }
+    }
+
+    throw new Error('Erro inesperado ao verificar código. Tente novamente.');
   }
 };
 

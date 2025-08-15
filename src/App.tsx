@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TenantProvider } from './contexts/TenantContext';
 import Navbar from './components/ui/Navbar';
+import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import BarbershopHomePage from './pages/BarbershopHomePage';
 import AboutPage from './pages/AboutPage';
@@ -35,6 +36,7 @@ const AppContent = () => {
     transition: { duration: 0.15, ease: "easeInOut" }
   };
   const isPublicRoute = location.pathname === '/' || 
+                       location.pathname === '/showcase' ||
                        location.pathname === '/about' || 
                        location.pathname === '/services' || 
                        location.pathname === '/contacts' || 
@@ -46,8 +48,8 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-[#0D121E] text-white">
-      {/* Carrega a navbar apenas para rotas públicas (não para páginas isoladas das barbearias) */}
-      {isPublicRoute && !isBarbershopHomePage && <Navbar />}
+      {/* Carrega a navbar apenas para rotas públicas (não para landing page nem páginas isoladas das barbearias) */}
+      {isPublicRoute && !isBarbershopHomePage && location.pathname !== '/' && <Navbar />}
       
       {/* Modal de agendamento */}
       <BookingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
@@ -66,7 +68,8 @@ const AppContent = () => {
           >
             <Routes location={location}>
               {/* Public routes */}
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/showcase" element={<Home />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/contacts" element={<ContactPage />} />

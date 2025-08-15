@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import React from 'react';
 import { useAppointments } from '../useAppointments';
 import type { AppointmentRepository } from '@/services/repositories/AppointmentRepository';
 import type { Appointment, AppointmentStatus } from '@/types';
@@ -27,11 +28,30 @@ const mockAppointmentRepository = {
   delete: vi.fn(),
   exists: vi.fn(),
   getStatistics: vi.fn(),
-} as MockedAppointmentRepository;
+};
 
 vi.mock('@/services/ServiceFactory', () => ({
   useAppointmentRepository: () => mockAppointmentRepository,
 }));
+
+// Mock TenantContext
+vi.mock('@/contexts/TenantContext', () => ({
+  TenantProvider: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
+  useTenant: () => ({
+    barbershopId: 'test-barbershop-id',
+    isValidTenant: true,
+    slug: 'test-barbershop',
+    barbershopData: { id: 'test-barbershop-id', name: 'Test Barbershop' },
+    loading: false,
+    error: null
+  })
+}));
+
+// Test wrapper with providers
+const createWrapper = () => {
+  return ({ children }: { children: React.ReactNode }) => 
+    React.createElement('div', null, children);
+};
 
 describe('useAppointments', () => {
   beforeEach(() => {
@@ -63,7 +83,7 @@ describe('useAppointments', () => {
       const mockAppointments = [mockAppointment];
       mockAppointmentRepository.findAll.mockResolvedValue(mockAppointments);
 
-      const { result } = renderHook(() => useAppointments());
+      const { result } = renderHook(() => useAppointments(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.loadAppointments();

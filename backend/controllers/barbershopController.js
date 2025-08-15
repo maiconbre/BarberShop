@@ -10,21 +10,70 @@ const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Helper function to send email via n8n webhook (placeholder for now)
+// Helper function to send email via n8n webhook
 const sendVerificationEmail = async (email, code, barbershopName) => {
   try {
-    // TODO: Implement n8n webhook integration
     console.log(`Sending verification email to ${email} with code ${code} for barbershop ${barbershopName}`);
     
-    // For now, just log the code (in development)
+    // For development, just log the code
     if (process.env.NODE_ENV !== 'production') {
       console.log(`🔐 VERIFICATION CODE for ${email}: ${code}`);
+      return { success: true };
     }
+
+    // Production: Send via n8n webhook
+    const webhookUrl = process.env.N8N_EMAIL_WEBHOOK_URL;
     
-    return { success: true };
+    if (!webhookUrl) {
+      console.warn('N8N_EMAIL_WEBHOOK_URL not configured, falling back to console log');
+      console.log(`🔐 VERIFICATION CODE for ${email}: ${code}`);
+      return { success: true };
+    }
+
+    // Use dynamic import for node-fetch (ESM module)
+    const fetch = (await import('node-fetch')).default;
+    
+    const webhookPayload = {
+      to: email,
+      subject: `Código de verificação - ${barbershopName}`,
+      template: 'email-verification',
+      data: {
+        barbershopName,
+        verificationCode: code,
+        email,
+        expiresIn: '15 minutos'
+      }
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(webhookPayload),
+      timeout: 10000 // 10 seconds timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook failed with status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('Email sent successfully via n8n:', result);
+    
+    return { success: true, webhookResponse: result };
+    
   } catch (error) {
     console.error('Error sending verification email:', error);
-    return { success: false, error: error.message };
+    
+    // Fallback: log the code if webhook fails
+    console.log(`🔐 FALLBACK - VERIFICATION CODE for ${email}: ${code}`);
+    
+    return { 
+      success: true, // Still return success so registration can continue
+      error: error.message,
+      fallback: true 
+    };
   }
 };
 

@@ -169,29 +169,70 @@ const Hero: React.FC<HeroProps> = ({ setIsModalOpen, preloadAppointments }) => {
           {heroSubtitle}
         </p>
 
-        {/* Botão de agendamento */}
-        <button
-          onClick={handleBookingClick}
-          className="
-            relative overflow-hidden
-            mt-4 bg-[#F0B35B] text-black px-12 py-4 rounded-lg
-            text-lg md:text-xl font-semibold
-            transition-all duration-700
-            scale-100 shadow-[0_0_25px_rgba(240,179,91,0.4)]
-            border-2 border-[#F0B35B]
-           
-            before:absolute before:inset-0
-            before:bg-gradient-to-r before:from-[#F0B35B]/0 
-            before:via-white/40 before:to-[#F0B35B]/0
-            before:-skew-x-45 before:animate-shine
-          "
-        >
-          <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>
-            {heroCta}
-            <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>          </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
-        </button>
+        {/* Botões de ação */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+          {/* Botão principal - Comece Grátis */}
+          <button
+            onClick={() => window.location.href = '/verify-email'}
+            className="
+              relative overflow-hidden
+              bg-[#F0B35B] text-black px-12 py-4 rounded-lg
+              text-lg md:text-xl font-semibold
+              transition-all duration-700
+              scale-100 shadow-[0_0_25px_rgba(240,179,91,0.4)]
+              border-2 border-[#F0B35B]
+              hover:scale-105 hover:shadow-[0_0_35px_rgba(240,179,91,0.6)]
+              before:absolute before:inset-0
+              before:bg-gradient-to-r before:from-[#F0B35B]/0 
+              before:via-white/40 before:to-[#F0B35B]/0
+              before:-skew-x-45 before:animate-shine
+            "
+          >
+            <span className="relative z-10 inline-flex items-center justify-center w-full gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>
+              Comece Grátis
+              <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:w-8 transition-all duration-300"></span>
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
+          </button>
+
+          {/* Botão secundário - Agendar */}
+          <button
+            onClick={handleBookingClick}
+            className="
+              relative overflow-hidden
+              bg-transparent text-[#F0B35B] px-8 py-4 rounded-lg
+              text-lg md:text-xl font-semibold
+              transition-all duration-700
+              border-2 border-[#F0B35B]
+              hover:bg-[#F0B35B] hover:text-black
+              hover:scale-105 hover:shadow-[0_0_25px_rgba(240,179,91,0.3)]
+            "
+          >
+            <span className="relative z-10">
+              {heroCta}
+            </span>
+          </button>
+        </div>
+
+        {/* Benefícios do plano gratuito */}
+        <div className="mt-8 max-w-2xl mx-auto">
+          <p className="text-sm text-gray-400 mb-4">🎉 Plano gratuito inclui:</p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-300">
+            <span className="flex items-center gap-1">
+              ✓ 1 barbeiro
+            </span>
+            <span className="flex items-center gap-1">
+              ✓ 20 agendamentos/mês
+            </span>
+            <span className="flex items-center gap-1">
+              ✓ Página personalizada
+            </span>
+            <span className="flex items-center gap-1">
+              ✓ Sistema completo
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Features rotativas - Fixo na parte inferior */}

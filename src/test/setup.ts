@@ -5,6 +5,12 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 // Extends Vitest's expect method with methods from react-testing-library
 expect.extend(matchers);
 
+// Disable React Fast Refresh in test environment
+// @ts-ignore
+global.$RefreshSig$ = undefined;
+// @ts-ignore
+global.$RefreshReg$ = undefined;
+
 // Cleanup after each test case (e.g. clearing jsdom)
 afterEach(() => {
   cleanup();

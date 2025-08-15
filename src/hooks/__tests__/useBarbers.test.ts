@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import React from 'react';
 import { useBarbers } from '../useBarbers';
 import type { BarberRepository } from '@/services/repositories/BarberRepository';
 import type { Barber } from '@/types';
+import { TenantProvider } from '@/contexts/TenantContext';
 
 // Mock BarberRepository
 type MockedBarberRepository = {
   [K in keyof BarberRepository]: vi.MockedFunction<BarberRepository[K]>;
-} as MockedBarberRepository;
+};
 
 const mockBarberRepository = {
   findAll: vi.fn(),
@@ -29,6 +31,25 @@ const mockBarberRepository = {
 vi.mock('@/services/ServiceFactory', () => ({
   useBarberRepository: () => mockBarberRepository,
 }));
+
+// Mock TenantContext
+vi.mock('@/contexts/TenantContext', () => ({
+  TenantProvider: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
+  useTenant: () => ({
+    barbershopId: 'test-barbershop-id',
+    isValidTenant: true,
+    slug: 'test-barbershop',
+    barbershopData: { id: 'test-barbershop-id', name: 'Test Barbershop' },
+    loading: false,
+    error: null
+  })
+}));
+
+// Test wrapper with providers
+const createWrapper = () => {
+  return ({ children }: { children: React.ReactNode }) => 
+    React.createElement('div', null, children);
+};
 
 describe('useBarbers', () => {
   beforeEach(() => {
@@ -65,7 +86,7 @@ describe('useBarbers', () => {
       const mockBarbers = [mockBarber];
       mockBarberRepository.findAll.mockResolvedValue(mockBarbers);
 
-      const { result } = renderHook(() => useBarbers());
+      const { result } = renderHook(() => useBarbers(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.loadBarbers();
@@ -80,7 +101,7 @@ describe('useBarbers', () => {
       const error = new Error('Failed to load barbers');
       mockBarberRepository.findAll.mockRejectedValue(error);
 
-      const { result } = renderHook(() => useBarbers());
+      const { result } = renderHook(() => useBarbers(), { wrapper: createWrapper() });
 
       await act(async () => {
         try {
@@ -99,7 +120,7 @@ describe('useBarbers', () => {
       const filters = { isActive: true };
       mockBarberRepository.findAll.mockResolvedValue(mockBarbers);
 
-      const { result } = renderHook(() => useBarbers());
+      const { result } = renderHook(() => useBarbers(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.loadBarbers(filters);

@@ -8,6 +8,7 @@ import {
     validateSlugFormat,
     type BarbershopRegistrationData
 } from '../services/BarbershopService';
+import { setupInitialBarbershopData, markFirstAccess } from '../services/SetupService';
 import { useAuth } from '../contexts/AuthContext';
 
 interface LocationState {
@@ -179,15 +180,32 @@ const BarbershopRegistrationPage: React.FC = () => {
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('refreshToken', response.data.refreshToken);
 
+            // Configurar estrutura inicial da barbearia
+            setSuccess('🎉 Barbearia registrada! Configurando estrutura inicial...');
+            
+            try {
+                await setupInitialBarbershopData(response.data.barbershop.id, response.data.token);
+                console.log('Estrutura inicial configurada com sucesso');
+            } catch (setupError) {
+                console.warn('Erro ao configurar estrutura inicial (continuando):', setupError);
+                // Não bloquear o fluxo se o setup falhar
+            }
+
             // Atualizar contexto de autenticação
             await login(formData.ownerUsername, formData.ownerPassword, true);
 
-            setSuccess('🎉 Barbearia registrada com sucesso! Bem-vindo ao BarberShop! Redirecionando para seu dashboard...');
+            // Marcar como primeiro acesso para mostrar onboarding
+            markFirstAccess();
 
-            // Redirecionar para o dashboard da barbearia
+            setSuccess('🎉 Barbearia criada com sucesso! Bem-vindo ao BarberShop! Iniciando tutorial...');
+
+            // Redirecionar para o dashboard da barbearia com onboarding
             setTimeout(() => {
-                navigate(`/app/${response.data.barbershop.slug}/dashboard`, { replace: true });
-            }, 3000);
+                navigate(`/app/${response.data.barbershop.slug}/dashboard`, { 
+                    replace: true,
+                    state: { showOnboarding: true }
+                });
+            }, 2000);
 
         } catch (err: unknown) {
             console.error('Erro no registro:', err);
