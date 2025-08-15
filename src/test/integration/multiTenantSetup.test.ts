@@ -3,7 +3,7 @@
  * Ensures the test setup correctly isolates tenant data
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { 
   setupMultiTenantTest, 
   MultiTenantTestMocks,
@@ -12,7 +12,7 @@ import {
   switchTenant,
   validateTenantBoundaries
 } from '../utils/multiTenantTestUtils';
-import { testBarbershops, getTenantTestData } from '../fixtures/tenantFixtures';
+import {  getTenantTestData } from '../fixtures/tenantFixtures';
 
 // Test tenant IDs
 const TEST_TENANT_IDS = ['bb-alpha-123', 'bb-beta-456', 'bb-gamma-789'];

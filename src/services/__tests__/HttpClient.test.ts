@@ -289,7 +289,7 @@ describe('HttpClient', () => {
       
       // Mock fetch to simulate timeout
       mockFetch.mockImplementation(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise((_, reject) => {
           setTimeout(() => {
             const error = new Error('The operation was aborted');
             error.name = 'AbortError';

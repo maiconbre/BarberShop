@@ -392,7 +392,7 @@ describe('AppointmentRepository', () => {
 
     it('should return false when appointment does not exist', async () => {
       const notFoundError = new Error('Not Found');
-      notFoundError.status = 404;
+      (notFoundError as MockApiError).status = 404;
       mockApiService.get.mockRejectedValue(notFoundError);
 
       const result = await appointmentRepository.exists('999');
@@ -469,7 +469,7 @@ describe('AppointmentRepository', () => {
   describe('rate limiting integration', () => {
     it('should handle rate limiting gracefully', async () => {
       const rateLimitError = new Error('Rate limit exceeded');
-      rateLimitError.status = 429;
+      (rateLimitError as MockApiError).status = 429;
       mockApiService.get.mockRejectedValue(rateLimitError);
 
       await expect(appointmentRepository.findAll()).rejects.toThrow('Rate limit exceeded');

@@ -3,7 +3,35 @@ import { renderHook, act } from '@testing-library/react';
 import { useComments } from '../useComments';
 import type { PublicComment } from '@/types';
 
+// Mock TenantContext
+vi.mock('../../contexts/TenantContext', () => ({
+  useTenant: () => ({
+    barbershopId: 'test-barbershop-123',
+    isValidTenant: true,
+    slug: 'test-barbershop',
+    barbershopData: {
+      id: 'test-barbershop-123',
+      name: 'Test Barbershop',
+      slug: 'test-barbershop'
+    },
+    loading: false,
+    error: null
+  })
+}));
 
+// Mock TenantAwareRepository
+vi.mock('../../services/TenantAwareRepository', () => ({
+  createTenantAwareRepository: (baseRepo: any) => baseRepo
+}));
+
+// Mock TenantAwareCache
+vi.mock('../../services/TenantAwareCache', () => ({
+  createTenantAwareCache: () => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    clearTenantCache: vi.fn()
+  })
+}));
 
 const mockCommentRepository = {
   findAll: vi.fn(),
