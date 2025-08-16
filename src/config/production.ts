@@ -166,7 +166,6 @@ export function applyProductionConfig(): void {
 // Configurações específicas por ambiente
 export const getEnvironmentConfig = () => {
   const isDevelopment = import.meta.env.DEV;
-  const isProduction = import.meta.env.PROD;
 
   if (isDevelopment) {
     return {

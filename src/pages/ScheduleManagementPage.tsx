@@ -12,8 +12,8 @@ const ScheduleManagementPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   // Hooks multi-tenant
-  const { barbers: tenantBarbers, loadBarbers, loading: barbersLoading, error: barbersError } = useBarbers();
-  const { barbershopId, isValidTenant } = useTenant();
+  const { barbers: tenantBarbers, loadBarbers } = useBarbers();
+  const { isValidTenant } = useTenant();
   
   // Local state for barbers (transformed for component use)
   const [barbers, setBarbers] = useState<Array<{ id: string; name: string }>>([]);

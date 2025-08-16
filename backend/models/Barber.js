@@ -2,7 +2,8 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('./database');
 const Barber = sequelize.define('Barber', {
   id: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
   name: {
@@ -27,6 +28,8 @@ const Barber = sequelize.define('Barber', {
   }
 }, {
   timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     {
       fields: ['barbershopId', 'id']

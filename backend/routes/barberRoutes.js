@@ -35,18 +35,17 @@ const writeLimiter = limitRepeatedRequests({
 // Rota para listar todos os barbeiros com limitador otimizado para leitura
 router.get('/', readLimiter, async (req, res) => {
   try {
-    // Verificar se o contexto de tenant está disponível
-    const barbershopId = req.tenant?.barbershopId;
-    if (!barbershopId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Contexto de barbearia não encontrado'
-      });
+    let whereClause = {};
+    
+    // Se há contexto de tenant, filtrar por barbearia
+    if (req.tenant && req.tenant.barbershopId) {
+      whereClause.barbershopId = req.tenant.barbershopId;
     }
+    // Se não há tenant, buscar todos os barbeiros (modo público)
 
-    // Buscar barbeiros da barbearia específica
+    // Buscar barbeiros
     const barbers = await Barber.findAll({
-      where: { barbershopId }
+      where: whereClause
     });
     
     // Buscar usuários com role 'barber' da mesma barbearia
@@ -269,29 +268,16 @@ router.post('/', writeLimiter, checkBarberLimits, async (req, res) => {
       });
     }
 
-    // Buscar o último ID de barbeiro da barbearia específica
-    const lastBarber = await Barber.findOne({
-      where: { barbershopId },
-      order: [['id', 'DESC']]
-    });
-
-    // Gerar novo ID sequencial
-    const newId = lastBarber ?
-      String(parseInt(lastBarber.id) + 1).padStart(2, '0') :
-      '01';
-
     // Criar usuário
     const user = await User.create({
-      id: newId,
       username,
       password,
       name,
       role: 'barber'
     });
 
-    // Criar barbeiro com barbershopId
+    // Criar barbeiro com barbershopId (UUID será gerado automaticamente)
     const barber = await Barber.create({
-      id: newId,
       name,
       whatsapp,
       pix,

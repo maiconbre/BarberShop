@@ -94,7 +94,7 @@ const BarbershopRegistrationPage: React.FC = () => {
                     setSlugStatus('unavailable');
                     setSlugMessage(result.message || 'Nome não disponível');
                 }
-            } catch (err) {
+            } catch {
                 setSlugStatus('unavailable');
                 setSlugMessage('Erro ao verificar disponibilidade');
             }

@@ -379,12 +379,12 @@ export const useServices = () => {
       const allServices = await tenantRepository.findAll();
 
       const prices = allServices.map(s => s.price || 0).filter(p => p > 0);
-      const durations = allServices.map(s => (s as any).duration || 30).filter(d => d > 0);
+      const durations = allServices.map(s => (s as { duration?: number }).duration || 30).filter(d => d > 0);
 
       const stats: ServiceStatistics = {
         total: allServices.length,
-        active: allServices.filter(s => (s as any).isActive !== false).length,
-        inactive: allServices.filter(s => (s as any).isActive === false).length,
+        active: allServices.filter(s => (s as { isActive?: boolean }).isActive !== false).length,
+        inactive: allServices.filter(s => (s as { isActive?: boolean }).isActive === false).length,
         averagePrice: prices.length > 0 ? prices.reduce((sum, p) => sum + p, 0) / prices.length : 0,
         averageDuration: durations.length > 0 ? durations.reduce((sum, d) => sum + d, 0) / durations.length : 30,
         priceRange: {
@@ -396,9 +396,9 @@ export const useServices = () => {
           max: durations.length > 0 ? Math.max(...durations) : 120
         },
         categoryDistribution: {
-          quick: allServices.filter(s => (s as any).duration <= 30).length,
-          standard: allServices.filter(s => (s as any).duration > 30 && (s as any).duration <= 60).length,
-          long: allServices.filter(s => (s as any).duration > 60).length
+          quick: allServices.filter(s => (s as { duration?: number }).duration && (s as { duration?: number }).duration! <= 30).length,
+          standard: allServices.filter(s => (s as { duration?: number }).duration && (s as { duration?: number }).duration! > 30 && (s as { duration?: number }).duration! <= 60).length,
+          long: allServices.filter(s => (s as { duration?: number }).duration && (s as { duration?: number }).duration! > 60).length
         }
       };
 
@@ -453,9 +453,9 @@ export const useServices = () => {
           ...originalService,
           name: newName
         };
-        delete (duplicateData as any).id;
-        delete (duplicateData as any).createdAt;
-        delete (duplicateData as any).updatedAt;
+        delete (duplicateData as { id?: string }).id;
+        delete (duplicateData as { createdAt?: Date }).createdAt;
+        delete (duplicateData as { updatedAt?: Date }).updatedAt;
 
         const duplicatedService = await tenantRepository.create(duplicateData);
 

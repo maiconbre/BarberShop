@@ -6,9 +6,9 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 expect.extend(matchers);
 
 // Disable React Fast Refresh in test environment
-// @ts-ignore
+// @ts-expect-error - Global React Fast Refresh disable for tests
 global.$RefreshSig$ = undefined;
-// @ts-ignore
+// @ts-expect-error - Global React Fast Refresh disable for tests
 global.$RefreshReg$ = undefined;
 
 // Cleanup after each test case (e.g. clearing jsdom)

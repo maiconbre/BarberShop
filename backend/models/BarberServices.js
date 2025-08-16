@@ -3,7 +3,7 @@ const sequelize = require('./database');
 
 const BarberServices = sequelize.define('BarberServices', {
   BarberId: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
     primaryKey: true,
     references: {
       model: 'Barbers',
@@ -27,7 +27,9 @@ const BarberServices = sequelize.define('BarberServices', {
     }
   }
 }, { 
-  timestamps: false,
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     {
       fields: ['barbershopId']

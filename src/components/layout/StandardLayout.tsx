@@ -22,8 +22,9 @@ import {
 import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
 import { useBarbershopNavigation } from '../../hooks/useBarbershopNavigation';
-import { useTenant } from '../../contexts/TenantContext';
+// Removed unused import: useTenant
 import { usePlan } from '../../hooks/usePlan';
+import UserFeedback from '../feature/UserFeedback';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
@@ -38,7 +39,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const navigate = useNavigate();
   const pageConfig = usePageConfig();
   const { goToPage, currentSlug } = useBarbershopNavigation();
-  const { barbershopData } = useTenant();
+  // Removed unused tenant context
   const { planInfo, usage } = usePlan();
   
   // Use props if provided, otherwise use dynamic page config
@@ -49,6 +50,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Detectar mudanças no tamanho da tela
   useEffect(() => {
@@ -393,6 +395,15 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     <Home className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Ir para Site</span>}
                   </button>
+
+                  <button
+                    onClick={() => setIsFeedbackOpen(true)}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
+                    title={isSidebarCollapsed ? 'Enviar Feedback' : ''}
+                  >
+                    <MessageSquare className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Enviar Feedback</span>}
+                  </button>
                 </div>
               </div>
 
@@ -463,6 +474,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           </div>
         </div>
       </main>
+
+      {/* User Feedback Modal */}
+      <UserFeedback 
+        isOpen={isFeedbackOpen} 
+        onClose={() => setIsFeedbackOpen(false)} 
+      />
     </div>
   );
 };

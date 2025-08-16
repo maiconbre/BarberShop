@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Barbershop } = require('../models');
-const { authenticateToken } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
 const { detectTenant, requireTenant, validateTenantAccess } = require('../middleware/tenantMiddleware');
 const { getUsageStats, handleUsageStats } = require('../middleware/planLimitsMiddleware');
 
@@ -12,7 +12,7 @@ const { getUsageStats, handleUsageStats } = require('../middleware/planLimitsMid
 router.get('/usage', 
   detectTenant,
   requireTenant,
-  authenticateToken,
+  protect,
   validateTenantAccess,
   getUsageStats,
   handleUsageStats
@@ -25,7 +25,7 @@ router.get('/usage',
 router.post('/upgrade', 
   detectTenant,
   requireTenant,
-  authenticateToken,
+  protect,
   validateTenantAccess,
   async (req, res) => {
     try {
@@ -111,7 +111,7 @@ router.post('/upgrade',
 router.get('/current',
   detectTenant,
   requireTenant,
-  authenticateToken,
+  protect,
   validateTenantAccess,
   async (req, res) => {
     try {
@@ -159,7 +159,7 @@ router.get('/current',
 router.get('/history',
   detectTenant,
   requireTenant,
-  authenticateToken,
+  protect,
   validateTenantAccess,
   async (req, res) => {
     try {

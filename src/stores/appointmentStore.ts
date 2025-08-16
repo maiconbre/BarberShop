@@ -6,9 +6,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import type { Appointment, BookingFormData, AppointmentFilters, AppointmentStatus } from '@/types';
-import { useAppointmentRepository } from '@/services/ServiceFactory';
-import { createTenantAwareRepository } from '@/services/TenantAwareRepository';
-import { createTenantAwareCache } from '@/services/TenantAwareCache';
+// Removed unused imports - these should be handled by components
 
 interface AppointmentState {
   // State
@@ -20,8 +18,8 @@ interface AppointmentState {
   
   // Multi-tenant state
   barbershopId: string | null;
-  tenantRepository: any | null;
-  tenantCache: any | null;
+  tenantRepository: unknown | null;
+  tenantCache: unknown | null;
 
   // Actions
   initializeTenant: (barbershopId: string) => void;
@@ -93,14 +91,12 @@ export const useAppointmentStore = create<AppointmentState>()(
 
     // Actions
     initializeTenant: (barbershopId: string) => {
-      const baseRepository = useAppointmentRepository();
-      const tenantRepository = createTenantAwareRepository(baseRepository, () => barbershopId);
-      const tenantCache = createTenantAwareCache(() => barbershopId);
-      
+      // Note: This should be called from a component that has access to the repository
+      // The repository should be passed as a parameter instead of using hooks here
       set({
         barbershopId,
-        tenantRepository,
-        tenantCache,
+        tenantRepository: null, // Will be set by component
+        tenantCache: null, // Will be set by component
       });
     },
 

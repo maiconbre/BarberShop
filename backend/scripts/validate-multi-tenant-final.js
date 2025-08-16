@@ -151,7 +151,6 @@ async function testTenantIsolation() {
     console.log('\n💇 2.3 Criando barbeiros por tenant...');
     
     const barber1 = await Barber.create({
-      id: 'test-alpha-01',
       name: 'Test Barber Alpha',
       whatsapp: '11999999001',
       pix: 'test-alpha@pix.com',
@@ -159,7 +158,6 @@ async function testTenantIsolation() {
     });
 
     const barber2 = await Barber.create({
-      id: 'test-beta-01', // ID diferente para evitar conflito de PK
       name: 'Test Barber Beta',
       whatsapp: '11999999002',
       pix: 'test-beta@pix.com',

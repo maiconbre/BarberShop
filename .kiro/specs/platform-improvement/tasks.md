@@ -652,7 +652,9 @@
   - Preparar guia de deploy para produção
   - _Requirements: 6.2, 6.4_
 
-- [-] 15. Launch e Monitoramento
+- [x] 15. Launch e Monitoramento
+
+
 
 
 

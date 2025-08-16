@@ -292,13 +292,8 @@ const initDatabase = async () => {
     await sequelize.sync({ force: false });
     console.log('Banco de dados sincronizado');
 
-    // Seed inicial de usuários, se necessário
-    const usersCount = await User.count();
-    if (usersCount === 0) {
-      await authController.seedUsers();
-    } else {
-      console.log(`Já existem ${usersCount} usuários no banco de dados.`);
-    }
+    // Banco de dados limpo - sem seed inicial
+    console.log('✅ Sistema iniciado com banco limpo (sem dados pré-populados)');
 
     // Inicia o servidor utilizando o HOST e PORT definidos
     const server = app.listen(PORT, HOST, () => {

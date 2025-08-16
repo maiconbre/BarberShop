@@ -7,18 +7,19 @@ exports.getAllServices = async (req, res) => {
   console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] IP: ${req.ip}, User-Agent: ${req.get('user-agent')}`);
   
   try {
-    // Verificar contexto de tenant
-    if (!req.tenant || !req.tenant.barbershopId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Contexto de barbearia não encontrado',
-        code: 'TENANT_CONTEXT_MISSING'
-      });
+    let whereClause = {};
+    
+    // Se há contexto de tenant, filtrar por barbearia
+    if (req.tenant && req.tenant.barbershopId) {
+      whereClause.barbershopId = req.tenant.barbershopId;
+      console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Executando Service.findAll() para barbershop: ${req.tenant.barbershopId}`);
+    } else {
+      // Se não há tenant, buscar todos os serviços (modo público)
+      console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Executando Service.findAll() - modo público`);
     }
 
-    console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Executando Service.findAll() para barbershop: ${req.tenant.barbershopId}`);
     const services = await Service.findAll({
-      where: { barbershopId: req.tenant.barbershopId }
+      where: whereClause
     });
     console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Serviços encontrados: ${services.length}`);
     

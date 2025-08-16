@@ -205,9 +205,10 @@ export const verifyEmailCode = async (data: EmailCodeVerificationRequest): Promi
           throw new Error('Código de verificação não encontrado ou expirado. Solicite um novo código.');
         case 'CODE_EXPIRED':
           throw new Error('Código de verificação expirado. Solicite um novo código.');
-        case 'INVALID_CODE':
+        case 'INVALID_CODE': {
           const attemptsMsg = errorData.attemptsLeft ? ` (${errorData.attemptsLeft} tentativas restantes)` : '';
           throw new Error(`Código inválido${attemptsMsg}`);
+        }
         case 'TOO_MANY_ATTEMPTS':
           throw new Error('Muitas tentativas. Solicite um novo código.');
         case 'MISSING_FIELDS':

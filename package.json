@@ -34,6 +34,9 @@
     "backup:schedule": "echo 'Setup cron job: 0 2 * * * cd /path/to/project && npm run backup:db'",
     "production:setup": "echo 'Follow docs/production/PRODUCTION_SETUP.md for complete setup'",
     "production:validate": "node scripts/validate-production.js",
+    "health-check:run": "node scripts/health-check.js",
+    "health-check:save": "SAVE_REPORT=true node scripts/health-check.js",
+    "test:first-barbershop": "node scripts/test-first-barbershop.js",
     "prisma": {
       "seed": "node --loader ts-node/esm prisma/seed.ts"
     },

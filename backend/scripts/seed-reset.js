@@ -6,7 +6,6 @@
 
 require('dotenv').config({ path: '.env' });
 const sequelize = require('../models/database');
-const { seedDevelopmentData } = require('../seeders/dev-seed');
 
 async function resetAndSeedDatabase() {
   console.log('🔄 Starting database reset and seed...');
@@ -21,19 +20,9 @@ async function resetAndSeedDatabase() {
     await sequelize.sync({ force: true });
     console.log('✅ Database schema recreated with multi-tenant structure');
     
-    // Seed development data
-    console.log('🌱 Seeding development data...');
-    await seedDevelopmentData();
-    
-    console.log('\n🎉 Database reset and seed completed successfully!');
-    console.log('\n🔑 Login credentials:');
-    console.log('   Admin: admin / admin123');
-    console.log('   Barber 1: joao / barber123');
-    console.log('   Barber 2: pedro / barber123');
-    console.log('\n🏪 Barbershop:');
-    console.log('   Name: Dev Barbershop');
-    console.log('   Slug: dev-barbershop');
-    console.log('   URL: /app/dev-barbershop');
+    console.log('\n🎉 Database reset completed successfully!');
+    console.log('\n📋 Database is now empty and ready for use.');
+    console.log('   Create your first barbershop through the registration process.');
     
   } catch (error) {
     console.error('❌ Error during database reset and seed:');

@@ -33,12 +33,14 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
     navigate('/login');
   };
 
+  const { getCurrentUser } = useAuth();
+  
   const handleDashboardClick = async () => {
     if (isAuthenticated) {
       try {
         // Verificar se o usuário pertence a esta barbearia
-        const currentUser = useAuth().getCurrentUser();
-        if (currentUser && (currentUser as any).barbershopId) {
+        const currentUser = getCurrentUser();
+        if (currentUser && (currentUser as { barbershopId?: string }).barbershopId) {
           // Obter dados da barbearia do usuário
           const barbershopData = await getCurrentBarbershop();
           if (barbershopData && barbershopData.slug) {

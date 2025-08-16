@@ -37,11 +37,14 @@ router.post('/', commentLimiter, async (req, res) => {
       });
     }
 
+    // Usar barbershopId do tenant se disponível, senão usar um padrão
+    const barbershopId = req.tenant?.barbershopId || '00000000-0000-0000-0000-000000000000';
+    
     const newComment = await Comment.create({
-      id: Date.now().toString(),
       name,
       comment,
-      status: 'pending'
+      status: 'pending',
+      barbershopId
     });
 
     res.status(201).json({
@@ -63,13 +66,18 @@ router.get('/', commentReadLimiter, async (req, res) => {
     const { status } = req.query;
     let whereClause = {};
     
+    // Se há contexto de tenant, filtrar por barbearia
+    if (req.tenant && req.tenant.barbershopId) {
+      whereClause.barbershopId = req.tenant.barbershopId;
+    }
+    
     // Permitir acesso a todos os status sem verificação de autenticação
     if (status === 'pending' || status === 'rejected' || status === 'approved') {
       // Filtrar por status específico se fornecido
       whereClause.status = status;
     } else if (status === 'all') {
-      // Não aplicar filtro de status se 'all' for especificado
-      whereClause = {};
+      // Não aplicar filtro de status se 'all' for especificado (mas manter barbershopId se houver)
+      // whereClause já tem barbershopId se necessário
     } else {
       // Por padrão, mostrar apenas comentários aprovados
       whereClause.status = 'approved';
@@ -77,7 +85,7 @@ router.get('/', commentReadLimiter, async (req, res) => {
 
     const comments = await Comment.findAll({
       where: whereClause,
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     res.json({
@@ -97,7 +105,7 @@ router.get('/', commentReadLimiter, async (req, res) => {
 router.get('/admin', protect, admin, commentReadLimiter, async (req, res) => {
   try {
     const comments = await Comment.findAll({
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     res.json({

@@ -3,7 +3,8 @@ const sequelize = require('./database');
 
 const Comment = sequelize.define('Comment', {
   id: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
     allowNull: false
   },
@@ -30,6 +31,8 @@ const Comment = sequelize.define('Comment', {
   }
 }, {
   timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     {
       fields: ['barbershopId', 'id']

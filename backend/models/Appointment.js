@@ -3,7 +3,8 @@ const sequelize = require('./database');
 
 const Appointment = sequelize.define('Appointment', {
   id: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
   clientName: {
@@ -27,8 +28,12 @@ const Appointment = sequelize.define('Appointment', {
     defaultValue: 'pending'
   },
   barberId: {
-    type: DataTypes.STRING,
-    allowNull: false
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'Barbers',
+      key: 'id'
+    }
   },
   barberName: {
     type: DataTypes.STRING,
@@ -52,6 +57,8 @@ const Appointment = sequelize.define('Appointment', {
   }
 }, {
   timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     {
       fields: ['barbershopId', 'id']

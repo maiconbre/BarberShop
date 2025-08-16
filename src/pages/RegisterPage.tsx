@@ -274,7 +274,7 @@ const RegisterPage: React.FC = () => {
       // Limpar erro após mostrar o toast
       const timeoutId = setTimeout(() => {
         // No need to manually clear error since it will be handled by the hook
-        null; // No-op since we can't clear error directly
+        // No-op since we can't clear error directly
       }, 100);
 
       return () => clearTimeout(timeoutId);

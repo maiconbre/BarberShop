@@ -1,6 +1,7 @@
 const { Barbershop, User, Barber } = require('../models');
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
+const { createDefaultData } = require('../utils/defaultData');
 
 // In-memory store for email verification codes (in production, use Redis or database)
 const verificationCodes = new Map();
@@ -365,7 +366,6 @@ exports.registerBarbershop = async (req, res) => {
 
     // Criar barbeiro automaticamente com o nome do proprietário
     const firstBarber = await Barber.create({
-      id: '01', // Primeiro barbeiro sempre terá ID '01'
       name: ownerName.trim(),
       whatsapp: '', // Será preenchido posteriormente pelo usuário
       pix: '', // Será preenchido posteriormente pelo usuário
@@ -373,6 +373,9 @@ exports.registerBarbershop = async (req, res) => {
     });
 
     console.log('Primeiro barbeiro criado:', firstBarber.id, firstBarber.name);
+
+    // Criar dados padrão da barbearia (2 serviços + 1 agendamento teste)
+    await createDefaultData(barbershop.id, firstBarber.id, firstBarber.name);
 
     // Gerar tokens para login automático
     const token = generateToken(adminUser);

@@ -251,29 +251,6 @@ exports.register = async (req, res) => {
   }
 };
 
-// Seed initial users
-exports.seedUsers = async () => {
-  try {
-    const count = await User.count();
-    console.log('Verificando usuários existentes:', count);
-    
-    if (count === 0) {
-      console.log('Criando usuários iniciais...');
-      
-      // Criar usuários um por um para garantir que os hooks de senha sejam executados
-      await User.create({
-        id: '1',
-        username: 'admin',
-        password: '123456',
-        role: 'admin',
-        name: 'Admin'
-      });
-      
-      console.log('Usuários iniciais criados com sucesso');
-    } else {
-      console.log('Usuários já existem, pulando seed');
-    }
-  } catch (error) {
-    console.error('Erro ao criar usuários iniciais:', error);
-  }
-};
+// FUNÇÃO REMOVIDA: seedUsers
+// O sistema agora inicia com banco limpo
+// Usuários são criados apenas através do registro de barbearias

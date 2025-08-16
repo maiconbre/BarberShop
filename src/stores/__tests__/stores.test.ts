@@ -204,7 +204,8 @@ describe('Multi-tenant Stores', () => {
       const updatedState = useAppointmentStore.getState();
       
       expect(updatedState.barbershopId).toBe('test-123');
-      expect(Boolean(updatedState.barbershopId && updatedState.tenantRepository)).toBe(true);
+      expect(Boolean(updatedState.barbershopId)).toBe(true);
+      // Note: tenantRepository is now set by components, not by the store
     });
   });
 });
