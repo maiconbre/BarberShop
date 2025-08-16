@@ -153,8 +153,23 @@ const AgendaPage: React.FC = memo(() => {
             secondary: '#1A1F2E'
           }
         });
-      } else {
-        const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'scheduled' : 'completed');
+      } else if (action === 'toggle' && currentStatus) {
+        let newStatus: string;
+        
+        // Define o próximo status baseado no status atual
+        switch (currentStatus) {
+          case 'pending':
+            newStatus = 'confirmed';
+            break;
+          case 'confirmed':
+            newStatus = 'completed';
+            break;
+          case 'completed':
+            newStatus = 'scheduled';
+            break;
+          default:
+            newStatus = 'confirmed';
+        }
 
         // Usar o método tenant-aware do hook
         await updateAppointmentStatus(appointmentId, newStatus as AppointmentStatus);
@@ -163,9 +178,20 @@ const AgendaPage: React.FC = memo(() => {
           setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as AppointmentStatus } : null);
         }
 
-        const statusMessage = newStatus === 'completed'
-          ? 'Agendamento marcado como concluído!'
-          : 'Agendamento marcado como pendente!';
+        let statusMessage: string;
+        switch (newStatus) {
+          case 'confirmed':
+            statusMessage = 'Agendamento confirmado!';
+            break;
+          case 'completed':
+            statusMessage = 'Agendamento finalizado!';
+            break;
+          case 'scheduled':
+            statusMessage = 'Agendamento reaberto!';
+            break;
+          default:
+            statusMessage = 'Status atualizado!';
+        }
 
         toast.success(statusMessage, {
           duration: 4000,
@@ -323,7 +349,7 @@ const AgendaPage: React.FC = memo(() => {
                     transition={{ duration: 0.3 }}
                   >
                     <AppointmentCardNew
-                      appointment={appointment}
+                      appointment={appointment as any}
                       onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
                       onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
                       onView={() => handleAppointmentAction(appointment.id, 'view')}
@@ -368,10 +394,10 @@ const AgendaPage: React.FC = memo(() => {
           setIsViewModalOpen(false);
           setSelectedAppointment(null);
         }}
-        appointment={selectedAppointment}
+        appointment={selectedAppointment as any}
         onDelete={() => handleAppointmentAction(selectedAppointment?.id || '', 'delete')}
         onToggleStatus={() => handleAppointmentAction(selectedAppointment?.id || '', 'toggle', selectedAppointment?.status)}
-        allAppointments={appointments || []}
+        allAppointments={(appointments || []) as any}
       />
     </StandardLayout>
   );

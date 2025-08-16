@@ -2,14 +2,14 @@
 // Este arquivo permite ajustar facilmente os limites sem modificar o código
 
 module.exports = {
-  // Configurações globais padrão
+  // Configurações globais otimizadas (mais permissivas)
   global: {
-    maxRepeatedRequests: 200, // Máximo de requisições repetidas permitidas
-    burstLimit: 50, // Limite de rajada (requisições em sequência rápida)
-    windowMs: 60000, // Janela de tempo em milissegundos (1 minuto)
-    blockTimeMs: 60000, // Tempo de bloqueio em milissegundos (1 minuto)
-    gracePeriodMs: 10000, // Período de graça para requisições legítimas (10 segundos)
-    cleanupIntervalMs: 300000 // Intervalo de limpeza do cache (5 minutos)
+    maxRepeatedRequests: 100, // Reduzido de 200 para 100 - ainda generoso
+    burstLimit: 30, // Reduzido de 50 para 30 - permite rajadas curtas
+    windowMs: 60000, // Mantido 1 minuto
+    blockTimeMs: 30000, // Reduzido de 60000 para 30000ms (30 segundos)
+    gracePeriodMs: 15000, // Aumentado de 10000 para 15000ms - mais tempo para usuários legítimos
+    cleanupIntervalMs: 300000 // Mantido 5 minutos
   },
 
   // Configurações específicas para comentários
@@ -94,19 +94,19 @@ module.exports = {
     }
   },
 
-  // Configurações para serviços
+  // Configurações para serviços (otimizadas para reduzir falsos positivos)
   services: {
     read: {
-      maxRepeatedRequests: 100,
-      blockTimeMs: 60000, // 1 minuto
-      burstLimit: 30,
-      windowMs: 60000
+      maxRepeatedRequests: 200, // Aumentado de 100 para 200 - muito mais permissivo
+      blockTimeMs: 30000, // Reduzido de 60000 para 30000ms (30 segundos)
+      burstLimit: 50, // Aumentado de 30 para 50 - permite mais requisições rápidas
+      windowMs: 60000 // Mantido 1 minuto
     },
     modify: {
-      maxRepeatedRequests: 10,
-      blockTimeMs: 300000, // 5 minutos
-      burstLimit: 5,
-      windowMs: 60000
+      maxRepeatedRequests: 15, // Aumentado de 10 para 15
+      blockTimeMs: 300000, // Mantido 5 minutos
+      burstLimit: 8, // Aumentado de 5 para 8
+      windowMs: 60000 // Mantido 1 minuto
     }
   },
 
@@ -126,15 +126,15 @@ module.exports = {
     }
   },
 
-  // Configurações para detecção de atividade suspeita
+  // Configurações para detecção de atividade suspeita (otimizadas)
   suspiciousActivity: {
-    // Limites para considerar atividade suspeita
+    // Limites para considerar atividade suspeita (mais permissivos)
     thresholds: {
-      highFrequencyRequests: 100, // Mais de 100 requests em pouco tempo
-      rapidFireInterval: 1000, // Requests muito rápidos (menos de 1 segundo)
-      burstThreshold: 20, // Mais de 20 requests em rajada
-      repetitionRatio: 0.8, // 80% de requests repetidas
-      avgIntervalThreshold: 500 // Intervalo médio menor que 500ms
+      highFrequencyRequests: 200, // Aumentado de 100 para 200 - menos sensível
+      rapidFireInterval: 500, // Reduzido de 1000 para 500ms - permite requests mais rápidos
+      burstThreshold: 40, // Aumentado de 20 para 40 - permite rajadas maiores
+      repetitionRatio: 0.9, // Aumentado de 0.8 para 0.9 - só bloqueia se 90% forem repetidas
+      avgIntervalThreshold: 250 // Reduzido de 500 para 250ms - permite intervalos menores
     },
     
     // Padrões de User-Agent suspeitos

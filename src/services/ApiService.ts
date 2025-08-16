@@ -837,6 +837,36 @@ class ApiService {
       logger.apiInfo('Pré-carregamento já executado recentemente - ignorando');
       return;
     }
+
+    // Verificar se estamos em uma rota pública que não precisa de dados
+    const currentPath = window.location.pathname;
+    const publicRoutes = [
+      '/', '/showcase', '/about', '/services', '/contacts', '/login', 
+      '/register-barbershop', '/verify-email'
+    ];
+    
+    const isPublicRoute = publicRoutes.includes(currentPath);
+    const isBarbershopHomePage = /^\/[a-zA-Z0-9-]+$/.test(currentPath) && currentPath !== '/';
+    
+    if (isPublicRoute) {
+      logger.apiInfo('Rota pública detectada - pulando pré-carregamento de dados');
+      return;
+    }
+
+    // Para rotas de barbearia, verificar se é um slug público
+    if (isBarbershopHomePage) {
+      const slug = currentPath.substring(1);
+      const publicSlugs = [
+        'about', 'services', 'contacts', 'login', 'register-barbershop', 'verify-email',
+        'showcase', 'dashboard', 'agenda', 'analytics', 'trocar-senha', 'register',
+        'gerenciar-comentarios', 'servicos', 'gerenciar-horarios'
+      ];
+      
+      if (publicSlugs.includes(slug)) {
+        logger.apiInfo('Slug público detectado - pulando pré-carregamento de dados');
+        return;
+      }
+    }
     
     // Marcar como executado
     localStorage.setItem(lastPreloadKey, now.toString());

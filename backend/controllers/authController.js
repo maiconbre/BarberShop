@@ -29,10 +29,6 @@ const generateRefreshToken = (user) => {
 };
 
 // Login controller
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
 exports.login = async (req, res) => {
   try {
     console.log('Corpo da requisição recebido:', req.body);
@@ -113,10 +109,6 @@ exports.login = async (req, res) => {
 };
 
 // Refresh token controller
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
 exports.refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -176,10 +168,6 @@ exports.refreshToken = async (req, res) => {
 };
 
 // Validate token controller
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
 exports.validateToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];

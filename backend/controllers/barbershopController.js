@@ -1,4 +1,4 @@
-const { Barbershop, User, Barber } = require('../models');
+const { Barbershop, User, Barber, Service, Appointment } = require('../models');
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
 const { createDefaultData } = require('../utils/defaultData');
@@ -17,12 +17,6 @@ const generateVerificationCode = () => {
 };
 
 // Helper function to send email via n8n webhook
-/**
- * @param {string} email
- * @param {string} code
- * @param {string} barbershopName
- * @returns {Promise<any>}
- */
 const sendVerificationEmail = async (email, code, barbershopName) => {
   try {
     console.log(`Sending verification email to ${email} with code ${code} for barbershop ${barbershopName}`);
@@ -90,14 +84,124 @@ const sendVerificationEmail = async (email, code, barbershopName) => {
 };
 
 /**
+ * Configuração inicial da barbearia após registro
+ * POST /api/barbershops/setup-initial
+ */
+exports.setupInitialBarbershop = async (req, res) => {
+  try {
+    const { barbershopId, services } = req.body;
+    
+    if (!barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID da barbearia é obrigatório',
+        code: 'MISSING_BARBERSHOP_ID'
+      });
+    }
+
+    // Verificar se o usuário tem permissão para configurar esta barbearia
+    const user = await User.findByPk(req.user.id);
+    if (!user || user.barbershopId !== barbershopId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Acesso negado',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    // Verificar se a barbearia existe
+    const barbershop = await Barbershop.findByPk(barbershopId);
+    if (!barbershop) {
+      return res.status(404).json({
+        success: false,
+        message: 'Barbearia não encontrada',
+        code: 'BARBERSHOP_NOT_FOUND'
+      });
+    }
+
+    // Criar barbeiro padrão
+    const firstBarber = await Barber.create({
+      name: 'Barbeiro Principal',
+      specialty: 'Corte e Barba',
+      barbershopId: barbershopId
+    });
+
+    // Criar dados iniciais padrão
+    let defaultData;
+    
+    if (services && Array.isArray(services) && services.length > 0) {
+      // Se serviços foram fornecidos, criar serviços personalizados
+      const createdServices = [];
+      for (const serviceData of services) {
+        const service = await Service.create({
+          name: serviceData.name,
+          price: serviceData.price,
+          barbershopId: barbershopId
+        });
+        createdServices.push(service);
+      }
+      
+      // Criar agendamentos de exemplo
+      const today = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const appointmentToday = await Appointment.create({
+        clientName: 'Cliente Exemplo',
+        serviceName: createdServices[0].name,
+        date: today.toISOString().split('T')[0],
+        time: '09:00',
+        status: 'pending',
+        barberId: firstBarber.id,
+        barberName: firstBarber.name,
+        price: createdServices[0].price,
+        wppclient: '11999999999',
+        barbershopId: barbershopId
+      });
+
+      defaultData = {
+        services: createdServices,
+        appointments: [appointmentToday]
+      };
+    } else {
+      // Usar função padrão se nenhum serviço for fornecido
+      defaultData = await createDefaultData(barbershopId, firstBarber.id, firstBarber.name);
+    }
+
+    res.json({
+      success: true,
+      message: 'Configuração inicial concluída com sucesso',
+      data: {
+        barbershop: {
+          id: barbershop.id,
+          name: barbershop.name,
+          slug: barbershop.slug,
+          planType: barbershop.plan_type
+        },
+        services: defaultData.services,
+        admin: {
+          id: user.id,
+          username: user.username,
+          name: user.name
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao configurar barbearia:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR'
+    });
+  }
+};
+
+/**
  * Controller para gerenciar barbearias (tenants)
  */
 
 // Helper function to generate JWT token
-/**
- * @param {any} user
- * @returns {string}
- */
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role, barbershopId: user.barbershopId },
@@ -107,10 +211,6 @@ const generateToken = (user) => {
 };
 
 // Helper function to generate refresh token
-/**
- * @param {any} user
- * @returns {string}
- */
 const generateRefreshToken = (user) => {
   return jwt.sign(
     { id: user.id, barbershopId: user.barbershopId },
@@ -122,10 +222,6 @@ const generateRefreshToken = (user) => {
 /**
  * Iniciar processo de verificação de email
  * POST /api/barbershops/verify-email
- */
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
  */
 exports.initiateEmailVerification = async (req, res) => {
   try {
@@ -211,10 +307,6 @@ exports.initiateEmailVerification = async (req, res) => {
 /**
  * Verificar código de email
  * POST /api/barbershops/verify-code
- */
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
  */
 exports.verifyEmailCode = async (req, res) => {
   try {

@@ -52,7 +52,7 @@ const writeLimiter = limitRepeatedRequests({
 
 // Rotas públicas com limitador otimizado para leitura
 router.get('/', readLimiter, serviceController.getAllServices);
-router.get('/barber/:barberId', readLimiter, serviceController.getServicesByBarber);
+router.get('/barber/:barberId', readLimiter, serviceController.getServicesByBarbershop);
 router.get('/:id', readLimiter, serviceController.getServiceById);
 
 // Rotas protegidas (requerem autenticação) com limitador para escrita

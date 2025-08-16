@@ -71,6 +71,9 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       setBarbershopId(data.id);
       setBarbershopData(data);
       
+      // Store barbershopId in localStorage for API requests
+      localStorage.setItem('barbershopId', data.id);
+      
       // Load settings (default for now, can be extended)
       const defaultSettings = {
         theme: 'default',
@@ -116,6 +119,9 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     setSettings(null);
     setError(null);
     
+    // Clear barbershopId from localStorage
+    localStorage.removeItem('barbershopId');
+    
     logger.componentInfo('TenantContext', 'Tenant data cleared');
   }, []);
 
@@ -135,21 +141,35 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
    * Auto-load tenant when slug changes in URL
    */
   useEffect(() => {
+    // Skip tenant loading for public routes
+    const publicRoutes = [
+      '/', '/showcase', '/about', '/services', '/contacts', '/login', '/register-barbershop', '/verify-email'
+    ];
+    
+    const isPublicRoute = publicRoutes.includes(location.pathname);
+    const isAppRoute = location.pathname.startsWith('/app/');
+    
+    if (isPublicRoute) {
+      console.log('TenantContext - Public route detected, skipping tenant loading');
+      clearTenant();
+      return;
+    }
+    
     // Capturar slug tanto de /app/:barbershopSlug quanto de /:barbershopSlug
     let urlSlug = params.barbershopSlug;
     
     // Para rotas diretas como /:barbershopSlug, capturar do pathname
-    if (!urlSlug) {
+    if (!urlSlug && !isAppRoute) {
       const pathMatch = location.pathname.match(/^\/([a-zA-Z0-9-]+)$/);
       if (pathMatch) {
         const potentialSlug = pathMatch[1];
         // Verificar se não é uma rota pública conhecida
-        const publicRoutes = [
+        const publicSlugs = [
           'about', 'services', 'contacts', 'login', 'register-barbershop', 'verify-email',
           'showcase', 'dashboard', 'agenda', 'analytics', 'trocar-senha', 'register',
           'gerenciar-comentarios', 'servicos', 'gerenciar-horarios'
         ];
-        if (!publicRoutes.includes(potentialSlug)) {
+        if (!publicSlugs.includes(potentialSlug)) {
           urlSlug = potentialSlug;
         }
       }
@@ -159,7 +179,9 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       urlSlug,
       currentSlug: slug,
       pathname: location.pathname,
-      paramsSlug: params.barbershopSlug
+      paramsSlug: params.barbershopSlug,
+      isPublicRoute,
+      isAppRoute
     });
 
     if (urlSlug && urlSlug !== slug) {
@@ -171,7 +193,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
         console.error('TenantContext - Erro ao carregar tenant:', error);
         // Removido redirecionamento automático para permitir acesso direto
       });
-    } else if (!urlSlug && slug && !location.pathname.startsWith('/app/')) {
+    } else if (!urlSlug && slug && !isAppRoute) {
       // Clear tenant if no slug in URL, but not for app routes during navigation
       console.log('TenantContext - Limpando tenant (sem slug na URL)');
       clearTenant();

@@ -4,9 +4,10 @@ const { Service, Appointment } = require('../models');
  * Cria dados padrão para uma nova barbearia
  * - 2 serviços padrão (Corte Masculino e Barba)
  * - 1 agendamento de exemplo
- * @param {any} barbershopId
- * @param {any} firstBarberId
- * @param {any} firstBarberName
+ * @param {string} barbershopId - ID da barbearia
+ * @param {string} firstBarberId - ID do primeiro barbeiro
+ * @param {string} firstBarberName - Nome do primeiro barbeiro
+ * @returns {Promise<{services: Array<Service>, appointment: Appointment}>} Objeto com serviços e agendamento criados
  */
 const createDefaultData = async (barbershopId, firstBarberId, firstBarberName) => {
   try {
@@ -27,16 +28,17 @@ const createDefaultData = async (barbershopId, firstBarberId, firstBarberName) =
 
     console.log(`✅ Serviços padrão criados: ${service1.name}, ${service2.name}`);
 
-    // Criar 1 agendamento de exemplo para amanhã
+    // Criar 2 agendamentos de exemplo: um para hoje e um para amanhã
+    const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const exampleAppointment = await Appointment.create({
+    const appointmentToday = await Appointment.create({
       clientName: 'Cliente Exemplo',
       serviceName: service1.name,
-      date: tomorrow.toISOString().split('T')[0],
-      time: '10:00',
-      status: 'confirmed',
+      date: today.toISOString().split('T')[0],
+      time: '09:00',
+      status: 'pending',
       barberId: firstBarberId,
       barberName: firstBarberName,
       price: service1.price,
@@ -44,11 +46,24 @@ const createDefaultData = async (barbershopId, firstBarberId, firstBarberName) =
       barbershopId: barbershopId
     });
 
-    console.log(`✅ Agendamento exemplo criado: ${exampleAppointment.clientName} - ${exampleAppointment.date} ${exampleAppointment.time}`);
+    const appointmentTomorrow = await Appointment.create({
+      clientName: 'Cliente Exemplo',
+      serviceName: service2.name,
+      date: tomorrow.toISOString().split('T')[0],
+      time: '14:00',
+      status: 'pending',
+      barberId: firstBarberId,
+      barberName: firstBarberName,
+      price: service2.price,
+      wppclient: '11999999999',
+      barbershopId: barbershopId
+    });
+
+    console.log(`✅ Agendamentos exemplo criados: ${appointmentToday.clientName} - ${appointmentToday.date} ${appointmentToday.time} e ${appointmentTomorrow.date} ${appointmentTomorrow.time}`);
 
     return {
       services: [service1, service2],
-      appointment: exampleAppointment
+      appointments: [appointmentToday, appointmentTomorrow]
     };
 
   } catch (error) {

@@ -21,7 +21,7 @@ export class ApiServiceV2 implements IApiService {
     private cacheService: ICacheService,
     private errorHandler: IErrorHandler,
     private metrics: IApiMetrics,
-    private baseURL: string = ''
+    // Removed unused baseURL parameter since it's already handled by HttpClient
   ) {}
 
   /**
@@ -44,6 +44,29 @@ export class ApiServiceV2 implements IApiService {
               'Authorization': `Bearer ${token}`,
             };
           }
+          
+          // Adiciona contexto de tenant (barbershopId) se disponível
+          const storedBarbershopId = localStorage.getItem('barbershopId') || 
+                                   sessionStorage.getItem('barbershopId');
+          
+          if (storedBarbershopId) {
+            // Adiciona barbershopId como query parameter ou header
+            if (config.url?.includes('/api/plans/')) {
+              // Para endpoints de planos, adiciona barbershopId como query parameter
+              if (config.url.includes('?')) {
+                config.url += `&barbershopId=${storedBarbershopId}`;
+              } else {
+                config.url += `?barbershopId=${storedBarbershopId}`;
+              }
+            } else {
+              // Para outros endpoints, adiciona como header
+              config.headers = {
+                ...config.headers,
+                'X-Barbershop-Id': storedBarbershopId,
+              };
+            }
+          }
+          
           return config;
         },
         onRequestError: async (error) => {
@@ -76,7 +99,6 @@ export class ApiServiceV2 implements IApiService {
         cacheService,
         errorHandler,
         metrics,
-        baseURL
       );
     }
 
@@ -296,6 +318,7 @@ export class ApiServiceV2 implements IApiService {
    * Reseta métricas
    */
   resetMetrics(): void {
-    this.metrics.reset();
+    // Since reset() is not defined in IApiMetrics interface, we'll clear metrics by reassigning
+    this.metrics = new ApiMetrics();
   }
 }

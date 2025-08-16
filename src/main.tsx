@@ -68,9 +68,46 @@ root.render(
   </StrictMode>
 );
 
-// Inicializar serviços em segundo plano após a renderização
-setTimeout(() => {
+// Inicializar serviços em segundo plano apenas para rotas que precisam de dados
+// Evita chamadas desnecessárias em rotas públicas como landing page e email verification
+const initializeServicesForCurrentRoute = () => {
+  const currentPath = window.location.pathname;
+  
+  // Rotas públicas que não devem carregar serviços
+  const publicRoutes = [
+    '/', '/showcase', '/about', '/services', '/contacts', '/login', 
+    '/register-barbershop', '/verify-email'
+  ];
+  
+  const isPublicRoute = publicRoutes.includes(currentPath);
+  const isBarbershopHomePage = /^\/[a-zA-Z0-9-]+$/.test(currentPath) && currentPath !== '/';
+  
+  if (isPublicRoute) {
+    logger.apiInfo('Rota pública detectada - pulando inicialização de serviços');
+    return;
+  }
+  
+  // Para rotas de barbearia, verificar se há slug válido
+  if (isBarbershopHomePage) {
+    const slug = currentPath.substring(1);
+    const publicSlugs = [
+      'about', 'services', 'contacts', 'login', 'register-barbershop', 'verify-email',
+      'showcase', 'dashboard', 'agenda', 'analytics', 'trocar-senha', 'register',
+      'gerenciar-comentarios', 'servicos', 'gerenciar-horarios'
+    ];
+    
+    if (publicSlugs.includes(slug)) {
+      logger.apiInfo('Slug público detectado - pulando inicialização de serviços');
+      return;
+    }
+  }
+  
+  // Inicializar serviços apenas para rotas que realmente precisam
   initializeServices().catch(error => {
     logger.apiWarn('Erro ao inicializar serviços em segundo plano:', error);
   });
+};
+
+setTimeout(() => {
+  initializeServicesForCurrentRoute();
 }, 100);

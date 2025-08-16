@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Scissors, 
   Calendar, 
@@ -14,16 +15,28 @@ import {
   Trophy,
   ChevronDown,
   ChevronUp,
-  Quote
+  Quote,
+  Menu,
+  X
 } from 'lucide-react';
 
 const LandingPage = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  const handleCreateBarbershop = () => {
+    navigate('/verify-email');
+  };
+
+  const handleLogin = () => {
+    navigate('/login');
+  };
 
   const features = [
     {
@@ -66,8 +79,8 @@ const LandingPage = () => {
         'Página personalizada profissional',
         'Sistema completo de gestão',
         'Suporte via email',
-        'URL própria (suabarbearia.com)',
-        'Notificações por WhatsApp'
+        'Dashboard em tempo real'
+        
       ],
       cta: 'Começar Grátis',
       popular: false,
@@ -86,8 +99,7 @@ const LandingPage = () => {
         'Agendamentos ilimitados',
         'Relatórios avançados e analytics',
         'Suporte prioritário via WhatsApp',
-        'Integrações premium (PIX, cartão)',
-        'Domínio personalizado gratuito',
+        'Notificações por WhatsApp',
         'Lembretes automáticos SMS',
         'Dashboard em tempo real',
         'Backup automático dos dados'
@@ -162,31 +174,81 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0D121E] via-[#1A1F2E] to-[#0D121E] text-white">
       {/* Floating CTA */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button className="bg-[#F0B35B] text-black px-6 py-3 rounded-full font-bold shadow-2xl hover:shadow-[#F0B35B]/30 hover:scale-105 transition-all duration-300 flex items-center gap-2 animate-pulse">
-          <Scissors className="w-5 h-5" />
+      <div className="fixed bottom-6 right-6 z-40">
+        <button 
+          onClick={handleCreateBarbershop}
+          className="bg-[#F0B35B] text-black px-4 sm:px-6 py-3 rounded-full font-bold shadow-2xl hover:shadow-[#F0B35B]/30 hover:scale-105 transition-all duration-300 flex items-center gap-2 animate-pulse text-sm sm:text-base"
+        >
+          <Scissors className="w-4 sm:w-5 h-4 sm:h-5" />
           Grátis Agora
         </button>
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[#0D121E]/95 backdrop-blur-xl border-b border-white/10 shadow-lg">
+      <header className="sticky top-0 z-50 bg-[#0D121E]/95 backdrop-blur-xl border-b border-white/10 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <div className="text-[#F0B35B] text-xl font-bold tracking-wider border-2 border-[#F0B35B] px-4 py-2 rounded-lg bg-gradient-to-r from-[#F0B35B]/10 to-transparent">
+              <div 
+                className="text-[#F0B35B] text-xl font-bold tracking-wider border-2 border-[#F0B35B] px-4 py-2 rounded-lg bg-gradient-to-r from-[#F0B35B]/10 to-transparent cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
                 BARBER<span className="text-white">SHOP</span>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <button className="text-gray-300 hover:text-[#F0B35B] transition-colors font-medium">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
+              <button 
+                onClick={handleLogin}
+                className="text-gray-300 hover:text-[#F0B35B] transition-colors font-medium"
+              >
                 Entrar
               </button>
-              <button className="bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80 text-black px-6 py-2.5 rounded-lg font-bold hover:shadow-lg hover:shadow-[#F0B35B]/30 transition-all duration-300 hover:scale-105">
+              <button 
+                onClick={handleCreateBarbershop}
+                className="bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80 text-black px-6 py-2.5 rounded-lg font-bold hover:shadow-lg hover:shadow-[#F0B35B]/30 transition-all duration-300 hover:scale-105"
+              >
                 Começar Grátis
               </button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-gray-300 hover:text-[#F0B35B] transition-colors"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t border-white/10 py-4">
+              <div className="flex flex-col space-y-4">
+                <button 
+                  onClick={() => {
+                    handleLogin();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-gray-300 hover:text-[#F0B35B] transition-colors font-medium text-left"
+                >
+                  Entrar
+                </button>
+                <button 
+                  onClick={() => {
+                    handleCreateBarbershop();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80 text-black px-4 py-2 rounded-lg font-bold hover:shadow-lg hover:shadow-[#F0B35B]/30 transition-all duration-300 text-left"
+                >
+                  Começar Grátis
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -217,7 +279,7 @@ const LandingPage = () => {
             
             <div className="flex flex-wrap justify-center gap-4 mb-6">
               <div className="bg-gradient-to-r from-[#F0B35B]/20 to-yellow-500/20 border border-[#F0B35B]/30 px-4 py-2 rounded-full">
-                <span className="text-[#F0B35B] font-bold">🚀 Sistema SaaS Completo</span>
+                <span className="text-[#F0B35B] font-bold">🚀 Sistema Agendamento Completo</span>
               </div>
               <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 px-4 py-2 rounded-full">
                 <span className="text-purple-400 font-bold">⚡ Setup em 2 minutos</span>
@@ -231,15 +293,21 @@ const LandingPage = () => {
               <strong>Comece 100% GRÁTIS</strong> e aumente seus agendamentos em até 300% no primeiro mês!
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <button className="group bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black px-8 py-4 rounded-xl text-lg font-black hover:shadow-2xl hover:shadow-[#F0B35B]/40 transition-all duration-300 hover:scale-105 flex items-center gap-3 min-w-[280px] justify-center">
-                <Scissors className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8">
+              <button 
+                onClick={handleCreateBarbershop}
+                className="group bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-black hover:shadow-2xl hover:shadow-[#F0B35B]/40 transition-all duration-300 hover:scale-105 flex items-center gap-2 sm:gap-3 min-w-[240px] sm:min-w-[280px] justify-center"
+              >
+                <Scissors className="w-5 sm:w-6 h-5 sm:h-6 group-hover:rotate-12 transition-transform" />
                 Criar Barbearia GRÁTIS
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 sm:w-6 h-5 sm:h-6 group-hover:translate-x-1 transition-transform" />
               </button>
               
-              <button className="group border-2 border-[#F0B35B] text-[#F0B35B] px-8 py-4 rounded-xl text-lg font-bold hover:bg-[#F0B35B] hover:text-black transition-all duration-300 flex items-center gap-2">
-                <Play className="w-5 h-5" />
+              <button 
+                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                className="group border-2 border-[#F0B35B] text-[#F0B35B] px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold hover:bg-[#F0B35B] hover:text-black transition-all duration-300 flex items-center gap-2"
+              >
+                <Play className="w-4 sm:w-5 h-4 sm:h-5" />
                 Ver Como Funciona
               </button>
             </div>
@@ -279,7 +347,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section Enhanced */}
-      <section className="py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E]">
+      <section id="features" className="py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="inline-block bg-gradient-to-r from-[#F0B35B]/20 to-transparent border border-[#F0B35B]/30 px-4 py-2 rounded-full mb-4">
@@ -452,6 +520,7 @@ const LandingPage = () => {
                 </ul>
 
                 <button
+                  onClick={handleCreateBarbershop}
                   className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 ${
                     plan.popular
                       ? 'bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black hover:shadow-lg hover:shadow-[#F0B35B]/30 hover:scale-105'
@@ -477,16 +546,16 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials Section - Enhanced */}
-      <section className="py-20">
+      <section id="testimonials" className="py-20" data-testimonials>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="inline-block bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 px-4 py-2 rounded-full mb-4">
               <span className="text-yellow-400 font-bold">⭐ Casos de Sucesso</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
               Barbearias que transformaram seus resultados
             </h2>
-            <p className="text-xl text-gray-300">
+            <p className="text-lg sm:text-xl text-gray-300">
               Veja como nossos clientes <strong className="text-[#F0B35B]">triplicaram seus agendamentos</strong>
             </p>
           </div>
@@ -531,16 +600,16 @@ const LandingPage = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E]">
+      <section id="faq" className="py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="inline-block bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 px-4 py-2 rounded-full mb-4">
               <span className="text-purple-400 font-bold">❓ Dúvidas Frequentes</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
               Tire suas dúvidas
             </h2>
-            <p className="text-xl text-gray-300">
+            <p className="text-lg sm:text-xl text-gray-300">
               Respostas para as perguntas mais comuns sobre nossa plataforma
             </p>
           </div>
@@ -553,7 +622,7 @@ const LandingPage = () => {
               >
                 <button
                   className="w-full px-6 py-6 text-left flex items-center justify-between hover:bg-[#F0B35B]/5 transition-colors"
-                  onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+                  onClick={() => setExpandedFaq(expandedFaq === index ? null : index as unknown as null)}
                 >
                   <span className="font-semibold text-white text-lg">{faq.question}</span>
                   {expandedFaq === index ? (
@@ -596,10 +665,13 @@ const LandingPage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <button className="group bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black px-10 py-5 rounded-xl text-xl font-black hover:shadow-2xl hover:shadow-[#F0B35B]/50 transition-all duration-300 hover:scale-105 flex items-center gap-3 min-w-[320px] justify-center">
-                <Scissors className="w-7 h-7 group-hover:rotate-12 transition-transform" />
+              <button 
+                onClick={handleCreateBarbershop}
+                className="group bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black px-8 sm:px-10 py-4 sm:py-5 rounded-xl text-lg sm:text-xl font-black hover:shadow-2xl hover:shadow-[#F0B35B]/50 transition-all duration-300 hover:scale-105 flex items-center gap-2 sm:gap-3 min-w-[280px] sm:min-w-[320px] justify-center"
+              >
+                <Scissors className="w-6 sm:w-7 h-6 sm:h-7 group-hover:rotate-12 transition-transform" />
                 Começar Grátis Agora
-                <ArrowRight className="w-7 h-7 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-6 sm:w-7 h-6 sm:h-7 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
 
@@ -658,22 +730,22 @@ const LandingPage = () => {
 
             <div>
               <h3 className="text-white font-semibold mb-4">Produto</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">Recursos</a></li>
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">Preços</a></li>
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">Casos de Sucesso</a></li>
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">Atualizações</a></li>
-              </ul>
+              <ul className="space-y-3">
+                  <li><a href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">Recursos</a></li>
+                  <li><a href="#pricing" onClick={(e) => { e.preventDefault(); document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">Preços</a></li>
+                  <li><a href="#testimonials" onClick={(e) => { e.preventDefault(); document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">Casos de Sucesso</a></li>
+                  <li><a href="#faq" onClick={(e) => { e.preventDefault(); document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">FAQ</a></li>
+                </ul>
             </div>
 
             <div>
               <h3 className="text-white font-semibold mb-4">Suporte</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">Central de Ajuda</a></li>
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">Contato</a></li>
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">WhatsApp</a></li>
-                <li><a href="#" className="hover:text-[#F0B35B] transition-colors">Status do Sistema</a></li>
-              </ul>
+              <ul className="space-y-3">
+                  <li><a href="/help" className="hover:text-[#F0B35B] transition-colors">Central de Ajuda</a></li>
+                  <li><a href="mailto:suporte@barbershop.com" className="hover:text-[#F0B35B] transition-colors">Contato</a></li>
+                  <li><a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="hover:text-[#F0B35B] transition-colors">WhatsApp</a></li>
+                  <li><a href="/status" className="hover:text-[#F0B35B] transition-colors">Status do Sistema</a></li>
+                </ul>
             </div>
           </div>
 

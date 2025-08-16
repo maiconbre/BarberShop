@@ -2,7 +2,6 @@ const { Sequelize } = require('sequelize');
 const dbConfig = require('../config/database');
 
 // Criar instância do Sequelize com a configuração do ambiente atual
-/** @type {import('sequelize').Sequelize} */
 let sequelize;
 if (dbConfig.dialect === 'sqlite') {
   sequelize = new Sequelize({

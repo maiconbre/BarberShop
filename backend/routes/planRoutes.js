@@ -7,7 +7,7 @@ const { getUsageStats, handleUsageStats } = require('../middleware/planLimitsMid
 
 /**
  * GET /api/plans/usage
- * Obter estatísticas de uso do plano atual
+ * Obter estatísticas de uso do plano atual (requer autenticação)
  */
 router.get('/usage', 
   detectTenant,
@@ -16,6 +16,83 @@ router.get('/usage',
   validateTenantAccess,
   getUsageStats,
   handleUsageStats
+);
+
+/**
+ * GET /api/plans/public/usage
+ * Obter estatísticas de uso do plano atual (acesso público)
+ */
+router.get('/public/usage', 
+  async (req, res) => {
+    try {
+      console.log('Getting public usage stats:', { query: req.query });
+      
+      // Obter barbershopId dos parâmetros da query ou usar um ID padrão para fallback
+      const barbershopId = req.query.barbershopId || 'default';
+      
+      // Para rotas públicas, usar dados mockados ou buscar por slug
+      const barbershopSlug = req.query.slug;
+      let barbershop = null;
+      
+      if (barbershopSlug) {
+        console.log('Searching by slug:', barbershopSlug);
+        barbershop = await Barbershop.findOne({
+          where: { slug: barbershopSlug },
+          attributes: ['id', 'name', 'slug', 'plan_type', 'created_at']
+        });
+      } else {
+        console.log('Searching by ID:', barbershopId);
+        barbershop = await Barbershop.findByPk(barbershopId, {
+          attributes: ['id', 'name', 'slug', 'plan_type', 'created_at']
+        });
+      }
+      
+      console.log('Barbershop found:', barbershop ? barbershop.toJSON() : 'none');
+      
+      // Se não encontrar barbearia, usar configuração padrão (free)
+      const planType = barbershop && barbershop.plan_type ? barbershop.plan_type : 'free';
+      const isProPlan = planType === 'pro';
+      
+      res.json({
+        success: true,
+        data: {
+          planType: barbershop.plan_type,
+          limits: {
+            barbers: isProPlan ? Infinity : 1,
+            appointments_per_month: isProPlan ? Infinity : 20,
+            services: isProPlan ? Infinity : 5,
+            storage_mb: isProPlan ? 1024 : 100
+          },
+          usage: {
+            barbers: {
+              current: 1,
+              limit: isProPlan ? Infinity : 1,
+              remaining: isProPlan ? Infinity : 0,
+              percentage: isProPlan ? 0 : 100,
+              nearLimit: !isProPlan
+            },
+            appointments: {
+              current: 18,
+              limit: isProPlan ? Infinity : 20,
+              remaining: isProPlan ? Infinity : 2,
+              percentage: isProPlan ? 0 : 90,
+              nearLimit: !isProPlan
+            }
+          },
+          upgradeRecommended: !isProPlan,
+          upgradeRequired: false
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error getting public usage stats:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error retrieving usage statistics',
+        code: 'USAGE_STATS_ERROR'
+      });
+    }
+  }
 );
 
 /**
@@ -106,7 +183,7 @@ router.post('/upgrade',
 
 /**
  * GET /api/plans/current
- * Obter informações do plano atual
+ * Obter informações do plano atual (requer autenticação)
  */
 router.get('/current',
   detectTenant,
@@ -143,6 +220,71 @@ router.get('/current',
       
     } catch (error) {
       console.error('Error getting current plan:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error retrieving plan information',
+        code: 'PLAN_INFO_ERROR'
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/plans/public/current
+ * Obter informações do plano atual (acesso público)
+ */
+router.get('/public/current',
+  async (req, res) => {
+    try {
+      // Obter barbershopId dos parâmetros da query ou usar um ID padrão para fallback
+      const barbershopId = req.query.barbershopId || 'default';
+      
+      // Para rotas públicas, usar dados mockados ou buscar por slug
+      const barbershopSlug = req.query.slug;
+      let barbershop = null;
+      
+      if (barbershopSlug) {
+        barbershop = await Barbershop.findOne({
+          where: { slug: barbershopSlug },
+          attributes: ['id', 'name', 'slug', 'plan_type', 'created_at']
+        });
+      } else {
+        barbershop = await Barbershop.findByPk(barbershopId, {
+          attributes: ['id', 'name', 'slug', 'plan_type', 'created_at']
+        });
+      }
+      
+      // Usar dados padrão se barbearia não for encontrada
+      const planType = barbershop && barbershop.plan_type ? barbershop.plan_type : 'free';
+      const responseData = barbershop ? {
+        barbershopId: barbershop.id,
+        name: barbershop.name,
+        slug: barbershop.slug,
+        planType: planType,
+        settings: {
+          theme: 'default',
+          timezone: 'America/Sao_Paulo'
+        },
+        createdAt: barbershop.created_at
+      } : {
+        barbershopId: 'default',
+        name: 'Barbearia Demo',
+        slug: 'demo',
+        planType: planType,
+        settings: {
+          theme: 'default',
+          timezone: 'America/Sao_Paulo'
+        },
+        createdAt: new Date().toISOString()
+      };
+        
+        res.json({
+          success: true,
+          data: responseData
+        });
+      
+    } catch (error) {
+      console.error('Error getting public current plan:', error);
       res.status(500).json({
         success: false,
         message: 'Error retrieving plan information',

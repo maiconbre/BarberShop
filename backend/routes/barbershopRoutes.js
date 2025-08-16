@@ -33,4 +33,7 @@ router.use('/current', validateTenantAccess);
 router.get('/current', barbershopController.getCurrentBarbershop);
 router.put('/current', barbershopController.updateCurrentBarbershop);
 
+// Rota para configuração inicial da barbearia após registro
+router.post('/setup-initial', protect, barbershopController.setupInitialBarbershop);
+
 module.exports = router;

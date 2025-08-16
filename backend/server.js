@@ -69,39 +69,48 @@ app.use((req, res, next) => {
   next();
 });
 
-// Removemos o rate limiter global, pois agora temos limitadores específicos por rota
-// que controlam chamadas repetidas com base no conteúdo da requisição
-// Isso oferece uma proteção mais eficaz contra abusos específicos
+// Importar os novos rate limiters otimizados
+const {
+  publicApiLimiter,
+  servicesApiLimiter,
+  authLimiter,
+  commentsLimiter,
+  appointmentsLimiter,
+  IntelligentRateLimiter
+} = require('./middleware/intelligentRateLimiter');
 
-// Rotas de autenticação
-app.use('/api/auth', authRoutes);
+// Instância do limitador inteligente
+const intelligentLimiter = new IntelligentRateLimiter();
 
-// Rotas de usuário
-app.use('/api/users', userRoutes);
+// Rotas de autenticação com rate limiting específico
+app.use('/api/auth', authLimiter, authRoutes);
 
-// Rotas de barbeiro
-app.use('/api/barbers', barberRoutes);
+// Rotas de usuário com rate limiting público
+app.use('/api/users', publicApiLimiter, userRoutes);
 
-// Rotas de comentários
-app.use('/api/comments', commentRoutes);
+// Rotas de barbeiro com rate limiting público
+app.use('/api/barbers', publicApiLimiter, barberRoutes);
 
-// Rotas de agendamentos
-app.use('/api/appointments', appointmentRoutes);
+// Rotas de comentários com rate limiting específico
+app.use('/api/comments', commentsLimiter, commentRoutes);
 
-// Rotas de serviços
-app.use('/api/services', serviceRoutes);
+// Rotas de agendamentos com rate limiting específico
+app.use('/api/appointments', appointmentsLimiter, appointmentRoutes);
 
-// Rotas de segurança (apenas admin)
-app.use('/api/security', securityRoutes);
+// Rotas de serviços com rate limiting otimizado
+app.use('/api/services', servicesApiLimiter, serviceRoutes);
 
-// Rotas de QR codes
-app.use('/api/qr-codes', qrCodeRoutes);
+// Rotas de segurança (apenas admin) com rate limiting específico
+app.use('/api/security', publicApiLimiter, securityRoutes);
 
-// Rotas de barbearias (multi-tenant)
-app.use('/api/barbershops', barbershopRoutes);
+// Rotas de QR codes com rate limiting público
+app.use('/api/qr-codes', publicApiLimiter, qrCodeRoutes);
 
-// Rotas de planos e billing
-app.use('/api/plans', planRoutes);
+// Rotas de barbearias (multi-tenant) com rate limiting público
+app.use('/api/barbershops', publicApiLimiter, barbershopRoutes);
+
+// Rotas de planos e billing com rate limiting público
+app.use('/api/plans', publicApiLimiter, planRoutes);
 
 // Rotas com tenant context (formato: /api/app/:barbershopSlug/*)
 const { detectTenant, requireTenant, validateTenantAccess } = require('./middleware/tenantMiddleware');

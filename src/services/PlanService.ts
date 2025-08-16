@@ -15,15 +15,16 @@ const getApiService = () => ServiceFactory.getApiService();
 /**
  * Obter estatísticas de uso do plano atual
  */
-export const getUsageStats = async (): Promise<PlanUsage> => {
+export const getUsageStats = async (slug?: string): Promise<PlanUsage> => {
   try {
-    console.log('Obtendo estatísticas de uso do plano...');
+    console.log('Obtendo estatísticas de uso do plano...', { slug });
     
     const apiService = getApiService();
     
     try {
-      // Try to get real usage stats from the backend
-      const response = await apiService.get<PlanUsage>('/api/plans/usage');
+      // Try to get real usage stats from the backend (public endpoint)
+      const url = slug ? `/api/plans/public/usage?slug=${encodeURIComponent(slug)}` : '/api/plans/public/usage';
+      const response = await apiService.get<PlanUsage>(url);
       console.log('Estatísticas de uso obtidas:', response);
       return response;
     } catch (error) {
@@ -31,7 +32,7 @@ export const getUsageStats = async (): Promise<PlanUsage> => {
       console.warn('Endpoint de estatísticas não implementado, usando dados de fallback:', error);
       
       // Get current barbershop to determine plan type
-      const currentPlan = await getCurrentPlan();
+      const currentPlan = await getCurrentPlan(slug);
       const isProPlan = currentPlan.planType === 'pro';
       
       const fallbackData: PlanUsage = {
@@ -75,21 +76,55 @@ export const getUsageStats = async (): Promise<PlanUsage> => {
 /**
  * Obter informações do plano atual
  */
-export const getCurrentPlan = async (): Promise<PlanInfo> => {
+export const getCurrentPlan = async (slug?: string): Promise<PlanInfo> => {
   try {
-    console.log('Obtendo informações do plano atual...');
+    console.log('Obtendo informações do plano atual...', { slug });
     
     const apiService = getApiService();
     
     try {
-      // Try to get real plan info from the backend
-      const response = await apiService.get<PlanInfo>('/api/plans/current');
+      // Try to get real plan info from the backend (public endpoint)
+      // Include slug parameter if provided
+      const url = slug ? `/api/plans/public/current?slug=${encodeURIComponent(slug)}` : '/api/plans/public/current';
+      const response = await apiService.get<PlanInfo>(url);
       console.log('Informações do plano obtidas:', response);
       return response;
     } catch (error) {
       // If the endpoint is not implemented yet, get data from barbershop endpoint
       console.warn('Endpoint de plano não implementado, usando dados da barbearia:', error);
       
+      // If slug is provided, try to get barbershop by slug
+      if (slug) {
+        try {
+          const barbershopResponse = await apiService.get<{
+            id: string;
+            name: string;
+            slug: string;
+            planType: PlanType;
+            settings: Record<string, unknown>;
+            createdAt: string;
+          }>(`/api/barbershops/slug/${encodeURIComponent(slug)}`);
+          
+          const planInfo: PlanInfo = {
+            barbershopId: barbershopResponse.id,
+            name: barbershopResponse.name,
+            slug: barbershopResponse.slug,
+            planType: barbershopResponse.planType || 'free',
+            settings: barbershopResponse.settings || {
+              theme: 'default',
+              timezone: 'America/Sao_Paulo'
+            },
+            createdAt: barbershopResponse.createdAt
+          };
+          
+          console.log('Informações do plano (via barbearia por slug):', planInfo);
+          return planInfo;
+        } catch (slugError) {
+          console.warn('Erro ao buscar barbearia por slug:', slugError);
+        }
+      }
+      
+      // Fallback to my-barbershop endpoint
       const barbershopResponse = await apiService.get<{
         id: string;
         name: string;

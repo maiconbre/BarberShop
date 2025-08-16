@@ -346,16 +346,17 @@ const BarbershopRegistrationPage: React.FC = () => {
                             <label htmlFor="planType" className="block text-sm font-medium text-gray-300 mb-2">
                                 Plano
                             </label>
-                            <select
-                                id="planType"
+                            <input
+                                type="hidden"
                                 name="planType"
-                                className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-[#0D121E] text-white focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-all duration-200"
-                                value={formData.planType}
-                                onChange={handleInputChange}
-                            >
-                                <option value="free">Gratuito - Até 1 barbeiro, 20 agendamentos/mês</option>
-                                <option value="pro">Pro - Barbeiros ilimitados, agendamentos ilimitados</option>
-                            </select>
+                                value="free"
+                            />
+                            <div className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-[#0D121E] text-white">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm">Gratuito - Até 1 barbeiro, 20 agendamentos/mês</span>
+                                    <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-full">Ativo</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

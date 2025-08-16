@@ -190,8 +190,23 @@ const DashboardPageNew: React.FC = () => {
           });
           throw new Error(`Erro ao deletar agendamento: ${response.status} ${response.statusText}`);
         }
-      } else {
-        const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'pending' : 'completed');
+      } else if (action === 'toggle' && currentStatus) {
+        let newStatus: string;
+        
+        // Define o próximo status baseado no status atual
+        switch (currentStatus) {
+          case 'pending':
+            newStatus = 'confirmed';
+            break;
+          case 'confirmed':
+            newStatus = 'completed';
+            break;
+          case 'completed':
+            newStatus = 'pending';
+            break;
+          default:
+            newStatus = 'confirmed';
+        }
         
         try {
           // Usar o ApiService para requisições PATCH com retry e cache
@@ -222,9 +237,20 @@ const DashboardPageNew: React.FC = () => {
             }));
           }
 
-          const statusMessage = newStatus === 'completed'
-            ? 'Agendamento marcado como concluído!'
-            : 'Agendamento marcado como pendente!';
+          let statusMessage: string;
+          switch (newStatus) {
+            case 'confirmed':
+              statusMessage = 'Agendamento confirmado!';
+              break;
+            case 'completed':
+              statusMessage = 'Agendamento finalizado!';
+              break;
+            case 'pending':
+              statusMessage = 'Agendamento reaberto!';
+              break;
+            default:
+              statusMessage = 'Status atualizado!';
+          }
 
           toast.success(statusMessage, {
             duration: 4000,
@@ -390,9 +416,6 @@ const DashboardPageNew: React.FC = () => {
               revenueDisplayMode={revenueDisplayMode} 
               setRevenueDisplayMode={setRevenueDisplayMode}
             />
-            
-            {/* Plan Upgrade Notification */}
-            <PlanUpgradeNotification />
           </div>
 
           {/* Seção de Agendamentos */}
@@ -507,10 +530,7 @@ const DashboardPageNew: React.FC = () => {
           </div>
         </div>
 
-        {/* Usage Dashboard Section */}
-        <PlanProvider>
-          <UsageDashboard />
-        </PlanProvider>
+
       </div>
 
       <AppointmentViewModal

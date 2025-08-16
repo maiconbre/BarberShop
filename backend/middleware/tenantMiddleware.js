@@ -4,11 +4,6 @@ const { Barbershop } = require('../models');
  * Middleware para detectar e injetar tenant (barbershop) no contexto da requisição
  * Captura o slug da URL no formato /app/:barbershopSlug/* e busca o barbershopId correspondente
  */
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
 exports.detectTenant = async (req, res, next) => {
   try {
     // Extract barbershop slug from URL path
@@ -16,26 +11,47 @@ exports.detectTenant = async (req, res, next) => {
     const urlPath = req.path;
     const slugMatch = urlPath.match(/\/(?:api\/)?app\/([a-z0-9-]+)/);
     
-    if (!slugMatch) {
-      // If no slug in URL, this might be a non-tenant route (like auth, registration)
-      // Allow the request to continue without tenant context
-      return next();
-    }
+    let barbershop = null;
     
-    const barbershopSlug = slugMatch[1];
-    
-    // Find barbershop by slug
-    const barbershop = await Barbershop.findOne({
-      where: { slug: barbershopSlug },
-      attributes: ['id', 'name', 'slug', 'plan_type', 'settings']
-    });
-    
-    if (!barbershop) {
-      return res.status(404).json({
-        success: false,
-        message: `Barbershop not found: ${barbershopSlug}`,
-        code: 'TENANT_NOT_FOUND'
+    if (slugMatch) {
+      // Found slug in URL path
+      const barbershopSlug = slugMatch[1];
+      
+      // Find barbershop by slug
+      barbershop = await Barbershop.findOne({
+        where: { slug: barbershopSlug },
+        attributes: ['id', 'name', 'slug', 'plan_type', 'settings']
       });
+      
+      if (!barbershop) {
+        return res.status(404).json({
+          success: false,
+          message: `Barbershop not found: ${barbershopSlug}`,
+          code: 'TENANT_NOT_FOUND'
+        });
+      }
+    } else {
+      // Check for barbershopId in query parameters or headers
+      const barbershopId = req.query.barbershopId || req.headers['x-barbershop-id'];
+      
+      if (barbershopId) {
+        // Find barbershop by ID
+        barbershop = await Barbershop.findByPk(barbershopId, {
+          attributes: ['id', 'name', 'slug', 'plan_type', 'settings']
+        });
+        
+        if (!barbershop) {
+          return res.status(404).json({
+            success: false,
+            message: `Barbershop not found with ID: ${barbershopId}`,
+            code: 'TENANT_NOT_FOUND'
+          });
+        }
+      } else {
+        // If no slug or ID provided, this might be a non-tenant route
+        // Allow the request to continue without tenant context
+        return next();
+      }
     }
     
     // Inject tenant context into request
@@ -65,11 +81,6 @@ exports.detectTenant = async (req, res, next) => {
  * Middleware para garantir que uma requisição tenha contexto de tenant
  * Deve ser usado após detectTenant em rotas que requerem isolamento por tenant
  */
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
 exports.requireTenant = (req, res, next) => {
   if (!req.tenant || !req.tenant.barbershopId) {
     return res.status(400).json({
@@ -85,11 +96,6 @@ exports.requireTenant = (req, res, next) => {
 /**
  * Middleware para verificar se o usuário pertence ao tenant atual
  * Deve ser usado após auth middleware e tenant middleware
- */
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
  */
 exports.validateTenantAccess = async (req, res, next) => {
   try {
@@ -126,16 +132,7 @@ exports.validateTenantAccess = async (req, res, next) => {
 /**
  * Middleware para verificar limites do plano do tenant
  */
-/**
- * @param {string} feature
- * @returns {function}
- */
 exports.checkPlanLimits = (feature) => {
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
   return (req, res, next) => {
     if (!req.tenant) {
       return res.status(400).json({

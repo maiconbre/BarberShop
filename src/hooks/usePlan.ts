@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { 
   PlanUsage, 
   PlanInfo, 
@@ -36,13 +37,16 @@ export const usePlan = (): UsePlanReturn => {
   const [history, setHistory] = useState<PlanHistoryResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Get barbershop slug from URL params
+  const { barbershopSlug } = useParams<{ barbershopSlug: string }>();
 
   // Carregar estatísticas de uso
   const refreshUsage = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await PlanService.getUsageStats();
+      const data = await PlanService.getUsageStats(barbershopSlug);
       setUsage(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar estatísticas de uso';
@@ -51,14 +55,14 @@ export const usePlan = (): UsePlanReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [barbershopSlug]);
 
   // Carregar informações do plano
   const refreshPlanInfo = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await PlanService.getCurrentPlan();
+      const data = await PlanService.getCurrentPlan(barbershopSlug);
       setPlanInfo(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar informações do plano';
@@ -67,7 +71,7 @@ export const usePlan = (): UsePlanReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [barbershopSlug]);
 
   // Carregar histórico
   const refreshHistory = useCallback(async () => {
@@ -132,11 +136,11 @@ export const usePlan = (): UsePlanReturn => {
   }, [refreshUsage, refreshPlanInfo]);
 
   // Valores computados
-  const canCreateBarber = usage ? usage.usage.barbers.remaining > 0 : true;
-  const canCreateAppointment = usage ? usage.usage.appointments.remaining > 0 : true;
+  const canCreateBarber = usage?.usage?.barbers?.remaining > 0 ?? true;
+  const canCreateAppointment = usage?.usage?.appointments?.remaining > 0 ?? true;
   const shouldShowUpgradeNotification = usage ? PlanService.shouldShowUpgradeNotification(usage) : false;
   const isNearLimit = usage ? (
-    usage.usage.barbers.nearLimit || usage.usage.appointments.nearLimit
+    usage?.usage?.barbers?.nearLimit || usage?.usage?.appointments?.nearLimit
   ) : false;
 
   return {

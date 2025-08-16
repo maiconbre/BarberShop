@@ -110,10 +110,19 @@ export const initiateEmailVerification = async (data: EmailVerificationRequest):
   } catch (error: unknown) {
     console.error('Erro ao iniciar verificação de email:', error);
 
-    // The ApiService already handles timeout and network errors with proper retry logic
-    // We just need to handle specific business logic errors
+    // Handle network connection errors specifically
     if (error instanceof Error) {
       const message = error.message;
+      
+      // Check for specific HTTP status codes and business logic errors
+      if (message.includes('409') || message.includes('Conflict')) {
+        throw new Error('Este email já está cadastrado. Use outro email.');
+      }
+      
+      // Check for connection refused or network errors
+      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
+        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
+      }
       
       if (message.includes('EMAIL_ALREADY_EXISTS')) {
         throw new Error('Este email já está cadastrado. Use outro email.');
@@ -128,11 +137,16 @@ export const initiateEmailVerification = async (data: EmailVerificationRequest):
         throw new Error('Erro ao enviar email. Tente novamente.');
       }
       
+      // Generic network/server error
+      if (message.includes('timeout')) {
+        throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
+      }
+      
       // Re-throw the error as-is if it's already user-friendly
-      throw error;
+      throw new Error('Ocorreu um erro no servidor, tente mais tarde');
     }
 
-    throw new Error('Erro inesperado ao enviar código de verificação. Tente novamente.');
+    throw new Error('Ocorreu um erro no servidor, tente mais tarde');
   }
 };
 
@@ -156,10 +170,14 @@ export const verifyEmailCode = async (data: EmailCodeVerificationRequest): Promi
   } catch (error: unknown) {
     console.error('Erro ao verificar código:', error);
 
-    // The ApiService already handles timeout and network errors with proper retry logic
-    // We just need to handle specific business logic errors
+    // Handle network connection errors specifically
     if (error instanceof Error) {
       const message = error.message;
+      
+      // Check for connection refused or network errors
+      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
+        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
+      }
       
       if (message.includes('CODE_NOT_FOUND')) {
         throw new Error('Código de verificação não encontrado ou expirado. Solicite um novo código.');
@@ -180,11 +198,16 @@ export const verifyEmailCode = async (data: EmailCodeVerificationRequest): Promi
         throw new Error('Email e código são obrigatórios.');
       }
       
+      // Generic network/server error
+      if (message.includes('timeout')) {
+        throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
+      }
+      
       // Re-throw the error as-is if it's already user-friendly
-      throw error;
+      throw new Error('Ocorreu um erro no servidor, tente mais tarde');
     }
 
-    throw new Error('Erro inesperado ao verificar código. Tente novamente.');
+    throw new Error('Ocorreu um erro no servidor, tente mais tarde');
   }
 };
 
@@ -208,10 +231,14 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
   } catch (error: unknown) {
     console.error('Erro ao registrar barbearia:', error);
 
-    // The ApiService already handles timeout and network errors with proper retry logic
-    // We just need to handle specific business logic errors
+    // Handle network connection errors specifically
     if (error instanceof Error) {
       const message = error.message;
+      
+      // Check for connection refused or network errors
+      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
+        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
+      }
       
       if (message.includes('SLUG_ALREADY_EXISTS')) {
         throw new Error('Este nome de barbearia já está em uso. Escolha outro nome.');
@@ -229,11 +256,16 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
         throw new Error('Todos os campos são obrigatórios.');
       }
       
+      // Generic network/server error
+      if (message.includes('timeout')) {
+        throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
+      }
+      
       // Re-throw the error as-is if it's already user-friendly
-      throw error;
+      throw new Error('Ocorreu um erro no servidor, tente mais tarde');
     }
 
-    throw new Error('Erro inesperado ao registrar barbearia. Tente novamente.');
+    throw new Error('Ocorreu um erro no servidor, tente mais tarde');
   }
 };
 
@@ -261,13 +293,28 @@ export const checkSlugAvailability = async (slug: string): Promise<SlugCheckResp
   } catch (error: unknown) {
     console.error('Erro ao verificar disponibilidade do slug:', error);
 
-    // The ApiService already handles timeout and network errors with proper retry logic
+    // Handle network connection errors specifically
+    let errorMessage = 'Erro ao verificar disponibilidade';
+    
+    if (error instanceof Error) {
+      const message = error.message;
+      
+      // Check for connection refused or network errors
+      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
+        errorMessage = 'Ocorreu um erro no servidor, tente mais tarde';
+      } else if (message.includes('timeout')) {
+        errorMessage = 'Tempo limite excedido. Verifique sua conexão e tente novamente.';
+      } else {
+        errorMessage = message;
+      }
+    }
+
     // For this endpoint, we want to return a safe response on any error
     return {
       success: false,
       available: false,
       slug,
-      message: error instanceof Error ? error.message : 'Erro ao verificar disponibilidade'
+      message: errorMessage
     };
   }
 };
@@ -289,25 +336,29 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
     const response = await apiService.get<BarbershopResponse>(`/api/barbershops/slug/${encodeURIComponent(slug)}`);
 
     if (!response || !response.success) {
-      throw new Error(response?.message || 'Barbearia não encontrada');
+      throw new Error('Barbearia não encontrada');
     }
 
     console.log('Barbearia encontrada:', response.data.name);
     return response.data;
 
   } catch (error: unknown) {
-    console.error('Erro ao obter barbearia pelo slug:', error);
+    console.error('Erro ao buscar barbearia pelo slug:', error);
 
-    // Re-throw validation errors
-    if (error instanceof Error && error.message?.includes('Slug inválido')) {
-      throw error;
-    }
-
-    // The ApiService already handles timeout and network errors with proper retry logic
-    // We just need to handle specific business logic errors
     if (error instanceof Error) {
       const message = error.message;
       
+      // Handle network connection errors specifically
+      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
+        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
+      }
+      
+      // Re-throw validation errors
+      if (message.includes('Slug inválido')) {
+        throw error;
+      }
+      
+      // Handle 404 errors
       if (message.includes('BARBERSHOP_NOT_FOUND') || message.includes('404')) {
         throw new Error('Barbearia não encontrada');
       }
@@ -315,11 +366,17 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
         throw new Error('Slug é obrigatório');
       }
       
+      // Handle timeout errors
+      if (message.includes('timeout')) {
+        throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
+      }
+      
       // Re-throw the error as-is if it's already user-friendly
       throw error;
     }
 
-    throw new Error('Erro ao conectar com o servidor. Verifique sua conexão.');
+    // Para outros erros, usar mensagem amigável
+    throw new Error('Ocorreu um erro no servidor, tente mais tarde');
   }
 };
 
