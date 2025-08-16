@@ -83,7 +83,7 @@ const DashboardPageNew: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterMode, setCurrentPage]);
+  }, [filterMode, appointments.length]);
 
   // Verificar se deve mostrar onboarding
   useEffect(() => {

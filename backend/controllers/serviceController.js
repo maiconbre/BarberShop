@@ -1,6 +1,10 @@
 const Service = require('../models/Service');
 
 // Obter todos os serviços
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.getAllServices = async (req, res) => {
   const requestId = Date.now();
   console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Iniciando busca de serviços`);
@@ -40,6 +44,10 @@ exports.getAllServices = async (req, res) => {
 };
 
 // Obter serviço por ID
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.getServiceById = async (req, res) => {
   try {
     // Verificar contexto de tenant
@@ -80,6 +88,10 @@ exports.getServiceById = async (req, res) => {
 };
 
 // Criar novo serviço
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.createService = async (req, res) => {
   try {
     // Verificar contexto de tenant
@@ -138,6 +150,10 @@ exports.createService = async (req, res) => {
 };
 
 // Atualizar serviço
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.updateService = async (req, res) => {
   try {
     // Verificar contexto de tenant
@@ -187,6 +203,10 @@ exports.updateService = async (req, res) => {
 };
 
 // Excluir serviço
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.deleteService = async (req, res) => {
   try {
     // Verificar contexto de tenant
@@ -232,6 +252,10 @@ exports.deleteService = async (req, res) => {
 };
 
 // Associar barbeiros a um serviço
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.associateBarbers = async (req, res) => {
   try {
     // Verificar contexto de tenant
@@ -311,6 +335,10 @@ exports.associateBarbers = async (req, res) => {
 };
 
 // Obter serviços por barbeiro
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.getServicesByBarber = async (req, res) => {
   try {
     // Verificar contexto de tenant

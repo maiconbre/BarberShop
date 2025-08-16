@@ -30,7 +30,7 @@ const writeLimiter = limitRepeatedRequests({
 });
 
 // Rota para listar agendamentos com limitador otimizado para leitura
-router.get('/', readLimiter, async (req, res) => {
+router.get('/', readLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { barberId } = req.query;
     
@@ -62,7 +62,7 @@ router.get('/', readLimiter, async (req, res) => {
 });
 
 // Rota para criar agendamentos com limitador para escrita e verificação de limites do plano
-router.post('/', writeLimiter, checkAppointmentLimits, async (req, res) => {
+router.post('/', writeLimiter, checkAppointmentLimits, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const appointmentData = {
       id: Date.now().toString(),
@@ -89,7 +89,7 @@ router.post('/', writeLimiter, checkAppointmentLimits, async (req, res) => {
 });
 
 // Atualizar status do agendamento com limitador para escrita
-router.patch('/:id', writeLimiter, async (req, res) => {
+router.patch('/:id', writeLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -116,7 +116,7 @@ router.patch('/:id', writeLimiter, async (req, res) => {
 });
 
 // Excluir agendamento com limitador para escrita
-router.delete('/:id', writeLimiter, async (req, res) => {
+router.delete('/:id', writeLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
     const appointment = await Appointment.findByPk(id);

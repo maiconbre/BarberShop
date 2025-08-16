@@ -26,6 +26,7 @@ const securityRoutes = require('./routes/securityRoutes');
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const barbershopRoutes = require('./routes/barbershopRoutes');
 const planRoutes = require('./routes/planRoutes');
+const { errorMiddleware, Logger } = require('./utils/errorHandler');
 
 const app = express();
 
@@ -206,7 +207,7 @@ app.get('/', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 6543;
+const PORT = parseInt(process.env.PORT || '6543', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Rota para lidar com rotas não encontradas
@@ -285,19 +286,22 @@ const checkSupabaseBucket = async () => {
   }
 };
 
+// Error handling middleware (must be last)
+app.use(errorMiddleware);
+
 // Inicialização do banco de dados e do servidor
 const initDatabase = async () => {
   try {
     // Sincronizar o banco de dados sem forçar a recriação das tabelas
     await sequelize.sync({ force: false });
-    console.log('Banco de dados sincronizado');
+    Logger.info('Banco de dados sincronizado');
 
     // Banco de dados limpo - sem seed inicial
-    console.log('✅ Sistema iniciado com banco limpo (sem dados pré-populados)');
+    Logger.info('Sistema iniciado com banco limpo (sem dados pré-populados)');
 
     // Inicia o servidor utilizando o HOST e PORT definidos
     const server = app.listen(PORT, HOST, () => {
-      console.log(`Servidor rodando em http://localhost:${PORT}`);
+      Logger.info(`Servidor rodando em http://localhost:${PORT}`, { port: PORT, host: HOST });
       
       // Verificar e criar bucket do Supabase após o servidor iniciar
       setTimeout(async () => {

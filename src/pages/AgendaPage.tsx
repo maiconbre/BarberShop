@@ -53,12 +53,12 @@ const AgendaPage: React.FC = memo(() => {
   const currentUser = useMemo(() => getCurrentUser(), [getCurrentUser]);
 
   // Hook de agendamentos com suporte a tenant
-  const { 
-    appointments: baseAppointments, 
-    deleteAppointment, 
+  const {
+    appointments: baseAppointments,
+    deleteAppointment,
     updateAppointmentStatus
   } = useAppointments();
-  
+
   // Converter appointments para o tipo local
   const appointments = useMemo(() => {
     if (!baseAppointments) return null;
@@ -131,7 +131,7 @@ const AgendaPage: React.FC = memo(() => {
 
         // Usar o método tenant-aware do hook
         await deleteAppointment(appointmentId);
-        
+
         if (selectedAppointment?.id === appointmentId) {
           setIsViewModalOpen(false);
           setSelectedAppointment(null);
@@ -155,12 +155,12 @@ const AgendaPage: React.FC = memo(() => {
         });
       } else {
         const newStatus = action === 'complete' ? 'completed' : (currentStatus === 'completed' ? 'scheduled' : 'completed');
-        
+
         // Usar o método tenant-aware do hook
-        await updateAppointmentStatus(appointmentId, newStatus as any);
-        
+        await updateAppointmentStatus(appointmentId, newStatus as AppointmentStatus);
+
         if (selectedAppointment?.id === appointmentId) {
-          setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as any } : null);
+          setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as AppointmentStatus } : null);
         }
 
         const statusMessage = newStatus === 'completed'
@@ -303,7 +303,7 @@ const AgendaPage: React.FC = memo(() => {
           <h3 className="text-lg font-semibold text-white">
             Agendamentos ({selectedDate})
           </h3>
-          
+
           {calendarCurrentAppointments.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
@@ -323,7 +323,7 @@ const AgendaPage: React.FC = memo(() => {
                     transition={{ duration: 0.3 }}
                   >
                     <AppointmentCardNew
-                      appointment={appointment as any}
+                      appointment={appointment}
                       onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
                       onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
                       onView={() => handleAppointmentAction(appointment.id, 'view')}
@@ -342,11 +342,11 @@ const AgendaPage: React.FC = memo(() => {
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  
+
                   <span className="text-sm text-gray-400 px-3">
                     {currentPage} de {calendarTotalPages}
                   </span>
-                  
+
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === calendarTotalPages}
@@ -368,10 +368,10 @@ const AgendaPage: React.FC = memo(() => {
           setIsViewModalOpen(false);
           setSelectedAppointment(null);
         }}
-        appointment={selectedAppointment as any}
+        appointment={selectedAppointment}
         onDelete={() => handleAppointmentAction(selectedAppointment?.id || '', 'delete')}
         onToggleStatus={() => handleAppointmentAction(selectedAppointment?.id || '', 'toggle', selectedAppointment?.status)}
-        allAppointments={(appointments || []) as any}
+        allAppointments={appointments || []}
       />
     </StandardLayout>
   );

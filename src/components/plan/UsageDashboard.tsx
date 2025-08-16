@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../services/PlanService';
 import { TransactionHistory } from '../../types/plan';
+import { safeFixed } from '../../utils/numberUtils';
 
 interface UsageDashboardProps {
   className?: string;
@@ -157,7 +158,7 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
               
               <div className="flex items-center justify-between text-sm">
                 <span className={getUsageColor(barbersPercentage, usage.usage.barbers.nearLimit)}>
-                  {barbersPercentage.toFixed(0)}% usado
+                  {safeFixed(barbersPercentage, 0)}% usado
                 </span>
                 {usage.usage.barbers.nearLimit && (
                   <span className="flex items-center gap-1 text-yellow-400">
@@ -197,7 +198,7 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
               
               <div className="flex items-center justify-between text-sm">
                 <span className={getUsageColor(appointmentsPercentage, usage.usage.appointments.nearLimit)}>
-                  {appointmentsPercentage.toFixed(0)}% usado
+                  {safeFixed(appointmentsPercentage, 0)}% usado
                 </span>
                 {usage.usage.appointments.nearLimit && (
                   <span className="flex items-center gap-1 text-yellow-400">

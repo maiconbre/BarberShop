@@ -33,7 +33,7 @@ const writeLimiter = limitRepeatedRequests({
 });
 
 // Rota para listar todos os barbeiros com limitador otimizado para leitura
-router.get('/', readLimiter, async (req, res) => {
+router.get('/', readLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     let whereClause = {};
     
@@ -83,7 +83,7 @@ router.get('/', readLimiter, async (req, res) => {
 });
 
 // Rota para obter detalhes de um barbeiro específico com limitador para leitura
-router.get('/:id', readLimiter, async (req, res) => {
+router.get('/:id', readLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
     const formattedId = String(id).padStart(2, '0');
@@ -143,7 +143,7 @@ router.get('/:id', readLimiter, async (req, res) => {
 });
 
 // Rota para atualizar barbeiro com limitador para escrita
-router.patch('/:id', writeLimiter, async (req, res) => {
+router.patch('/:id', writeLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
     // Garantir que o ID esteja no formato correto (com zero à esquerda se necessário)
@@ -246,7 +246,7 @@ router.patch('/:id', writeLimiter, async (req, res) => {
 });
 
 // Rota para criar novo barbeiro com limitador para escrita e verificação de limites do plano
-router.post('/', writeLimiter, checkBarberLimits, async (req, res) => {
+router.post('/', writeLimiter, checkBarberLimits, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { name, username, password, whatsapp, pix } = req.body;
 
@@ -304,7 +304,7 @@ router.post('/', writeLimiter, checkBarberLimits, async (req, res) => {
 });
 
 // Rota para excluir barbeiro com limitador para escrita
-router.delete('/:id', writeLimiter, async (req, res) => {
+router.delete('/:id', writeLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
     const formattedId = String(id).length === 1 ? `0${id}` : String(id);

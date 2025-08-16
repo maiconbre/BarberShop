@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Clock, Eye, EyeOff, TrendingUp, Users, DollarSign, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { safeNumber, safeFixed, safeReduceSum } from '../../utils/numberUtils';
 
 interface StatsProps {
   appointments: {
@@ -66,7 +67,7 @@ const CountUp = ({ end, duration = 0.4, prefix = '', suffix = '' }: { end: numbe
   }, [end, duration]);
 
   return (
-    <span>{prefix}{count.toFixed(2)}{suffix}</span>
+    <span>{prefix}{safeFixed(count, 2)}{suffix}</span>
   );
 };
 
@@ -155,16 +156,16 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
     }
 
     const newStats: CachedStats = {
-      receitaHoje: appointmentsHoje.reduce((sum, app) => sum + app.price, 0),
-      receitaSemana: appointmentsSemana.reduce((sum, app) => sum + app.price, 0),
-      receitaMes: appointmentsMes.reduce((sum, app) => sum + app.price, 0),
+      receitaHoje: safeReduceSum(appointmentsHoje, 'price'),
+      receitaSemana: safeReduceSum(appointmentsSemana, 'price'),
+      receitaMes: safeReduceSum(appointmentsMes, 'price'),
       clientesHoje: appointmentsHoje.length,
       clientesSemana: appointmentsSemana.length,
       clientesMes: appointmentsMes.length,
       filteredPendingAppointments: currentFilteredAppointments.filter(app => app.status === 'pending').length,
       filteredCompletedAppointments: currentFilteredAppointments.filter(app => app.status === 'completed').length,
-      filteredPendingRevenue: currentFilteredAppointments.filter(app => app.status === 'pending').reduce((sum, app) => sum + app.price, 0),
-      filteredCompletedRevenue: currentFilteredAppointments.filter(app => app.status === 'completed').reduce((sum, app) => sum + app.price, 0),
+      filteredPendingRevenue: safeReduceSum(currentFilteredAppointments.filter(app => app.status === 'pending'), 'price'),
+      filteredCompletedRevenue: safeReduceSum(currentFilteredAppointments.filter(app => app.status === 'completed'), 'price'),
       timestamp: Date.now()
     };
 
@@ -470,7 +471,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                     <Tooltip
                       formatter={(value: string, name: string, props: unknown) => {
                         const data = (props as { payload: { revenue: number } }).payload;
-                        return [`${value} agendamentos - R$ ${data.revenue.toFixed(2)}`, name];
+                        return [`${value} agendamentos - R$ ${safeFixed(data.revenue, 2)}`, name];
                       }}
                       contentStyle={{
                         backgroundColor: 'rgba(26,31,46,0.95)',
@@ -501,7 +502,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
                 </div>
                 {showValues && (
                   <div className="mt-1 text-xs text-gray-400">
-                    R$ {(filteredPendingRevenue + filteredCompletedRevenue).toFixed(2)}
+                    R$ {safeFixed(safeNumber(filteredPendingRevenue) + safeNumber(filteredCompletedRevenue), 2)}
                   </div>
                 )}
               </div>

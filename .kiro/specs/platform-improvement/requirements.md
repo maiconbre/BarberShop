@@ -2,74 +2,98 @@
 
 ## Introduction
 
-Este documento define os requisitos para um **MVP enxuto e vendável** da plataforma BarberShop SaaS. O objetivo é criar um produto funcional em **3-4 semanas** que gere receita real, focando em funcionalidades essenciais ao invés de arquitetura perfeita.
+Este documento define os requisitos para a **correção completa e funcionalização** da plataforma BarberShop. O objetivo é corrigir todos os problemas existentes, implementar integração real com API Node.js + Express + PostgreSQL, remover mocks, corrigir erros TypeScript e garantir que todos os testes passem.
 
-**Contexto**: O projeto possui backend funcional. O foco agora é **validar o produto com clientes pagantes** antes de otimizar arquitetura. Prioridade: **receita > código perfeito**.
+**Contexto**: O projeto possui backend Node.js/Express/Sequelize/PostgreSQL funcional mas com problemas de integração. O frontend React/TypeScript tem dados mock que precisam ser substituídos por serviços reais. Existem erros de TypeScript e falhas em testes que impedem o funcionamento adequado.
 
-## Requirements - MVP Enxuto
+**Objetivo**: Plataforma totalmente funcional com arquitetura SOLID, dados reais do banco, zero erros TypeScript e 100% dos testes passando.
 
-### Requirement 1: Core Funcional
+## Requirements - Correção Completa
 
-**User Story:** Como dono de barbearia, eu quero um sistema básico de agendamentos, para que meus clientes possam agendar e eu possa gerenciar minha agenda.
+### Requirement 1: Frontend com Dados Reais
 
-#### Acceptance Criteria
-
-1. WHEN um cliente acessa o sistema THEN ele SHALL conseguir ver barbeiros e serviços disponíveis
-2. WHEN um cliente seleciona barbeiro, serviço e horário THEN o sistema SHALL criar o agendamento
-3. WHEN há conflito de horário THEN o sistema SHALL impedir o agendamento duplo
-4. WHEN um barbeiro acessa sua agenda THEN ele SHALL ver todos os agendamentos do dia
-
-### Requirement 2: Gestão Básica
-
-**User Story:** Como barbeiro, eu quero gerenciar meus agendamentos, para que eu possa confirmar, cancelar e organizar meu trabalho.
+**User Story:** Como desenvolvedor, eu quero que o frontend consuma dados reais do backend via API, para que não existam mais dados mock e o sistema funcione com informações reais do banco PostgreSQL.
 
 #### Acceptance Criteria
 
-1. WHEN um novo agendamento é criado THEN eu SHALL receber notificação
-2. WHEN eu acesso minha agenda THEN eu SHALL poder confirmar ou cancelar agendamentos
-3. WHEN eu defino meus horários de trabalho THEN o sistema SHALL respeitar minha disponibilidade
-4. WHEN eu marco indisponibilidade THEN novos agendamentos SHALL ser bloqueados
+1. WHEN o frontend busca serviços THEN ele SHALL usar endpoint real `/api/services` do backend Node.js
+2. WHEN dados de barbearia são carregados THEN a função `getBarbershopBySlug` SHALL buscar dados reais do banco PostgreSQL
+3. WHEN chamadas Axios falham THEN o sistema SHALL tratar corretamente erros 500, 404 e outros códigos HTTP
+4. WHEN o frontend carrega THEN todos os dados SHALL vir do banco de dados real via API REST
 
-### Requirement 3: Monetização
+### Requirement 2: Backend Node.js Corrigido
 
-**User Story:** Como empreendedor, eu quero cobrar pelo uso do sistema, para que o negócio seja sustentável.
-
-#### Acceptance Criteria
-
-1. WHEN um estabelecimento se cadastra THEN ele SHALL ter acesso ao plano gratuito limitado
-2. WHEN um estabelecimento excede os limites THEN ele SHALL ser direcionado para upgrade
-3. WHEN um pagamento é processado THEN o plano SHALL ser ativado automaticamente
-4. WHEN um pagamento falha THEN o sistema SHALL notificar e bloquear recursos premium
-
-### Requirement 4: Multi-tenant
-
-**User Story:** Como plataforma SaaS, eu quero suportar múltiplos estabelecimentos, para que cada um tenha seus dados isolados.
+**User Story:** Como sistema backend, eu quero funcionar corretamente com PostgreSQL e Sequelize, para que todas as operações de banco sejam executadas sem erros.
 
 #### Acceptance Criteria
 
-1. WHEN um estabelecimento acessa o sistema THEN ele SHALL ver apenas seus próprios dados
-2. WHEN dados são criados THEN eles SHALL ser associados ao estabelecimento correto
-3. WHEN um usuário troca de estabelecimento THEN os dados SHALL ser filtrados adequadamente
-4. WHEN há problemas de isolamento THEN dados de outros estabelecimentos SHALL permanecer seguros
+1. WHEN `registerBarbershop` é chamada THEN ela SHALL gerar UUID válido para usuário usando biblioteca `uuid`
+2. WHEN usuário administrador é criado THEN ele SHALL ser associado corretamente à barbearia recém-criada
+3. WHEN endpoint `/api/barbershops/register` é chamado THEN ele SHALL funcionar sem erros de banco de dados
+4. WHEN endpoints de API são acessados THEN eles SHALL retornar dados reais do PostgreSQL via Sequelize
 
-### Requirement 5: Simplicidade
+### Requirement 3: Banco de Dados PostgreSQL Corrigido
 
-**User Story:** Como desenvolvedor, eu quero manter o código simples e funcional, para que o produto seja entregue rapidamente e seja fácil de manter.
-
-#### Acceptance Criteria
-
-1. WHEN funcionalidades são implementadas THEN elas SHALL focar no essencial para o negócio
-2. WHEN código é escrito THEN ele SHALL ser direto e sem abstrações desnecessárias
-3. WHEN testes são criados THEN eles SHALL cobrir apenas fluxos críticos
-4. WHEN otimizações são feitas THEN elas SHALL ser baseadas em necessidades reais de usuários
-
-### Requirement 6: Validação de Mercado
-
-**User Story:** Como produto, eu quero ser validado por clientes reais, para que as próximas funcionalidades sejam baseadas em necessidades reais.
+**User Story:** Como banco de dados, eu quero ter estrutura correta com UUIDs válidos e integridade referencial, para que todas as operações sejam executadas sem erros.
 
 #### Acceptance Criteria
 
-1. WHEN o MVP é lançado THEN ele SHALL ter pelo menos 5 estabelecimentos testando
-2. WHEN clientes usam o sistema THEN suas ações SHALL ser monitoradas para entender padrões de uso
-3. WHEN feedback é coletado THEN ele SHALL guiar as próximas funcionalidades
-4. WHEN clientes pagam THEN isso SHALL validar a proposta de valor do produto
+1. WHEN `Users.id` é criado THEN ele SHALL ser UUID válido gerado pela biblioteca `uuid`
+2. WHEN `Barbershops.id` é criado THEN ele SHALL manter formato UUID e vincular corretamente com usuários
+3. WHEN integridade referencial é verificada THEN FK `barbershopId` em `Users` SHALL funcionar corretamente
+4. WHEN IDs são gerados THEN o sistema SHALL evitar concatenações como `admin-<uuid>-<timestamp>` que causam erros PostgreSQL
+
+### Requirement 4: Testes Funcionando
+
+**User Story:** Como desenvolvedor, eu quero que todos os testes unitários e de integração passem, para que o código seja confiável e manutenível.
+
+#### Acceptance Criteria
+
+1. WHEN `npm run test` é executado THEN todos os testes unitários SHALL passar sem erros
+2. WHEN testes de integração são executados THEN eles SHALL usar dados reais do banco onde necessário
+3. WHEN testes TypeScript são executados THEN eles SHALL passar sem warnings ou erros de tipagem
+4. WHEN dados mock são usados em testes THEN eles SHALL ser substituídos por dados reais quando apropriado
+
+### Requirement 5: TypeScript Sem Erros
+
+**User Story:** Como desenvolvedor, eu quero código TypeScript limpo e sem erros, para que o desenvolvimento seja produtivo e o código seja type-safe.
+
+#### Acceptance Criteria
+
+1. WHEN controllers são compilados THEN eles SHALL não ter erros de TypeScript
+2. WHEN services são compilados THEN eles SHALL ter tipagem correta e consistente
+3. WHEN rotas são definidas THEN elas SHALL ter tipos corretos para request/response
+4. WHEN frontend e backend compartilham tipos THEN eles SHALL ser consistentes (Barbershop, Service, User)
+
+### Requirement 6: Logs e Depuração
+
+**User Story:** Como sistema, eu quero ter logs claros e tratamento de erros adequado, para que problemas sejam facilmente identificados e resolvidos.
+
+#### Acceptance Criteria
+
+1. WHEN endpoints são acessados THEN logs claros SHALL ser registrados para cada operação
+2. WHEN erros ocorrem THEN mensagens detalhadas SHALL ser exibidas no console apenas em desenvolvimento
+3. WHEN erros internos (500) acontecem THEN eles SHALL não quebrar o frontend e retornar mensagens amigáveis
+4. WHEN operações de banco falham THEN logs específicos SHALL ajudar na depuração
+
+### Requirement 7: UUIDs e Identificadores
+
+**User Story:** Como sistema de identificação, eu quero usar UUIDs válidos gerados corretamente, para que não haja conflitos ou erros de formato.
+
+#### Acceptance Criteria
+
+1. WHEN UUIDs são gerados THEN eles SHALL usar a biblioteca `uuid` do npm
+2. WHEN usuários são criados THEN seus IDs SHALL ser UUIDs válidos sem concatenações
+3. WHEN barbearias são criadas THEN seus IDs SHALL ser UUIDs válidos
+4. WHEN referências são feitas THEN elas SHALL usar UUIDs corretos sem strings concatenadas
+
+### Requirement 8: Arquitetura SOLID
+
+**User Story:** Como arquitetura de software, eu quero seguir princípios SOLID, para que o código seja manutenível, testável e extensível.
+
+#### Acceptance Criteria
+
+1. WHEN classes são criadas THEN elas SHALL seguir Single Responsibility Principle
+2. WHEN interfaces são definidas THEN elas SHALL seguir Interface Segregation Principle  
+3. WHEN dependências são injetadas THEN elas SHALL seguir Dependency Inversion Principle
+4. WHEN código é estendido THEN ele SHALL seguir Open/Closed Principle

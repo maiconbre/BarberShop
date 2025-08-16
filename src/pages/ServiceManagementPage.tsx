@@ -8,6 +8,7 @@ import { useBarbers } from '../hooks/useBarbers';
 import { logger } from '../utils/logger';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
+import { safeFixed } from '../utils/numberUtils';
 
 interface Service {
   id: string;
@@ -404,7 +405,7 @@ const ServiceManagementPage: React.FC = () => {
                           whileHover={{ scale: 1.05 }}
                           transition={{ type: "spring", stiffness: 400, damping: 10 }}
                         >
-                          R$ {service.price.toFixed(2)}
+                          R$ {safeFixed(service.price, 2)}
                         </motion.div>
                       </div>
                       

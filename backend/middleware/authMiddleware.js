@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 exports.protect = async (req, res, next) => {
   try {
     // Get token from header
@@ -45,6 +50,11 @@ exports.protect = async (req, res, next) => {
 };
 
 // Middleware to check if user is admin
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 exports.admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();

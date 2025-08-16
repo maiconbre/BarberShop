@@ -4,6 +4,7 @@
  */
 
 const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
 
 // Mock data storage (em memória)
 const mockBarbershops = new Map();
@@ -102,7 +103,7 @@ exports.registerBarbershop = async (req, res) => {
     console.log('[MOCK] Barbearia criada:', barbershop.id);
 
     // Criar usuário administrador (mock)
-    const userId = `admin-${barbershopId}-${Date.now()}`;
+    const userId = uuidv4(); // Gerar UUID válido
     const adminUser = {
       id: userId,
       username: ownerUsername.trim(),

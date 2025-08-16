@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { cacheService } from '../../services/CacheService';
 import { requestDebouncer } from '../../utils/requestDebouncer';
 import ApiService from '../../services/ApiService';
+import { safeFixed } from '../../utils/numberUtils';
 
 interface Appointment {
   id: string;
@@ -609,7 +610,7 @@ const Notifications = React.memo(() => {
                       </div>
                       <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-[#0D121E]/50 rounded-lg">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
-                          <p className="text-xs sm:text-sm font-bold text-green-400">R$ {appointment.price.toFixed(2)}</p>
+                          <p className="text-xs sm:text-sm font-bold text-green-400">R$ {safeFixed(appointment.price, 2)}</p>
                           <p className="text-xs sm:text-sm text-[#F0B35B]">
                             {new Date(appointment.date).toLocaleDateString('pt-BR')} às {appointment.time}
                           </p>

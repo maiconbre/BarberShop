@@ -7,6 +7,7 @@ import { useBarbers } from '../../hooks/useBarbers';
 import { useTenant } from '../../contexts/TenantContext';
 import { formatPhoneNumber } from '../../utils/formatters';
 import { logger } from '../../utils/logger';
+import { safeNumber, safeFixed } from '../../utils/numberUtils';
 
 interface Appointment {
     id: string;
@@ -324,7 +325,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Receita Total</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">R$ {metrics.totalRevenue.toFixed(2)}</p>
+                            <p className="text-white text-sm sm:text-xl font-bold">R$ {safeFixed(metrics.totalRevenue, 2)}</p>
                         </div>
                         <DollarSign className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
                     </div>
@@ -344,7 +345,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Ticket Médio</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">R$ {metrics.avgTicket.toFixed(2)}</p>
+                            <p className="text-white text-sm sm:text-xl font-bold">R$ {safeFixed(metrics.avgTicket, 2)}</p>
                         </div>
                         <TrendingUp className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
                     </div>
@@ -364,7 +365,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Taxa Retorno</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">{metrics.returnRate.toFixed(1)}%</p>
+                            <p className="text-white text-sm sm:text-xl font-bold">{safeFixed(metrics.returnRate, 1)}%</p>
                         </div>
                         <TrendingUp className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
                     </div>
@@ -432,7 +433,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                 }}
                                             />
                                         </div>
-                                        <span className="text-gray-400 text-xs">{percentage.toFixed(1)}%</span>
+                                        <span className="text-gray-400 text-xs">{safeFixed(percentage, 1)}%</span>
                                     </div>
                                 );
                             })}
@@ -449,7 +450,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             cy="50%"
                                             outerRadius={60}
                                             dataKey="value"
-                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                            label={({ name, percent }) => `${name} ${safeFixed(percent * 100, 0)}%`}
                                         >
                                             {chartData.topServices.map((_, index) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -490,7 +491,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                         </div>
                                         <div className="text-right">
                                             <div className="text-[#F0B35B] text-xs sm:text-sm font-bold">{service.value} agendamentos</div>
-                                            <div className="text-gray-400 text-xs">R$ {avgRevenue.toFixed(2)} média</div>
+                                            <div className="text-gray-400 text-xs">R$ {safeFixed(avgRevenue, 2)} média</div>
                                         </div>
                                     </div>
                                 );
@@ -552,11 +553,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                     </div>
                                     <div className="bg-[#0F1419] p-3 rounded-lg text-center">
                                         <p className="text-gray-400 text-xs">Total Gasto</p>
-                                        <p className="text-[#F0B35B] text-xl font-bold">R$ {selectedClient.totalSpent.toFixed(2)}</p>
+                                        <p className="text-[#F0B35B] text-xl font-bold">R$ {safeFixed(selectedClient.totalSpent, 2)}</p>
                                     </div>
                                     <div className="bg-[#0F1419] p-3 rounded-lg text-center">
                                         <p className="text-gray-400 text-xs">Ticket Médio</p>
-                                        <p className="text-white text-xl font-bold">R$ {(selectedClient.totalSpent / selectedClient.visits).toFixed(2)}</p>
+                                        <p className="text-white text-xl font-bold">R$ {safeFixed(safeNumber(selectedClient.totalSpent) / safeNumber(selectedClient.visits, 1), 2)}</p>
                                     </div>
                                     <div className="bg-[#0F1419] p-3 rounded-lg text-center">
                                         <p className="text-gray-400 text-xs">Última Visita</p>
@@ -619,7 +620,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                                 </p>
                                                             </div>
                                                             <div className="text-right">
-                                                                <p className="text-[#F0B35B] font-bold text-sm">R$ {appointment.price.toFixed(2)}</p>
+                                                                <p className="text-[#F0B35B] font-bold text-sm">R$ {safeFixed(appointment.price, 2)}</p>
                                                                 <span className={`text-xs px-2 py-1 rounded-full ${appointment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                                                                         appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
                                                                             'bg-yellow-500/20 text-yellow-400'
@@ -706,7 +707,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                 </div>
                                 <div className="bg-[#0F1419] p-2 rounded-lg">
                                     <p className="text-gray-400">Total</p>
-                                    <p className="text-[#F0B35B] font-bold">R$ {client.totalSpent.toFixed(2)}</p>
+                                    <p className="text-[#F0B35B] font-bold">R$ {safeFixed(client.totalSpent, 2)}</p>
                                 </div>
                             </div>
 
@@ -763,7 +764,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">{client.barberName || '-'}</td>
                                         )}
                                         <td className="p-2 sm:p-4 text-white font-medium text-xs sm:text-base">{client.visits}</td>
-                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {client.totalSpent.toFixed(2)}</td>
+                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {safeFixed(client.totalSpent, 2)}</td>
                                         <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">
                                             {new Date(client.lastVisit).toLocaleDateString('pt-BR')}
                                         </td>
@@ -807,8 +808,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                         </td>
                                         <td className="p-2 sm:p-4 text-white font-medium text-xs sm:text-base">{barber.appointments}</td>
                                         <td className="p-2 sm:p-4 text-white font-medium text-xs sm:text-base">{barber.clients}</td>
-                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {barber.revenue.toFixed(2)}</td>
-                                        <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">R$ {barber.avgTicket.toFixed(2)}</td>
+                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {safeFixed(barber.revenue, 2)}</td>
+                                        <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">R$ {safeFixed(barber.avgTicket, 2)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -934,7 +935,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                     </div>
                                     <div className="bg-[#0F1419] p-4 rounded-lg">
                                         <h3 className="text-gray-400 text-sm mb-1">Total Gasto</h3>
-                                        <p className="text-[#F0B35B] font-medium">R$ {selectedClient.totalSpent.toFixed(2)}</p>
+                                        <p className="text-[#F0B35B] font-medium">R$ {safeFixed(selectedClient.totalSpent, 2)}</p>
                                     </div>
                                 </div>
 
@@ -955,7 +956,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                         )}
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-[#F0B35B] font-medium">R$ {appointment.price.toFixed(2)}</p>
+                                                        <p className="text-[#F0B35B] font-medium">R$ {safeFixed(appointment.price, 2)}</p>
                                                         <span className={`text-xs px-2 py-1 rounded-full ${appointment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                                                                 appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
                                                                     'bg-yellow-500/20 text-yellow-400'

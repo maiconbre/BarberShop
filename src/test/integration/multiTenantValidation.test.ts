@@ -31,7 +31,7 @@ describe('Production Validation Tests', () => {
       vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-key');
 
       const report = await productionChecker.runAllChecks();
-      
+
       expect(report).toBeDefined();
       expect(report.overall).toBeOneOf(['ready', 'warning', 'not_ready']);
       expect(report.score).toBeGreaterThanOrEqual(0);
@@ -42,7 +42,7 @@ describe('Production Validation Tests', () => {
 
     it('should perform quick production check', () => {
       const quickCheck = productionChecker.quickCheck();
-      
+
       expect(quickCheck).toBeDefined();
       expect(typeof quickCheck.ready).toBe('boolean');
       expect(Array.isArray(quickCheck.criticalIssues)).toBe(true);
@@ -53,13 +53,13 @@ describe('Production Validation Tests', () => {
     it('should log user actions correctly', () => {
       const testAction = 'test_action';
       const testDetails = { test: 'data' };
-      
+
       // Test logging function
       auditLogger.logUserAction(testAction, testDetails);
-      
+
       const logs = auditLogger.getLocalLogs();
       expect(logs.length).toBeGreaterThan(0);
-      
+
       const lastLog = logs[logs.length - 1];
       expect(lastLog.action).toBe(testAction);
       expect(lastLog.resource).toBe('user');
@@ -68,13 +68,13 @@ describe('Production Validation Tests', () => {
 
     it('should handle error logging', () => {
       const testError = new Error('Test error');
-      const testContext = { component: 'test' };
-      
+      const testContext = { resource: 'test' };
+
       auditLogger.logError(testError, testContext);
-      
+
       const logs = auditLogger.getLocalLogs();
       const errorLog = logs.find(log => log.action === 'error_occurred');
-      
+
       expect(errorLog).toBeDefined();
       expect(errorLog?.severity).toBe('error');
     });
@@ -83,7 +83,7 @@ describe('Production Validation Tests', () => {
   describe('Backup System', () => {
     it('should handle backup configuration', () => {
       const config = backupManager.getConfig();
-      
+
       expect(config).toBeDefined();
       expect(typeof config.enabled).toBe('boolean');
       expect(typeof config.interval).toBe('number');
@@ -92,16 +92,16 @@ describe('Production Validation Tests', () => {
 
     it('should list local backups', () => {
       const backupList = backupManager.getLocalBackupList();
-      
+
       expect(Array.isArray(backupList)).toBe(true);
     });
 
     it('should update backup configuration', () => {
       const newConfig = { enabled: false, maxBackups: 5 };
-      
+
       backupManager.updateConfig(newConfig);
       const updatedConfig = backupManager.getConfig();
-      
+
       expect(updatedConfig.enabled).toBe(false);
       expect(updatedConfig.maxBackups).toBe(5);
     });
@@ -111,12 +111,12 @@ describe('Production Validation Tests', () => {
     it('should track performance metrics', () => {
       const metricName = 'test_metric';
       const metricValue = 100;
-      
+
       productionMonitor.recordMetric(metricName, metricValue);
-      
+
       const recentMetrics = productionMonitor.getRecentMetrics(10);
       const testMetric = recentMetrics.find(m => m.name === metricName);
-      
+
       expect(testMetric).toBeDefined();
       expect(testMetric?.value).toBe(metricValue);
     });
@@ -124,12 +124,12 @@ describe('Production Validation Tests', () => {
     it('should report errors correctly', () => {
       const testError = new Error('Test monitoring error');
       const testContext = { component: 'monitoring_test' };
-      
+
       productionMonitor.reportError(testError, testContext, 'medium');
-      
+
       const recentErrors = productionMonitor.getRecentErrors(10);
       const reportedError = recentErrors.find(e => e.error.message === 'Test monitoring error');
-      
+
       expect(reportedError).toBeDefined();
       expect(reportedError?.severity).toBe('medium');
     });
@@ -137,19 +137,19 @@ describe('Production Validation Tests', () => {
     it('should track usage events', () => {
       const eventName = 'test_event';
       const eventProperties = { test: 'property' };
-      
+
       productionMonitor.trackUsage(eventName, eventProperties);
-      
+
       const recentUsage = productionMonitor.getRecentUsage(10);
       const trackedEvent = recentUsage.find(u => u.event === eventName);
-      
+
       expect(trackedEvent).toBeDefined();
       expect(trackedEvent?.properties.test).toBe('property');
     });
 
     it('should provide session statistics', () => {
       const stats = productionMonitor.getSessionStats();
-      
+
       expect(stats).toBeDefined();
       expect(typeof stats.uptime).toBe('number');
       expect(typeof stats.metrics).toBe('number');
@@ -162,25 +162,25 @@ describe('Production Validation Tests', () => {
     it('should validate complete production setup', async () => {
       // Test all production utilities working together
       const startTime = performance.now();
-      
+
       // Test production checker
       const quickCheck = productionChecker.quickCheck();
       expect(typeof quickCheck.ready).toBe('boolean');
-      
+
       // Test audit logging
       auditLogger.logUserAction('integration_test', { timestamp: Date.now() });
       const logs = auditLogger.getLocalLogs();
       expect(logs.length).toBeGreaterThan(0);
-      
+
       // Test monitoring
       productionMonitor.recordMetric('integration_test_duration', performance.now() - startTime);
       const metrics = productionMonitor.getRecentMetrics(1);
       expect(metrics.length).toBeGreaterThan(0);
-      
+
       // Test backup system
       const backupConfig = backupManager.getConfig();
       expect(backupConfig).toBeDefined();
-      
+
       // All systems working
       expect(true).toBe(true);
     });
@@ -188,17 +188,17 @@ describe('Production Validation Tests', () => {
     it('should handle error scenarios gracefully', () => {
       // Test error handling across systems
       const testError = new Error('Integration test error');
-      
+
       // Test audit logger error handling
-      auditLogger.logError(testError, { test: 'integration' });
-      
+      auditLogger.logError(testError, { resource: 'integration' });
+
       // Test production monitor error handling
       productionMonitor.reportError(testError, { test: 'integration' }, 'low');
-      
+
       // Verify errors were logged
       const auditLogs = auditLogger.getLocalLogs();
       const monitorErrors = productionMonitor.getRecentErrors(10);
-      
+
       expect(auditLogs.some(log => log.action === 'error_occurred')).toBe(true);
       expect(monitorErrors.some(error => error.error.message === 'Integration test error')).toBe(true);
     });
@@ -238,7 +238,7 @@ describe('Production Performance Tests', () => {
     }));
 
     const startTime = performance.now();
-    
+
     // Simulate processing large dataset
     const processed = largeDataset.map(item => ({
       ...item,
@@ -254,8 +254,8 @@ describe('Production Performance Tests', () => {
   });
 
   it('should handle memory efficiently', () => {
-    const initialMemory = (performance as any).memory?.usedJSHeapSize || 0;
-    
+    const initialMemory = (performance as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0;
+
     // Create and destroy many objects
     for (let i = 0; i < 1000; i++) {
       const tempData = {
@@ -263,12 +263,12 @@ describe('Production Performance Tests', () => {
         data: new Array(100).fill(i),
         timestamp: Date.now()
       };
-      
+
       // Use the data briefly
       expect(tempData.id).toBe(i);
     }
 
-    const finalMemory = (performance as any).memory?.usedJSHeapSize || 0;
+    const finalMemory = (performance as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0;
     const memoryIncrease = finalMemory - initialMemory;
 
     // Memory increase should be reasonable (less than 50MB)

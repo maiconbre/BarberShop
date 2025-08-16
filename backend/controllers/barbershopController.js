@@ -2,16 +2,27 @@ const { Barbershop, User, Barber } = require('../models');
 const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
 const { createDefaultData } = require('../utils/defaultData');
+const { v4: uuidv4 } = require('uuid');
+const { handleError, Logger } = require('../utils/errorHandler');
 
 // In-memory store for email verification codes (in production, use Redis or database)
 const verificationCodes = new Map();
 
 // Helper function to generate 6-digit verification code
+/**
+ * @returns {string}
+ */
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // Helper function to send email via n8n webhook
+/**
+ * @param {string} email
+ * @param {string} code
+ * @param {string} barbershopName
+ * @returns {Promise<any>}
+ */
 const sendVerificationEmail = async (email, code, barbershopName) => {
   try {
     console.log(`Sending verification email to ${email} with code ${code} for barbershop ${barbershopName}`);
@@ -83,6 +94,10 @@ const sendVerificationEmail = async (email, code, barbershopName) => {
  */
 
 // Helper function to generate JWT token
+/**
+ * @param {any} user
+ * @returns {string}
+ */
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role, barbershopId: user.barbershopId },
@@ -92,6 +107,10 @@ const generateToken = (user) => {
 };
 
 // Helper function to generate refresh token
+/**
+ * @param {any} user
+ * @returns {string}
+ */
 const generateRefreshToken = (user) => {
   return jwt.sign(
     { id: user.id, barbershopId: user.barbershopId },
@@ -103,6 +122,10 @@ const generateRefreshToken = (user) => {
 /**
  * Iniciar processo de verificação de email
  * POST /api/barbershops/verify-email
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 exports.initiateEmailVerification = async (req, res) => {
   try {
@@ -169,11 +192,18 @@ exports.initiateEmailVerification = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro ao iniciar verificação de email:', error);
-    res.status(500).json({
+    const context = {
+      operation: 'initiateEmailVerification',
+      email,
+      barbershopName
+    };
+    
+    const { statusCode, message, code } = handleError(error, context);
+    
+    res.status(statusCode).json({
       success: false,
-      message: 'Erro interno do servidor',
-      code: 'INTERNAL_SERVER_ERROR'
+      message,
+      code
     });
   }
 };
@@ -181,6 +211,10 @@ exports.initiateEmailVerification = async (req, res) => {
 /**
  * Verificar código de email
  * POST /api/barbershops/verify-code
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 exports.verifyEmailCode = async (req, res) => {
   try {
@@ -248,11 +282,17 @@ exports.verifyEmailCode = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro ao verificar código:', error);
-    res.status(500).json({
+    const context = {
+      operation: 'verifyEmailCode',
+      email
+    };
+    
+    const { statusCode, message, code } = handleError(error, context);
+    
+    res.status(statusCode).json({
       success: false,
-      message: 'Erro interno do servidor',
-      code: 'INTERNAL_SERVER_ERROR'
+      message,
+      code
     });
   }
 };
@@ -261,11 +301,15 @@ exports.verifyEmailCode = async (req, res) => {
  * Registrar nova barbearia
  * POST /api/barbershops/register
  */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.registerBarbershop = async (req, res) => {
   try {
     const { name, slug, ownerEmail, ownerName, ownerUsername, ownerPassword, planType = 'free' } = req.body;
 
-    console.log('Tentativa de registro de barbearia:', { name, slug, ownerEmail, ownerUsername });
+    Logger.info('Tentativa de registro de barbearia', { name, slug, ownerEmail, ownerUsername });
 
     // Validações básicas
     if (!name || !slug || !ownerEmail || !ownerName || !ownerUsername || !ownerPassword) {
@@ -350,11 +394,11 @@ exports.registerBarbershop = async (req, res) => {
       }
     });
 
-    console.log('Barbearia criada:', barbershop.id);
+    Logger.database('CREATE', 'Barbershop', { barbershopId: barbershop.id, name: barbershop.name });
 
     // Criar usuário administrador da barbearia
     const adminUser = await User.create({
-      id: `admin-${barbershop.id}-${Date.now()}`,
+      // Deixar o Sequelize gerar o UUID automaticamente
       username: ownerUsername.trim(),
       password: ownerPassword,
       role: 'admin',
@@ -362,7 +406,7 @@ exports.registerBarbershop = async (req, res) => {
       barbershopId: barbershop.id
     });
 
-    console.log('Usuário admin criado:', adminUser.id);
+    Logger.database('CREATE', 'User', { userId: adminUser.id, username: adminUser.username, role: 'admin' });
 
     // Criar barbeiro automaticamente com o nome do proprietário
     const firstBarber = await Barber.create({
@@ -372,7 +416,7 @@ exports.registerBarbershop = async (req, res) => {
       barbershopId: barbershop.id
     });
 
-    console.log('Primeiro barbeiro criado:', firstBarber.id, firstBarber.name);
+    Logger.database('CREATE', 'Barber', { barberId: firstBarber.id, name: firstBarber.name });
 
     // Criar dados padrão da barbearia (2 serviços + 1 agendamento teste)
     await createDefaultData(barbershop.id, firstBarber.id, firstBarber.name);
@@ -404,7 +448,7 @@ exports.registerBarbershop = async (req, res) => {
     // Clean up verification code after successful registration
     verificationCodes.delete(ownerEmail.toLowerCase());
 
-    console.log('Registro de barbearia concluído com sucesso');
+    Logger.info('Registro de barbearia concluído com sucesso', { barbershopId: barbershop.id, slug: barbershop.slug });
 
     res.status(201).json({
       success: true,
@@ -413,11 +457,18 @@ exports.registerBarbershop = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erro no registro de barbearia:', error);
-    res.status(500).json({
+    const context = {
+      operation: 'registerBarbershop',
+      ownerEmail,
+      slug
+    };
+    
+    const { statusCode, message, code } = handleError(error, context);
+    
+    res.status(statusCode).json({
       success: false,
-      message: 'Erro interno do servidor',
-      code: 'INTERNAL_SERVER_ERROR'
+      message,
+      code
     });
   }
 };
@@ -425,6 +476,10 @@ exports.registerBarbershop = async (req, res) => {
 /**
  * Verificar disponibilidade de slug
  * GET /api/barbershops/check-slug/:slug
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 exports.checkSlugAvailability = async (req, res) => {
   try {
@@ -465,6 +520,10 @@ exports.checkSlugAvailability = async (req, res) => {
 /**
  * Obter dados da barbearia atual (baseado no tenant context)
  * GET /api/barbershops/current
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 exports.getCurrentBarbershop = async (req, res) => {
   try {
@@ -515,6 +574,10 @@ exports.getCurrentBarbershop = async (req, res) => {
  * Obter dados da barbearia do usuário autenticado (sem tenant context)
  * GET /api/barbershops/my-barbershop
  */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.getMyBarbershop = async (req, res) => {
   try {
     if (!req.user || !req.user.barbershopId) {
@@ -563,6 +626,10 @@ exports.getMyBarbershop = async (req, res) => {
 /**
  * Atualizar configurações da barbearia
  * PUT /api/barbershops/current
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 exports.updateCurrentBarbershop = async (req, res) => {
   try {
@@ -647,6 +714,10 @@ exports.updateCurrentBarbershop = async (req, res) => {
  * Obter barbearia por slug (público)
  * GET /api/barbershops/slug/:slug
  */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.getBarbershopBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -698,6 +769,10 @@ exports.getBarbershopBySlug = async (req, res) => {
 /**
  * Listar todas as barbearias (apenas para desenvolvimento/debug)
  * GET /api/barbershops/list
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
  */
 exports.listBarbershops = async (req, res) => {
   try {

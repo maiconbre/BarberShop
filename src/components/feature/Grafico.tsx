@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaChartLine, FaChevronDown } from 'react-icons/fa';
 import { DollarSign, Award, Users } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, BarChart, Bar, AreaChart, Area } from 'recharts';
+import { safeFixed, safeReduceSum } from '../../utils/numberUtils';
 
 interface Appointment {
   id: string;
@@ -136,7 +137,7 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
     appointments.forEach(app => uniqueClients.add(app.clientName.toLowerCase()));
     
     // Calcular ticket médio
-    const totalRevenue = appointments.reduce((sum, app) => sum + app.price, 0);
+    const totalRevenue = safeReduceSum(appointments, 'price');
     const ticketMedio = appointments.length > 0 ? totalRevenue / appointments.length : 0;
     
     // Calcular clientes que retornam (com mais de uma visita)
@@ -368,7 +369,7 @@ const Grafico: React.FC<GraficoProps> = ({ appointments, isChartExpanded, setIsC
                 <div className="flex flex-col items-center justify-center h-20 sm:h-24">
                   <DollarSign className="h-6 w-6 text-green-400 mb-1" />
                   <p className="text-lg sm:text-2xl font-bold text-white">
-                    R$ {metricsData.ticketMedio.toFixed(2)}
+                    R$ {safeFixed(metricsData.ticketMedio, 2)}
                   </p>
                 </div>
               </div>

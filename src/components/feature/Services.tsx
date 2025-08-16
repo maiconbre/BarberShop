@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useServices } from '../../hooks/useServices';
 import { useTenant } from '../../contexts/TenantContext';
 import { logger } from '../../utils/logger';
+import { safeFixed } from '../../utils/numberUtils';
 
 // Dados estáticos para fallback
 const staticServices = [
@@ -62,7 +63,7 @@ const Services: React.FC<ServicesProps> = ({ onSchedule, onScheduleMultiple, isS
   const formatServices = (services: Service[]) => {
     return services.map((service: Service) => ({
       name: service.name,
-      price: `R$ ${service.price.toFixed(2).replace('.', ',')}`,
+      price: `R$ ${safeFixed(service.price, 2).replace('.', ',')}`,
       image: staticServices.find(s => s.name === service.name)?.image || staticServices[0].image,
       description: staticServices.find(s => s.name === service.name)?.description || 'Serviço profissional'
     }));

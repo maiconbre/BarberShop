@@ -1,8 +1,8 @@
 import type { ISearchableRepository, SearchOptions } from '../interfaces/IRepository';
 import type { IApiService } from '../interfaces/IApiService';
-import type { Service as ServiceType, ServiceFormData } from '@/types';
+import type { Service as ServiceType } from '@/types';
 import type { BackendService } from '@/types/backend';
-import { Service } from '@/models/Service';
+import { BackendServiceFormDataSchema } from '@/validation/schemas';
 
 /**
  * Repositório para serviços seguindo Repository Pattern
@@ -84,16 +84,16 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    * Cria um novo serviço
    */
   async create(serviceData: Omit<ServiceType, 'id' | 'createdAt' | 'updatedAt'>): Promise<ServiceType> {
-    // Valida os dados antes de enviar
-    const validatedData = Service.validateFormData(serviceData as ServiceFormData);
-    
     // Adapta para formato do backend (apenas name e price são suportados)
     const backendData = {
-      name: validatedData.name,
-      price: validatedData.price,
+      name: serviceData.name,
+      price: serviceData.price,
     };
     
-    const backendService = await this.apiService.post<BackendService>('/api/services', backendData);
+    // Valida apenas os campos suportados pelo backend
+    const validatedData = BackendServiceFormDataSchema.parse(backendData);
+    
+    const backendService = await this.apiService.post<BackendService>('/api/services', validatedData);
     return this.adaptBackendServiceToFrontend(backendService);
   }
 

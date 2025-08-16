@@ -2,6 +2,7 @@ const { Sequelize } = require('sequelize');
 const dbConfig = require('../config/database');
 
 // Criar instância do Sequelize com a configuração do ambiente atual
+/** @type {import('sequelize').Sequelize} */
 let sequelize;
 if (dbConfig.dialect === 'sqlite') {
   sequelize = new Sequelize({
@@ -25,7 +26,11 @@ if (dbConfig.dialect === 'sqlite') {
 }
 
 // Função de teste de conexão melhorada
+/**
+ * @returns {Promise<void>}
+ */
 const testConnection = async () => {
+  /** @type {number} */
   let retries = 5;
   while (retries > 0) {
     try {
@@ -34,8 +39,10 @@ const testConnection = async () => {
       console.log('Conexão com o banco de dados estabelecida com sucesso.');
       break;
     } catch (err) {
+      /** @type {Error} */
+      const error = /** @type {Error} */ (err);
       console.log(`Tentativa de conexão falhou. Tentativas restantes: ${retries - 1}`);
-      console.error('Detalhes do erro:', err.message);
+      console.error('Detalhes do erro:', error.message);
       retries -= 1;
       if (retries === 0) {
         console.error('Falha ao conectar ao banco de dados após todas as tentativas.');
@@ -47,8 +54,10 @@ const testConnection = async () => {
 };
 
 // Inicia o teste de conexão
-testConnection().catch(err => {
-  console.error('Erro fatal na conexão:', err);
+testConnection().catch((err) => {
+  /** @type {Error} */
+  const error = /** @type {Error} */ (err);
+  console.error('Erro fatal na conexão:', error);
   process.exit(1);
 });
 

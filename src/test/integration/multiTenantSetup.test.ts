@@ -173,7 +173,7 @@ describe('Multi-Tenant Test Environment', () => {
       expect(results['bb-gamma-789']).toHaveLength(1);
       
       // Verify no ID overlap
-      const allIds = Object.values(results).flat().map((barber: any) => barber.id);
+      const allIds = Object.values(results).flat().map((barber: { id: string }) => barber.id);
       const uniqueIds = new Set(allIds);
       expect(allIds.length).toBe(uniqueIds.size);
     });

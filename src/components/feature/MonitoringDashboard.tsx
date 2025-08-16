@@ -11,6 +11,7 @@ import {
   Download
 } from 'lucide-react';
 import { monitoringService, ErrorLog, PerformanceMetric, UserFeedback } from '../../services/MonitoringService';
+import { safeFixed } from '../../utils/numberUtils';
 
 const MonitoringDashboard: React.FC = () => {
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
@@ -208,7 +209,7 @@ const MonitoringDashboard: React.FC = () => {
                     <div key={metric} className="bg-[#252B3B] p-4 rounded-lg">
                       <p className="text-sm text-gray-400 capitalize">{metric.replace('_', ' ')}</p>
                       <p className="text-xl font-semibold text-white">
-                        {typeof value === 'number' ? value.toFixed(2) : value}
+                        {typeof value === 'number' ? safeFixed(value, 2) : value}
                         {metric.includes('time') ? 'ms' : ''}
                       </p>
                     </div>
@@ -282,7 +283,7 @@ const MonitoringDashboard: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-semibold text-[#F0B35B]">
-                          {metric.value.toFixed(2)}
+                          {safeFixed(metric.value, 2)}
                           {metric.metric.includes('time') ? 'ms' : ''}
                         </p>
                       </div>

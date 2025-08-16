@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Clock, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { safeFixed } from '../../utils/numberUtils';
 
 interface Appointment {
   id: string;
@@ -144,7 +145,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onView, className = '' })
         
         <div className="flex items-center justify-center pt-2 border-t border-white/10">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-[#F0B35B]">R$ {appointment.price.toFixed(2)}</span>
+            <span className="text-sm font-bold text-[#F0B35B]">R$ {safeFixed(appointment.price, 2)}</span>
           </div>
         </div>
       </div>

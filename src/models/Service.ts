@@ -1,5 +1,5 @@
 import type { Service as ServiceType, ServiceFormData } from '@/types';
-import { ServiceSchema, ServiceFormDataSchema } from '@/validation/schemas';
+import { ServiceSchema, ServiceFormDataSchema, BackendServiceFormDataSchema } from '@/validation/schemas';
 
 export class Service {
   private constructor(
@@ -42,6 +42,13 @@ export class Service {
    */
   static validateFormData(data: unknown): ServiceFormData {
     return ServiceFormDataSchema.parse(data);
+  }
+
+  /**
+   * Validates backend service form data (only name and price)
+   */
+  static validateBackendFormData(data: unknown) {
+    return BackendServiceFormDataSchema.parse(data);
   }
 
   /**

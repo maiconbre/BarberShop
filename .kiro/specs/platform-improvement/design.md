@@ -2,30 +2,32 @@
 
 ## Overview
 
-Este documento detalha o design para o plano de melhoria da plataforma BarberShop, focando na correção de testes falhando, migração de componentes para a nova arquitetura SOLID, implementação de repositórios restantes e adição de testes de integração. O objetivo é criar uma plataforma enxuta, mantendo os benefícios já alcançados na Fase 1 da implementação SOLID.
+Este documento detalha o design para a **correção completa da plataforma BarberShop**, transformando-a de um sistema com dados mock e erros para uma aplicação totalmente funcional com integração real Node.js + Express + PostgreSQL. O foco é eliminar todos os problemas existentes: dados mock, erros TypeScript, testes falhando, problemas de UUID e integração inadequada com o backend.
 
-**Backend Integration**: O projeto utiliza um backend híbrido com Supabase para autenticação/storage e API externa (https://barber-backend-spm8.onrender.com) para operações CRUD. A arquitetura frontend deve se adaptar a esta infraestrutura existente, otimizando a comunicação e propondo melhorias pontuais quando necessário.
+**Problema Atual**: O projeto tem backend Node.js/Express/Sequelize/PostgreSQL funcional na pasta `/backend`, mas o frontend React/TypeScript está usando dados mock ao invés de consumir a API real. Existem erros de TypeScript em controllers, services e rotas, além de problemas com geração de UUIDs e testes falhando.
 
-**Development Strategy**: Para acelerar o desenvolvimento coordenado, o backend será temporariamente clonado para desenvolvimento local integrado, permitindo testes e melhorias coordenadas. As mudanças serão posteriormente sincronizadas com o repositório backend separado, mantendo os deploys automáticos independentes.
+**Solução**: Integração completa frontend-backend, correção de todos os erros TypeScript, implementação de UUIDs corretos, remoção de dados mock e garantia de que todos os testes passem. O backend local será corrigido e depois sincronizado com o repositório separado.
 
 ## Architecture
 
-### Current State (Fase 1 Completed)
-- ✅ Princípios SOLID implementados
-- ✅ Serviços core criados (HttpClient, ErrorHandler, ApiMetrics, ApiServiceV2)
-- ✅ UserRepository implementado
-- ✅ ServiceFactory para injeção de dependências
-- ✅ 142 testes unitários (hooks corrigidos)
-- ✅ Interfaces bem definidas
-- ✅ Backend híbrido: Supabase + API externa configurados
+### Current State (Problemas Identificados)
+- ❌ Frontend usando dados mock ao invés de API real
+- ❌ Função `getBarbershopBySlug` com dados fake
+- ❌ Erros TypeScript em controllers, services e rotas do backend
+- ❌ Problemas na função `registerBarbershop` (UUIDs inválidos)
+- ❌ Testes falhando (`npm run test` com erros)
+- ❌ IDs concatenados (`admin-<uuid>-<timestamp>`) causando erros PostgreSQL
+- ❌ Tratamento inadequado de erros HTTP (500, 404)
 
-### Target State (Fase 2)
-- 🎯 Todos os testes de hooks funcionando ✅
-- 🎯 Componentes migrados para nova arquitetura
-- 🎯 Repositórios completos (Appointment, Service) adaptados ao backend existente
-- 🎯 Testes de integração implementados
-- 🎯 Plataforma enxuta e otimizada
-- 🎯 Integração backend otimizada com mínimas mudanças necessárias
+### Target State (Correção Completa)
+- ✅ Frontend consumindo dados reais via `/api/services` e outros endpoints
+- ✅ Função `getBarbershopBySlug` buscando dados reais do PostgreSQL
+- ✅ Zero erros TypeScript em todo o projeto
+- ✅ Função `registerBarbershop` gerando UUIDs válidos com biblioteca `uuid`
+- ✅ 100% dos testes passando (`npm run test` sem erros)
+- ✅ UUIDs válidos para Users.id e Barbershops.id
+- ✅ Tratamento correto de erros HTTP com mensagens amigáveis
+- ✅ Logs claros para depuração e monitoramento
 
 ### Backend Integration Strategy
 A integração com o backend existente seguirá os seguintes princípios:
@@ -47,41 +49,55 @@ A migração será incremental, mantendo a funcionalidade existente enquanto apl
 
 ## Components and Interfaces
 
-### Hook Testing Strategy
+### Backend Correction Strategy
 ```typescript
-// Estrutura para correção de testes de hooks
-interface HookTestStrategy {
-  isolateHooks: boolean;
-  mockDependencies: boolean;
-  validateStateChanges: boolean;
-  testAsyncBehavior: boolean;
+// Correção da função registerBarbershop
+interface RegisterBarbershopCorrection {
+  generateValidUUID: boolean; // Usar biblioteca uuid
+  associateUserCorrectly: boolean; // FK barbershopId válida
+  avoidStringConcatenation: boolean; // Não usar admin-<uuid>-<timestamp>
+  handleDatabaseErrors: boolean; // Tratamento adequado de erros Sequelize
+}
+
+// Correção de tipos TypeScript
+interface TypeScriptCorrection {
+  fixControllerTypes: boolean; // Request/Response tipados
+  fixServiceTypes: boolean; // Métodos com tipos corretos
+  fixRouteTypes: boolean; // Parâmetros e retornos tipados
+  shareTypesWithFrontend: boolean; // Interfaces compartilhadas
 }
 ```
 
-### Component Migration Pattern
+### Frontend Integration Strategy
 ```typescript
-// Padrão para migração de componentes
-interface ComponentMigrationPattern {
-  useRepositoryPattern: boolean;
-  implementHooks: boolean;
-  followSOLIDPrinciples: boolean;
-  maintainExistingAPI: boolean;
+// Remoção de dados mock
+interface MockRemovalStrategy {
+  replaceGetBarbershopBySlug: boolean; // Buscar dados reais do banco
+  useRealServiceEndpoints: boolean; // /api/services ao invés de mock
+  implementErrorHandling: boolean; // Tratar 500, 404, etc.
+  validateDataIntegrity: boolean; // Garantir dados consistentes
 }
 ```
 
-### Repository Implementation
+### Real API Integration
 ```typescript
-// Interfaces adaptadas aos endpoints reais da API
-interface IAppointmentRepository extends IRepository<Appointment> {
-  // Métodos baseados em GET /api/appointments com filtros frontend
-  findByUserId(userId: string): Promise<Appointment[]>;
-  findByDateRange(start: Date, end: Date): Promise<Appointment[]>;
-  findByStatus(status: AppointmentStatus): Promise<Appointment[]>;
-  findByBarberId(barberId: string): Promise<Appointment[]>;
-  findUpcoming(): Promise<Appointment[]>;
+// Integração com endpoints reais do backend Node.js
+interface IRealAPIIntegration {
+  // Serviços - dados reais do PostgreSQL
+  getServices(): Promise<Service[]>; // GET /api/services
+  getServiceById(id: string): Promise<Service>; // GET /api/services/:id
   
-  // Método específico da API para atualizar status
-  updateStatus(id: string, status: AppointmentStatus): Promise<Appointment>;
+  // Barbearias - dados reais do banco
+  getBarbershopBySlug(slug: string): Promise<Barbershop>; // GET /api/barbershops/:slug
+  registerBarbershop(data: BarbershopData): Promise<Barbershop>; // POST /api/barbershops/register
+  
+  // Usuários - integração com Sequelize
+  getUsers(): Promise<User[]>; // GET /api/users
+  createUser(userData: CreateUserData): Promise<User>; // POST /api/users
+  
+  // Agendamentos - CRUD completo
+  getAppointments(): Promise<Appointment[]>; // GET /api/appointments
+  createAppointment(data: AppointmentData): Promise<Appointment>; // POST /api/appointments
 }
 
 interface IServiceRepository extends IRepository<Service> {
@@ -125,37 +141,55 @@ interface IBackendAdapter {
 
 ## Data Models
 
-### Appointment Model
+### Corrected UUID Models
 ```typescript
-interface Appointment {
-  id: string;
-  userId: string;
-  serviceId: string;
-  date: Date;
-  status: AppointmentStatus;
-  notes?: string;
+// Modelos corrigidos com UUIDs válidos
+interface User {
+  id: string; // UUID válido gerado com biblioteca uuid
+  username: string;
+  password: string;
+  role: 'admin' | 'barber' | 'client';
+  name: string;
+  barbershopId: string; // FK para Barbershops.id (UUID)
   createdAt: Date;
   updatedAt: Date;
 }
 
-enum AppointmentStatus {
-  SCHEDULED = 'scheduled',
-  CONFIRMED = 'confirmed',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled'
+interface Barbershop {
+  id: string; // UUID válido (já correto)
+  name: string;
+  slug: string;
+  ownerEmail: string;
+  planType: 'free' | 'pro';
+  settings: object;
+  createdAt: Date;
+  updatedAt: Date;
 }
-```
 
-### Service Model Enhancement
-```typescript
 interface Service {
-  id: string;
+  id: string; // UUID válido
   name: string;
   description: string;
-  duration: number; // em minutos
+  duration: number;
   price: number;
-  category: string;
+  barbershopId: string; // FK para isolamento multi-tenant
   isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Appointment {
+  id: string; // UUID válido (não mais Date.now().toString())
+  clientName: string;
+  serviceName: string;
+  date: Date;
+  time: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  barberId: string;
+  barberName: string;
+  price: number;
+  wppclient?: string;
+  barbershopId: string; // FK para isolamento multi-tenant
   createdAt: Date;
   updatedAt: Date;
 }
@@ -163,49 +197,171 @@ interface Service {
 
 ## Error Handling
 
-### Test Error Recovery
-- Implementar retry logic para testes flaky
-- Isolamento de testes para evitar interferência
-- Mocks consistentes para dependências externas
+### Backend Error Correction
+```typescript
+// Tratamento correto de erros no backend
+interface BackendErrorHandling {
+  sequelizeErrors: {
+    handleUniqueConstraint: boolean;
+    handleForeignKeyViolation: boolean;
+    handleValidationErrors: boolean;
+    logDatabaseErrors: boolean;
+  };
+  
+  httpErrors: {
+    return400ForBadRequest: boolean;
+    return404ForNotFound: boolean;
+    return500ForServerError: boolean;
+    returnFriendlyMessages: boolean;
+  };
+  
+  uuidErrors: {
+    validateUUIDFormat: boolean;
+    generateValidUUIDs: boolean;
+    avoidStringConcatenation: boolean;
+  };
+}
+```
 
-### Migration Error Prevention
-- Validação de compatibilidade antes da migração
-- Rollback strategy para cada componente
-- Testes de regressão automáticos
+### Frontend Error Handling
+```typescript
+// Tratamento de erros HTTP no frontend
+interface FrontendErrorHandling {
+  axiosInterceptors: {
+    handle500Errors: boolean;
+    handle404Errors: boolean;
+    handle401Unauthorized: boolean;
+    showUserFriendlyMessages: boolean;
+  };
+  
+  apiIntegration: {
+    retryFailedRequests: boolean;
+    fallbackToCache: boolean;
+    validateResponseData: boolean;
+    logErrorsInDevelopment: boolean;
+  };
+}
+```
 
 ## Testing Strategy
 
-### Hook Testing Fixes
-1. **Isolamento**: Cada hook testado independentemente
-2. **Mocking**: Dependências externas mockadas consistentemente
-3. **State Management**: Validação de mudanças de estado
-4. **Async Handling**: Testes para operações assíncronas
+### Test Correction Approach
+```typescript
+// Estratégia para corrigir testes falhando
+interface TestCorrectionStrategy {
+  unitTests: {
+    fixMockingIssues: boolean; // Mocks consistentes
+    fixAsyncTestHandling: boolean; // Promises e async/await
+    fixTypeScriptErrors: boolean; // Tipos corretos nos testes
+    removeFlakiness: boolean; // Testes determinísticos
+  };
+  
+  integrationTests: {
+    useRealDatabaseConnections: boolean; // Testes com PostgreSQL real
+    testActualAPIEndpoints: boolean; // Testar /api/* endpoints
+    validateDataPersistence: boolean; // Dados salvos corretamente
+    testErrorScenarios: boolean; // Cenários de erro
+  };
+  
+  e2eTests: {
+    testCompleteUserFlows: boolean; // Fluxos completos
+    validateUIIntegration: boolean; // Frontend + Backend
+    testMultiTenantIsolation: boolean; // Isolamento de dados
+  };
+}
+```
 
-### Integration Testing Approach
-1. **End-to-End Flows**: Testes que simulam jornadas completas do usuário
-2. **API Integration**: Validação de integração com APIs
-3. **Component Integration**: Testes de interação entre componentes
-4. **Repository Integration**: Validação de operações de dados
+### Test Data Strategy
+```typescript
+// Estratégia para dados de teste
+interface TestDataStrategy {
+  realData: {
+    usePostgreSQLTestDatabase: boolean;
+    createValidUUIDs: boolean;
+    maintainReferentialIntegrity: boolean;
+    cleanupAfterTests: boolean;
+  };
+  
+  mockData: {
+    onlyWhenNecessary: boolean; // Preferir dados reais
+    consistentWithRealAPI: boolean;
+    matchActualDataStructure: boolean;
+    updateWhenAPIChanges: boolean;
+  };
+}
+```
 
-### Test Structure
+### Corrected Test Structure
 ```
 tests/
-├── unit/                 # Testes unitários (existentes)
-├── integration/          # Novos testes de integração
-│   ├── components/       # Integração de componentes
-│   ├── repositories/     # Integração de repositórios
-│   └── flows/           # Fluxos end-to-end
-└── fixtures/            # Dados de teste compartilhados
+├── unit/                    # Testes unitários corrigidos
+│   ├── backend/            # Testes do Node.js/Express
+│   │   ├── controllers/    # Controllers com tipos corretos
+│   │   ├── services/       # Services sem erros TypeScript
+│   │   └── models/         # Modelos Sequelize
+│   └── frontend/           # Testes do React/TypeScript
+│       ├── components/     # Componentes sem dados mock
+│       ├── hooks/          # Hooks usando API real
+│       └── services/       # Serviços de integração
+├── integration/            # Testes de integração
+│   ├── api/               # Testes dos endpoints reais
+│   ├── database/          # Testes com PostgreSQL
+│   └── fullstack/         # Frontend + Backend
+└── fixtures/              # Dados de teste com UUIDs válidos
+    ├── users.json         # Usuários com UUIDs corretos
+    ├── barbershops.json   # Barbearias com dados reais
+    └── services.json      # Serviços do banco
 ```
 
 ## Performance Considerations
 
-### Lean Platform Principles
-1. **Minimal Dependencies**: Remover dependências não utilizadas
-2. **Code Splitting**: Carregamento sob demanda
-3. **Efficient Rendering**: Otimização de re-renders
-4. **Memory Management**: Limpeza adequada de recursos
-5. **Backend Optimization**: Aproveitar cache e otimizações já implementadas
+### Database Performance
+```typescript
+// Otimizações de performance no PostgreSQL
+interface DatabasePerformance {
+  indexing: {
+    createUUIDIndexes: boolean; // Índices em campos UUID
+    createForeignKeyIndexes: boolean; // Índices em FKs
+    createCompositeIndexes: boolean; // Índices compostos
+  };
+  
+  queries: {
+    useEfficientJoins: boolean; // JOINs otimizados
+    implementPagination: boolean; // Paginação para listas grandes
+    usePreparedStatements: boolean; // Statements preparados
+    avoidNPlusOneQueries: boolean; // Evitar queries N+1
+  };
+  
+  connections: {
+    useConnectionPooling: boolean; // Pool de conexões
+    setProperTimeouts: boolean; // Timeouts adequados
+    handleConnectionErrors: boolean; // Tratamento de erros
+  };
+}
+```
+
+### API Performance
+```typescript
+// Otimizações de performance na API
+interface APIPerformance {
+  caching: {
+    implementResponseCaching: boolean; // Cache de respostas
+    useETags: boolean; // ETags para cache condicional
+    cacheStaticData: boolean; // Cache de dados estáticos
+  };
+  
+  compression: {
+    enableGzipCompression: boolean; // Compressão gzip
+    optimizeJSONResponses: boolean; // Respostas JSON otimizadas
+  };
+  
+  validation: {
+    validateInputEarly: boolean; // Validação precoce
+    useSchemaValidation: boolean; // Validação de schema
+    sanitizeInputs: boolean; // Sanitização de entradas
+  };
+}
+```
 
 ### Migration Performance
 - Migração incremental para evitar impacto na performance
@@ -219,11 +375,39 @@ tests/
 3. **Fallback Endpoints**: Usar endpoints alternativos já configurados
 4. **Adaptive Configuration**: Manter configuração adaptativa por ambiente
 
-### Clean Code Principles
-1. **Single Responsibility**: Cada repositório com responsabilidade única
-2. **DRY (Don't Repeat Yourself)**: Reutilizar lógica de API existente
-3. **KISS (Keep It Simple, Stupid)**: Soluções simples e diretas
-4. **YAGNI (You Aren't Gonna Need It)**: Implementar apenas o necessário
+### SOLID Architecture Implementation
+```typescript
+// Implementação dos princípios SOLID
+interface SOLIDImplementation {
+  singleResponsibility: {
+    separateControllers: boolean; // Um controller por recurso
+    dedicatedServices: boolean; // Serviços específicos
+    focusedRepositories: boolean; // Repositórios com foco único
+  };
+  
+  openClosed: {
+    extensibleInterfaces: boolean; // Interfaces extensíveis
+    pluggableServices: boolean; // Serviços plugáveis
+    configurableComponents: boolean; // Componentes configuráveis
+  };
+  
+  liskovSubstitution: {
+    consistentInterfaces: boolean; // Interfaces consistentes
+    replaceableImplementations: boolean; // Implementações substituíveis
+  };
+  
+  interfaceSegregation: {
+    smallFocusedInterfaces: boolean; // Interfaces pequenas
+    noFatInterfaces: boolean; // Evitar interfaces gordas
+  };
+  
+  dependencyInversion: {
+    dependOnAbstractions: boolean; // Depender de abstrações
+    injectDependencies: boolean; // Injeção de dependências
+    useServiceFactory: boolean; // Factory para serviços
+  };
+}
+```
 
 ### Lean Implementation Strategy
 ```typescript

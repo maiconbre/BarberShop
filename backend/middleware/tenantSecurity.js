@@ -20,6 +20,8 @@ const accessAttempts = new Map();
 
 /**
  * Função para obter informações detalhadas do cliente
+ * @param {import('express').Request} req
+ * @returns {object}
  */
 const getClientInfo = (req) => {
   const forwarded = req.headers['x-forwarded-for'];
@@ -41,6 +43,9 @@ const getClientInfo = (req) => {
 
 /**
  * Função para log de eventos de segurança multi-tenant
+ * @param {import('express').Request} req
+ * @param {string} eventType
+ * @param {object} details
  */
 const logTenantSecurityEvent = (req, eventType, details = {}) => {
   const clientInfo = getClientInfo(req);
@@ -105,6 +110,11 @@ const determineSeverity = (eventType, details) => {
 /**
  * Middleware para bloquear queries sem tenant válido
  */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 exports.blockQueriesWithoutTenant = (req, res, next) => {
   // Skip para rotas que não requerem tenant (auth, registration, etc.)
   const publicRoutes = ['/api/auth', '/api/barbershops/register', '/api/barbershops/check-slug'];
@@ -133,6 +143,11 @@ exports.blockQueriesWithoutTenant = (req, res, next) => {
 
 /**
  * Middleware para detectar tentativas de acesso cross-tenant
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 exports.detectCrossTenantAccess = (req, res, next) => {
   if (!req.user || !req.tenant) {
@@ -180,6 +195,11 @@ exports.detectCrossTenantAccess = (req, res, next) => {
 /**
  * Middleware para log de queries executadas por tenant
  */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 exports.logTenantQueries = (req, res, next) => {
   if (req.tenant) {
     const originalSend = res.send;
@@ -205,6 +225,11 @@ exports.logTenantQueries = (req, res, next) => {
 
 /**
  * Middleware para detectar tentativas de acesso a tenants inexistentes
+ */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 exports.detectSuspiciousTenantAccess = (req, res, next) => {
   const urlPath = req.path;
@@ -247,7 +272,16 @@ exports.detectSuspiciousTenantAccess = (req, res, next) => {
 /**
  * Middleware para validar limites do plano e log de tentativas de excesso
  */
+/**
+ * @param {string} resource
+ * @returns {function}
+ */
 exports.validatePlanLimits = (resource) => {
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   return async (req, res, next) => {
     if (!req.tenant) {
       return next();
@@ -290,6 +324,10 @@ exports.validatePlanLimits = (resource) => {
 
 /**
  * Função para gerar relatório de segurança por tenant
+ */
+/**
+ * @param {string|null} barbershopId
+ * @returns {object}
  */
 exports.generateTenantSecurityReport = (barbershopId = null) => {
   try {
@@ -362,6 +400,9 @@ exports.generateTenantSecurityReport = (barbershopId = null) => {
 
 /**
  * Limpar tentativas de acesso antigas (executar periodicamente)
+ */
+/**
+ * @returns {void}
  */
 exports.cleanupAccessAttempts = () => {
   accessAttempts.clear();

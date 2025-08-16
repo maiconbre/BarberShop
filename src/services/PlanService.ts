@@ -1,4 +1,4 @@
-import { CURRENT_ENV } from '../config/environmentConfig';
+import { ServiceFactory } from './ServiceFactory';
 import { 
   PlanUsage, 
   PlanInfo, 
@@ -9,61 +9,8 @@ import {
   PlanType 
 } from '../types/plan';
 
-// Mock storage for plan state (in real app, this would be in backend)
-let mockPlanState: {
-  planType: PlanType;
-  upgradedAt?: string;
-  transactionId?: string;
-} = {
-  planType: 'free'
-};
-
-// Configuração do serviço
-const API_BASE_URL = `${CURRENT_ENV.apiUrl}/api`;
-
-/**
- * Fazer requisição autenticada para a API
- * Currently unused as we're using mock data, but kept for future implementation
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const makeAuthenticatedRequest = async <T>(
-  endpoint: string, 
-  options: RequestInit = {}
-): Promise<T> => {
-  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-  
-  if (!token) {
-    throw new Error('Token de autenticação não encontrado');
-  }
-
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers
-    }
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    
-    // Tratar erros específicos de plano
-    if (errorData.code) {
-      const planError: PlanError = {
-        code: errorData.code,
-        message: errorData.message || 'Erro na operação do plano',
-        data: errorData.data
-      };
-      throw planError;
-    }
-    
-    throw new Error(errorData.message || `Erro HTTP: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.data || data;
-};
+// Get API service instance with proper error handling
+const getApiService = () => ServiceFactory.getApiService();
 
 /**
  * Obter estatísticas de uso do plano atual
@@ -72,40 +19,52 @@ export const getUsageStats = async (): Promise<PlanUsage> => {
   try {
     console.log('Obtendo estatísticas de uso do plano...');
     
-    // For now, return mock data since the backend endpoint is not implemented yet
-    // TODO: Replace with real API call when backend is ready
-    const isProPlan = mockPlanState.planType === 'pro';
+    const apiService = getApiService();
     
-    const mockData: PlanUsage = {
-      planType: mockPlanState.planType,
-      limits: {
-        barbers: isProPlan ? Infinity : 1,
-        appointments_per_month: isProPlan ? Infinity : 20,
-        services: isProPlan ? Infinity : 5,
-        storage_mb: isProPlan ? 1024 : 100
-      },
-      usage: {
-        barbers: {
-          current: 1,
-          limit: isProPlan ? Infinity : 1,
-          remaining: isProPlan ? Infinity : 0,
-          percentage: isProPlan ? 0 : 100,
-          nearLimit: !isProPlan
+    try {
+      // Try to get real usage stats from the backend
+      const response = await apiService.get<PlanUsage>('/api/plans/usage');
+      console.log('Estatísticas de uso obtidas:', response);
+      return response;
+    } catch (error) {
+      // If the endpoint is not implemented yet, return fallback data based on current barbershop
+      console.warn('Endpoint de estatísticas não implementado, usando dados de fallback:', error);
+      
+      // Get current barbershop to determine plan type
+      const currentPlan = await getCurrentPlan();
+      const isProPlan = currentPlan.planType === 'pro';
+      
+      const fallbackData: PlanUsage = {
+        planType: currentPlan.planType,
+        limits: {
+          barbers: isProPlan ? Infinity : 1,
+          appointments_per_month: isProPlan ? Infinity : 20,
+          services: isProPlan ? Infinity : 5,
+          storage_mb: isProPlan ? 1024 : 100
         },
-        appointments: {
-          current: 18,
-          limit: isProPlan ? Infinity : 20,
-          remaining: isProPlan ? Infinity : 2,
-          percentage: isProPlan ? 0 : 90,
-          nearLimit: !isProPlan
-        }
-      },
-      upgradeRecommended: !isProPlan,
-      upgradeRequired: false
-    };
-    
-    console.log('Estatísticas de uso obtidas (mock):', mockData);
-    return mockData;
+        usage: {
+          barbers: {
+            current: 1,
+            limit: isProPlan ? Infinity : 1,
+            remaining: isProPlan ? Infinity : 0,
+            percentage: isProPlan ? 0 : 100,
+            nearLimit: !isProPlan
+          },
+          appointments: {
+            current: 18,
+            limit: isProPlan ? Infinity : 20,
+            remaining: isProPlan ? Infinity : 2,
+            percentage: isProPlan ? 0 : 90,
+            nearLimit: !isProPlan
+          }
+        },
+        upgradeRecommended: !isProPlan,
+        upgradeRequired: false
+      };
+      
+      console.log('Estatísticas de uso (fallback):', fallbackData);
+      return fallbackData;
+    }
     
   } catch (error) {
     console.error('Erro ao obter estatísticas de uso:', error);
@@ -120,22 +79,41 @@ export const getCurrentPlan = async (): Promise<PlanInfo> => {
   try {
     console.log('Obtendo informações do plano atual...');
     
-    // For now, return mock data since the backend endpoint is not implemented yet
-    // TODO: Replace with real API call when backend is ready
-    const mockData: PlanInfo = {
-      barbershopId: 'mock-barbershop-id',
-      name: 'Barbearia Teste',
-      slug: 'barbearia-teste',
-      planType: mockPlanState.planType,
-      settings: {
-        theme: 'default',
-        timezone: 'America/Sao_Paulo'
-      },
-      createdAt: new Date().toISOString()
-    };
+    const apiService = getApiService();
     
-    console.log('Informações do plano obtidas (mock):', mockData);
-    return mockData;
+    try {
+      // Try to get real plan info from the backend
+      const response = await apiService.get<PlanInfo>('/api/plans/current');
+      console.log('Informações do plano obtidas:', response);
+      return response;
+    } catch (error) {
+      // If the endpoint is not implemented yet, get data from barbershop endpoint
+      console.warn('Endpoint de plano não implementado, usando dados da barbearia:', error);
+      
+      const barbershopResponse = await apiService.get<{
+        id: string;
+        name: string;
+        slug: string;
+        planType: PlanType;
+        settings: Record<string, unknown>;
+        createdAt: string;
+      }>('/api/barbershops/my-barbershop');
+      
+      const planInfo: PlanInfo = {
+        barbershopId: barbershopResponse.id,
+        name: barbershopResponse.name,
+        slug: barbershopResponse.slug,
+        planType: barbershopResponse.planType || 'free',
+        settings: barbershopResponse.settings || {
+          theme: 'default',
+          timezone: 'America/Sao_Paulo'
+        },
+        createdAt: barbershopResponse.createdAt
+      };
+      
+      console.log('Informações do plano (via barbearia):', planInfo);
+      return planInfo;
+    }
     
   } catch (error) {
     console.error('Erro ao obter informações do plano:', error);
@@ -144,39 +122,45 @@ export const getCurrentPlan = async (): Promise<PlanInfo> => {
 };
 
 /**
- * Fazer upgrade do plano (simulação de pagamento)
+ * Fazer upgrade do plano
  */
 export const upgradePlan = async (request: UpgradeRequest): Promise<UpgradeResponse> => {
   try {
     console.log('Iniciando upgrade do plano:', request);
     
-    // Simulate payment processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const apiService = getApiService();
     
-    // Update mock state
-    const transactionId = `txn_${Date.now()}`;
-    const upgradedAt = new Date().toISOString();
-    
-    mockPlanState = {
-      planType: request.planType,
-      upgradedAt,
-      transactionId
-    };
-    
-    // For now, return mock success response since the backend endpoint is not implemented yet
-    // TODO: Replace with real API call when backend is ready
-    const mockResponse: UpgradeResponse = {
-      barbershopId: 'mock-barbershop-id',
-      name: 'Barbearia Teste',
-      slug: 'barbearia-teste',
-      planType: request.planType,
-      upgradedAt,
-      transactionId,
-      paymentMethod: 'mercado_pago_simulation'
-    };
-    
-    console.log('Upgrade realizado com sucesso (mock):', mockResponse);
-    return mockResponse;
+    try {
+      // Try to upgrade using real API
+      const response = await apiService.post<UpgradeResponse>('/api/plans/upgrade', request);
+      console.log('Upgrade realizado com sucesso:', response);
+      return response;
+    } catch (error) {
+      // If the endpoint is not implemented yet, return a simulated response
+      console.warn('Endpoint de upgrade não implementado, simulando resposta:', error);
+      
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Get current barbershop info
+      const currentPlan = await getCurrentPlan();
+      
+      const transactionId = `txn_${Date.now()}`;
+      const upgradedAt = new Date().toISOString();
+      
+      const simulatedResponse: UpgradeResponse = {
+        barbershopId: currentPlan.barbershopId,
+        name: currentPlan.name,
+        slug: currentPlan.slug,
+        planType: request.planType,
+        upgradedAt,
+        transactionId,
+        paymentMethod: 'mercado_pago_simulation'
+      };
+      
+      console.log('Upgrade simulado com sucesso:', simulatedResponse);
+      return simulatedResponse;
+    }
     
   } catch (error) {
     console.error('Erro ao fazer upgrade do plano:', error);
@@ -191,45 +175,43 @@ export const getPlanHistory = async (): Promise<PlanHistoryResponse> => {
   try {
     console.log('Obtendo histórico de transações...');
     
-    // For now, return mock data since the backend endpoint is not implemented yet
-    // TODO: Replace with real API call when backend is ready
-    const transactions = [
-      {
-        id: 'txn_001',
-        type: 'plan_activation' as const,
-        planType: 'free' as const,
-        amount: 0,
-        status: 'completed' as const,
-        description: 'Ativação do plano gratuito',
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        paymentMethod: null,
-        transactionId: null
-      }
-    ];
-
-    // Add upgrade transaction if it exists
-    if (mockPlanState.planType === 'pro' && mockPlanState.upgradedAt && mockPlanState.transactionId) {
-      transactions.push({
-        id: mockPlanState.transactionId,
-        type: 'plan_upgrade' as const,
-        planType: 'pro' as const,
-        amount: 39.90,
-        status: 'completed' as const,
-        description: 'Upgrade para Plano Pro',
-        createdAt: mockPlanState.upgradedAt,
-        paymentMethod: 'mercado_pago_simulation',
-        transactionId: mockPlanState.transactionId
-      });
-    }
-
-    const mockData: PlanHistoryResponse = {
-      barbershopId: 'mock-barbershop-id',
-      currentPlan: mockPlanState.planType,
-      transactions
-    };
+    const apiService = getApiService();
     
-    console.log('Histórico obtido (mock):', mockData);
-    return mockData;
+    try {
+      // Try to get real transaction history from the backend
+      const response = await apiService.get<PlanHistoryResponse>('/api/plans/history');
+      console.log('Histórico obtido:', response);
+      return response;
+    } catch (error) {
+      // If the endpoint is not implemented yet, return fallback data
+      console.warn('Endpoint de histórico não implementado, usando dados de fallback:', error);
+      
+      // Get current plan info
+      const currentPlan = await getCurrentPlan();
+      
+      const fallbackTransactions = [
+        {
+          id: 'txn_001',
+          type: 'plan_activation' as const,
+          planType: 'free' as const,
+          amount: 0,
+          status: 'completed' as const,
+          description: 'Ativação do plano gratuito',
+          createdAt: currentPlan.createdAt,
+          paymentMethod: null,
+          transactionId: null
+        }
+      ];
+
+      const fallbackData: PlanHistoryResponse = {
+        barbershopId: currentPlan.barbershopId,
+        currentPlan: currentPlan.planType,
+        transactions: fallbackTransactions
+      };
+      
+      console.log('Histórico (fallback):', fallbackData);
+      return fallbackData;
+    }
     
   } catch (error) {
     console.error('Erro ao obter histórico de transações:', error);

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { usePlan } from '../../hooks/usePlan';
 import * as PlanService from '../../services/PlanService';
@@ -110,7 +110,10 @@ describe('usePlan', () => {
 
     const { result } = renderHook(() => usePlan());
 
-    const upgradeResult = await result.current.upgradePlan({ planType: 'pro' });
+    let upgradeResult: Awaited<ReturnType<typeof result.current.upgradePlan>>;
+    await act(async () => {
+      upgradeResult = await result.current.upgradePlan({ planType: 'pro' });
+    });
 
     expect(upgradeResult).toEqual(mockUpgradeResponse);
     expect(mockPlanService.upgradePlan).toHaveBeenCalledWith({ planType: 'pro' });

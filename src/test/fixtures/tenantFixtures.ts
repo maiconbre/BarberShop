@@ -3,11 +3,22 @@
  * Provides isolated test data for different barbershops
  */
 
-import type { BarbershopData } from '@/services/BarbershopService';
+// import type { BarbershopData } from '@/services/BarbershopService';
 import type { Barber, Service, Appointment, PublicComment } from '@/types';
 
 // Test barbershop data
-export const testBarbershops: Record<string, BarbershopData> = {
+export const testBarbershops: Record<string, {
+  id: string;
+  name: string;
+  slug: string;
+  owner_email: string;
+  plan_type: string;
+  settings: {
+    theme: string;
+    timezone: string;
+  };
+  created_at: string;
+}> = {
   'barbershop-alpha': {
     id: 'bb-alpha-123',
     name: 'Barbearia Alpha',
@@ -349,7 +360,7 @@ export function getMultiTenantTestData(barbershopIds: string[]) {
 /**
  * Validate that data belongs to correct tenant
  */
-export function validateTenantIsolation(data: any[], expectedTenantId: string, dataType: string) {
+export function validateTenantIsolation(data: unknown[], expectedTenantId: string, dataType: string) {
   const violations = data.filter(item => {
     // Check if item has tenant-related fields that don't match
     if (item.barbershopId && item.barbershopId !== expectedTenantId) {

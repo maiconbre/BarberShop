@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+/** @type {import('sequelize').Sequelize} */
 const sequelize = require('./database');
 
 const BarberServices = sequelize.define('BarberServices', {

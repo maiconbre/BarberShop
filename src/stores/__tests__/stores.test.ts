@@ -32,7 +32,7 @@ vi.mock('@/services/ServiceFactory', () => ({
 }));
 
 vi.mock('../services/TenantAwareRepository', () => ({
-  createTenantAwareRepository: (baseRepo: any) => baseRepo,
+  createTenantAwareRepository: (baseRepo: unknown) => baseRepo,
 }));
 
 vi.mock('../services/TenantAwareCache', () => ({

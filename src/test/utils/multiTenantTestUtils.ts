@@ -6,13 +6,12 @@
 import { vi, beforeEach, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { testBarbershops, getTenantTestData } from '../fixtures/tenantFixtures';
-import type { BarbershopData } from '@/services/BarbershopService';
 
 /**
  * Mock implementations for multi-tenant testing
  */
 export class MultiTenantTestMocks {
-  private static tenantData: Record<string, any> = {};
+  private static tenantData: Record<string, unknown> = {};
   private static currentTenant: string | null = null;
 
   /**
@@ -53,7 +52,7 @@ export class MultiTenantTestMocks {
    */
   static createTenantAwareApiMock() {
     return {
-      get: vi.fn().mockImplementation(async (endpoint: string) => {
+      get: vi.fn().mockImplementation(async (url: string) => {
         const currentTenant = this.getCurrentTenant();
         if (!currentTenant) {
           throw new Error('No tenant context available');
@@ -64,51 +63,51 @@ export class MultiTenantTestMocks {
           throw new Error(`No data available for tenant ${currentTenant}`);
         }
 
-        // Route to appropriate data based on endpoint
-        if (endpoint.includes('/barbers')) {
-          if (endpoint.includes('/barbers/')) {
-            const id = endpoint.split('/').pop();
-            return tenantData.barbers.find((b: any) => b.id === id) || null;
+        // Route to appropriate data based on url
+        if (url.includes('/barbers')) {
+          if (url.includes('/barbers/')) {
+            const id = url.split('/').pop();
+            return (tenantData.barbers as { id: string }[]).find((b) => b.id === id) || null;
           }
           return tenantData.barbers;
         }
 
-        if (endpoint.includes('/services')) {
-          if (endpoint.includes('/services/')) {
-            const id = endpoint.split('/').pop();
-            return tenantData.services.find((s: any) => s.id === id) || null;
+        if (url.includes('/services')) {
+          if (url.includes('/services/')) {
+            const id = url.split('/').pop();
+            return (tenantData.services as { id: string }[]).find((s) => s.id === id) || null;
           }
           return tenantData.services;
         }
 
-        if (endpoint.includes('/appointments')) {
-          if (endpoint.includes('/appointments/')) {
-            const id = endpoint.split('/').pop();
-            return tenantData.appointments.find((a: any) => a.id === id) || null;
+        if (url.includes('/appointments')) {
+          if (url.includes('/appointments/')) {
+            const id = url.split('/').pop();
+            return (tenantData.appointments as { id: string }[]).find((a) => a.id === id) || null;
           }
           return tenantData.appointments;
         }
 
-        if (endpoint.includes('/comments')) {
-          if (endpoint.includes('/comments/admin')) {
+        if (url.includes('/comments')) {
+          if (url.includes('/comments/admin')) {
             return tenantData.comments;
           }
-          if (endpoint.includes('/comments/')) {
-            const id = endpoint.split('/').pop();
-            return tenantData.comments.find((c: any) => c.id === id) || null;
+          if (url.includes('/comments/')) {
+            const id = url.split('/').pop();
+            return (tenantData.comments as { id: string }[]).find((c) => c.id === id) || null;
           }
           // Filter by status if query parameter present
-          const statusMatch = endpoint.match(/status=(\w+)/);
+          const statusMatch = url.match(/status=(\w+)/);
           if (statusMatch) {
-            return tenantData.comments.filter((c: any) => c.status === statusMatch[1]);
+            return (tenantData.comments as { status: string }[]).filter((c) => c.status === statusMatch[1]);
           }
-          return tenantData.comments.filter((c: any) => c.status === 'approved');
+          return (tenantData.comments as { status: string }[]).filter((c) => c.status === 'approved');
         }
 
-        throw new Error(`Unmocked endpoint: ${endpoint}`);
+        throw new Error(`Unmocked endpoint: ${url}`);
       }),
 
-      post: vi.fn().mockImplementation(async (endpoint: string, data: any) => {
+      post: vi.fn().mockImplementation(async (url: string, data: Record<string, unknown>) => {
         const currentTenant = this.getCurrentTenant();
         if (!currentTenant) {
           throw new Error('No tenant context available');
@@ -117,7 +116,7 @@ export class MultiTenantTestMocks {
         // Simulate creating new items with tenant-specific IDs
         const newItem = {
           ...data,
-          id: `${endpoint.split('/')[2]}-${currentTenant}-${Date.now()}`,
+          id: `${url.split('/')[2]}-${currentTenant}-${Date.now()}`,
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -125,7 +124,7 @@ export class MultiTenantTestMocks {
         return newItem;
       }),
 
-      patch: vi.fn().mockImplementation(async (endpoint: string, data: any) => {
+      patch: vi.fn().mockImplementation(async (url: string, data: Record<string, unknown>) => {
         const currentTenant = this.getCurrentTenant();
         if (!currentTenant) {
           throw new Error('No tenant context available');
@@ -137,21 +136,21 @@ export class MultiTenantTestMocks {
         }
 
         // Find and update item
-        const id = endpoint.split('/').pop();
-        let updatedItem = null;
+        const id = url.split('/').pop();
+        let updatedItem: Record<string, unknown> | null = null;
 
-        if (endpoint.includes('/barbers/')) {
-          updatedItem = tenantData.barbers.find((b: any) => b.id === id);
-        } else if (endpoint.includes('/services/')) {
-          updatedItem = tenantData.services.find((s: any) => s.id === id);
-        } else if (endpoint.includes('/appointments/')) {
-          updatedItem = tenantData.appointments.find((a: any) => a.id === id);
-        } else if (endpoint.includes('/comments/')) {
-          updatedItem = tenantData.comments.find((c: any) => c.id === id);
+        if (url.includes('/barbers/')) {
+          updatedItem = (tenantData.barbers as { id: string }[]).find((b) => b.id === id) || null;
+        } else if (url.includes('/services/')) {
+          updatedItem = (tenantData.services as { id: string }[]).find((s) => s.id === id) || null;
+        } else if (url.includes('/appointments/')) {
+          updatedItem = (tenantData.appointments as { id: string }[]).find((a) => a.id === id) || null;
+        } else if (url.includes('/comments/')) {
+          updatedItem = (tenantData.comments as { id: string }[]).find((c) => c.id === id) || null;
         }
 
         if (!updatedItem) {
-          const error = new Error('Not found') as any;
+          const error = new Error('Not found') as Error & { status: number };
           error.status = 404;
           throw error;
         }
@@ -159,7 +158,7 @@ export class MultiTenantTestMocks {
         return { ...updatedItem, ...data, updatedAt: new Date() };
       }),
 
-      delete: vi.fn().mockImplementation(async (endpoint: string) => {
+      delete: vi.fn().mockImplementation(async () => {
         const currentTenant = this.getCurrentTenant();
         if (!currentTenant) {
           throw new Error('No tenant context available');
@@ -179,7 +178,7 @@ export class MultiTenantTestMocks {
       getBarbershopBySlug: vi.fn().mockImplementation(async (slug: string) => {
         const barbershop = Object.values(testBarbershops).find(b => b.slug === slug);
         if (!barbershop) {
-          const error = new Error(`Barbershop not found: ${slug}`) as any;
+          const error = new Error(`Barbershop not found: ${slug}`) as Error & { status: number };
           error.status = 404;
           throw error;
         }
@@ -231,11 +230,11 @@ export function setupMultiTenantTest(tenantIds: string[]) {
  * Test isolation between tenants
  */
 export async function testTenantIsolation(
-  operation: (tenantId: string) => Promise<any[]>,
+  operation: (tenantId: string) => Promise<unknown[]>,
   tenantIds: string[],
   dataType: string
 ) {
-  const results: Record<string, any[]> = {};
+  const results: Record<string, unknown[]> = {};
   
   // Execute operation for each tenant
   for (const tenantId of tenantIds) {
@@ -252,8 +251,8 @@ export async function testTenantIsolation(
       const otherTenantData = results[otherTenantId];
       
       // Check for data leakage
-      const leakedItems = tenantData.filter(item => {
-        return otherTenantData.some(otherItem => 
+      const leakedItems = tenantData.filter((item: { id?: string; name?: string }) => {
+        return otherTenantData.some((otherItem: { id?: string; name?: string }) => 
           item.id === otherItem.id || 
           (item.name && otherItem.name && item.name === otherItem.name)
         );
@@ -262,7 +261,7 @@ export async function testTenantIsolation(
       if (leakedItems.length > 0) {
         throw new Error(
           `Tenant isolation violation: ${dataType} data leaked between ${tenantId} and ${otherTenantId}. ` +
-          `Leaked items: ${leakedItems.map(item => item.id || item.name).join(', ')}`
+          `Leaked items: ${leakedItems.map((item: { id?: string; name?: string }) => item.id || item.name).join(', ')}`
         );
       }
     }
@@ -317,7 +316,7 @@ export function createMockTenantProvider(initialTenantId?: string) {
 /**
  * Utility to switch tenant context during tests
  */
-export async function switchTenant(mockTenantContext: any, tenantSlug: string) {
+export async function switchTenant(mockTenantContext: { loadTenant: (slug: string) => Promise<void>; barbershopId: string | null }, tenantSlug: string) {
   await mockTenantContext.loadTenant(tenantSlug);
   return mockTenantContext.barbershopId;
 }
@@ -326,7 +325,7 @@ export async function switchTenant(mockTenantContext: any, tenantSlug: string) {
  * Validate that all operations respect tenant boundaries
  */
 export function validateTenantBoundaries(
-  operations: Array<{ name: string; tenantId: string; result: any }>,
+  operations: Array<{ name: string; tenantId: string; result: unknown }>,
   expectedTenantId: string
 ) {
   const violations = operations.filter(op => {
@@ -336,14 +335,14 @@ export function validateTenantBoundaries(
     
     // Check if result contains data from other tenants
     if (Array.isArray(op.result)) {
-      return op.result.some(item => {
+      return op.result.some((item: { id?: string }) => {
         if (item.id && typeof item.id === 'string') {
           // Check if ID contains other tenant identifiers
           const otherTenantIds = Object.values(testBarbershops)
             .filter(b => b.id !== expectedTenantId)
             .map(b => b.id.split('-')[1]); // Extract tenant identifier
           
-          return otherTenantIds.some(otherId => item.id.includes(otherId));
+          return otherTenantIds.some(otherId => item.id!.includes(otherId));
         }
         return false;
       });

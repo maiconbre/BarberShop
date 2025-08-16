@@ -10,6 +10,7 @@ import { useAppointments } from '../../hooks/useAppointments';
 import { useServices } from '../../hooks/useServices';
 import { useTenant } from '../../contexts/TenantContext';
 import { CURRENT_ENV } from '../../config/environmentConfig';
+import { safeFixed } from '../../utils/numberUtils';
 
 // Importando constantes e funções do serviço de agendamentos
 import {
@@ -1089,7 +1090,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                               {service}
                             </span>
                             <span className="text-xs font-medium text-[#F0B35B] mt-0.5">
-                              R$ {getServicePrice(service).toFixed(2)}
+                              R$ {safeFixed(getServicePrice(service), 2)}
                             </span>
                           </button>
                         ))}
@@ -1098,7 +1099,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                         <div className="mt-2 pt-1.5 border-t border-[#F0B35B]/10">
                           <div className="flex justify-between items-center">
                             <p className="text-xs text-[#F0B35B] font-medium">Serviços: {formData.services.length}</p>
-                            <p className="text-xs text-white font-medium">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
+                            <p className="text-xs text-white font-medium">Total: R$ {safeFixed(calculateTotalPrice(), 2)}</p>
                           </div>
                         </div>
                       )}
@@ -1238,7 +1239,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                     <span className="text-gray-400">Serviços:</span>
                     <div className="text-right">
                       <div className="text-white font-medium">{formData.services.join(", ")}</div>
-                      <div className="text-[#F0B35B] text-xs mt-1">R$ {calculateTotalPrice().toFixed(2)}</div>
+                      <div className="text-[#F0B35B] text-xs mt-1">R$ {safeFixed(calculateTotalPrice(), 2)}</div>
                     </div>
                   </div>
 
@@ -1262,7 +1263,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                 <div className="mt-3 pt-3 border-t border-white/10">
                   <div className="mb-2">
                     <p className="text-sm text-gray-300 mb-1">Pagamento via PIX</p>
-                    <p className="text-base font-bold text-green-400">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
+                    <p className="text-base font-bold text-green-400">Total: R$ {safeFixed(calculateTotalPrice(), 2)}</p>
                   </div>
 
                   <div className="bg-[#1A1F2E] p-2.5 rounded-lg border border-[#F0B35B]/10">
@@ -1341,7 +1342,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
                             <div className="space-y-2">
                               <p className="text-sm text-gray-600">Barbeiro: <span className="font-medium">{formData.barber}</span></p>
-                              <p className="text-lg font-bold text-green-600">Total: R$ {calculateTotalPrice().toFixed(2)}</p>
+                              <p className="text-lg font-bold text-green-600">Total: R$ {safeFixed(calculateTotalPrice(), 2)}</p>
                               <p className="text-xs text-gray-500">Escaneie o código ou use a chave PIX</p>
                             </div>
                           </div>

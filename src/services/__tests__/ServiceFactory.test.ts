@@ -125,7 +125,7 @@ describe('ServiceFactory', () => {
         findByRole: vi.fn(),
         updatePassword: vi.fn(),
         toggleActive: vi.fn(),
-      } as any;
+      };
 
       ServiceFactory.configure({ 
         apiService: mockApiService,

@@ -20,7 +20,7 @@ export interface ProductionReadinessReport {
 class ProductionChecker {
   private static instance: ProductionChecker;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): ProductionChecker {
     if (!ProductionChecker.instance) {
@@ -37,22 +37,22 @@ class ProductionChecker {
 
     // Verificações de ambiente
     checks.push(...this.checkEnvironmentVariables());
-    
+
     // Verificações de API
     checks.push(...await this.checkApiConnectivity());
-    
+
     // Verificações de segurança
     checks.push(...this.checkSecuritySettings());
-    
+
     // Verificações de performance
     checks.push(...this.checkPerformanceSettings());
-    
+
     // Verificações de monitoramento
     checks.push(...this.checkMonitoringSettings());
 
     // Calcular score e status geral
     const { overall, score } = this.calculateOverallStatus(checks);
-    
+
     // Gerar recomendações
     const recommendations = this.generateRecommendations(checks);
 
@@ -134,7 +134,7 @@ class ProductionChecker {
     // Supabase
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
+
     if (!supabaseUrl || !supabaseKey) {
       checks.push({
         name: 'Supabase Configuration',
@@ -332,11 +332,11 @@ class ProductionChecker {
     }
 
     // Memory
-    const memory = (performance as any).memory;
+    const memory = (performance as { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
     if (memory) {
       const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
       const limitMB = Math.round(memory.jsHeapSizeLimit / 1024 / 1024);
-      
+
       if (usedMB < limitMB * 0.8) {
         checks.push({
           name: 'Memory Usage',
@@ -366,7 +366,7 @@ class ProductionChecker {
     // Console errors
     const originalError = console.error;
     let errorCount = 0;
-    
+
     console.error = (...args) => {
       errorCount++;
       originalError.apply(console, args);
@@ -374,7 +374,7 @@ class ProductionChecker {
 
     setTimeout(() => {
       console.error = originalError;
-      
+
       if (errorCount === 0) {
         checks.push({
           name: 'Console Errors',
@@ -421,7 +421,7 @@ class ProductionChecker {
     const passedChecks = checks.filter(c => c.status === 'pass').length;
     const failedCritical = checks.filter(c => c.status === 'fail' && c.critical).length;
     const failedNonCritical = checks.filter(c => c.status === 'fail' && !c.critical).length;
-    
+
     const score = Math.round((passedChecks / totalChecks) * 100);
 
     if (failedCritical > 0) {

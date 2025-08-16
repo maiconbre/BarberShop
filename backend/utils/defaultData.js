@@ -4,6 +4,9 @@ const { Service, Appointment } = require('../models');
  * Cria dados padrão para uma nova barbearia
  * - 2 serviços padrão (Corte Masculino e Barba)
  * - 1 agendamento de exemplo
+ * @param {any} barbershopId
+ * @param {any} firstBarberId
+ * @param {any} firstBarberName
  */
 const createDefaultData = async (barbershopId, firstBarberId, firstBarberName) => {
   try {

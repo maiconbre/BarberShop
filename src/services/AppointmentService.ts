@@ -4,6 +4,7 @@ import { cacheService } from './CacheService';
 import { logger } from '../utils/logger';
 import ApiService from './ApiService';
 import { LogConfig } from '../config/logConfig';
+import { safeFixed } from '../utils/numberUtils';
 
 // Interfaces específicas para o AppointmentService
 interface LogDetails {
@@ -493,7 +494,7 @@ Nome: ${data.name}
 WhatsApp: ${data.whatsapp}
 Barbeiro: ${data.barber}
 Serviços: ${data.services.join(', ')}
-Valor: R$ ${data.totalPrice.toFixed(2)}
+Valor: R$ ${safeFixed(data.totalPrice, 2)}
 Data: ${formattedDate}
 Horário: ${data.time}
   

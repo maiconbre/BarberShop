@@ -3,6 +3,10 @@ const jwt = require('jsonwebtoken');
 const jwtConfig = require('../config/jwt');
 
 // Helper function to generate JWT token
+/**
+ * @param {any} user
+ * @returns {string}
+ */
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, username: user.username, role: user.role },
@@ -12,6 +16,10 @@ const generateToken = (user) => {
 };
 
 // Helper function to generate refresh token
+/**
+ * @param {any} user
+ * @returns {string}
+ */
 const generateRefreshToken = (user) => {
   return jwt.sign(
     { id: user.id },
@@ -21,6 +29,10 @@ const generateRefreshToken = (user) => {
 };
 
 // Login controller
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.login = async (req, res) => {
   try {
     console.log('Corpo da requisição recebido:', req.body);
@@ -101,6 +113,10 @@ exports.login = async (req, res) => {
 };
 
 // Refresh token controller
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -160,6 +176,10 @@ exports.refreshToken = async (req, res) => {
 };
 
 // Validate token controller
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.validateToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -208,6 +228,10 @@ exports.validateToken = async (req, res) => {
 };
 
 // Register controller (for admin use)
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 exports.register = async (req, res) => {
   try {
     const { username, password, name, role } = req.body;

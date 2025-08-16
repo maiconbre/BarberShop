@@ -13,6 +13,7 @@ router.post('/verify-email', barbershopController.initiateEmailVerification);
 router.post('/verify-code', barbershopController.verifyEmailCode);
 router.post('/register', barbershopController.registerBarbershop);
 router.get('/check-slug/:slug', barbershopController.checkSlugAvailability);
+router.get('/slug/:slug', barbershopController.getBarbershopBySlug);
 
 // Rota de desenvolvimento (apenas em desenvolvimento)
 router.get('/list', barbershopController.listBarbershops);

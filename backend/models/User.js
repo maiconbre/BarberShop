@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+/** @type {import('sequelize').Sequelize} */
 const sequelize = require('./database');
 const bcrypt = require('bcryptjs');
 
@@ -48,12 +49,18 @@ const User = sequelize.define('User', {
     }
   ],
   hooks: {
+    /**
+     * @param {any} user
+     */
     beforeCreate: async (user) => {
       if (user.password) {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(user.password, salt);
       }
     },
+    /**
+     * @param {any} user
+     */
     beforeUpdate: async (user) => {
       if (user.changed('password')) {
         const salt = await bcrypt.genSalt(10);
@@ -64,6 +71,10 @@ const User = sequelize.define('User', {
 });
 
 // Instance method to check password
+/**
+ * @param {string} candidatePassword
+ * @returns {Promise<boolean>}
+ */
 User.prototype.comparePassword = async function (candidatePassword) {
   try {
     console.log('=== Debug de Autenticação ===');
@@ -84,8 +95,10 @@ User.prototype.comparePassword = async function (candidatePassword) {
     
     return isMatch;
   } catch (error) {
-    console.error('Erro na comparação de senha:', error);
-    console.log('Stack trace:', error.stack);
+    /** @type {Error} */
+    const err = /** @type {Error} */ (error);
+    console.error('Erro na comparação de senha:', err);
+    console.log('Stack trace:', err.stack);
     return false;
   }
 };

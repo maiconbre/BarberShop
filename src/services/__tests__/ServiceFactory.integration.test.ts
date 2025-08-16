@@ -94,7 +94,7 @@ describe('ServiceFactory Integration', () => {
         findByRole: vi.fn(),
         updatePassword: vi.fn(),
         toggleActive: vi.fn(),
-      } as any;
+      };
 
       const mockServiceRepository = {
         findById: vi.fn(),
@@ -116,7 +116,7 @@ describe('ServiceFactory Integration', () => {
         findByName: vi.fn(),
         findByPriceRange: vi.fn(),
         findByAssociatedBarber: vi.fn(),
-      } as any;
+      };
 
       const mockBarberRepository = {
         findById: vi.fn(),
@@ -133,7 +133,7 @@ describe('ServiceFactory Integration', () => {
         updatePaymentInfo: vi.fn(),
         toggleActive: vi.fn(),
         getStatistics: vi.fn(),
-      } as any;
+      };
 
       const mockCommentRepository = {
         findById: vi.fn(),
@@ -151,9 +151,9 @@ describe('ServiceFactory Integration', () => {
         reject: vi.fn(),
         resetToPending: vi.fn(),
         getStatistics: vi.fn(),
-      } as any;
+      };
 
-      // Configure ServiceFactory with mock instances
+      // Configure the factory with custom instances
       ServiceFactory.configure({
         apiService: mockApiService,
         userRepository: mockUserRepository,

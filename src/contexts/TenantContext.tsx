@@ -155,16 +155,28 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       }
     }
     
+    console.log('TenantContext useEffect - Debug:', {
+      urlSlug,
+      currentSlug: slug,
+      pathname: location.pathname,
+      paramsSlug: params.barbershopSlug
+    });
+
     if (urlSlug && urlSlug !== slug) {
       logger.componentInfo('TenantContext', `URL slug changed to: ${urlSlug}`);
+      console.log('TenantContext - Carregando tenant para slug:', urlSlug);
       
       loadTenant(urlSlug).catch(error => {
         logger.componentError('TenantContext', 'Auto-load tenant failed:', error);
+        console.error('TenantContext - Erro ao carregar tenant:', error);
         // Removido redirecionamento automático para permitir acesso direto
       });
     } else if (!urlSlug && slug && !location.pathname.startsWith('/app/')) {
       // Clear tenant if no slug in URL, but not for app routes during navigation
+      console.log('TenantContext - Limpando tenant (sem slug na URL)');
       clearTenant();
+    } else {
+      console.log('TenantContext - Nenhuma ação necessária');
     }
   }, [params.barbershopSlug, location.pathname, slug, loadTenant, clearTenant, navigate]);
 

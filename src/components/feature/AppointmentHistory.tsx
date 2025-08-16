@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { formatFriendlyDateTime } from '../../utils/DateTimeUtils';
+import { safeFixed } from '../../utils/numberUtils';
 
 interface Appointment {
   id: string;
@@ -66,7 +67,7 @@ const AppointmentHistory: React.FC<AppointmentHistoryProps> = ({ appointments })
                 {statusStyles[appointment.status].label}
               </span>
               <span className="text-xs text-green-400 font-medium">
-                R$ {appointment.price.toFixed(2)}
+                R$ {safeFixed(appointment.price, 2)}
               </span>
             </div>
           </div>
