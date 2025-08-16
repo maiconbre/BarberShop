@@ -560,6 +560,12 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    // Verificar se o contexto de tenant é válido antes de prosseguir
+    if (!isValidTenant) {
+      setError('Contexto de barbearia não encontrado. Por favor, recarregue a página.');
+      return;
+    }
+
     // Caso contrário, continuar com o fluxo normal de criação
     setIsLoading(true);
     setError('');

@@ -5,6 +5,7 @@ const Barber = require('../models/Barber');
 const Appointment = require('../models/Appointment');
 const sequelize = require('../models/database');
 const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
+const { checkBarberLimits } = require('../middleware/planLimitsMiddleware');
 
 // Configurações otimizadas para diferentes tipos de operações
 const readLimiter = limitRepeatedRequests({
@@ -34,12 +35,27 @@ const writeLimiter = limitRepeatedRequests({
 // Rota para listar todos os barbeiros com limitador otimizado para leitura
 router.get('/', readLimiter, async (req, res) => {
   try {
-    // Buscar todos os barbeiros
-    const barbers = await Barber.findAll();
+    // Verificar se o contexto de tenant está disponível
+    const barbershopId = req.tenant?.barbershopId;
+    if (!barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado'
+      });
+    }
+
+    // Buscar barbeiros da barbearia específica
+    const barbers = await Barber.findAll({
+      where: { barbershopId }
+    });
     
-    // Buscar todos os usuários com role 'barber'
+    // Buscar usuários com role 'barber' da mesma barbearia
+    const barberIds = barbers.map(b => b.id);
     const users = await User.findAll({
-      where: { role: 'barber' }
+      where: { 
+        role: 'barber',
+        id: barberIds
+      }
     });
     
     // Mapear os barbeiros para incluir o username
@@ -73,8 +89,22 @@ router.get('/:id', readLimiter, async (req, res) => {
     const { id } = req.params;
     const formattedId = String(id).padStart(2, '0');
     
-    // Buscar barbeiro e usuário associado
-    const barber = await Barber.findByPk(formattedId);
+    // Verificar se o contexto de tenant está disponível
+    const barbershopId = req.tenant?.barbershopId;
+    if (!barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado'
+      });
+    }
+    
+    // Buscar barbeiro da barbearia específica
+    const barber = await Barber.findOne({
+      where: { 
+        id: formattedId,
+        barbershopId 
+      }
+    });
     const user = await User.findByPk(formattedId);
     
     // Log para debug
@@ -123,16 +153,35 @@ router.patch('/:id', writeLimiter, async (req, res) => {
     console.log('ID recebido:', id);
     console.log('ID formatado:', formattedId);
 
+    // Verificar se o contexto de tenant está disponível
+    const barbershopId = req.tenant?.barbershopId;
+    if (!barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado'
+      });
+    }
+
     const { name, username, password, whatsapp, pix } = req.body;
 
-    // Verificar se o barbeiro existe
-    let barber = await Barber.findByPk(formattedId);
+    // Verificar se o barbeiro existe na barbearia específica
+    let barber = await Barber.findOne({
+      where: { 
+        id: formattedId,
+        barbershopId 
+      }
+    });
     let user = await User.findByPk(formattedId);
 
     // Se não encontrar com o ID formatado, tentar buscar com o ID original
     if (!barber) {
       console.log('Barbeiro não encontrado com ID formatado, tentando com ID original');
-      barber = await Barber.findByPk(id);
+      barber = await Barber.findOne({
+        where: { 
+          id: id,
+          barbershopId 
+        }
+      });
     }
 
     if (!user) {
@@ -197,10 +246,19 @@ router.patch('/:id', writeLimiter, async (req, res) => {
   }
 });
 
-// Rota para criar novo barbeiro com limitador para escrita
-router.post('/', writeLimiter, async (req, res) => {
+// Rota para criar novo barbeiro com limitador para escrita e verificação de limites do plano
+router.post('/', writeLimiter, checkBarberLimits, async (req, res) => {
   try {
     const { name, username, password, whatsapp, pix } = req.body;
+
+    // Verificar se o contexto de tenant está disponível
+    const barbershopId = req.tenant?.barbershopId;
+    if (!barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado'
+      });
+    }
 
     // Verificar se o username já existe
     const existingUser = await User.findOne({ where: { username } });
@@ -211,8 +269,9 @@ router.post('/', writeLimiter, async (req, res) => {
       });
     }
 
-    // Buscar o último ID de barbeiro
+    // Buscar o último ID de barbeiro da barbearia específica
     const lastBarber = await Barber.findOne({
+      where: { barbershopId },
       order: [['id', 'DESC']]
     });
 
@@ -230,12 +289,13 @@ router.post('/', writeLimiter, async (req, res) => {
       role: 'barber'
     });
 
-    // Criar barbeiro
+    // Criar barbeiro com barbershopId
     const barber = await Barber.create({
       id: newId,
       name,
       whatsapp,
-      pix
+      pix,
+      barbershopId
     });
 
     res.status(201).json({
@@ -263,8 +323,22 @@ router.delete('/:id', writeLimiter, async (req, res) => {
     const { id } = req.params;
     const formattedId = String(id).length === 1 ? `0${id}` : String(id);
 
-    // Buscar o barbeiro primeiro
-    const barber = await Barber.findByPk(formattedId);
+    // Verificar se o contexto de tenant está disponível
+    const barbershopId = req.tenant?.barbershopId;
+    if (!barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado'
+      });
+    }
+
+    // Buscar o barbeiro da barbearia específica
+    const barber = await Barber.findOne({
+      where: { 
+        id: formattedId,
+        barbershopId 
+      }
+    });
     if (!barber) {
       return res.status(404).json({
         success: false,

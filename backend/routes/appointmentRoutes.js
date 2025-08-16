@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const { limitRepeatedRequests } = require('../middleware/requestLimitMiddleware');
+const { checkAppointmentLimits } = require('../middleware/planLimitsMiddleware');
 
 // Configurações otimizadas para diferentes tipos de operações
 const readLimiter = limitRepeatedRequests({
@@ -51,14 +52,17 @@ router.get('/', readLimiter, async (req, res) => {
       order: [['date', 'DESC'], ['time', 'ASC']]
     });
 
-    res.json(appointments); // Return array directly for compatibility
+    res.json({
+      success: true,
+      data: appointments
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Rota para criar agendamentos com limitador para escrita
-router.post('/', writeLimiter, async (req, res) => {
+// Rota para criar agendamentos com limitador para escrita e verificação de limites do plano
+router.post('/', writeLimiter, checkAppointmentLimits, async (req, res) => {
   try {
     const appointmentData = {
       id: Date.now().toString(),
@@ -72,7 +76,10 @@ router.post('/', writeLimiter, async (req, res) => {
     
     const appointment = await Appointment.create(appointmentData);
     
-    res.status(201).json(appointment); // Return appointment directly for compatibility
+    res.status(201).json({
+      success: true,
+      data: appointment
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -99,7 +106,10 @@ router.patch('/:id', writeLimiter, async (req, res) => {
     }
 
     await appointment.update({ status });
-    res.json(appointment); // Return appointment directly for compatibility
+    res.json({
+      success: true,
+      data: appointment
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

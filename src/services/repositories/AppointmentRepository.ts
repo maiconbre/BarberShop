@@ -280,12 +280,10 @@ export class AppointmentRepository implements IAppointmentRepository {
    */
   private mapFrontendStatusToBackend(frontendStatus: AppointmentStatus): string {
     const statusMap: Record<AppointmentStatus, string> = {
-      'scheduled': 'pending',
+      'pending': 'pending',
       'confirmed': 'confirmed',
-      'in_progress': 'confirmed',
       'completed': 'completed',
       'cancelled': 'cancelled',
-      'no_show': 'cancelled'
     };
     
     return statusMap[frontendStatus] || 'pending';

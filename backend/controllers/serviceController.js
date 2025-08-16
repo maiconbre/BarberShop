@@ -7,8 +7,19 @@ exports.getAllServices = async (req, res) => {
   console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] IP: ${req.ip}, User-Agent: ${req.get('user-agent')}`);
   
   try {
-    console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Executando Service.findAll()`);
-    const services = await Service.findAll();
+    // Verificar contexto de tenant
+    if (!req.tenant || !req.tenant.barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado',
+        code: 'TENANT_CONTEXT_MISSING'
+      });
+    }
+
+    console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Executando Service.findAll() para barbershop: ${req.tenant.barbershopId}`);
+    const services = await Service.findAll({
+      where: { barbershopId: req.tenant.barbershopId }
+    });
     console.log(`[${new Date().toISOString()}] [REQUEST:${requestId}] Serviços encontrados: ${services.length}`);
     
     return res.status(200).json({
@@ -30,7 +41,21 @@ exports.getAllServices = async (req, res) => {
 // Obter serviço por ID
 exports.getServiceById = async (req, res) => {
   try {
-    const service = await Service.findByPk(req.params.id);
+    // Verificar contexto de tenant
+    if (!req.tenant || !req.tenant.barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado',
+        code: 'TENANT_CONTEXT_MISSING'
+      });
+    }
+
+    const service = await Service.findOne({
+      where: {
+        id: req.params.id,
+        barbershopId: req.tenant.barbershopId
+      }
+    });
     
     if (!service) {
       return res.status(404).json({
@@ -56,6 +81,15 @@ exports.getServiceById = async (req, res) => {
 // Criar novo serviço
 exports.createService = async (req, res) => {
   try {
+    // Verificar contexto de tenant
+    if (!req.tenant || !req.tenant.barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado',
+        code: 'TENANT_CONTEXT_MISSING'
+      });
+    }
+
     const { name, price } = req.body;
     
     // Validações básicas
@@ -66,19 +100,25 @@ exports.createService = async (req, res) => {
       });
     }
     
-    // Verificar se o serviço já existe
-    const existingService = await Service.findOne({ where: { name } });
+    // Verificar se o serviço já existe na barbearia
+    const existingService = await Service.findOne({ 
+      where: { 
+        name,
+        barbershopId: req.tenant.barbershopId
+      }
+    });
     if (existingService) {
       return res.status(400).json({
         success: false,
-        message: 'Já existe um serviço com este nome'
+        message: 'Já existe um serviço com este nome nesta barbearia'
       });
     }
     
     // Criar o serviço
     const service = await Service.create({
       name,
-      price
+      price,
+      barbershopId: req.tenant.barbershopId
     });
     
     return res.status(201).json({
@@ -99,11 +139,25 @@ exports.createService = async (req, res) => {
 // Atualizar serviço
 exports.updateService = async (req, res) => {
   try {
+    // Verificar contexto de tenant
+    if (!req.tenant || !req.tenant.barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado',
+        code: 'TENANT_CONTEXT_MISSING'
+      });
+    }
+
     const { id } = req.params;
     const { name, price } = req.body;
     
-    // Buscar o serviço
-    const service = await Service.findByPk(id);
+    // Buscar o serviço na barbearia
+    const service = await Service.findOne({
+      where: {
+        id,
+        barbershopId: req.tenant.barbershopId
+      }
+    });
     if (!service) {
       return res.status(404).json({
         success: false,
@@ -134,10 +188,24 @@ exports.updateService = async (req, res) => {
 // Excluir serviço
 exports.deleteService = async (req, res) => {
   try {
+    // Verificar contexto de tenant
+    if (!req.tenant || !req.tenant.barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado',
+        code: 'TENANT_CONTEXT_MISSING'
+      });
+    }
+
     const { id } = req.params;
     
-    // Buscar o serviço
-    const service = await Service.findByPk(id);
+    // Buscar o serviço na barbearia
+    const service = await Service.findOne({
+      where: {
+        id,
+        barbershopId: req.tenant.barbershopId
+      }
+    });
     if (!service) {
       return res.status(404).json({
         success: false,
@@ -165,6 +233,15 @@ exports.deleteService = async (req, res) => {
 // Associar barbeiros a um serviço
 exports.associateBarbers = async (req, res) => {
   try {
+    // Verificar contexto de tenant
+    if (!req.tenant || !req.tenant.barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado',
+        code: 'TENANT_CONTEXT_MISSING'
+      });
+    }
+
     const { id } = req.params;
     const { barberIds } = req.body;
     
@@ -175,8 +252,13 @@ exports.associateBarbers = async (req, res) => {
       });
     }
     
-    // Buscar o serviço
-    const service = await Service.findByPk(id);
+    // Buscar o serviço na barbearia
+    const service = await Service.findOne({
+      where: {
+        id,
+        barbershopId: req.tenant.barbershopId
+      }
+    });
     if (!service) {
       return res.status(404).json({
         success: false,
@@ -184,15 +266,19 @@ exports.associateBarbers = async (req, res) => {
       });
     }
     
-    // Buscar os barbeiros
+    // Buscar os barbeiros na mesma barbearia
+    const Barber = require('../models/Barber');
     const barbers = await Barber.findAll({
-      where: { id: barberIds }
+      where: { 
+        id: barberIds,
+        barbershopId: req.tenant.barbershopId
+      }
     });
     
     if (barbers.length !== barberIds.length) {
       return res.status(400).json({
         success: false,
-        message: 'Um ou mais barbeiros não foram encontrados'
+        message: 'Um ou mais barbeiros não foram encontrados nesta barbearia'
       });
     }
     
@@ -200,7 +286,11 @@ exports.associateBarbers = async (req, res) => {
     await service.setBarbers(barbers);
     
     // Buscar o serviço atualizado com os barbeiros associados
-    const updatedService = await Service.findByPk(id, {
+    const updatedService = await Service.findOne({
+      where: {
+        id,
+        barbershopId: req.tenant.barbershopId
+      },
       include: [{ model: Barber, attributes: ['id', 'name'] }]
     });
     
@@ -222,19 +312,41 @@ exports.associateBarbers = async (req, res) => {
 // Obter serviços por barbeiro
 exports.getServicesByBarber = async (req, res) => {
   try {
+    // Verificar contexto de tenant
+    if (!req.tenant || !req.tenant.barbershopId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contexto de barbearia não encontrado',
+        code: 'TENANT_CONTEXT_MISSING'
+      });
+    }
+
     const { barberId } = req.params;
     
-    // Verificar se o barbeiro existe
-    const barber = await Barber.findByPk(barberId);
+    // Verificar se o barbeiro existe na barbearia
+    const Barber = require('../models/Barber');
+    const barber = await Barber.findOne({
+      where: {
+        id: barberId,
+        barbershopId: req.tenant.barbershopId
+      }
+    });
     if (!barber) {
       return res.status(404).json({
         success: false,
-        message: 'Barbeiro não encontrado'
+        message: 'Barbeiro não encontrado nesta barbearia'
       });
     }
     
-    // Buscar os serviços associados ao barbeiro
-    const services = await barber.getServices();
+    // Buscar os serviços associados ao barbeiro na mesma barbearia
+    const services = await Service.findAll({
+      where: { barbershopId: req.tenant.barbershopId },
+      include: [{
+        model: Barber,
+        where: { id: barberId },
+        attributes: []
+      }]
+    });
     
     return res.status(200).json({
       success: true,

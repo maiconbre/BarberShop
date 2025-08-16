@@ -11,7 +11,7 @@ interface BarberCreationData extends Partial<BackendBarber> {
 }
 
 // Interface for barber with backend data
-interface BarberWithBackendData extends Barber {
+interface BarberWithBackendData extends Omit<Barber, '_backendData'> {
   _backendData?: {
     pix?: string;
     username?: string;

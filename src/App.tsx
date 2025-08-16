@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TenantProvider } from './contexts/TenantContext';
+import { getEnvironmentConfig, validateProductionConfig } from './config/production';
 import Navbar from './components/ui/Navbar';
 import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
@@ -20,6 +21,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import TrocaSenha from './pages/TrocaSenha';
 import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
+import UpgradePage from './pages/UpgradePage';
 import BookingModal from './components/feature/BookingModal';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import RequestDebounceMonitor from './components/debug/RequestDebounceMonitor';
@@ -90,6 +92,7 @@ const AppContent = () => {
               <Route path="/app/:barbershopSlug/gerenciar-comentarios" element={<ProtectedRoute><CommentManagementPage /></ProtectedRoute>} />
               <Route path="/app/:barbershopSlug/servicos" element={<ProtectedRoute><ServiceManagementPage /></ProtectedRoute>} />
               <Route path="/app/:barbershopSlug/gerenciar-horarios" element={<ProtectedRoute><ScheduleManagementPage /></ProtectedRoute>} />
+              <Route path="/app/:barbershopSlug/upgrade" element={<ProtectedRoute><UpgradePage /></ProtectedRoute>} />
             </Routes>
           </motion.div>
         </AnimatePresence>
@@ -98,6 +101,26 @@ const AppContent = () => {
 };
 
 function App() {
+  useEffect(() => {
+    // Aplicar configurações de produção
+    const config = getEnvironmentConfig();
+    
+    // Validar configuração em produção
+    if (import.meta.env.PROD) {
+      const validation = validateProductionConfig();
+      if (!validation.valid) {
+        console.error('Production configuration errors:', validation.errors);
+      }
+    }
+    
+    // Log de inicialização (apenas em desenvolvimento)
+    if (import.meta.env.DEV) {
+      console.log('🚀 BarberShop SaaS initialized');
+      console.log('Environment:', import.meta.env.MODE);
+      console.log('API URL:', config.api.baseUrl);
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <TenantProvider>

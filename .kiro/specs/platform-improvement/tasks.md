@@ -534,100 +534,123 @@
   - Criar redirecionamento para página específica da barbearia
   - _Requirements: 8.3, 8.4_
 
-## Fase 2.8: Sistema de Planos e Billing
+## Fase 2.8: Sistema de Planos e Billing Simplificado
 
-- [ ] 12. Planos e Billing Multi-Tenant
-  - Implementar estrutura de planos por barbearia
-  - Integrar gateway de pagamento Mercado Pago
-  - Criar middleware de verificação de limites por tenant
-  - Implementar dashboard de billing por barbearia
-  - _Requirements: 7.1, 7.2, 7.3, 8.2_
+- [-] 12. Implementar Sistema de Planos Multi-Tenant
 
-- [ ] 12.1 Estrutura de planos por barbearia
-  - Plano Grátis: 1 barbeiro, 20 agendamentos/mês por barbearia
-  - Plano Pro: Ilimitado, R$ 39/mês por barbearia
-  - Middleware de verificação de limites por tenant
-  - Sistema de upgrade/downgrade de planos
+
+
+
+
+  - Middleware de verificação de limites por barbearia (1 barbeiro, 20 agendamentos/mês no free)
+  - Interface de upgrade para plano Pro (R$ 39/mês) 
+  - Integração "fake" do Mercado Pago (preparada para URL real posterior)
+  - Dashboard básico de uso e billing por tenant
   - _Requirements: 7.1, 7.2, 8.2_
 
-- [ ] 12.2 Integração Mercado Pago Multi-Tenant
-  - Configurar SDK do Mercado Pago com suporte a múltiplos tenants
-  - Implementar fluxo de pagamento por barbearia
-  - Criar webhook para confirmação de pagamento por tenant
-  - Implementar renovação automática de assinaturas por barbearia
-  - _Requirements: 7.2, 7.3, 8.2_
+- [x] 12.1 Middleware de Limites por Tenant
 
-- [ ] 12.3 Middleware de verificação por tenant
-  - Criar middleware para verificar limites do plano por barbearia
-  - Implementar bloqueio de funcionalidades quando limite excedido
-  - Criar sistema de notificações de limite próximo por tenant
-  - Implementar upgrade automático de plano quando necessário
-  - _Requirements: 7.1, 7.3, 8.2_
 
-- [ ] 12.4 Interface de billing por barbearia
-  - Criar página de planos e preços personalizada por tenant
-  - Implementar dashboard de uso atual por barbearia
-  - Criar página de gerenciamento de assinatura por tenant
-  - Implementar histórico de pagamentos por barbearia
+
+
+  - Verificar limites do plano free: máximo 1 barbeiro[admin] ativo por barbearia free
+  - Bloquear criação de novos barbeiros quando for plano free [sera o admin o unico barbeiro]
+  - Mostrar notificação de upgrade quando próximo do limite de agendamentos
+  - Implementar contadores de uso por barbearia (barbeiros ativos, agendamentos/mês)
+  - _Requirements: 7.1, 8.2_
+
+- [x] 12.2 Interface de Upgrade Simplificada
+
+
+
+
+
+  - Página de upgrade integrada ao dashboard (/app/:slug/upgrade)
+  - Simulação de pagamento Mercado Pago (botão que "aprova" automaticamente)
+  - Atualização do plano para "pro" após "pagamento fake"
+  - Notificações de sucesso e liberação de recursos ilimitados
+  - _Requirements: 7.2, 8.4_
+
+- [x] 12.3 Dashboard de Uso por Barbearia
+
+
+
+
+
+  - Mostrar uso atual: X/1 barbeiros, Y/20 agendamentos no mês
+  - Indicador visual de proximidade dos limites
+  - Botão de upgrade destacado quando necessário
+  - Histórico simples de "transações" (upgrades realizados)
   - _Requirements: 7.2, 7.4, 8.4_
 
-## Fase 2.9: Isolamento e Segurança Multi-Tenant
+## Fase 2.9: Polimento e Otimizações Finais
 
-- [ ] 13. Implementar isolamento completo de dados
-  - Garantir que todas as queries incluam filtro por barbershopId
-  - Implementar testes de isolamento de dados
-  - Criar auditoria de acesso cross-tenant
-  - Implementar backup e restore por tenant
-  - _Requirements: 8.1, 8.2, 8.5_
+- [x] 13. Validação e Testes de Produção
 
-- [ ] 13.1 Segurança e autenticação por tenant
-  - Implementar autenticação isolada por barbearia
-  - Criar sistema de roles e permissões por tenant
-  - Implementar JWT com claim de tenant
-  - Garantir que usuários só acessem dados da própria barbearia
-  - _Requirements: 8.2, 8.5_
 
-- [ ] 13.2 Configurações personalizadas por barbearia
-  - Criar sistema de configurações por tenant (tema, logo, etc.)
-  - Implementar personalização de domínio/subdomain
-  - Criar sistema de templates personalizáveis
-  - Implementar configurações de horário de funcionamento por barbearia
+
+
+
+
+
+
+  - Executar testes completos de isolamento multi-tenant
+  - Validar fluxo completo: cadastro → login → uso → upgrade
+  - Testar performance com múltiplas barbearias simultâneas
+  - Corrigir bugs encontrados e otimizar queries
+  - _Requirements: 8.1, 8.2, 4.1_
+
+- [x] 13.1 Configurações Básicas por Barbearia
+
+
+  - Permitir personalização do nome e configurações básicas
+  - Implementar upload de logo da barbearia (opcional)
+  - Configurações de horário de funcionamento por tenant
+  - Personalização de cores/tema básico (opcional)
   - _Requirements: 8.4, 8.5_
 
-## Fase 2.10: Otimização e Limpeza (Código Enxuto)
+- [x] 13.2 Preparação para Produção
 
-- [ ] 14. Auditoria e limpeza de código
-  - Identificar e remover imports não utilizados
-  - Limpar dependências desnecessárias do package.json
-  - Refatorar código duplicado seguindo DRY
-  - Remover console.logs e código de debug desnecessário
-  - _Requirements: 5.2, 5.3_
 
-- [ ] 14.1 Otimizar integração com backend
-  - Revisar e otimizar configurações de cache existentes
-  - Validar se todos os fallback endpoints são necessários
-  - Otimizar retry logic para reduzir latência
-  - Implementar lazy loading onde apropriado
-  - _Requirements: 5.1, 5.4, 6.3_
+  - Configurar variáveis de ambiente para produção
+  - Implementar logs de auditoria básicos
+  - Configurar backup automático do banco
+  - Documentar processo de deploy e configuração
+  - _Requirements: 8.5, 6.4_
 
-- [ ] 14.2 Simplificar arquitetura onde possível
-  - Identificar abstrações desnecessárias
-  - Consolidar interfaces similares
-  - Simplificar fluxos de dados complexos
-  - Aplicar princípio KISS (Keep It Simple, Stupid)
-  - _Requirements: 5.1, 5.3, 5.4_
+## Fase 2.10: Finalização e Launch
 
-- [ ] 15. Documentar integração com backend
-  - Documentar endpoints utilizados e suas respostas
-  - Criar guia de integração para novos desenvolvedores
-  - Documentar configurações de ambiente necessárias
-  - Listar mudanças propostas para o backend (se houver)
-  - _Requirements: 2.4, 5.4, 6.2, 6.4_
+- [-] 14. Limpeza e Otimização Final
 
-- [ ] 15.1 Validar implementação completa e enxuta
+
+
+  - Remover tipos any problematicos do test lint
+  - Remover imports desnecessários e duplicados
+  - executr npm test e corrigir arquivo e 7 errors
+  - Limpar imports não utilizados e dependências obsoletas
+  - Otimizar performance de queries e carregamento
+  - Executar npm run lint e corrigir todos os warnings
+  - _Requirements: 5.2, 5.3, 5.4_
+
+
+- [ ] 14.1 Testes e Validação Completa
   - Executar suite completa de testes (unitários + integração)
-  - Verificar cobertura de código mantida/melhorada
-  - Validar performance da aplicação (não degradar)
-  - Confirmar que código está limpo e enxuto
-  - Validar integração eficiente com backend existente
-  - _Requirements: 1.3, 2.4, 3.4, 4.4, 5.4, 6.3_
+  - Testar fluxo completo em ambiente de produção simulado
+  - Validar isolamento multi-tenant com dados reais
+  - Confirmar que todas as funcionalidades estão operacionais
+  - _Requirements: 1.3, 4.1, 4.4, 8.1_
+
+- [ ] 14.2 Documentação e Deploy
+  - Atualizar README com instruções de setup e uso
+  - Documentar fluxo de cadastro e onboarding
+  - Preparar guia de configuração para produção
+  - Configurar CI/CD para deploy automático
+  - _Requirements: 6.2, 6.4_
+
+- [ ] 15. Launch e Monitoramento
+  - Deploy em ambiente de produção
+  - Configurar monitoramento básico (logs, erros, performance)
+  - Testar cadastro de primeira barbearia real
+  - Implementar sistema de feedback de usuários
+  - Preparar suporte inicial para primeiros clientes
+  - _Requirements: 8.5, 6.4_

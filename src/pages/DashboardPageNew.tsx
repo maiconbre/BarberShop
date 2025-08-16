@@ -11,6 +11,8 @@ import { loadAppointments as loadAppointmentsService } from '../services/Appoint
 import ApiService from '../services/ApiService';
 import { isFirstAccess, clearFirstAccess, isOnboardingCompleted } from '../services/SetupService';
 import { useTenant } from '../contexts/TenantContext';
+import { PlanUpgradeNotification, UsageDashboard } from '../components/plan';
+import { PlanProvider } from '../contexts/PlanContext';
 import toast from 'react-hot-toast';
 
 interface Appointment {
@@ -382,12 +384,15 @@ const DashboardPageNew: React.FC = () => {
         {/* Layout principal do dashboard */}
         <div className="flex flex-col lg:flex-row h-full">
           {/* Seção de Estatísticas */}
-          <div className="w-full lg:w-1/2 flex flex-col">
+          <div className="w-full lg:w-1/2 flex flex-col space-y-4">
             <Stats 
               appointments={appointments} 
               revenueDisplayMode={revenueDisplayMode} 
               setRevenueDisplayMode={setRevenueDisplayMode}
             />
+            
+            {/* Plan Upgrade Notification */}
+            <PlanUpgradeNotification />
           </div>
 
           {/* Seção de Agendamentos */}
@@ -501,6 +506,11 @@ const DashboardPageNew: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Usage Dashboard Section */}
+        <PlanProvider>
+          <UsageDashboard />
+        </PlanProvider>
       </div>
 
       <AppointmentViewModal

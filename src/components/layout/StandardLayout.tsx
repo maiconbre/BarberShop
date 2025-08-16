@@ -16,12 +16,14 @@ import {
   ArrowLeft,
   ArrowRight,
   User,
-  BarChart3
+  BarChart3,
+  Crown
 } from 'lucide-react';
 import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
 import { useBarbershopNavigation } from '../../hooks/useBarbershopNavigation';
 import { useTenant } from '../../contexts/TenantContext';
+import { usePlan } from '../../hooks/usePlan';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
@@ -35,8 +37,9 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const currentUser = getCurrentUser();
   const navigate = useNavigate();
   const pageConfig = usePageConfig();
-  const { goToPage, goToHome, currentSlug } = useBarbershopNavigation();
+  const { goToPage, currentSlug } = useBarbershopNavigation();
   const { barbershopData } = useTenant();
+  const { planInfo, usage } = usePlan();
   
   // Use props if provided, otherwise use dynamic page config
   const pageTitle = title || pageConfig.title;
@@ -344,6 +347,33 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 <div className="space-y-1 pt-4">
                   {!isSidebarCollapsed && (
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Configurações</p>
+                  )}
+
+                  {/* Upgrade Button - Show only for free plan */}
+                  {planInfo?.planType === 'free' && (usage?.upgradeRecommended || usage?.upgradeRequired) && (
+                    <button
+                      onClick={() => navigateToPage('upgrade')}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105 ${
+                        usage?.upgradeRequired 
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg' 
+                          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg'
+                      }`}
+                      title={isSidebarCollapsed ? (usage?.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade para Pro') : ''}
+                    >
+                      <Crown className="w-5 h-5 flex-shrink-0" />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-sm font-medium">
+                            {usage?.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade para Pro'}
+                          </span>
+                          {usage?.upgradeRequired && (
+                            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                              !
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
                   )}
 
                   <button

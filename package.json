@@ -29,6 +29,11 @@
     "start:dev": "powershell -File ./start-dev.ps1",
     "env:switch-local": "copy .env.development .env",
     "env:switch-prod": "copy .env.production .env",
+    "health-check": "node scripts/production-health-check.js",
+    "backup:db": "node scripts/backup-database.js",
+    "backup:schedule": "echo 'Setup cron job: 0 2 * * * cd /path/to/project && npm run backup:db'",
+    "production:setup": "echo 'Follow docs/production/PRODUCTION_SETUP.md for complete setup'",
+    "production:validate": "node scripts/validate-production.js",
     "prisma": {
       "seed": "node --loader ts-node/esm prisma/seed.ts"
     },

@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { getCurrentBarbershop } from '../services/BarbershopService';
 import { 
   Scissors, 
   Calendar, 
@@ -18,7 +17,7 @@ import {
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, getCurrentUser } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const handleLoginClick = async () => {
     if (isAuthenticated) {

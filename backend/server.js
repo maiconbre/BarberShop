@@ -25,6 +25,7 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const securityRoutes = require('./routes/securityRoutes');
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const barbershopRoutes = require('./routes/barbershopRoutes');
+const planRoutes = require('./routes/planRoutes');
 
 const app = express();
 
@@ -97,6 +98,9 @@ app.use('/api/qr-codes', qrCodeRoutes);
 
 // Rotas de barbearias (multi-tenant)
 app.use('/api/barbershops', barbershopRoutes);
+
+// Rotas de planos e billing
+app.use('/api/plans', planRoutes);
 
 // Rotas com tenant context (formato: /api/app/:barbershopSlug/*)
 const { detectTenant, requireTenant, validateTenantAccess } = require('./middleware/tenantMiddleware');
