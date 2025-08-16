@@ -21,7 +21,7 @@ vi.mock('../../contexts/TenantContext', () => ({
 
 // Mock TenantAwareRepository
 vi.mock('../../services/TenantAwareRepository', () => ({
-  createTenantAwareRepository: (baseRepo: any) => baseRepo
+  createTenantAwareRepository: (baseRepo: unknown) => baseRepo
 }));
 
 // Mock TenantAwareCache
@@ -94,7 +94,7 @@ describe('useComments', () => {
       await act(async () => {
         try {
           await result.current.loadComments();
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -271,7 +271,7 @@ describe('useComments', () => {
             name: 'Test User',
             comment: 'Test comment',
           });
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -401,7 +401,7 @@ describe('useComments', () => {
       await act(async () => {
         try {
           await result.current.deleteComment('1');
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });

@@ -64,7 +64,7 @@ describe('useUsers', () => {
       await act(async () => {
         try {
           await result.current.loadUsers();
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -199,7 +199,7 @@ describe('useUsers', () => {
             email: 'new@example.com',
             role: 'client',
           });
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });

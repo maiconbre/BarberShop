@@ -1,354 +1,264 @@
-# 🚀 Guia de Deploy - BarberShop SaaS
+# 🚀 Guia de Deploy - Barbershop SaaS
 
-Este documento contém instruções completas para deploy da aplicação BarberShop SaaS em produção.
+Este documento descreve o processo de deploy da plataforma Barbershop SaaS para produção.
 
 ## 📋 Pré-requisitos
 
 ### Infraestrutura Necessária
-
-- **Frontend**: Vercel, Netlify ou servidor com Node.js 18+
-- **Backend**: Render, Railway ou servidor com Node.js 18+
-- **Banco de Dados**: PostgreSQL (Supabase recomendado)
-- **Storage**: Supabase Storage para uploads
-- **Email**: n8n webhook ou serviço SMTP
+- **Frontend**: Vercel, Netlify ou servidor com Node.js
+- **Backend**: Servidor com Node.js + PostgreSQL ou Render/Railway
+- **Banco de Dados**: PostgreSQL (recomendado) ou MySQL
+- **Storage**: Supabase ou AWS S3 para arquivos
+- **Email**: Serviço de email (n8n webhook ou SendGrid)
 
 ### Variáveis de Ambiente
 
 #### Frontend (.env.production)
 ```bash
 # API Configuration
-VITE_API_URL=https://your-backend-domain.com
+VITE_API_URL=https://sua-api.com
 VITE_DEV_MODE=false
 VITE_DEBUG_API=false
-VITE_MOCK_DATA=false
 
 # Supabase Configuration
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua-chave-anonima
 
-# Application Configuration
-VITE_APP_VERSION=1.0.0
-VITE_APP_NAME=BarberShop SaaS
-VITE_SUPPORT_EMAIL=suporte@barbershopsaas.com
-
-# Monitoring (opcional)
-VITE_SENTRY_DSN=your-sentry-dsn
-VITE_ANALYTICS_ID=your-analytics-id
+# Production Monitoring
+VITE_LOG_ENDPOINT=https://sua-api.com/api/logs
+VITE_LOG_API_KEY=sua-chave-de-logs
+VITE_ALERT_ENDPOINT=https://sua-api.com/api/alerts
+VITE_ALERT_API_KEY=sua-chave-de-alertas
 ```
 
-#### Backend (.env)
+#### Backend (.env.production)
 ```bash
 # Database
 DATABASE_URL=postgresql://user:password@host:port/database
+DB_HOST=seu-host-postgres
+DB_PORT=5432
+DB_NAME=barbershop_prod
+DB_USER=seu-usuario
+DB_PASSWORD=sua-senha
 
-# JWT Configuration
-JWT_SECRET=your-super-secure-jwt-secret-key
-JWT_EXPIRES_IN=1d
-REFRESH_TOKEN_SECRET=your-super-secure-refresh-token-secret
-REFRESH_TOKEN_EXPIRES_IN=7d
-
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-supabase-service-key
-
-# Email Configuration
-N8N_EMAIL_WEBHOOK_URL=https://your-n8n-instance.com/webhook/email
-
-# Environment
-NODE_ENV=production
+# Server
 PORT=3000
+NODE_ENV=production
+JWT_SECRET=sua-chave-jwt-super-secreta
 
-# Security
-CORS_ORIGIN=https://your-frontend-domain.com
+# CORS
+CORS_ORIGIN=https://seu-frontend.com
+
+# Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 
-# Monitoring
-SENTRY_DSN=your-sentry-dsn
-LOG_LEVEL=warn
+# Email Service
+EMAIL_WEBHOOK_URL=https://seu-n8n.com/webhook/email
+EMAIL_API_KEY=sua-chave-email
 ```
 
-## 🏗️ Deploy do Backend
+## 🏗️ Processo de Deploy
 
-### 1. Preparação do Código
+### 1. Preparação do Backend
 
 ```bash
-# Clone o repositório
-git clone https://github.com/your-repo/barbershop-backend.git
+# 1. Clone e configure o backend
+git clone https://github.com/seu-usuario/barbershop-backend.git
 cd barbershop-backend
 
-# Instalar dependências
+# 2. Instale dependências
 npm install --production
 
-# Executar migrações do banco
-npm run migrate
+# 3. Configure variáveis de ambiente
+cp .env.example .env.production
+# Edite .env.production com suas configurações
 
-# Executar seeders (opcional, apenas para dados iniciais)
-npm run seed
+# 4. Execute migrações do banco
+npm run migrate:prod
+
+# 5. Popule dados iniciais (opcional)
+npm run seed:prod
+
+# 6. Teste a aplicação
+npm run test:prod
+npm start
 ```
 
-### 2. Deploy no Render
+### 2. Deploy do Backend
 
-1. **Conectar Repositório**
-   - Acesse [Render Dashboard](https://dashboard.render.com)
-   - Clique em "New +" → "Web Service"
-   - Conecte seu repositório GitHub
+#### Opção A: Render/Railway (Recomendado)
+1. Conecte seu repositório backend
+2. Configure as variáveis de ambiente
+3. Configure o comando de build: `npm install`
+4. Configure o comando de start: `npm start`
+5. Configure o health check: `/api/health`
 
-2. **Configurar Serviço**
-   ```yaml
-   Name: barbershop-backend
-   Environment: Node
-   Build Command: npm install
-   Start Command: npm start
-   ```
+#### Opção B: Servidor Próprio
+```bash
+# 1. Configure PM2 para gerenciamento de processos
+npm install -g pm2
 
-3. **Configurar Variáveis de Ambiente**
-   - Adicione todas as variáveis listadas acima
-   - Configure DATABASE_URL com seu banco PostgreSQL
+# 2. Crie arquivo ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'barbershop-api',
+    script: 'server.js',
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    }
+  }]
+}
 
-4. **Deploy**
-   - Clique em "Create Web Service"
-   - Aguarde o deploy completar
+# 3. Inicie com PM2
+pm2 start ecosystem.config.js --env production
+pm2 save
+pm2 startup
+```
 
-### 3. Deploy no Railway (Alternativa)
+### 3. Preparação do Frontend
 
 ```bash
-# Instalar Railway CLI
-npm install -g @railway/cli
+# 1. Configure variáveis de produção
+cp .env.production.template .env.production
+# Edite .env.production com suas configurações
 
-# Login
-railway login
+# 2. Execute testes
+npm test
 
-# Inicializar projeto
-railway init
+# 3. Execute linting
+npm run lint
 
-# Configurar variáveis
-railway variables set DATABASE_URL="your-database-url"
-railway variables set JWT_SECRET="your-jwt-secret"
-# ... outras variáveis
+# 4. Build para produção
+npm run build:prod
 
-# Deploy
-railway up
+# 5. Teste o build localmente
+npm run preview:prod
 ```
 
-## 🌐 Deploy do Frontend
+### 4. Deploy do Frontend
 
-### 1. Preparação do Build
-
+#### Opção A: Vercel (Recomendado)
 ```bash
-# Clone o repositório
-git clone https://github.com/your-repo/barbershop-frontend.git
-cd barbershop-frontend
+# 1. Instale Vercel CLI
+npm install -g vercel
 
-# Instalar dependências
-npm install
+# 2. Configure o projeto
+vercel
 
-# Configurar variáveis de ambiente
-cp .env.production .env.local
-# Editar .env.local com suas configurações
-
-# Build para produção
-npm run build
-
-# Testar build localmente
-npm run preview
+# 3. Configure variáveis de ambiente no dashboard
+# 4. Deploy
+vercel --prod
 ```
 
-### 2. Deploy na Vercel
+#### Opção B: Netlify
+1. Conecte seu repositório no Netlify
+2. Configure build command: `npm run build:prod`
+3. Configure publish directory: `dist`
+4. Configure variáveis de ambiente
+5. Deploy automático
 
-1. **Via Dashboard**
-   - Acesse [Vercel Dashboard](https://vercel.com/dashboard)
-   - Clique em "New Project"
-   - Conecte seu repositório GitHub
-   - Configure as variáveis de ambiente
-   - Deploy automático
+## 🔧 Configurações de Produção
 
-2. **Via CLI**
-   ```bash
-   # Instalar Vercel CLI
-   npm install -g vercel
+### Nginx (se usando servidor próprio)
+```nginx
+server {
+    listen 80;
+    server_name seu-dominio.com;
+    return 301 https://$server_name$request_uri;
+}
 
-   # Login
-   vercel login
-
-   # Deploy
-   vercel --prod
-   ```
-
-### 3. Deploy na Netlify (Alternativa)
-
-1. **Via Dashboard**
-   - Acesse [Netlify Dashboard](https://app.netlify.com)
-   - Drag & drop da pasta `dist/` ou conecte repositório
-   - Configure variáveis de ambiente
-   - Configure redirects para SPA
-
-2. **Configurar _redirects**
-   ```
-   # Arquivo: public/_redirects
-   /*    /index.html   200
-   ```
-
-## 🗄️ Configuração do Banco de Dados
-
-### 1. Supabase (Recomendado)
-
-1. **Criar Projeto**
-   - Acesse [Supabase Dashboard](https://app.supabase.com)
-   - Clique em "New Project"
-   - Configure nome, senha e região
-
-2. **Configurar Tabelas**
-   ```sql
-   -- Execute no SQL Editor do Supabase
-   -- As migrações estão em backend/migrations/
-   ```
-
-3. **Configurar Storage**
-   - Vá para Storage → Create Bucket
-   - Nome: `barbershop-assets`
-   - Configurar políticas de acesso
-
-### 2. PostgreSQL Externo
-
-```bash
-# Conectar ao banco
-psql -h your-host -U your-user -d your-database
-
-# Executar migrações
-\i backend/migrations/001_initial_schema.sql
-\i backend/migrations/002_multi_tenant.sql
-# ... outras migrações
+server {
+    listen 443 ssl;
+    server_name seu-dominio.com;
+    
+    ssl_certificate /path/to/certificate.crt;
+    ssl_certificate_key /path/to/private.key;
+    
+    # Frontend
+    location / {
+        root /var/www/barbershop/dist;
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # API
+    location /api {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
 ```
 
-## 📧 Configuração de Email
+### Database Setup (PostgreSQL)
+```sql
+-- 1. Criar banco de dados
+CREATE DATABASE barbershop_prod;
 
-### 1. n8n Webhook (Recomendado)
+-- 2. Criar usuário
+CREATE USER barbershop_user WITH PASSWORD 'senha-super-secreta';
 
-1. **Configurar Workflow**
-   ```json
-   {
-     "nodes": [
-       {
-         "name": "Webhook",
-         "type": "n8n-nodes-base.webhook",
-         "parameters": {
-           "path": "barbershop-email"
-         }
-       },
-       {
-         "name": "Email",
-         "type": "n8n-nodes-base.emailSend",
-         "parameters": {
-           "fromEmail": "noreply@barbershopsaas.com",
-           "toEmail": "={{ $json.to }}",
-           "subject": "={{ $json.subject }}",
-           "html": "={{ $json.html }}"
-         }
-       }
-     ]
-   }
-   ```
+-- 3. Conceder permissões
+GRANT ALL PRIVILEGES ON DATABASE barbershop_prod TO barbershop_user;
 
-2. **Configurar Variável**
-   ```bash
-   N8N_EMAIL_WEBHOOK_URL=https://your-n8n.com/webhook/barbershop-email
-   ```
-
-### 2. SMTP Direto (Alternativa)
-
-```bash
-# Configurar no backend
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+-- 4. Configurar conexões
+ALTER DATABASE barbershop_prod OWNER TO barbershop_user;
 ```
-
-## 🔒 Configurações de Segurança
-
-### 1. HTTPS
-
-- **Vercel/Netlify**: HTTPS automático
-- **Servidor próprio**: Configure certificado SSL
-
-### 2. CORS
-
-```javascript
-// backend/middleware/cors.js
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'https://your-domain.com',
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-```
-
-### 3. Rate Limiting
-
-```javascript
-// backend/middleware/rateLimiting.js
-const rateLimit = require('express-rate-limit');
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por IP
-  message: 'Muitas tentativas, tente novamente em 15 minutos'
-});
-```
-
-### 4. Variáveis Sensíveis
-
-- Use gerenciadores de secrets (Vercel Secrets, Railway Variables)
-- Nunca commite secrets no código
-- Rotacione chaves regularmente
 
 ## 📊 Monitoramento
 
-### 1. Logs de Aplicação
+### Health Checks
+Configure health checks para:
+- **Frontend**: Verificar se a aplicação carrega
+- **Backend**: `GET /api/health`
+- **Database**: Conexão e queries básicas
 
+### Logs
+- **Frontend**: Logs enviados para endpoint configurado
+- **Backend**: Logs estruturados com Winston
+- **Nginx**: Logs de acesso e erro
+
+### Métricas
+- **Performance**: Core Web Vitals
+- **Errors**: Taxa de erro < 1%
+- **Uptime**: > 99.9%
+- **Response Time**: < 200ms
+
+## 🔒 Segurança
+
+### SSL/TLS
+- Certificado SSL válido
+- HTTPS obrigatório
+- HSTS headers
+
+### Headers de Segurança
 ```javascript
-// backend/utils/logger.js
-const winston = require('winston');
-
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' })
-  ]
-});
+// Helmet.js configuration
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
 ```
 
-### 2. Monitoramento de Erros
+### Rate Limiting
+- Configurado no backend
+- Limites por IP e por usuário
+- Proteção contra DDoS
 
-```bash
-# Sentry (Recomendado)
-npm install @sentry/node @sentry/tracing
+## 🔄 CI/CD
 
-# Configurar no backend
-SENTRY_DSN=your-sentry-dsn
-```
-
-### 3. Métricas de Performance
-
-```javascript
-// backend/middleware/metrics.js
-const prometheus = require('prom-client');
-
-const httpRequestDuration = new prometheus.Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status_code']
-});
-```
-
-## 🔄 CI/CD Pipeline
-
-### 1. GitHub Actions
-
+### GitHub Actions (Exemplo)
 ```yaml
-# .github/workflows/deploy.yml
 name: Deploy to Production
 
 on:
@@ -359,192 +269,78 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
         with:
           node-version: '18'
-      - run: npm ci
+      - run: npm install
       - run: npm test
+      - run: npm run lint
 
-  deploy-backend:
+  deploy:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Deploy to Render
-        run: |
-          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
-
-  deploy-frontend:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
         with:
           node-version: '18'
-      - run: npm ci
-      - run: npm run build
+      - run: npm install
+      - run: npm run build:prod
       - uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
           vercel-args: '--prod'
 ```
 
-### 2. Hooks de Deploy
-
-```bash
-# Render Deploy Hook
-curl -X POST "https://api.render.com/deploy/srv-your-service-id"
-
-# Vercel Deploy Hook
-curl -X POST "https://api.vercel.com/v1/integrations/deploy/your-hook-id"
-```
-
-## 🧪 Testes em Produção
-
-### 1. Health Checks
-
-```javascript
-// backend/routes/health.js
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: process.env.APP_VERSION,
-    uptime: process.uptime()
-  });
-});
-```
-
-### 2. Smoke Tests
-
-```bash
-# Testar endpoints críticos
-curl https://your-api.com/health
-curl https://your-api.com/api/barbershops/check-slug/test
-```
-
-### 3. Monitoramento Contínuo
-
-```bash
-# Uptime monitoring
-# Configure no UptimeRobot, Pingdom ou similar
-```
-
-## 🔧 Troubleshooting
+## 🚨 Troubleshooting
 
 ### Problemas Comuns
 
-1. **CORS Errors**
-   ```javascript
-   // Verificar configuração de CORS
-   // Certificar que frontend domain está na whitelist
-   ```
-
-2. **Database Connection**
-   ```bash
-   # Testar conexão
-   psql $DATABASE_URL -c "SELECT 1"
-   ```
-
-3. **Environment Variables**
-   ```bash
-   # Verificar se todas as variáveis estão definidas
-   echo $VITE_API_URL
-   ```
-
-4. **Build Errors**
-   ```bash
-   # Limpar cache e reinstalar
-   rm -rf node_modules package-lock.json
-   npm install
-   npm run build
-   ```
-
-### Logs Úteis
-
-```bash
-# Backend logs
-heroku logs --tail -a your-app-name
-
-# Vercel logs
-vercel logs your-deployment-url
-
-# Render logs
-# Acessar via dashboard
-```
-
-## 📈 Otimizações de Performance
-
-### 1. Frontend
-
+#### 1. Erro de CORS
 ```javascript
-// vite.config.ts
-export default defineConfig({
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['@headlessui/react', '@heroicons/react']
-        }
-      }
-    }
-  }
-});
-```
-
-### 2. Backend
-
-```javascript
-// Compression
-app.use(compression());
-
-// Static files caching
-app.use(express.static('public', {
-  maxAge: '1y',
-  etag: false
+// Backend: configure CORS adequadamente
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+  credentials: true
 }));
 ```
 
-### 3. Database
+#### 2. Variáveis de Ambiente
+- Verifique se todas as variáveis estão configuradas
+- Use `console.log` para debug (remover em produção)
 
-```sql
--- Índices importantes
-CREATE INDEX idx_appointments_barbershop_date ON appointments(barbershop_id, date);
-CREATE INDEX idx_users_barbershop ON users(barbershop_id);
+#### 3. Database Connection
+```javascript
+// Teste a conexão
+const testConnection = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connected successfully');
+  } catch (error) {
+    console.error('Database connection failed:', error);
+  }
+};
 ```
 
-## 🔐 Backup e Recuperação
-
-### 1. Backup Automático
-
+#### 4. Build Errors
 ```bash
-# Script de backup diário
-#!/bin/bash
-pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
-aws s3 cp backup_$(date +%Y%m%d).sql s3://your-backup-bucket/
-```
-
-### 2. Recuperação
-
-```bash
-# Restaurar backup
-psql $DATABASE_URL < backup_20231201.sql
+# Limpe cache e reinstale
+rm -rf node_modules package-lock.json
+npm install
+npm run build:prod
 ```
 
 ## 📞 Suporte
 
-Para problemas de deploy, contate:
-- **Email**: dev@barbershopsaas.com
-- **Slack**: #deploy-support
-- **Documentação**: https://docs.barbershopsaas.com
+Para problemas de deploy:
+1. Verifique os logs de erro
+2. Confirme todas as variáveis de ambiente
+3. Teste localmente com `npm run preview:prod`
+4. Abra uma issue no repositório
 
 ---
 
-**Última atualização**: Dezembro 2024
-**Versão**: 1.0.0
+**Deploy realizado com sucesso! 🎉**

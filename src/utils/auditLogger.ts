@@ -15,8 +15,8 @@ export interface AuditLogEntry {
   action: string;
   resource?: string;
   resourceId?: string;
-  metadata?: Record<string, any>;
-  details?: Record<string, any>; // Add details property for test compatibility
+  metadata?: Record<string, unknown>;
+  details?: Record<string, unknown>; // Add details property for test compatibility
   ip?: string;
   userAgent?: string;
   sessionId?: string;
@@ -26,7 +26,7 @@ export interface AuditLogEntry {
 export interface SecurityEvent {
   type: 'auth_failure' | 'unauthorized_access' | 'data_breach_attempt' | 'rate_limit_exceeded' | 'suspicious_activity';
   severity: 'low' | 'medium' | 'high' | 'critical';
-  details: Record<string, any>;
+  details: Record<string, unknown>;
 }
 
 class AuditLogger {
@@ -36,7 +36,7 @@ class AuditLogger {
   /**
    * Log de ações de usuário críticas
    */
-  logUserAction(action: string, details: Record<string, any> | Partial<AuditLogEntry> = {}): void {
+  logUserAction(action: string, details: Record<string, unknown> | Partial<AuditLogEntry> = {}): void {
     // If details is a plain object (not an AuditLogEntry), treat it as details
     const isPlainDetails = !('timestamp' in details || 'level' in details || 'event' in details);
     
@@ -46,7 +46,7 @@ class AuditLogger {
       event: 'user_action',
       action,
       resource: 'user', // Set default resource for user actions
-      details: isPlainDetails ? details as Record<string, any> : (details as Partial<AuditLogEntry>).details,
+      details: isPlainDetails ? details as Record<string, unknown> : (details as Partial<AuditLogEntry>).details,
       ip: this.getClientIP(),
       userAgent: navigator.userAgent,
       sessionId: this.getSessionId(),
@@ -245,7 +245,7 @@ class AuditLogger {
       }
 
       localStorage.setItem('audit_logs', JSON.stringify(logs));
-    } catch (error) {
+    } catch {
       // Ignorar erros de localStorage
     }
   }

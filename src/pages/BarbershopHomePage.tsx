@@ -1,7 +1,7 @@
-import React, { useState, lazy, Suspense, useEffect } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { useTenant } from '../contexts/TenantContext';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import BarbershopHero from '../components/feature/BarbershopHero';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import BarbershopNavbar from '../components/ui/BarbershopNavbar';
@@ -45,7 +45,7 @@ const BarbershopHomePage: React.FC = () => {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   
   const { barbershopSlug } = useParams<{ barbershopSlug: string }>();
-  const { barbershopData, loading, error, isValidTenant } = useTenant();
+  const { loading, error } = useTenant();
 
   const handleOpenBookingModal = (serviceName: string) => {
     setSelectedService(serviceName);

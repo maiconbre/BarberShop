@@ -151,7 +151,7 @@ class ProductionMonitor {
     });
 
     // Rastrear tempo na página
-    let pageStartTime = Date.now();
+    const pageStartTime = Date.now();
     window.addEventListener('beforeunload', () => {
       const timeOnPage = Date.now() - pageStartTime;
       this.trackUsage('page_time', {
@@ -319,7 +319,7 @@ class ProductionMonitor {
       metrics: this.metrics.length,
       errors: this.errors.length,
       usage: this.usage.length,
-      memoryUsage: (performance as any).memory?.usedJSHeapSize
+      memoryUsage: (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize
     };
   }
 

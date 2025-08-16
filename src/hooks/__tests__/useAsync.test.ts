@@ -41,7 +41,7 @@ describe('useAsync', () => {
       await act(async () => {
         try {
           await result.current.execute();
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -235,7 +235,7 @@ describe('useAsyncWithRetry', () => {
     await act(async () => {
       try {
         await result.current.execute();
-      } catch (e) {
+      } catch {
         // Expected to throw
       }
     });
@@ -254,7 +254,7 @@ describe('useAsyncWithRetry', () => {
     await act(async () => {
       try {
         await result.current.execute('arg1', 'arg2');
-      } catch (e) {
+      } catch {
         // Expected to fail first time
       }
     });
@@ -313,7 +313,7 @@ describe('useAsyncQueue', () => {
     await act(async () => {
       try {
         await result.current.addToQueue('failedTask', asyncFn);
-      } catch (e) {
+      } catch {
         // Expected to throw
       }
     });
