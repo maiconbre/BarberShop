@@ -780,7 +780,12 @@ class ApiService {
   }
 
   async getAppointments() {
-    const endpoint = '/api/appointments';
+    // Verificar se temos um slug de barbearia no localStorage
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
+    const endpoint = barbershopSlug 
+      ? `/api/app/${barbershopSlug}/appointments` 
+      : '/api/appointments';
+    
     try {
       const response = await this.get<Appointment[]>(endpoint, {
         ttl: DATA_TYPE_CONFIG.appointments.cacheTTL

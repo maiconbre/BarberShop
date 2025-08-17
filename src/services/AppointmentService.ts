@@ -83,6 +83,22 @@ const getAppointmentsCacheKey = (userId?: string) => {
   // Fallback para cache global (compatibilidade)
   return '/api/appointments';
 };
+
+// Função auxiliar para obter a URL base com tenant context
+const getTenantAwareUrl = (): string => {
+  const barbershopSlug = localStorage.getItem('barbershopSlug');
+  if (barbershopSlug) {
+    return `/api/app/${barbershopSlug}/appointments`;
+  }
+  
+  // Fallback para compatibilidade
+  const barbershopId = localStorage.getItem('barbershopId');
+  if (barbershopId) {
+    return `/api/appointments?barbershopId=${barbershopId}`;
+  }
+  
+  return '/api/appointments';
+};
 const APPOINTMENTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutos (aumentado para reduzir requisições)
 
 // Variável para controlar requisições em andamento
@@ -164,6 +180,7 @@ export const loadAppointments = async (): Promise<AppointmentCacheItem[]> => {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const userId = currentUser?.id;
   const APPOINTMENTS_CACHE_KEY = getAppointmentsCacheKey(userId);
+  const API_URL = getTenantAwareUrl();
   
   AppointmentLogger.logOperation('LOAD_APPOINTMENTS_START', {
     operationId,

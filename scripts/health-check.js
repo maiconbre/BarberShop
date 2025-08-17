@@ -17,7 +17,7 @@ const config = {
   },
   // Backend health check
   backend: {
-    url: process.env.BACKEND_URL || 'http://localhost:6543',
+    url: process.env.BACKEND_URL || 'http://localhost:8000',
     timeout: 10000,
   },
   // Database health check (if applicable)

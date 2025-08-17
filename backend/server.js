@@ -26,6 +26,7 @@ const securityRoutes = require('./routes/securityRoutes');
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const barbershopRoutes = require('./routes/barbershopRoutes');
 const planRoutes = require('./routes/planRoutes');
+const publicAppointmentRoutes = require('./routes/publicAppointmentRoutes');
 const { errorMiddleware, Logger } = require('./utils/errorHandler');
 
 const app = express();

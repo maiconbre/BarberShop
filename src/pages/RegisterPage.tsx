@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Trash2, Edit, UserCog, Upload, X, Camera, Image as ImageIcon, CheckCircle, AlertCircle, Users, Phone, CreditCard, UserPlus, Eye } from 'lucide-react';
+import { Loader2, Trash2, Edit, UserCog, Upload, X, Camera, Image as ImageIcon, CheckCircle, AlertCircle, Users, Phone, CreditCard, UserPlus, Eye, Crown } from 'lucide-react';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
 import { useBarbers } from '../hooks/useBarbers';
 import { useTenant } from '../contexts/TenantContext';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import { usePlan } from '../hooks/usePlan';
 import type { Barber } from '../types';
 import { CURRENT_ENV } from '../config/environmentConfig';
 import toast from 'react-hot-toast';
@@ -248,15 +250,20 @@ const RegisterPage: React.FC = () => {
     error: barbersError,
   } = useBarbers();
   const {  isValidTenant } = useTenant();
+  
+  // Plan limits hooks
+  const { checkAndExecute, lastError: planError, clearError: clearPlanError } = usePlanLimits();
+  const { usage, canCreateBarber, refreshUsage } = usePlan();
 
 
 
-  // Load barbers on component mount
+  // Load barbers and plan usage on component mount
   useEffect(() => {
     if (isValidTenant) {
       loadBarbers();
+      refreshUsage();
     }
-  }, [loadBarbers, isValidTenant]);
+  }, [loadBarbers, isValidTenant, refreshUsage]);
   // Mostrar erros do hook como toast (simplificado)
   useEffect(() => {
     if (barbersError) {
@@ -569,6 +576,7 @@ const RegisterPage: React.FC = () => {
     // Caso contrário, continuar com o fluxo normal de criação
     setIsLoading(true);
     setError('');
+    clearPlanError();
 
     try {
       // Validações
@@ -602,32 +610,85 @@ const RegisterPage: React.FC = () => {
         return;
       }
 
-      // Criar novo barbeiro usando o hook multi-tenant
-      // Transform form data to match Barber interface
-      const newBarber = {
-        name: formData.name.trim(),
-        email: formData.username.trim(), // Map username to email field
-        phone: cleanWhatsapp,
-        specialties: [], // Default empty array
-        isActive: true, // Default to active
-        workingHours: {
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
-          saturday: [],
-          sunday: [],
-        }, // Default empty working hours
-        _backendData: {
-          whatsapp: cleanWhatsapp,
-          pix: formData.pix.trim(),
-          username: formData.username.trim(),
-          password: formData.password,
-          role: 'barber'
+      // Verificar limites do plano antes de criar barbeiro
+      const canCreate = await checkAndExecute(
+        'barbers',
+        async () => {
+          // Criar novo barbeiro usando o hook multi-tenant
+          // Transform form data to match Barber interface
+          const newBarber = {
+            name: formData.name.trim(),
+            email: formData.username.trim(), // Map username to email field
+            phone: cleanWhatsapp,
+            specialties: [], // Default empty array
+            isActive: true, // Default to active
+            workingHours: {
+              monday: [],
+              tuesday: [],
+              wednesday: [],
+              thursday: [],
+              friday: [],
+              saturday: [],
+              sunday: [],
+            }, // Default empty working hours
+            _backendData: {
+              whatsapp: cleanWhatsapp,
+              pix: formData.pix.trim(),
+              username: formData.username.trim(),
+              password: formData.password,
+              role: 'barber'
+            }
+          };
+          await createBarber(newBarber);
+        },
+        (planError) => {
+          // Callback para quando o limite for excedido
+          if (planError.code === 'BARBER_LIMIT_EXCEEDED') {
+            toast.error(
+              `Limite de barbeiros atingido para o plano ${planError.data?.planType}. Máximo: ${planError.data?.limit} barbeiro(s).`,
+              {
+                style: {
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  backgroundColor: '#FEF2F2',
+                  color: '#DC2626',
+                  border: '1px solid #FECACA'
+                },
+                duration: 6000
+              }
+            );
+            
+            // Mostrar toast de upgrade se for plano free
+            if (planError.data?.upgradeRequired) {
+              setTimeout(() => {
+                toast(
+                  'Faça upgrade para o plano Pro para adicionar barbeiros ilimitados!',
+                  {
+                    icon: '👑',
+                    style: {
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      backgroundColor: '#FEF3C7',
+                      color: '#D97706',
+                      border: '1px solid #FDE68A'
+                    },
+                    duration: 8000
+                  }
+                );
+              }, 1000);
+            }
+          }
         }
-      };
-      await createBarber(newBarber);
+      );
+      
+      if (!canCreate) {
+        setIsLoading(false);
+        return;
+      }
 
       // Mostrar mensagem de sucesso
       toast.success('Barbeiro cadastrado com sucesso!', {
@@ -922,6 +983,73 @@ const RegisterPage: React.FC = () => {
                 {isEditMode ? 'Edite os dados do barbeiro' : 'Cadastre um novo Barbeiro'}
               </p>
             </div>
+
+            {/* Plan Status Section - Only show when not in edit mode */}
+            {!isEditMode && usage && (
+              <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    {usage.planType === 'pro' ? (
+                      <Crown className="w-5 h-5 text-yellow-400" />
+                    ) : (
+                      <Users className="w-5 h-5 text-blue-400" />
+                    )}
+                    <h3 className="text-white font-medium">
+                      Plano {usage.planType === 'pro' ? 'Pro' : 'Gratuito'}
+                    </h3>
+                  </div>
+                  {usage.planType === 'free' && (
+                    <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
+                      Gratuito
+                    </span>
+                  )}
+                  {usage.planType === 'pro' && (
+                    <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
+                      Premium
+                    </span>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-300">Barbeiros</span>
+                    <span className="text-white font-medium">
+                      {usage.usage.barbers.current} / {usage.usage.barbers.limit === Infinity ? '∞' : usage.usage.barbers.limit}
+                    </span>
+                  </div>
+                  
+                  {usage.usage.barbers.limit !== Infinity && (
+                    <div className="w-full bg-gray-600 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          usage.usage.barbers.percentage >= 90 
+                            ? 'bg-red-500' 
+                            : usage.usage.barbers.percentage >= 70 
+                            ? 'bg-yellow-500' 
+                            : 'bg-green-500'
+                        }`}
+                        style={{ width: `${Math.min(usage.usage.barbers.percentage, 100)}%` }}
+                      />
+                    </div>
+                  )}
+                  
+                  {usage.usage.barbers.remaining === 0 && usage.planType === 'free' && (
+                    <div className="flex items-center space-x-2 mt-3 p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                      <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                      <p className="text-yellow-400 text-xs">
+                        Limite atingido. Faça upgrade para o plano Pro para adicionar barbeiros ilimitados.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {usage.usage.barbers.remaining > 0 && (
+                    <p className="text-green-400 text-xs mt-2">
+                      ✓ Você pode adicionar mais {usage.usage.barbers.remaining === Infinity ? 'barbeiros ilimitados' : `${usage.usage.barbers.remaining} barbeiro(s)`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
               {error && (

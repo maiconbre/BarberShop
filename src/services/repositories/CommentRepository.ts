@@ -16,11 +16,26 @@ export class CommentRepository implements IRepository<PublicComment> {
   constructor(private apiService: IApiService) {}
 
   /**
+   * Helper to construct tenant-aware URLs
+   */
+  private getTenantAwareUrl(endpoint: string): string {
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
+    
+    if (barbershopSlug) {
+      // Use tenant-aware endpoint
+      return endpoint.replace('/api/', `/api/app/${barbershopSlug}/`);
+    }
+    
+    // Fallback to standard endpoint
+    return endpoint;
+  }
+
+  /**
    * Find comment by ID
    */
   async findById(id: string): Promise<PublicComment | null> {
     try {
-      const comment = await this.apiService.get<BackendComment>(`/api/comments/${id}`);
+      const comment = await this.apiService.get<BackendComment>(this.getTenantAwareUrl(`/api/comments/${id}`));
       return this.adaptFromBackend(comment);
     } catch (error) {
       if (this.isNotFoundError(error)) {
@@ -36,7 +51,9 @@ export class CommentRepository implements IRepository<PublicComment> {
    */
   async findAll(filters?: Record<string, unknown>): Promise<PublicComment[]> {
     const queryParams = this.buildQueryParams(filters);
-    const comments = await this.apiService.get<BackendComment[]>(`/api/comments${queryParams}`);
+    const baseUrl = this.getTenantAwareUrl('/api/comments');
+    const fullUrl = queryParams ? `${baseUrl}${queryParams}` : baseUrl;
+    const comments = await this.apiService.get<BackendComment[]>(fullUrl);
     return Array.isArray(comments) ? comments.map(c => this.adaptFromBackend(c)) : [];
   }
 
@@ -45,7 +62,7 @@ export class CommentRepository implements IRepository<PublicComment> {
    * Uses GET /api/comments?status=X endpoint
    */
   async findByStatus(status: 'pending' | 'approved' | 'rejected'): Promise<PublicComment[]> {
-    const comments = await this.apiService.get<BackendComment[]>(`/api/comments?status=${status}`);
+    const comments = await this.apiService.get<BackendComment[]>(this.getTenantAwareUrl(`/api/comments?status=${status}`));
     return Array.isArray(comments) ? comments.map(c => this.adaptFromBackend(c)) : [];
   }
 
@@ -54,7 +71,7 @@ export class CommentRepository implements IRepository<PublicComment> {
    * Uses GET /api/comments/admin endpoint
    */
   async findAllForAdmin(): Promise<PublicComment[]> {
-    const comments = await this.apiService.get<BackendComment[]>('/api/comments/admin');
+    const comments = await this.apiService.get<BackendComment[]>(this.getTenantAwareUrl('/api/comments/admin'));
     return Array.isArray(comments) ? comments.map(c => this.adaptFromBackend(c)) : [];
   }
 
@@ -83,7 +100,7 @@ export class CommentRepository implements IRepository<PublicComment> {
       // Status defaults to 'pending' on backend
     };
 
-    const newComment = await this.apiService.post<BackendComment>('/api/comments', backendData);
+    const newComment = await this.apiService.post<BackendComment>(this.getTenantAwareUrl('/api/comments'), backendData);
     return this.adaptFromBackend(newComment);
   }
 
@@ -98,7 +115,7 @@ export class CommentRepository implements IRepository<PublicComment> {
     if (updates.comment) backendUpdates.comment = updates.comment;
     if (updates.status) backendUpdates.status = updates.status;
 
-    const updatedComment = await this.apiService.patch<BackendComment>(`/api/comments/${id}`, backendUpdates);
+    const updatedComment = await this.apiService.patch<BackendComment>(this.getTenantAwareUrl(`/api/comments/${id}`), backendUpdates);
     return this.adaptFromBackend(updatedComment);
   }
 
@@ -107,7 +124,7 @@ export class CommentRepository implements IRepository<PublicComment> {
    * Uses PATCH /api/comments/:id
    */
   async updateStatus(id: string, status: 'pending' | 'approved' | 'rejected'): Promise<PublicComment> {
-    const updatedComment = await this.apiService.patch<BackendComment>(`/api/comments/${id}`, { status });
+    const updatedComment = await this.apiService.patch<BackendComment>(this.getTenantAwareUrl(`/api/comments/${id}`), { status });
     return this.adaptFromBackend(updatedComment);
   }
 
@@ -116,7 +133,7 @@ export class CommentRepository implements IRepository<PublicComment> {
    * Uses DELETE /api/comments/:id
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(`/api/comments/${id}`);
+    await this.apiService.delete(this.getTenantAwareUrl(`/api/comments/${id}`));
   }
 
   /**
@@ -181,9 +198,14 @@ export class CommentRepository implements IRepository<PublicComment> {
     if (!filters) return '';
     
     const params = new URLSearchParams();
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
+        // Skip barbershopId if we're using slug-based URLs
+        if (key === 'barbershopId' && barbershopSlug) {
+          return;
+        }
         params.append(key, String(value));
       }
     });

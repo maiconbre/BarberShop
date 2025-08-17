@@ -7,7 +7,7 @@ const corsConfig = {
   development: {
     origin: ['https://barber.targetweb.tech', 'http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-barbershop-id'],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 200
@@ -15,7 +15,7 @@ const corsConfig = {
   production: {
     origin: ['https://barber.targetweb.tech','http://localhost:5173', 'https://barber-shop-git-modal-fix-maiconbres-projects.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-barbershop-id'],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 200
@@ -23,7 +23,7 @@ const corsConfig = {
   test: {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-barbershop-id'],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 200

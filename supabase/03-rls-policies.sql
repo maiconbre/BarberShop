@@ -30,7 +30,7 @@ CREATE POLICY "Owners manage barbershops" ON "Barbershops"
 -- Usuários veem apenas dados da própria barbearia
 CREATE POLICY "Users see own barbershop data" ON "Users"
     FOR ALL USING (
-        barbershopId IN (
+        "barbershopId" IN (
             SELECT id FROM "Barbershops" 
             WHERE owner_email = current_setting('request.jwt.claims', true)::json->>'email'
         )
@@ -39,7 +39,7 @@ CREATE POLICY "Users see own barbershop data" ON "Users"
 -- 5. Políticas para Barbers
 CREATE POLICY "Barbers see own barbershop data" ON "Barbers"
     FOR ALL USING (
-        barbershopId IN (
+        "barbershopId" IN (
             SELECT id FROM "Barbershops" 
             WHERE owner_email = current_setting('request.jwt.claims', true)::json->>'email'
         )
@@ -52,7 +52,7 @@ CREATE POLICY "Public barbers read" ON "Barbers"
 -- 6. Políticas para Services
 CREATE POLICY "Services see own barbershop data" ON "Services"
     FOR ALL USING (
-        barbershopId IN (
+        "barbershopId" IN (
             SELECT id FROM "Barbershops" 
             WHERE owner_email = current_setting('request.jwt.claims', true)::json->>'email'
         )
@@ -65,7 +65,7 @@ CREATE POLICY "Public services read" ON "Services"
 -- 7. Políticas para Appointments
 CREATE POLICY "Appointments see own barbershop data" ON "Appointments"
     FOR ALL USING (
-        barbershopId IN (
+        "barbershopId" IN (
             SELECT id FROM "Barbershops" 
             WHERE owner_email = current_setting('request.jwt.claims', true)::json->>'email'
         )
@@ -82,7 +82,7 @@ CREATE POLICY "Public appointments availability" ON "Appointments"
 -- 8. Políticas para Comments
 CREATE POLICY "Comments see own barbershop data" ON "Comments"
     FOR ALL USING (
-        barbershopId IN (
+        "barbershopId" IN (
             SELECT id FROM "Barbershops" 
             WHERE owner_email = current_setting('request.jwt.claims', true)::json->>'email'
         )
@@ -99,7 +99,7 @@ CREATE POLICY "Public approved comments read" ON "Comments"
 -- 9. Políticas para BarberServices
 CREATE POLICY "BarberServices see own barbershop data" ON "BarberServices"
     FOR ALL USING (
-        barbershopId IN (
+        "barbershopId" IN (
             SELECT id FROM "Barbershops" 
             WHERE owner_email = current_setting('request.jwt.claims', true)::json->>'email'
         )

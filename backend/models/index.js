@@ -25,6 +25,10 @@ Comment.belongsTo(Barbershop, { foreignKey: 'barbershopId' });
 Barber.belongsToMany(Service, { through: BarberServices, timestamps: false });
 Service.belongsToMany(Barber, { through: BarberServices, timestamps: false });
 
+// Barber-User association (one-to-one)
+Barber.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasOne(Barber, { foreignKey: 'userId', as: 'barber' });
+
 module.exports = {
   Barbershop,
   Appointment,

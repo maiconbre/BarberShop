@@ -43,31 +43,27 @@ router.get('/', readLimiter, /** @param {import('express').Request} req @param {
     }
     // Se não há tenant, buscar todos os barbeiros (modo público)
 
-    // Buscar barbeiros
+    // Buscar barbeiros com join nos usuários
     const barbers = await Barber.findAll({
-      where: whereClause
-    });
-    
-    // Buscar usuários com role 'barber' da mesma barbearia
-    const barberIds = barbers.map(b => b.id);
-    const users = await User.findAll({
-      where: { 
-        role: 'barber',
-        id: barberIds
-      }
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          where: { role: ['barber', 'admin'] }, // Incluir admins que também podem ser barbeiros
+          required: false
+        }
+      ]
     });
     
     // Mapear os barbeiros para incluir o username
-    const barbersWithUsername = barbers.map(barber => {
-      const user = users.find(u => u.id === barber.id);
-      return {
-        id: barber.id,
-        name: barber.name,
-        username: user ? user.username : null,
-        whatsapp: barber.whatsapp,
-        pix: barber.pix
-      };
-    });
+    const barbersWithUsername = barbers.map(barber => ({
+      id: barber.id,
+      name: barber.name,
+      username: barber.user ? barber.user.username : null,
+      whatsapp: barber.whatsapp,
+      pix: barber.pix
+    }));
     
     res.json({
       success: true,
@@ -86,7 +82,6 @@ router.get('/', readLimiter, /** @param {import('express').Request} req @param {
 router.get('/:id', readLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
-    const formattedId = String(id).padStart(2, '0');
     
     // Verificar se o contexto de tenant está disponível
     const barbershopId = req.tenant?.barbershopId;
@@ -97,20 +92,26 @@ router.get('/:id', readLimiter, /** @param {import('express').Request} req @para
       });
     }
     
-    // Buscar barbeiro da barbearia específica
+    // Buscar barbeiro da barbearia específica com join no usuário
     const barber = await Barber.findOne({
       where: { 
-        id: formattedId,
+        id: id,
         barbershopId 
-      }
+      },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          where: { role: 'barber' },
+          required: false
+        }
+      ]
     });
-    const user = await User.findByPk(formattedId);
     
     // Log para debug
     console.log('Busca por barbeiro:', {
-      idBuscado: formattedId,
-      barbeiro: barber ? 'Encontrado' : 'Não encontrado',
-      usuario: user ? 'Encontrado' : 'Não encontrado'
+      idBuscado: id,
+      barbeiro: barber ? 'Encontrado' : 'Não encontrado'
     });
 
     // Se encontrou o barbeiro, retornar os dados
@@ -120,7 +121,7 @@ router.get('/:id', readLimiter, /** @param {import('express').Request} req @para
         data: {
           id: barber.id,
           name: barber.name,
-          username: user ? user.username : null,
+          username: barber.user ? barber.user.username : null,
           whatsapp: barber.whatsapp,
           pix: barber.pix
         }
@@ -146,11 +147,8 @@ router.get('/:id', readLimiter, /** @param {import('express').Request} req @para
 router.patch('/:id', writeLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
-    // Garantir que o ID esteja no formato correto (com zero à esquerda se necessário)
-    const formattedId = String(id).length === 1 ? `0${id}` : String(id);
 
     console.log('ID recebido:', id);
-    console.log('ID formatado:', formattedId);
 
     // Verificar se o contexto de tenant está disponível
     const barbershopId = req.tenant?.barbershopId;
@@ -163,37 +161,29 @@ router.patch('/:id', writeLimiter, /** @param {import('express').Request} req @p
 
     const { name, username, password, whatsapp, pix } = req.body;
 
-    // Verificar se o barbeiro existe na barbearia específica
-    let barber = await Barber.findOne({
+    // Buscar barbeiro com join no usuário
+    const barber = await Barber.findOne({
       where: { 
-        id: formattedId,
+        id: id,
         barbershopId 
-      }
-    });
-    let user = await User.findByPk(formattedId);
-
-    // Se não encontrar com o ID formatado, tentar buscar com o ID original
-    if (!barber) {
-      console.log('Barbeiro não encontrado com ID formatado, tentando com ID original');
-      barber = await Barber.findOne({
-        where: { 
-          id: id,
-          barbershopId 
+      },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          required: true
         }
-      });
-    }
+      ]
+    });
 
-    if (!user) {
-      console.log('Usuário não encontrado com ID formatado, tentando com ID original');
-      user = await User.findByPk(id);
-    }
-
-    if (!barber || !user) {
+    if (!barber) {
       return res.status(404).json({
         success: false,
         message: 'Barbeiro não encontrado'
       });
     }
+
+    const user = barber.user;
 
     // Verificar se o novo username já existe (se foi fornecido)
     if (username && username !== user.username) {
@@ -273,14 +263,16 @@ router.post('/', writeLimiter, checkBarberLimits, /** @param {import('express').
       username,
       password,
       name,
-      role: 'barber'
+      role: 'barber',
+      barbershopId
     });
 
-    // Criar barbeiro com barbershopId (UUID será gerado automaticamente)
+    // Criar barbeiro com userId e barbershopId
     const barber = await Barber.create({
       name,
       whatsapp,
       pix,
+      userId: user.id,
       barbershopId
     });
 
@@ -307,7 +299,6 @@ router.post('/', writeLimiter, checkBarberLimits, /** @param {import('express').
 router.delete('/:id', writeLimiter, /** @param {import('express').Request} req @param {import('express').Response} res */ async (req, res) => {
   try {
     const { id } = req.params;
-    const formattedId = String(id).length === 1 ? `0${id}` : String(id);
 
     // Verificar se o contexto de tenant está disponível
     const barbershopId = req.tenant?.barbershopId;
@@ -318,12 +309,19 @@ router.delete('/:id', writeLimiter, /** @param {import('express').Request} req @
       });
     }
 
-    // Buscar o barbeiro da barbearia específica
+    // Buscar o barbeiro da barbearia específica com o usuário associado
     const barber = await Barber.findOne({
       where: { 
-        id: formattedId,
+        id: id,
         barbershopId 
-      }
+      },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          required: false
+        }
+      ]
     });
     if (!barber) {
       return res.status(404).json({
@@ -334,15 +332,13 @@ router.delete('/:id', writeLimiter, /** @param {import('express').Request} req @
 
     // Excluir todos os agendamentos associados ao barbeiro
     await Appointment.destroy({
-      where: { barberId: formattedId }
+      where: { barberId: id }
     });
 
-    // Buscar e excluir o usuário pelo ID
-    const user = await User.findByPk(formattedId);
-
-    if (user) {
-      await user.destroy();
-      console.log(`Usuário ${user.name} excluído com sucesso`);
+    // Excluir o usuário associado se existir
+    if (barber.user) {
+      await barber.user.destroy();
+      console.log(`Usuário ${barber.user.name} excluído com sucesso`);
     }
 
     // Excluir o barbeiro

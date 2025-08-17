@@ -136,8 +136,8 @@ export const usePlan = (): UsePlanReturn => {
   }, [refreshUsage, refreshPlanInfo]);
 
   // Valores computados
-  const canCreateBarber = usage?.usage?.barbers?.remaining > 0 ?? true;
-  const canCreateAppointment = usage?.usage?.appointments?.remaining > 0 ?? true;
+  const canCreateBarber = (usage?.usage?.barbers?.remaining ?? 1) > 0;
+  const canCreateAppointment = (usage?.usage?.appointments?.remaining ?? 1) > 0;
   const shouldShowUpgradeNotification = usage ? PlanService.shouldShowUpgradeNotification(usage) : false;
   const isNearLimit = usage ? (
     usage?.usage?.barbers?.nearLimit || usage?.usage?.appointments?.nearLimit

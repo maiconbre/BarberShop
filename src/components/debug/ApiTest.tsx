@@ -48,7 +48,7 @@ const ApiTest: React.FC = () => {
 
     try {
       // Test 3: Barbershops endpoint
-      const barbershopsResponse = await fetch(`${CURRENT_ENV.apiUrl}/api/barbershops`);
+      const barbershopsResponse = await fetch(`${CURRENT_ENV.apiUrl}/api/barbershops/check-slug/test`);
       results.barbershops = {
         status: barbershopsResponse.status,
         ok: barbershopsResponse.ok,

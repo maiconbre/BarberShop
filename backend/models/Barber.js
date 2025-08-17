@@ -18,6 +18,14 @@ const Barber = sequelize.define('Barber', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  userId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    }
+  },
   barbershopId: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -36,10 +44,24 @@ const Barber = sequelize.define('Barber', {
     },
     {
       fields: ['barbershopId']
+    },
+    {
+      fields: ['userId']
+    },
+    {
+      fields: ['barbershopId', 'userId']
     }
   ]
 });
 
 // Relação muitos-para-muitos entre Barbeiros e Serviços
+
+// Estabelecer associações
+Barber.associate = (models) => {
+  Barber.belongsTo(models.User, {
+    foreignKey: 'userId',
+    as: 'user'
+  });
+};
 
 module.exports = Barber;

@@ -17,11 +17,27 @@ export class AppointmentRepository implements IAppointmentRepository {
   constructor(private apiService: IApiService) {}
 
   /**
+   * Helper para construir URLs tenant-aware
+   */
+  private getTenantAwareUrl(endpoint: string): string {
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
+    const barbershopId = localStorage.getItem('barbershopId');
+    
+    if (barbershopSlug) {
+      return `/api/app/${barbershopSlug}${endpoint}`;
+    } else if (barbershopId) {
+      return `${endpoint}?barbershopId=${barbershopId}`;
+    }
+    
+    return endpoint;
+  }
+
+  /**
    * Busca agendamento por ID
    */
   async findById(id: string): Promise<Appointment | null> {
     try {
-      const backendAppointment = await this.apiService.get<BackendAppointment>(`/api/appointments/${id}`);
+      const backendAppointment = await this.apiService.get<BackendAppointment>(this.getTenantAwareUrl(`/api/appointments/${id}`));
       return AppointmentAdapter.fromBackend(backendAppointment);
     } catch (error) {
       if (this.isNotFoundError(error)) {
@@ -36,7 +52,10 @@ export class AppointmentRepository implements IAppointmentRepository {
    */
   async findAll(filters?: Record<string, unknown>): Promise<Appointment[]> {
     const queryParams = filters ? this.buildQueryParams(filters) : '';
-    const backendAppointments = await this.apiService.get<BackendAppointment[]>(`/api/appointments${queryParams}`);
+    const baseUrl = this.getTenantAwareUrl('/api/appointments');
+    const fullUrl = queryParams ? `${baseUrl}${queryParams}` : baseUrl;
+    
+    const backendAppointments = await this.apiService.get<BackendAppointment[]>(fullUrl);
     
     if (!Array.isArray(backendAppointments)) {
       return [];
@@ -125,10 +144,10 @@ export class AppointmentRepository implements IAppointmentRepository {
       barberName: appointmentData._backendData?.barberName || '',
       price: appointmentData._backendData?.price || 0,
       wppclient: appointmentData._backendData?.wppclient || '',
-      status: this.mapFrontendStatusToBackend(appointmentData.status) || 'pending'
+      status: appointmentData.status ? this.mapFrontendStatusToBackend(appointmentData.status) : 'pending'
     };
 
-    const newBackendAppointment = await this.apiService.post<BackendAppointment>('/api/appointments', backendData);
+    const newBackendAppointment = await this.apiService.post<BackendAppointment>(this.getTenantAwareUrl('/api/appointments'), backendData);
     return AppointmentAdapter.fromBackend(newBackendAppointment);
   }
 
@@ -174,7 +193,7 @@ export class AppointmentRepository implements IAppointmentRepository {
       backendUpdates.wppclient = updates._backendData.wppclient;
     }
 
-    const updatedBackendAppointment = await this.apiService.patch<BackendAppointment>(`/api/appointments/${id}`, backendUpdates);
+    const updatedBackendAppointment = await this.apiService.patch<BackendAppointment>(this.getTenantAwareUrl(`/api/appointments/${id}`), backendUpdates);
     return AppointmentAdapter.fromBackend(updatedBackendAppointment);
   }
 
@@ -184,7 +203,7 @@ export class AppointmentRepository implements IAppointmentRepository {
    */
   async updateStatus(id: string, status: AppointmentStatus): Promise<Appointment> {
     const backendStatus = this.mapFrontendStatusToBackend(status);
-    const updatedBackendAppointment = await this.apiService.patch<BackendAppointment>(`/api/appointments/${id}`, {
+    const updatedBackendAppointment = await this.apiService.patch<BackendAppointment>(this.getTenantAwareUrl(`/api/appointments/${id}`), {
       status: backendStatus
     });
     return AppointmentAdapter.fromBackend(updatedBackendAppointment);
@@ -195,7 +214,7 @@ export class AppointmentRepository implements IAppointmentRepository {
    * DELETE /api/appointments/:id
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(`/api/appointments/${id}`);
+    await this.apiService.delete(this.getTenantAwareUrl(`/api/appointments/${id}`));
   }
 
   /**
@@ -228,7 +247,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     status?: AppointmentStatus;
   }): Promise<Appointment> {
     const backendData = AppointmentAdapter.createDataToBackend(data);
-    const newBackendAppointment = await this.apiService.post<BackendAppointment>('/api/appointments', backendData);
+    const newBackendAppointment = await this.apiService.post<BackendAppointment>(this.getTenantAwareUrl('/api/appointments'), backendData);
     return AppointmentAdapter.fromBackend(newBackendAppointment);
   }
 
@@ -265,9 +284,14 @@ export class AppointmentRepository implements IAppointmentRepository {
    */
   private buildQueryParams(filters: Record<string, unknown>): string {
     const params = new URLSearchParams();
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
+        // Skip barbershopId if we're using slug-based URLs
+        if (key === 'barbershopId' && barbershopSlug) {
+          return;
+        }
         params.append(key, String(value));
       }
     });

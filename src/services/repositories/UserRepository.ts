@@ -128,9 +128,14 @@ export class UserRepository implements IPaginatedRepository<UserType> {
    */
   private buildQueryParams(filters: Record<string, unknown>): string {
     const params = new URLSearchParams();
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
+        // Skip barbershopId if we're using slug-based URLs
+        if (key === 'barbershopId' && barbershopSlug) {
+          return;
+        }
         params.append(key, String(value));
       }
     });

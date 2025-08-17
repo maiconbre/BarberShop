@@ -77,7 +77,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION check_appointment_conflict(
     p_barber_id UUID,
     p_date DATE,
-    p_time TIME,
+    p_time VARCHAR(255),
     p_appointment_id UUID DEFAULT NULL
 )
 RETURNS BOOLEAN AS $$

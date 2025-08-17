@@ -500,11 +500,12 @@ exports.registerBarbershop = async (req, res) => {
 
     Logger.database('CREATE', 'User', { userId: adminUser.id, username: adminUser.username, role: 'admin' });
 
-    // Criar barbeiro automaticamente com o nome do proprietário
+    // Criar barbeiro automaticamente com o nome do proprietário e vincular ao usuário admin
     const firstBarber = await Barber.create({
       name: ownerName.trim(),
       whatsapp: '', // Será preenchido posteriormente pelo usuário
       pix: '', // Será preenchido posteriormente pelo usuário
+      userId: adminUser.id, // Vincular o barbeiro ao usuário admin
       barbershopId: barbershop.id
     });
 

@@ -74,6 +74,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
   const navItems = [
     { name: 'Início', section: 'hero' },
     { name: 'Serviços', section: 'services' },
+    { name: 'Barbeiros', section: 'barbers' },
     { name: 'Sobre', section: 'about' },
     { name: 'Contato', section: 'contact' }
   ];

@@ -33,12 +33,28 @@ export class BarberRepository implements IRepository<Barber> {
   constructor(private apiService: IApiService) {}
 
   /**
+   * Helper para construir URLs tenant-aware
+   */
+  private getTenantAwareUrl(endpoint: string): string {
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
+    const barbershopId = localStorage.getItem('barbershopId');
+    
+    if (barbershopSlug) {
+      return `/api/app/${barbershopSlug}${endpoint}`;
+    } else if (barbershopId) {
+      return `${endpoint}?barbershopId=${barbershopId}`;
+    }
+    
+    return endpoint;
+  }
+
+  /**
    * Find barber by ID
    * Uses GET /api/barbers/:id (with formatted IDs like "01", "02")
    */
   async findById(id: string): Promise<Barber | null> {
     try {
-      const barber = await this.apiService.get<BackendBarber>(`/api/barbers/${id}`);
+      const barber = await this.apiService.get<BackendBarber>(this.getTenantAwareUrl(`/api/barbers/${id}`));
       return this.adaptFromBackend(barber);
     } catch (error) {
       if (this.isNotFoundError(error)) {
@@ -54,7 +70,9 @@ export class BarberRepository implements IRepository<Barber> {
    */
   async findAll(filters?: Record<string, unknown>): Promise<Barber[]> {
     const queryParams = this.buildQueryParams(filters);
-    const barbers = await this.apiService.get<BackendBarber[]>(`/api/barbers${queryParams}`);
+    const baseUrl = this.getTenantAwareUrl('/api/barbers');
+    const fullUrl = queryParams ? `${baseUrl}${queryParams}` : baseUrl;
+    const barbers = await this.apiService.get<BackendBarber[]>(fullUrl);
     const adaptedBarbers = Array.isArray(barbers) ? barbers.map(b => this.adaptFromBackend(b)) : [];
     
     // Apply frontend filters
@@ -106,7 +124,7 @@ export class BarberRepository implements IRepository<Barber> {
    */
   async create(barberData: Omit<Barber, 'id' | 'createdAt' | 'updatedAt'>): Promise<Barber> {
     const backendData = this.adaptToBackend(barberData);
-    const newBarber = await this.apiService.post<BackendBarber>('/api/barbers', backendData);
+    const newBarber = await this.apiService.post<BackendBarber>(this.getTenantAwareUrl('/api/barbers'), backendData);
     return this.adaptFromBackend(newBarber);
   }
 
@@ -117,7 +135,7 @@ export class BarberRepository implements IRepository<Barber> {
    */
   async update(id: string, updates: Partial<Barber>): Promise<Barber> {
     const backendUpdates = this.adaptPartialToBackend(updates);
-    const updatedBarber = await this.apiService.patch<BackendBarber>(`/api/barbers/${id}`, backendUpdates);
+    const updatedBarber = await this.apiService.patch<BackendBarber>(this.getTenantAwareUrl(`/api/barbers/${id}`), backendUpdates);
     return this.adaptFromBackend(updatedBarber);
   }
 
@@ -127,7 +145,7 @@ export class BarberRepository implements IRepository<Barber> {
    * Requires authentication
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(`/api/barbers/${id}`);
+    await this.apiService.delete(this.getTenantAwareUrl(`/api/barbers/${id}`));
   }
 
   /**
@@ -203,12 +221,17 @@ export class BarberRepository implements IRepository<Barber> {
     if (!filters) return '';
     
     const params = new URLSearchParams();
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
     
     // Only include backend-supported filters
     const backendFilters = ['name', 'whatsapp'];
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && backendFilters.includes(key)) {
+        // Skip barbershopId if we're using slug-based URLs
+        if (key === 'barbershopId' && barbershopSlug) {
+          return;
+        }
         params.append(key, String(value));
       }
     });

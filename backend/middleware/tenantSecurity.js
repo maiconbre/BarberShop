@@ -117,7 +117,7 @@ const determineSeverity = (eventType, details) => {
  */
 exports.blockQueriesWithoutTenant = (req, res, next) => {
   // Skip para rotas que não requerem tenant (auth, registration, etc.)
-  const publicRoutes = ['/api/auth', '/api/barbershops/register', '/api/barbershops/check-slug'];
+  const publicRoutes = ['/api/auth', '/api/barbershops/register', '/api/barbershops/check-slug', '/api/barbershops/slug'];
   const isPublicRoute = publicRoutes.some(route => req.path.startsWith(route));
   
   if (isPublicRoute) {

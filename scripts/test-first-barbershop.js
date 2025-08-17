@@ -9,7 +9,7 @@ const axios = require('axios');
 
 // Configuration
 const config = {
-  backendUrl: process.env.BACKEND_URL || 'http://localhost:6543',
+  backendUrl: process.env.BACKEND_URL || 'http://localhost:8000',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
 

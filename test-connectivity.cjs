@@ -4,8 +4,8 @@
 
 const axios = require('axios');
 
-const FRONTEND_API_URL = 'http://localhost:6543';
-const BACKEND_URL = 'http://localhost:6543';
+const FRONTEND_API_URL = 'http://localhost:8000';
+const BACKEND_URL = 'http://localhost:8000';
 
 async function testConnectivity() {
   console.log('🔗 Testando conectividade Frontend ↔ Backend\n');
@@ -15,7 +15,7 @@ async function testConnectivity() {
   try {
     const response = await axios.get(`${BACKEND_URL}/`, { timeout: 5000 });
     if (response.status === 200) {
-      console.log('   ✅ Backend respondendo na porta 6543');
+      console.log('   ✅ Backend respondendo na porta 8000');
       console.log(`   📝 Mensagem: ${response.data.message}`);
     }
   } catch (error) {
@@ -81,8 +81,8 @@ async function testConnectivity() {
   console.log(`   🖥️  Backend: ${BACKEND_URL}`);
   console.log(`   🌐 Frontend deve usar: ${FRONTEND_API_URL}`);
   console.log('\n📝 Para o frontend funcionar:');
-  console.log('   1. Backend deve estar rodando em http://localhost:6543');
-  console.log('   2. Frontend deve ter VITE_API_URL=http://localhost:6543');
+  console.log('   1. Backend deve estar rodando em http://localhost:8000');
+    console.log('   2. Frontend deve ter VITE_API_URL=http://localhost:8000');
   console.log('   3. Ambos devem estar rodando simultaneamente');
   
   console.log('\n🚀 Comandos para iniciar:');

@@ -11,11 +11,27 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   constructor(private apiService: IApiService) {}
 
   /**
+   * Helper para construir URLs tenant-aware
+   */
+  private getTenantAwareUrl(endpoint: string): string {
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
+    const barbershopId = localStorage.getItem('barbershopId');
+    
+    if (barbershopSlug) {
+      return `/api/app/${barbershopSlug}${endpoint}`;
+    } else if (barbershopId) {
+      return `${endpoint}?barbershopId=${barbershopId}`;
+    }
+    
+    return endpoint;
+  }
+
+  /**
    * Busca serviço por ID
    */
   async findById(id: string): Promise<ServiceType | null> {
     try {
-      const backendService = await this.apiService.get<BackendService>(`/api/services/${id}`);
+      const backendService = await this.apiService.get<BackendService>(this.getTenantAwareUrl(`/api/services/${id}`));
       return backendService ? this.adaptBackendServiceToFrontend(backendService) : null;
     } catch (error) {
       if (this.isNotFoundError(error)) {
@@ -30,7 +46,9 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async findAll(filters?: Record<string, unknown>): Promise<ServiceType[]> {
     const queryParams = filters ? this.buildQueryParams(filters) : '';
-    const backendServices = await this.apiService.get<BackendService[]>(`/api/services${queryParams}`);
+    const baseUrl = this.getTenantAwareUrl('/api/services');
+    const fullUrl = queryParams ? `${baseUrl}${queryParams}` : baseUrl;
+    const backendServices = await this.apiService.get<BackendService[]>(fullUrl);
     const services = Array.isArray(backendServices) ? backendServices : [];
     
     // Convert backend services to frontend format
@@ -76,7 +94,8 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       params.append('fuzzy', String(options.fuzzy));
     }
     
-    const services = await this.apiService.get<ServiceType[]>(`/api/services/search?${params.toString()}`);
+    const baseUrl = this.getTenantAwareUrl('/api/services/search');
+    const services = await this.apiService.get<ServiceType[]>(`${baseUrl}?${params.toString()}`);
     return Array.isArray(services) ? services : [];
   }
 
@@ -93,7 +112,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
     // Valida apenas os campos suportados pelo backend
     const validatedData = BackendServiceFormDataSchema.parse(backendData);
     
-    const backendService = await this.apiService.post<BackendService>('/api/services', validatedData);
+    const backendService = await this.apiService.post<BackendService>(this.getTenantAwareUrl('/api/services'), validatedData);
     return this.adaptBackendServiceToFrontend(backendService);
   }
 
@@ -111,7 +130,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       backendUpdates.price = updates.price;
     }
     
-    const backendService = await this.apiService.patch<BackendService>(`/api/services/${id}`, backendUpdates);
+    const backendService = await this.apiService.patch<BackendService>(this.getTenantAwareUrl(`/api/services/${id}`), backendUpdates);
     return this.adaptBackendServiceToFrontend(backendService);
   }
 
@@ -119,7 +138,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    * Remove um serviço
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(`/api/services/${id}`);
+    await this.apiService.delete(this.getTenantAwareUrl(`/api/services/${id}`));
   }
 
   /**
@@ -127,7 +146,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async exists(id: string): Promise<boolean> {
     try {
-      await this.apiService.get(`/api/services/${id}/exists`);
+      await this.apiService.get(this.getTenantAwareUrl(`/api/services/${id}/exists`));
       return true;
     } catch (error) {
       if (this.isNotFoundError(error)) {
@@ -141,7 +160,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    * Ativa/desativa serviço
    */
   async toggleActive(id: string, isActive: boolean): Promise<ServiceType> {
-    const updatedService = await this.apiService.patch<ServiceType>(`/api/services/${id}`, { isActive });
+    const updatedService = await this.apiService.patch<ServiceType>(this.getTenantAwareUrl(`/api/services/${id}`), { isActive });
     return updatedService;
   }
 
@@ -149,7 +168,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    * Obtém estatísticas dos serviços
    */
   async getStatistics(): Promise<ServiceStatistics> {
-    const stats = await this.apiService.get<ServiceStatistics>('/api/services/statistics');
+    const stats = await this.apiService.get<ServiceStatistics>(this.getTenantAwareUrl('/api/services/statistics'));
     return stats;
   }
 
@@ -157,7 +176,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    * Obtém serviços mais populares
    */
   async getMostPopular(limit: number = 10): Promise<ServiceType[]> {
-    const services = await this.apiService.get<ServiceType[]>(`/api/services/popular?limit=${limit}`);
+    const services = await this.apiService.get<ServiceType[]>(this.getTenantAwareUrl(`/api/services/popular?limit=${limit}`));
     return Array.isArray(services) ? services : [];
   }
 
@@ -201,7 +220,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async findByBarber(barberId: string): Promise<ServiceType[]> {
     try {
-      const backendServices = await this.apiService.get<BackendService[]>(`/api/services/barber/${barberId}`);
+      const backendServices = await this.apiService.get<BackendService[]>(this.getTenantAwareUrl(`/api/services/barber/${barberId}`));
       const services = Array.isArray(backendServices) ? backendServices : [];
       
       // Convert backend services to frontend format
@@ -220,7 +239,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async associateBarbers(serviceId: string, barberIds: string[]): Promise<void> {
     try {
-      await this.apiService.post(`/api/services/${serviceId}/barbers`, {
+      await this.apiService.post(this.getTenantAwareUrl(`/api/services/${serviceId}/barbers`), {
         barberIds: barberIds
       });
     } catch (error) {
@@ -262,9 +281,14 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   private buildQueryParams(filters: Record<string, unknown>): string {
     const params = new URLSearchParams();
+    const barbershopSlug = localStorage.getItem('barbershopSlug');
     
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
+        // Skip barbershopId if we're using slug-based URLs
+        if (key === 'barbershopId' && barbershopSlug) {
+          return;
+        }
         params.append(key, String(value));
       }
     });

@@ -62,33 +62,37 @@ VALUES
 
 -- 4. Inserir barbeiros
 -- FREE: apenas 1 barbeiro (limitação do plano)
-INSERT INTO "Barbers" ("name","whatsapp","pix","barbershopId")
+INSERT INTO "Barbers" ("name","whatsapp","pix","userId","barbershopId")
 VALUES (
     'Carlos Free',
     '11999990001',
     'carlos@free.com',
+    (SELECT id FROM "Users" WHERE username = 'admin_free'),
     (SELECT id FROM "Barbershops" WHERE slug = 'barbearia-free')
 );
 
 -- PRO: até 3 barbeiros
-INSERT INTO "Barbers" ("name","whatsapp","pix","barbershopId")
+INSERT INTO "Barbers" ("name","whatsapp","pix","userId","barbershopId")
 VALUES 
 (
     'João Pro',
     '11999990002',
     'joao@pro.com',
+    (SELECT id FROM "Users" WHERE username = 'admin_pro'),
     (SELECT id FROM "Barbershops" WHERE slug = 'barbearia-pro')
 ),
 (
     'Pedro Pro',
     '11999990003',
     'pedro@pro.com',
+    (SELECT id FROM "Users" WHERE username = 'admin_pro'),
     (SELECT id FROM "Barbershops" WHERE slug = 'barbearia-pro')
 ),
 (
     'Lucas Pro',
     '11999990004',
     'lucas@pro.com',
+    (SELECT id FROM "Users" WHERE username = 'admin_pro'),
     (SELECT id FROM "Barbershops" WHERE slug = 'barbearia-pro')
 );
 
@@ -119,20 +123,20 @@ INSERT INTO "Appointments" (
 VALUES 
 -- Agendamentos Free
 (
-    'Cliente Teste Free', 'Corte Simples', CURRENT_DATE + INTERVAL '1 day', '10:00:00', 'pending',
+    'Cliente Teste Free', 'Corte Simples', CURRENT_DATE + INTERVAL '1 day', '10:00', 'pending',
     (SELECT id FROM "Barbers" WHERE name = 'Carlos Free'),
     'Carlos Free', 30.00, '11999999001',
     (SELECT id FROM "Barbershops" WHERE slug = 'barbearia-free')
 ),
 -- Agendamentos Pro
 (
-    'Cliente Teste Pro', 'Corte Degradê', CURRENT_DATE + INTERVAL '2 days', '14:00:00', 'confirmed',
+    'Cliente Teste Pro', 'Corte Degradê', CURRENT_DATE + INTERVAL '2 days', '14:00', 'confirmed',
     (SELECT id FROM "Barbers" WHERE name = 'João Pro'),
     'João Pro', 50.00, '11999999002',
     (SELECT id FROM "Barbershops" WHERE slug = 'barbearia-pro')
 ),
 (
-    'Cliente VIP Pro', 'Corte + Barba', CURRENT_DATE + INTERVAL '3 days', '16:00:00', 'pending',
+    'Cliente VIP Pro', 'Corte + Barba', CURRENT_DATE + INTERVAL '3 days', '16:00', 'pending',
     (SELECT id FROM "Barbers" WHERE name = 'Pedro Pro'),
     'Pedro Pro', 70.00, '11999999003',
     (SELECT id FROM "Barbershops" WHERE slug = 'barbearia-pro')

@@ -7,10 +7,11 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import BarbershopNavbar from '../components/ui/BarbershopNavbar';
 import ServicesDebug from '../components/debug/ServicesDebug';
 import ApiTest from '../components/debug/ApiTest';
-import DirectApiTest from '../components/debug/DirectApiTest';
+
 
 // Componentes com lazy loading
 const Services = lazy(() => import('../components/feature/Services'));
+const Barbers = lazy(() => import('../components/feature/Barbers'));
 const About = lazy(() => import('../components/feature/About'));
 const BarbershopFooter = lazy(() => import('../components/ui/BarbershopFooter'));
 const BookingModal = lazy(() => import('../components/feature/BookingModal'));
@@ -141,7 +142,6 @@ const BarbershopHomePage: React.FC = () => {
       {/* Debug components - temporary */}
       <ServicesDebug />
       <ApiTest />
-      <DirectApiTest />
       
       {/* Navbar específica da barbearia */}
       <BarbershopNavbar onBookingClick={handleHeroBookingClick} />
@@ -159,6 +159,10 @@ const BarbershopHomePage: React.FC = () => {
             onScheduleMultiple={handleOpenBookingModalMultiple}
             isShowcase={true}
           />
+        </section>
+
+        <section id="barbers">
+          <Barbers isShowcase={true} />
         </section>
 
         <section id="about">

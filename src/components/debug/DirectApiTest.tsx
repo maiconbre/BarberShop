@@ -23,7 +23,7 @@ const DirectApiTest: React.FC = () => {
 
     // Test 1: Health check
     try {
-      const response = await fetch('http://localhost:6543/', {
+      const response = await fetch('http://localhost:8000/', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ const DirectApiTest: React.FC = () => {
 
     // Test 2: Services endpoint
     try {
-      const response = await fetch('http://localhost:6543/api/services', {
+      const response = await fetch('http://localhost:8000/api/services', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ const DirectApiTest: React.FC = () => {
 
     // Test 3: Barbershops endpoint
     try {
-      const response = await fetch('http://localhost:6543/api/barbershops', {
+      const response = await fetch('http://localhost:8000/api/barbershops/check-slug/test', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

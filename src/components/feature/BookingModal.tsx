@@ -11,6 +11,7 @@ import { useServices } from '../../hooks/useServices';
 import { useTenant } from '../../contexts/TenantContext';
 import { CURRENT_ENV } from '../../config/environmentConfig';
 import { safeFixed } from '../../utils/numberUtils';
+import PublicAppointmentService from '../../services/PublicAppointmentService';
 
 // Importando constantes e funções do serviço de agendamentos
 import {
@@ -580,20 +581,42 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         logger.componentError('Erro ao atualizar localStorage:', err);
       }
 
-      // Usar o hook multi-tenant para criar agendamento
-      const appointmentData = {
-        clientName: formData.name,
-        wppclient: formData.whatsapp,
-        serviceName: formData.services.join(', '),
-        date: new Date(formData.date),
-        time: formData.time,
-        barberId: formData.barberId,
-        barberName: formData.barber,
-        price: calculateTotalPrice(),
-        status: 'pending' as const
-      };
-
-      const result = await createWithBackendData(appointmentData);
+      // Verificar se estamos em contexto público (sem autenticação)
+      const isPublicContext = !localStorage.getItem('token') || !isValidTenant;
+      const barbershopSlug = localStorage.getItem('barbershopSlug') || window.location.pathname.split('/')[1];
+      
+      let result;
+      
+      if (isPublicContext && barbershopSlug) {
+        // Usar serviço público para agendamentos
+        const publicAppointmentData = {
+          clientName: formData.name,
+          wppclient: formData.whatsapp,
+          serviceName: formData.services.join(', '),
+          date: formData.date, // Manter como string no formato YYYY-MM-DD
+          time: formData.time,
+          barberId: formData.barberId,
+          barberName: formData.barber,
+          price: calculateTotalPrice()
+        };
+        
+        result = await PublicAppointmentService.createAppointment(barbershopSlug, publicAppointmentData);
+      } else {
+        // Usar o hook multi-tenant para criar agendamento (contexto autenticado)
+        const appointmentData = {
+          clientName: formData.name,
+          wppclient: formData.whatsapp,
+          serviceName: formData.services.join(', '),
+          date: new Date(formData.date),
+          time: formData.time,
+          barberId: formData.barberId,
+          barberName: formData.barber,
+          price: calculateTotalPrice(),
+          status: 'pending' as const
+        };
+        
+        result = await createWithBackendData(appointmentData);
+      }
 
       // Verificar se a resposta é válida
       if (!result || ('success' in result && result.success === false)) {
