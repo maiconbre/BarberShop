@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TenantProvider } from './contexts/TenantContext';
-import { getEnvironmentConfig, validateProductionConfig } from './config/production';
 import Navbar from './components/ui/Navbar';
 import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
@@ -15,6 +14,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BarbershopRegistrationPage from './pages/BarbershopRegistrationPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import MagicLinkPage from './pages/MagicLinkPage';
 import DashboardPageNew from './pages/DashboardPageNew';
 import AgendaPage from './pages/AgendaPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -24,7 +24,7 @@ import ServiceManagementPage from './pages/ServiceManagementPage';
 import UpgradePage from './pages/UpgradePage';
 import BookingModal from './components/feature/BookingModal';
 import ProtectedRoute from './components/ui/ProtectedRoute';
-import RequestDebounceMonitor from './components/debug/RequestDebounceMonitor';
+import RequestDebounceMonitor from './components/ui/RequestDebounceMonitor';
 
 
 const AppContent = () => {
@@ -77,6 +77,7 @@ const AppContent = () => {
               <Route path="/contacts" element={<ContactPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/verify-email" element={<EmailVerificationPage />} />
+              <Route path="/register" element={<MagicLinkPage />} />
               <Route path="/register-barbershop" element={<BarbershopRegistrationPage />} />
               
               {/* Barbershop isolated home pages - deve vir antes das rotas multi-tenant */}
@@ -102,22 +103,10 @@ const AppContent = () => {
 
 function App() {
   useEffect(() => {
-    // Aplicar configurações de produção
-    const config = getEnvironmentConfig();
-    
-    // Validar configuração em produção
-    if (import.meta.env.PROD) {
-      const validation = validateProductionConfig();
-      if (!validation.valid) {
-        console.error('Production configuration errors:', validation.errors);
-      }
-    }
-    
     // Log de inicialização (apenas em desenvolvimento)
     if (import.meta.env.DEV) {
       console.log('🚀 BarberShop SaaS initialized');
       console.log('Environment:', import.meta.env.MODE);
-      console.log('API URL:', config.api.baseUrl);
     }
   }, []);
 

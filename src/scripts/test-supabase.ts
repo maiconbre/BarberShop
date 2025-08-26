@@ -4,7 +4,7 @@
  * Execute com: npx ts-node src/scripts/test-supabase.ts
  */
 
-import supabase from '../services/supabaseClient';
+import { supabase } from '../config/supabaseConfig';
 
 async function testSupabaseConnection() {
   console.log('Testando conexão com o Supabase...');

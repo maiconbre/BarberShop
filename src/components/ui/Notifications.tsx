@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, MessageCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { cacheService } from '../../services/CacheService';
+import { useTenant } from '../../contexts/TenantContext';
 import { requestDebouncer } from '../../utils/requestDebouncer';
 import ApiService from '../../services/ApiService';
 import { safeFixed } from '../../utils/numberUtils';
+import { useComments } from '../../hooks/useComments';
+import { useAppointments } from '../../hooks/useAppointments';
+import { useTenantCache } from '../../hooks/useTenantCache';
 
 interface Appointment {
   id: string;
@@ -57,6 +60,11 @@ export const useNotifications = () => {
   const [rateLimitRetryCount, setRateLimitRetryCount] = useState<number>(0);
 
   const { getCurrentUser } = useAuth();
+  const { isValidTenant } = useTenant();
+  const { comments, loadComments } = useComments();
+  const { appointments, loadAppointments: loadTenantAppointments } = useAppointments();
+  const tenantCache = useTenantCache();
+  const { getOrFetch } = tenantCache;
 
   useEffect(() => {
     try {
@@ -81,9 +89,14 @@ export const useNotifications = () => {
     const requestKey = 'loadPendingComments';
 
     return requestDebouncer.execute(requestKey, async () => {
+      if (!isValidTenant) {
+        console.warn('Notifications: Tenant inválido, não carregando comentários');
+        return [];
+      }
+
       // Verificar cache local primeiro - cache mais longo para reduzir chamadas
       const cacheKey = 'pendingComments';
-      const cachedData = cacheService.get(cacheKey);
+      const cachedData = tenantCache.get(cacheKey);
 
       if (cachedData && typeof cachedData === 'object' && 'data' in cachedData) {
         console.log('Usando comentários pendentes do cache');
@@ -92,60 +105,23 @@ export const useNotifications = () => {
       }
 
       try {
-// Removed setIsLoading since it's not defined in the state
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        };
+        // Usar hook tenant-aware para carregar comentários
+        await loadComments();
+        const pendingComments = comments?.filter(comment => comment.status === 'pending') || [];
+        setPendingComments(pendingComments);
+        setHasError(false);
+        setUsingExpiredCache(false);
+        setRateLimitRetryCount(0);
 
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/comments?status=pending`,
-          {
-            method: 'GET',
-            headers,
-            mode: 'cors'
-          }
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            const comments = result.data || [];
-            setPendingComments(comments);
-            setHasError(false);
-            setUsingExpiredCache(false);
-            setRateLimitRetryCount(0);
-
-            // Cache por 10 minutos para reduzir chamadas
-            cacheService.set(cacheKey, { data: comments }, { ttl: 600 });
-            return comments;
-          }
-        } else {
-          console.warn(`Erro ao buscar comentários: ${response.status} - usando cache se disponível`);
-          setHasError(true);
-          
-          // Usar cache como fallback
-          const fallbackData = cacheService.get(cacheKey);
-          if (fallbackData && typeof fallbackData === 'object' && 'data' in fallbackData) {
-            console.log('Usando cache como fallback');
-            setPendingComments(fallbackData.data as Comment[]);
-            setUsingExpiredCache(true);
-            return fallbackData.data;
-          }
-          
-          throw new Error(`HTTP ${response.status}`);
-        }
+        // Cache por 10 minutos para reduzir chamadas
+        tenantCache.set(cacheKey, { data: comments }, { ttl: 600 });
+        return comments;
       } catch (error) {
         console.error('Erro ao buscar comentários pendentes:', error);
         setHasError(true);
         
         // Tentar usar cache expirado como último recurso
-        const fallbackData = cacheService.get(cacheKey);
+        const fallbackData = tenantCache.get(cacheKey);
         if (fallbackData && typeof fallbackData === 'object' && 'data' in fallbackData) {
           console.log('Usando cache expirado como último recurso');
           setPendingComments(fallbackData.data as Comment[]);
@@ -171,8 +147,12 @@ export const useNotifications = () => {
     const requestKey = `loadAppointments_${forceRefresh}`;
 
     return requestDebouncer.execute(requestKey, async () => {
+      if (!isValidTenant) {
+        console.warn('Notifications: Tenant inválido, não carregando agendamentos');
+        return [];
+      }
+
       try {
-// Removed setIsLoading since it's not defined in state
         if (forceRefresh) {
           setIsRefreshing(true);
           setRefreshCompleted(false);
@@ -182,25 +162,13 @@ export const useNotifications = () => {
         // Registrar o momento da tentativa de busca
         const fetchStartTime = Date.now();
 
-        return await cacheService.getOrFetch('appointments', async () => {
-          const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
-          };
-
-          const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/api/appointments`,
-            { method: 'GET', headers, mode: 'cors' }
-          );
-
-          if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-          const result = await response.json();
-          if (!result?.success) throw new Error('Dados inválidos');
+        return await getOrFetch('appointments', async () => {
+          // Usar hook tenant-aware para carregar agendamentos
+          await loadTenantAppointments();
+          const appointmentsData = appointments || [];
 
           const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
-          let formattedAppointments = result.data.map((app: RawAppointmentData) => ({
+          let formattedAppointments = appointmentsData.map((app) => ({
             ...app,
             service: app.serviceName,
             viewed: viewedAppointmentIds.includes(app.id)
@@ -263,7 +231,7 @@ export const useNotifications = () => {
 // Removed setIsLoading call since it's not defined in state
       }
     });
-  }, [getCurrentUser]);
+  }, [getCurrentUser, isValidTenant, loadTenantAppointments, appointments]);
 
   const handleCommentAction = async (commentId: string, action: 'approve' | 'reject') => {
     if (!commentId) return;
@@ -376,7 +344,7 @@ export const useNotifications = () => {
       clearTimeout(initialFetchTimeout);
       if (interval) clearInterval(interval);
     };
-  }, [getCurrentUser, loadPendingComments, loadAppointments, lastFetchTime, pendingComments.length, newAppointments.length, setHasError]);
+  }, [getCurrentUser, loadPendingComments, loadAppointments, lastFetchTime, setHasError]);
 
   const toggleNotificationDropdown = () => {
     setIsNotificationDropdownOpen(!isNotificationDropdownOpen);

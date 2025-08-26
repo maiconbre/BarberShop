@@ -1,240 +1,70 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { authenticateUser } from '../services/auth';
-import { cacheService } from '../services/CacheService';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useAuth as useSupabaseAuth, type UseAuthReturn } from '../hooks/useAuth';
+import { authService, type AuthUser } from '../services/supabaseAuth';
 
-interface AuthContextType {
-  isAuthenticated: boolean;
-  login: (username: string, password: string, rememberMe: boolean) => Promise<boolean>;
-  logout: () => void;
-  getCurrentUser: () => unknown | null;
+interface AuthContextType extends UseAuthReturn {
+  initialized: boolean;
 }
 
 interface AuthProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-const SESSION_EXPIRY = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
-
-export const AuthProvider = React.memo<AuthProviderProps>(({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const isInitialized = useRef(false);
-
-  const checkSessionValidity = () => {
-    console.log('AuthContext - Validação inicial');
-    
-    // Verificar dados básicos de autenticação
-    const authToken = localStorage.getItem('authToken');
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    const expiryTime = localStorage.getItem('tokenExpiration');
-    
-    console.log('AuthContext - Valores do localStorage:', {
-      authToken: authToken ? 'presente' : 'ausente',
-      token: token ? 'presente' : 'ausente',
-      user: user ? 'presente' : 'ausente',
-      tokenExpiration: expiryTime ? 'presente' : 'ausente'
-    });
-    
-    const hasToken = !!(authToken || token);
-    const hasUser = !!user;
-    const hasExpiry = !!expiryTime;
-    
-    console.log('AuthContext - Verificando sessão:', {
-      hasToken,
-      hasUser,
-      hasExpiry
-    });
-    
-    // Se não há dados básicos, retornar false
-    if (!hasToken || !hasUser) {
-      console.log('AuthContext - Dados básicos ausentes');
-      return false;
-    }
-
-    // Se não há tempo de expiração, criar um novo (12 horas a partir de agora)
-    if (!hasExpiry) {
-      console.log('AuthContext - Criando nova expiração de 12 horas');
-      updateSessionExpiry();
-      return true;
-    }
-
-    // Verificar se a sessão expirou
-    const currentTime = Date.now();
-    const expirationTime = parseInt(expiryTime);
-    const isValid = currentTime < expirationTime;
-    
-    console.log('AuthContext - Verificando expiração:', {
-      now: new Date(currentTime).toLocaleString(),
-      expiry: new Date(expirationTime).toLocaleString(),
-      isExpired: !isValid
-    });
-    
-    if (!isValid) {
-      console.log('AuthContext - Sessão expirada');
-      return false;
-    }
-    
-    console.log('AuthContext - Sessão válida');
-    return true;
-  };
-
-  const updateSessionExpiry = () => {
-    const expiryTime = Date.now() + SESSION_EXPIRY;
-    localStorage.setItem('tokenExpiration', expiryTime.toString());
-    console.log('AuthContext - Sessão atualizada para 12 horas');
-  };
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const auth = useSupabaseAuth();
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    const validateSession = () => {
-      const isValid = checkSessionValidity();
-      
-      if (isValid) {
-        if (!isAuthenticated) {
-          console.log('AuthContext - Sessão válida, autenticando usuário');
-          setIsAuthenticated(true);
+    // Aguardar a inicialização da autenticação
+    const initializeAuth = async () => {
+      try {
+        // Aguardar um pouco para garantir que o Supabase foi inicializado
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Verificar se há uma sessão ativa
+        const currentUser = authService.getCurrentUser();
+        
+        if (currentUser) {
+          console.log('User authenticated:', currentUser.email);
+        } else {
+          console.log('No authenticated user found');
         }
-      } else {
-        if (isAuthenticated) {
-          console.log('AuthContext - Sessão inválida, fazendo logout');
-          setIsAuthenticated(false);
-          // Limpar dados de autenticação
-          const items = ['token', 'authToken', 'currentBarberId', 'user', 'tokenExpiration', 'rememberMe'];
-          items.forEach(item => localStorage.removeItem(item));
-        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setInitialized(true);
       }
     };
 
-    // Validação inicial apenas uma vez
-    if (!isInitialized.current) {
-      console.log('AuthContext - Validação inicial');
-      validateSession();
-      isInitialized.current = true;
-    }
-    
-    // Verificar a cada 30 minutos (menos agressivo)
-    const interval = setInterval(validateSession, 30 * 60 * 1000);
+    initializeAuth();
+  }, []);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isAuthenticated, checkSessionValidity]);
+  // Aguardar a inicialização antes de renderizar
+  if (!initialized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
-  const clearUserSpecificCache = async (userId?: string) => {
-    try {
-      // Limpar cache específico do usuário anterior
-      if (userId) {
-        cacheService.remove(`schedule_appointments_${userId}`);
-        cacheService.remove(`/api/appointments_user_${userId}`);
-      }
-      
-      // Limpar outros caches relacionados a agendamentos
-      cacheService.remove('/api/appointments');
-      cacheService.remove('appointments');
-      
-      // Limpar localStorage de agendamentos
-      localStorage.removeItem('appointments');
-      
-      // Limpar caches específicos de agendamentos
-      // Como não temos getAllKeys, vamos limpar caches conhecidos
-      const commonCacheKeys = [
-        'schedule_appointments_',
-        '/api/appointments',
-        'barbers',
-        'services'
-      ];
-      
-      for (const key of commonCacheKeys) {
-        cacheService.remove(key);
-      }
-      
-      console.log('Cache específico do usuário limpo com sucesso');
-    } catch (error) {
-      console.error('Erro ao limpar cache específico do usuário:', error);
-    }
+  const contextValue: AuthContextType = {
+    ...auth,
+    initialized
   };
-
-  const login = async (username: string, password: string) => {
-    try {
-      console.log('AuthContext - Iniciando login:', { username });
-      
-      // Obter usuário atual antes do login para limpar seu cache
-      const currentUser = getCurrentUser();
-      const previousUserId = currentUser?.id;
-      
-      const user = await authenticateUser(username, password);
-      
-      console.log('AuthContext - Authenticated user:', { 
-        userId: (user as { id: string | number }).id, 
-        role: (user as { role: string }).role 
-      });
-      
-      // Limpar cache do usuário anterior se for diferente
-      if (previousUserId && previousUserId !== (user as { id: string | number }).id) {
-        await clearUserSpecificCache(previousUserId.toString());
-      }
-      
-      // Armazenar dados do usuário no localStorage
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Token já é armazenado no localStorage pelo authenticateUser
-      // Definir expiração de 12 horas
-      updateSessionExpiry();
-      
-      if ((user as { role: string }).role === 'barber') {
-        localStorage.setItem('currentBarberId', ((user as { id: string | number }).id).toString());
-      }
-
-      setIsAuthenticated(true);
-      console.log('AuthContext - Login concluído com sucesso');
-      return true;
-    } catch (error) {
-      console.error('AuthContext - Erro no login:', error);
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    // Obter usuário atual antes de limpar para poder limpar seu cache
-    const currentUser = getCurrentUser();
-    const currentUserId = currentUser?.id;
-    
-    setIsAuthenticated(false);
-    
-    // Limpar dados de autenticação do localStorage
-    const items = ['token', 'authToken', 'currentBarberId', 'user', 'tokenExpiration'];
-    items.forEach(item => localStorage.removeItem(item));
-    
-    // Limpar cache específico do usuário
-    if (currentUserId) {
-      await clearUserSpecificCache(currentUserId.toString());
-    }
-    
-    console.log('AuthContext - Logout realizado com sucesso');
-  };
-
-  const getCurrentUser = () => {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  };
-
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, getCurrentUser }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
-});
-
-AuthProvider.displayName = 'AuthProvider';
-
-export default AuthContext;
+};

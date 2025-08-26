@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  useUserRepository, 
-  useServiceRepository, 
-  useAppointmentRepository, 
-  useBarberRepository, 
-  useCommentRepository 
-} from '@/services/ServiceFactory';
+  useTenantUserRepository,
+  useTenantServiceRepository,
+  useTenantAppointmentRepository,
+  useTenantBarberRepository,
+  useTenantCommentRepository
+} from '@/hooks/useTenantRepositories';
+import { useTenant } from '@/contexts/TenantContext';
 import type { User, Service, Appointment, Barber, PublicComment } from '@/types';
 
 /**
@@ -13,12 +14,13 @@ import type { User, Service, Appointment, Barber, PublicComment } from '@/types'
  * Este componente demonstra o uso de todos os repositórios disponíveis
  */
 export const RepositoryUsageExample: React.FC = () => {
-  // Hooks dos repositórios
-  const userRepository = useUserRepository();
-  const serviceRepository = useServiceRepository();
-  const appointmentRepository = useAppointmentRepository();
-  const barberRepository = useBarberRepository();
-  const commentRepository = useCommentRepository();
+  // Hooks dos repositórios tenant-aware
+  const userRepository = useTenantUserRepository();
+  const serviceRepository = useTenantServiceRepository();
+  const appointmentRepository = useTenantAppointmentRepository();
+  const barberRepository = useTenantBarberRepository();
+  const commentRepository = useTenantCommentRepository();
+  const { isValidTenant } = useTenant();
 
   // Estados para demonstrar o uso
   const [users, setUsers] = useState<User[]>([]);
@@ -31,6 +33,11 @@ export const RepositoryUsageExample: React.FC = () => {
 
   // Função para carregar todos os dados
   const loadAllData = async () => {
+    if (!isValidTenant || !userRepository || !serviceRepository || !appointmentRepository || !barberRepository || !commentRepository) {
+      setError('Contexto de tenant inválido ou repositórios não disponíveis');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -98,7 +105,7 @@ export const RepositoryUsageExample: React.FC = () => {
   // Carrega dados na inicialização
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, [loadAllData]);
 
   if (loading) {
     return (

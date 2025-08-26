@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Star, Clock, Award } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
-import { BarberRepository } from '../../services/repositories/BarberRepository';
+import { useBarbers } from '../../hooks/useBarbers';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface Barber {
@@ -22,38 +22,26 @@ interface BarbersProps {
 }
 
 const Barbers: React.FC<BarbersProps> = ({ isShowcase = false }) => {
-  const [barbers, setBarbers] = useState<Barber[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { barbershopData } = useTenant();
+  const { isValidTenant } = useTenant();
+  const { barbers, loadBarbers, loading, error } = useBarbers();
 
   useEffect(() => {
-    const loadBarbers = async () => {
-      if (!barbershopData?.id) {
-        setLoading(false);
+    const loadBarbersData = async () => {
+      if (!isValidTenant) {
+        console.warn('Barbers: Tenant inválido, não carregando barbeiros');
         return;
       }
 
       try {
-        setLoading(true);
-        setError(null);
-        
-        const barberRepository = new BarberRepository();
-        const barbersData = await barberRepository.getAll();
-        
-        console.log('Barbers loaded:', barbersData);
-        setBarbers(barbersData || []);
+        await loadBarbers();
+        console.log('Barbers loaded via tenant-aware hook');
       } catch (err) {
         console.error('Erro ao carregar barbeiros:', err);
-        setError('Erro ao carregar barbeiros');
-        setBarbers([]);
-      } finally {
-        setLoading(false);
       }
     };
 
-    loadBarbers();
-  }, [barbershopData?.id]);
+    loadBarbersData();
+  }, [isValidTenant, loadBarbers]);
 
   if (loading) {
     return (

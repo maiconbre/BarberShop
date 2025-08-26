@@ -35,9 +35,9 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      const result = await login(formData.username, formData.password, formData.rememberMe);
+      const result = await login({ email: formData.username, password: formData.password });
       
-      if (result) {
+      if (result.success) {
         try {
           // After successful login, load tenant context and redirect to tenant dashboard
           logger.componentInfo('LoginPage', 'Login successful, loading tenant context');
@@ -63,7 +63,7 @@ const LoginPage: React.FC = () => {
           navigate('/register-barbershop', { replace: true });
         }
       } else {
-        setError('user ou senha incorretos');
+        setError(result.error || 'Email ou senha incorretos');
       }
     } catch (err: unknown) {
       console.error('Erro durante o login:', err);

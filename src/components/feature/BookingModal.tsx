@@ -4,12 +4,11 @@ import { X, MessageCircle, ArrowRight, CheckCircle, Eye } from 'lucide-react';
 import Calendar from './Calendar';
 import { format } from 'date-fns';
 import { adjustToBrasilia } from '../../utils/DateTimeUtils';
-import { cacheService } from '../../services/CacheService';
 import { useBarbers } from '../../hooks/useBarbers';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useServices } from '../../hooks/useServices';
 import { useTenant } from '../../contexts/TenantContext';
-import { CURRENT_ENV } from '../../config/environmentConfig';
+import { useTenantCache } from '../../hooks/useTenantCache';
 import { safeFixed } from '../../utils/numberUtils';
 import PublicAppointmentService from '../../services/PublicAppointmentService';
 
@@ -55,14 +54,6 @@ interface BookingModalProps {
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '', initialServices = [], preloadedAppointments = [] }) => {
-  // Função auxiliar para obter chave de cache específica do usuário
-  const getAppointmentsCacheKey = (userId?: string) => {
-    if (userId) {
-      return `/api/appointments_user_${userId}`;
-    }
-    return '/api/appointments';
-  };
-
   // Hooks multi-tenant
   const { 
     barbers, 
@@ -70,7 +61,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     error: barbersError 
   } = useBarbers();
   const { createWithBackendData } = useAppointments();
-  const { isValidTenant } = useTenant();
+  const { isValidTenant, barbershopId } = useTenant();
+  const tenantCache = useTenantCache();
+
+  // Função auxiliar para obter chave de cache específica do usuário com tenant context
+  const getAppointmentsCacheKey = (userId?: string) => {
+    if (userId) {
+      return `tenant_${barbershopId}_appointments_user_${userId}`;
+    }
+    return `tenant_${barbershopId}_appointments`;
+  };
 
   // Estado para controlar as etapas do agendamento (1: nome e serviço, 2: barbeiro e data, 3: confirmação)
   const [step, setStep] = useState(1);
@@ -248,7 +248,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     loadBarbersData();
-  }, [loadBarbers, isValidTenant, barbers?.length]); // Inclui barbers?.length como dependência
+  }, [loadBarbers, isValidTenant]);
 
   // Atualizar loading state quando barbeiros mudarem
   React.useEffect(() => {
@@ -355,7 +355,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     const handleCacheUpdate = (event: CustomEvent) => {
       const { keys } = event.detail;
       // Verificar se alguma chave relevante foi atualizada
-      if (keys.includes('/api/appointments') || keys.some((key: string) => key.includes('schedule_appointments_'))) {
+      const tenantAppointmentsKey = `tenant_${barbershopId}_appointments`;
+      if (keys.includes(tenantAppointmentsKey) || keys.some((key: string) => key.includes('schedule_appointments_'))) {
         // Recarregar dados do cache atualizado
         fetchAppointmentsData();
       }
@@ -513,7 +514,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
             price: appointment.price || 0,
             id: appointment.id || ''
           })));
-          await cacheService.set(cacheKey, freshAppointments);
+          await tenantCache.set(cacheKey, freshAppointments);
           throw new Error('Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.');
         }
       } catch (apiError) {
@@ -538,7 +539,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
       // Atualizar o cache global para garantir que outros componentes vejam a mudança
       // Reutilizando as variáveis já declaradas acima
-      const cachedData = await cacheService.get(cacheKey) || [];
+      const cachedData = await tenantCache.get(cacheKey) || [];
 
       // Verificar novamente se o horário já não foi ocupado por outro cliente
       const isStillAvailable = !Array.isArray(cachedData) ? true : !cachedData.some((app: Appointment) =>
@@ -554,15 +555,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         throw new Error('Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário.');
       }
 
-      await cacheService.set(cacheKey, Array.isArray(cachedData) ? [...cachedData, tempAppointment] : [tempAppointment]);
+      await tenantCache.set(cacheKey, Array.isArray(cachedData) ? [...cachedData, tempAppointment] : [tempAppointment]);
 
       // Atualizar também o cache global geral de agendamentos
       try {
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = currentUser?.id;
         const allAppointmentsKey = getAppointmentsCacheKey(userId);
-        const allAppointments = await cacheService.get(allAppointmentsKey) || [];
-        await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...allAppointments, tempAppointment] : [tempAppointment]);
+        const allAppointments = await tenantCache.get(allAppointmentsKey) || [];
+        await tenantCache.set(allAppointmentsKey, Array.isArray(allAppointments) ? [...allAppointments, tempAppointment] : [tempAppointment]);
       } catch (cacheErr) {
         logger.componentWarn('Erro ao atualizar cache global de agendamentos:', cacheErr);
       }
@@ -629,15 +630,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
           // Reverter o cache específico do barbeiro
           const barberCacheKey = `schedule_appointments_${formData.barberId}`;
-          const barberCachedData = await cacheService.get(barberCacheKey) || [];
-          await cacheService.set(barberCacheKey, Array.isArray(barberCachedData) ? barberCachedData.filter((app: Appointment) => app.id !== tempAppointment.id) : []);
+          const barberCachedData = await tenantCache.get(barberCacheKey) || [];
+          await tenantCache.set(barberCacheKey, Array.isArray(barberCachedData) ? barberCachedData.filter((app: Appointment) => app.id !== tempAppointment.id) : []);
 
           // Reverter também o cache global geral de agendamentos
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
           const userId = currentUser?.id;
           const allAppointmentsKey = getAppointmentsCacheKey(userId);
-          const allAppointments = await cacheService.get(allAppointmentsKey) || [];
-          await cacheService.set(allAppointmentsKey, Array.isArray(allAppointments) ? allAppointments.filter((app: Appointment) => app.id !== tempAppointment.id) : []);
+          const allAppointments = await tenantCache.get(allAppointmentsKey) || [];
+          await tenantCache.set(allAppointmentsKey, Array.isArray(allAppointments) ? allAppointments.filter((app: Appointment) => app.id !== tempAppointment.id) : []);
 
           // Reverter o localStorage
           const localStorageData = localStorage.getItem('appointments');
@@ -647,7 +648,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
           }
 
           // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
-          await cacheService.forceCleanup();
+          await tenantCache.forceCleanup();
         } catch (err) {
           logger.componentError('Erro ao reverter cache:', err);
         }
@@ -671,24 +672,24 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
         // Atualizar o cache específico do barbeiro
         const barberCacheKey = `schedule_appointments_${formData.barberId}`;
-        const barberCachedData = await cacheService.get(barberCacheKey) || [];
+        const barberCachedData = await tenantCache.get(barberCacheKey) || [];
 
         // Remover o appointment temporário e adicionar o confirmado
         const updatedBarberCache = (Array.isArray(barberCachedData) ? barberCachedData : [])
           .filter((app: Appointment) => app.id !== tempAppointment.id)
           .concat(confirmedAppointment);
 
-        await cacheService.set(barberCacheKey, updatedBarberCache);
+        await tenantCache.set(barberCacheKey, updatedBarberCache);
 
         // Atualizar também o cache global geral de agendamentos
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = currentUser?.id;
         const allAppointmentsKey = getAppointmentsCacheKey(userId);
-        const allAppointments = await cacheService.get(allAppointmentsKey) || [];
+        const allAppointments = await tenantCache.get(allAppointmentsKey) || [];
         const updatedAllAppointments = (Array.isArray(allAppointments) ? allAppointments : [])
           .filter((app: Appointment) => app.id !== tempAppointment.id)
           .concat(confirmedAppointment);
-        await cacheService.set(allAppointmentsKey, updatedAllAppointments);
+        await tenantCache.set(allAppointmentsKey, updatedAllAppointments);
 
         // Atualizar o localStorage
         const localStorageData = localStorage.getItem('appointments');
@@ -701,7 +702,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
 
         // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
-        await cacheService.forceCleanup();
+        await tenantCache.forceCleanup();
 
         // Forçar uma atualização dos dados de agendamentos para todos os componentes
         setTimeout(async () => {
@@ -747,15 +748,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
 
         // Reverter o cache específico do barbeiro
         const barberCacheKey = `schedule_appointments_${formData.barberId}`;
-        const barberCachedData = await cacheService.get(barberCacheKey) || [];
-        await cacheService.set(barberCacheKey, (Array.isArray(barberCachedData) ? barberCachedData : []).filter((app: Appointment) => !app.id.startsWith('temp-')));
+        const barberCachedData = await tenantCache.get(barberCacheKey) || [];
+        await tenantCache.set(barberCacheKey, (Array.isArray(barberCachedData) ? barberCachedData : []).filter((app: Appointment) => !app.id.startsWith('temp-')));
 
         // Reverter também o cache global geral de agendamentos
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = currentUser?.id;
         const allAppointmentsKey = getAppointmentsCacheKey(userId);
-        const allAppointments = await cacheService.get(allAppointmentsKey) || [];
-        await cacheService.set(allAppointmentsKey, (Array.isArray(allAppointments) ? allAppointments : []).filter((app: Appointment) => !app.id.startsWith('temp-')));
+        const allAppointments = await tenantCache.get(allAppointmentsKey) || [];
+        await tenantCache.set(allAppointmentsKey, (Array.isArray(allAppointments) ? allAppointments : []).filter((app: Appointment) => !app.id.startsWith('temp-')));
 
         // Reverter o localStorage
         const localStorageData = localStorage.getItem('appointments');
@@ -765,7 +766,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
 
         // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
-        await cacheService.forceCleanup();
+        await tenantCache.forceCleanup();
       } catch (cacheErr) {
         logger.componentError('Erro ao reverter cache:', cacheErr);
       }
@@ -1343,7 +1344,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                           <div className="space-y-4">
                             <div className="bg-gray-50 p-4 rounded-xl">
                               <img
-                                src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}`}
+                                // TODO: Implementar download de QR code com Supabase Storage
+                src="#" // src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}`}
                                 alt={`QR Code de ${formData.barber}`}
                                 className="w-48 h-48 mx-auto object-contain"
                                 onError={(e) => {

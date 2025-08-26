@@ -1,13 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+// Importar a instância única do Supabase
+import { supabase } from '../config/supabaseConfig';
 
-// Obter as variáveis de ambiente do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://xxxsgvqbnkftoswascds.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4eHNndnFibmtmdG9zd2FzY2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTg3NjQ4MDAsImV4cCI6MjAxNDM0MDgwMH0.placeholder-key';
-
-// Criar o cliente Supabase
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+// Exportar a instância única
 export default supabase;
+export { supabase as supabaseClient };
 
 // Funções auxiliares para interagir com o Supabase
 

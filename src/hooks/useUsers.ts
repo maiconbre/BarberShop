@@ -1,13 +1,15 @@
-import { useState, useCallback } from 'react';
-import { useUserRepository } from '@/services/ServiceFactory';
+import { useState, useCallback, useMemo } from 'react';
+import { useTenantUserRepository } from './useTenantRepositories';
+import { useTenant } from '../contexts/TenantContext';
 import type { User as UserType, PaginationOptions, PaginatedResult } from '@/types';
 
 /**
  * Hook para gerenciamento de usuários seguindo SOLID principles
- * Demonstra como usar a nova arquitetura de repositórios
+ * Automaticamente inclui contexto de tenant (barbershopId) em todas as operações
  */
 export const useUsers = () => {
-  const userRepository = useUserRepository();
+  const userRepository = useTenantUserRepository();
+  const { isValidTenant } = useTenant();
   
   // State for users list
   const [users, setUsers] = useState<UserType[] | null>(null);
@@ -32,14 +34,24 @@ export const useUsers = () => {
   const [deleteError, setDeleteError] = useState<Error | null>(null);
 
   /**
+   * Ensure tenant is valid before operations
+   */
+  const ensureTenant = useCallback(() => {
+    if (!isValidTenant || !userRepository) {
+      throw new Error('Tenant context is required for user operations');
+    }
+  }, [isValidTenant, userRepository]);
+
+  /**
    * Carrega todos os usuários
    */
   const loadUsers = useCallback(
     async (filters?: Record<string, unknown>) => {
       try {
+        ensureTenant();
         setLoadingUsers(true);
         setUsersError(null);
-        const result = await userRepository.findAll(filters);
+        const result = await userRepository!.findAll(filters);
         setUsers(result);
         return result;
       } catch (error) {
@@ -50,7 +62,7 @@ export const useUsers = () => {
         setLoadingUsers(false);
       }
     },
-    [userRepository]
+    [userRepository, ensureTenant]
   );
 
   /**
@@ -59,9 +71,10 @@ export const useUsers = () => {
   const loadPaginatedUsers = useCallback(
     async (options: PaginationOptions) => {
       try {
+        ensureTenant();
         setLoadingPaginated(true);
         setPaginatedError(null);
-        const result = await userRepository.findPaginated(options);
+        const result = await userRepository!.findPaginated(options);
         setPaginatedUsers(result);
         return result;
       } catch (error) {
@@ -72,7 +85,7 @@ export const useUsers = () => {
         setLoadingPaginated(false);
       }
     },
-    [userRepository]
+    [userRepository, ensureTenant]
   );
 
   /**
@@ -80,9 +93,15 @@ export const useUsers = () => {
    */
   const getUserById = useCallback(
     async (id: string) => {
-      return userRepository.findById(id);
+      try {
+        ensureTenant();
+        return await userRepository!.findById(id);
+      } catch (error) {
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        throw errorObj;
+      }
     },
-    [userRepository]
+    [userRepository, ensureTenant]
   );
 
   /**
@@ -111,9 +130,10 @@ export const useUsers = () => {
   const createUser = useCallback(
     async (userData: Omit<UserType, 'id' | 'createdAt' | 'updatedAt'>) => {
       try {
+        ensureTenant();
         setCreating(true);
         setCreateError(null);
-        const newUser = await userRepository.create(userData);
+        const newUser = await userRepository!.create(userData);
         
         // Atualiza a lista local se existir
         if (users) {
@@ -129,7 +149,7 @@ export const useUsers = () => {
         setCreating(false);
       }
     },
-    [userRepository, users, loadUsers]
+    [userRepository, users, loadUsers, ensureTenant]
   );
 
   /**
@@ -138,9 +158,10 @@ export const useUsers = () => {
   const updateUser = useCallback(
     async (id: string, updates: Partial<UserType>) => {
       try {
+        ensureTenant();
         setUpdating(true);
         setUpdateError(null);
-        const updatedUser = await userRepository.update(id, updates);
+        const updatedUser = await userRepository!.update(id, updates);
         
         // Atualiza a lista local se existir
         if (users) {
@@ -156,7 +177,7 @@ export const useUsers = () => {
         setUpdating(false);
       }
     },
-    [userRepository, users, loadUsers]
+    [userRepository, users, loadUsers, ensureTenant]
   );
 
   /**
@@ -165,9 +186,10 @@ export const useUsers = () => {
   const deleteUser = useCallback(
     async (id: string) => {
       try {
+        ensureTenant();
         setDeleting(true);
         setDeleteError(null);
-        await userRepository.delete(id);
+        await userRepository!.delete(id);
         
         // Atualiza a lista local se existir
         if (users) {
@@ -181,7 +203,7 @@ export const useUsers = () => {
         setDeleting(false);
       }
     },
-    [userRepository, users, loadUsers]
+    [userRepository, users, loadUsers, ensureTenant]
   );
 
   /**
@@ -259,12 +281,16 @@ export const useUsers = () => {
  * Hook específico para barbeiros
  */
 export const useBarbers = () => {
+  const userRepository = useTenantUserRepository();
+  const { isValidTenant } = useTenant();
   const { getUsersByRole, ...rest } = useUsers();
   
-  const loadBarbers = useCallback(
-    () => getUsersByRole('barber'),
-    [getUsersByRole]
-  );
+  const loadBarbers = useCallback(async () => {
+    if (!isValidTenant || !userRepository) {
+      throw new Error('Tenant context is required for barber operations');
+    }
+    return userRepository.findByRole('barber');
+  }, [userRepository, isValidTenant]);
 
   return {
     ...rest,
@@ -276,12 +302,16 @@ export const useBarbers = () => {
  * Hook específico para clientes
  */
 export const useClients = () => {
+  const userRepository = useTenantUserRepository();
+  const { isValidTenant } = useTenant();
   const { getUsersByRole, ...rest } = useUsers();
   
-  const loadClients = useCallback(
-    () => getUsersByRole('client'),
-    [getUsersByRole]
-  );
+  const loadClients = useCallback(async () => {
+    if (!isValidTenant || !userRepository) {
+      throw new Error('Tenant context is required for client operations');
+    }
+    return userRepository.findByRole('client');
+  }, [userRepository, isValidTenant]);
 
   return {
     ...rest,

@@ -83,18 +83,18 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
     return 'bg-green-500';
   };
 
-  const barbersPercentage = usage.usage.barbers.limit === Infinity 
+  const barbersPercentage = usage.usage?.barbers?.limit === Infinity 
     ? 0 
-    : Math.min((usage.usage.barbers.current / usage.usage.barbers.limit) * 100, 100);
+    : Math.min((usage.usage?.barbers?.current || 0) / (usage.usage?.barbers?.limit || 1) * 100, 100);
 
-  const appointmentsPercentage = usage.usage.appointments.limit === Infinity 
+  const appointmentsPercentage = usage.usage?.appointments?.limit === Infinity 
     ? 0 
-    : Math.min((usage.usage.appointments.current / usage.usage.appointments.limit) * 100, 100);
+    : Math.min((usage.usage?.appointments?.current || 0) / (usage.usage?.appointments?.limit || 1) * 100, 100);
 
   const shouldShowUpgrade = usage.planType === 'free' && (
     usage.upgradeRecommended || 
-    usage.usage.barbers.nearLimit || 
-    usage.usage.appointments.nearLimit
+    usage.usage?.barbers?.nearLimit || 
+    usage.usage?.appointments?.nearLimit
   );
 
   return (
@@ -140,27 +140,27 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-white">
-                  {usage.usage.barbers.current}
+                  {usage.usage?.barbers?.current || 0}
                 </span>
                 <span className="text-gray-400">
-                  / {usage.usage.barbers.limit === Infinity ? '∞' : usage.usage.barbers.limit}
+                  / {usage.usage?.barbers?.limit === Infinity ? '∞' : usage.usage?.barbers?.limit || 0}
                 </span>
               </div>
               
-              {usage.usage.barbers.limit !== Infinity && (
+              {usage.usage?.barbers?.limit !== Infinity && (
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(barbersPercentage, usage.usage.barbers.nearLimit)}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(barbersPercentage, usage.usage?.barbers?.nearLimit || false)}`}
                     style={{ width: `${barbersPercentage}%` }}
                   />
                 </div>
               )}
               
               <div className="flex items-center justify-between text-sm">
-                <span className={getUsageColor(barbersPercentage, usage.usage.barbers.nearLimit)}>
+                <span className={getUsageColor(barbersPercentage, usage.usage?.barbers?.nearLimit || false)}>
                   {safeFixed(barbersPercentage, 0)}% usado
                 </span>
-                {usage.usage.barbers.nearLimit && (
+                {usage.usage?.barbers?.nearLimit && (
                   <span className="flex items-center gap-1 text-yellow-400">
                     <AlertTriangle className="w-4 h-4" />
                     Próximo do limite
@@ -180,27 +180,27 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-white">
-                  {usage.usage.appointments.current}
+                  {usage.usage?.appointments?.current || 0}
                 </span>
                 <span className="text-gray-400">
-                  / {usage.usage.appointments.limit === Infinity ? '∞' : usage.usage.appointments.limit}
+                  / {usage.usage?.appointments?.limit === Infinity ? '∞' : usage.usage?.appointments?.limit || 0}
                 </span>
               </div>
               
-              {usage.usage.appointments.limit !== Infinity && (
+              {usage.usage?.appointments?.limit !== Infinity && (
                 <div className="w-full bg-gray-600 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(appointmentsPercentage, usage.usage.appointments.nearLimit)}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(appointmentsPercentage, usage.usage?.appointments?.nearLimit || false)}`}
                     style={{ width: `${appointmentsPercentage}%` }}
                   />
                 </div>
               )}
               
               <div className="flex items-center justify-between text-sm">
-                <span className={getUsageColor(appointmentsPercentage, usage.usage.appointments.nearLimit)}>
+                <span className={getUsageColor(appointmentsPercentage, usage.usage?.appointments?.nearLimit || false)}>
                   {safeFixed(appointmentsPercentage, 0)}% usado
                 </span>
-                {usage.usage.appointments.nearLimit && (
+                {usage.usage?.appointments?.nearLimit && (
                   <span className="flex items-center gap-1 text-yellow-400">
                     <AlertTriangle className="w-4 h-4" />
                     Próximo do limite

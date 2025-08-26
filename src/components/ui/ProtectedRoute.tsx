@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTenant } from '../../contexts/TenantContext';
 import LoadingSpinner from './LoadingSpinner';
 
 interface ProtectedRouteProps {
@@ -9,33 +10,34 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
+  const { barbershopSlug } = useParams<{ barbershopSlug: string }>();
+  const { isValidTenant, loading: tenantLoading, error: tenantError } = useTenant();
   const [isLoading, setIsLoading] = useState(true);
   const [shouldCompleteProgress, setShouldCompleteProgress] = useState(false);
 
   useEffect(() => {
-    // Aguardar o AuthContext inicializar e depois verificar autenticação
+    // Aguardar o AuthContext e TenantContext inicializarem
     const timer = setTimeout(() => {
-      if (isAuthenticated) {
+      if (isAuthenticated && (isValidTenant || !tenantLoading)) {
         setShouldCompleteProgress(true);
         setTimeout(() => {
           setIsLoading(false);
         }, 200);
-      } else {
+      } else if (!tenantLoading) {
         setIsLoading(false);
       }
-    }, 400); // Reduzido para 400ms
+    }, 400);
 
-    
     return () => clearTimeout(timer);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isValidTenant, tenantLoading]);
 
-  // Mostrar loading enquanto verifica autenticação
-  if (isLoading) {
+  // Mostrar loading enquanto verifica autenticação e tenant
+  if (isLoading || tenantLoading) {
     return (
       <LoadingSpinner 
         fullScreen 
         size="lg" 
-        text="Verificando autenticação..." 
+        text={tenantLoading ? "Carregando contexto..." : "Verificando autenticação..."}
         showProgressBar={true}
         progressDuration={400}
         forceComplete={shouldCompleteProgress}
@@ -43,9 +45,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Verificar apenas o contexto de autenticação
+  // Verificar autenticação
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Verificar se há erro no tenant ou tenant inválido
+  if (tenantError || !isValidTenant) {
+    // Se há um barbershopSlug na URL mas o tenant é inválido, redirecionar para a página da barbearia
+    if (barbershopSlug) {
+      return <Navigate to={`/${barbershopSlug}`} replace />;
+    }
+    // Caso contrário, redirecionar para a landing page
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

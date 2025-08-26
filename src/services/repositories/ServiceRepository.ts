@@ -18,7 +18,9 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
     const barbershopId = localStorage.getItem('barbershopId');
     
     if (barbershopSlug) {
-      return `/api/app/${barbershopSlug}${endpoint}`;
+      // Remove /api do início do endpoint para evitar duplicação
+      const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint;
+      return `/api/app/${barbershopSlug}${cleanEndpoint}`;
     } else if (barbershopId) {
       return `${endpoint}?barbershopId=${barbershopId}`;
     }

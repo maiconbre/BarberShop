@@ -1,132 +1,143 @@
 import { ApiServiceV2 } from './core/ApiServiceV2';
-import { UserRepository } from './repositories/UserRepository';
+import { ApiService } from './ApiService';
+import type { IApiService } from './interfaces/IApiService';
 import { ServiceRepository } from './repositories/ServiceRepository';
+import { UserRepository } from './repositories/UserRepository';
 import { AppointmentRepository } from './repositories/AppointmentRepository';
 import { BarberRepository } from './repositories/BarberRepository';
 import { CommentRepository } from './repositories/CommentRepository';
-import { cacheService } from './CacheService';
-import type { IApiService } from './interfaces/IApiService';
+import { logger } from '../utils/logger';
 
-/**
- * Factory para criação de serviços seguindo Dependency Injection
- * Implementa o padrão Factory e facilita a configuração de dependências
- */
 export class ServiceFactory {
-  private static apiService: IApiService | null = null;
-  private static userRepository: UserRepository | null = null;
-  private static serviceRepository: ServiceRepository | null = null;
-  private static appointmentRepository: AppointmentRepository | null = null;
-  private static barberRepository: BarberRepository | null = null;
-  private static commentRepository: CommentRepository | null = null;
+  private static apiServiceInstance: IApiService | null = null;
+  private static apiServiceV2Instance: ApiServiceV2 | null = null;
+  private static serviceRepositoryInstance: ServiceRepository | null = null;
+  private static userRepositoryInstance: UserRepository | null = null;
+  private static appointmentRepositoryInstance: AppointmentRepository | null = null;
+  private static barberRepositoryInstance: BarberRepository | null = null;
+  private static commentRepositoryInstance: CommentRepository | null = null;
 
   /**
-   * Obtém instância do ApiService (Singleton)
+   * Get the legacy ApiService instance for backward compatibility
    */
   static getApiService(): IApiService {
-    if (!this.apiService) {
-      const baseURL = import.meta.env.VITE_API_URL || '';
-      this.apiService = ApiServiceV2.create(baseURL, cacheService);
+    if (!this.apiServiceInstance) {
+      this.apiServiceInstance = new ApiService();
+      logger.info('Legacy ApiService instance created');
     }
-    return this.apiService;
+    return this.apiServiceInstance;
   }
 
   /**
-   * Obtém instância do UserRepository
+   * Get the new ApiServiceV2 instance with enhanced features
    */
-  static getUserRepository(): UserRepository {
-    if (!this.userRepository) {
-      this.userRepository = new UserRepository(this.getApiService());
+  static getApiServiceV2(): ApiServiceV2 {
+    if (!this.apiServiceV2Instance) {
+      this.apiServiceV2Instance = new ApiServiceV2({
+        baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+        timeout: 30000,
+        retryAttempts: 3,
+        retryDelay: 1000
+      });
+      logger.info('ApiServiceV2 instance created');
     }
-    return this.userRepository;
+    return this.apiServiceV2Instance;
   }
 
   /**
-   * Obtém instância do ServiceRepository
+   * Get the ServiceRepository instance
    */
   static getServiceRepository(): ServiceRepository {
-    if (!this.serviceRepository) {
-      this.serviceRepository = new ServiceRepository(this.getApiService());
+    if (!this.serviceRepositoryInstance) {
+      this.serviceRepositoryInstance = new ServiceRepository(this.getApiService());
+      logger.info('ServiceRepository instance created');
     }
-    return this.serviceRepository;
+    return this.serviceRepositoryInstance;
   }
 
   /**
-   * Obtém instância do AppointmentRepository
+   * Get the UserRepository instance
+   */
+  static getUserRepository(): UserRepository {
+    if (!this.userRepositoryInstance) {
+      this.userRepositoryInstance = new UserRepository(this.getApiService());
+      logger.info('UserRepository instance created');
+    }
+    return this.userRepositoryInstance;
+  }
+
+  /**
+   * Get the AppointmentRepository instance
    */
   static getAppointmentRepository(): AppointmentRepository {
-    if (!this.appointmentRepository) {
-      this.appointmentRepository = new AppointmentRepository(this.getApiService());
+    if (!this.appointmentRepositoryInstance) {
+      this.appointmentRepositoryInstance = new AppointmentRepository(this.getApiService());
+      logger.info('AppointmentRepository instance created');
     }
-    return this.appointmentRepository;
+    return this.appointmentRepositoryInstance;
   }
 
   /**
-   * Obtém instância do BarberRepository
+   * Get the BarberRepository instance
    */
   static getBarberRepository(): BarberRepository {
-    if (!this.barberRepository) {
-      this.barberRepository = new BarberRepository(this.getApiService());
+    if (!this.barberRepositoryInstance) {
+      this.barberRepositoryInstance = new BarberRepository(this.getApiService());
+      logger.info('BarberRepository instance created');
     }
-    return this.barberRepository;
+    return this.barberRepositoryInstance;
   }
 
   /**
-   * Obtém instância do CommentRepository
+   * Get the CommentRepository instance
    */
   static getCommentRepository(): CommentRepository {
-    if (!this.commentRepository) {
-      this.commentRepository = new CommentRepository(this.getApiService());
+    if (!this.commentRepositoryInstance) {
+      this.commentRepositoryInstance = new CommentRepository(this.getApiService());
+      logger.info('CommentRepository instance created');
     }
-    return this.commentRepository;
+    return this.commentRepositoryInstance;
   }
 
   /**
-   * Reseta todas as instâncias (útil para testes)
+   * Reset all service instances (useful for testing)
    */
   static reset(): void {
-    this.apiService = null;
-    this.userRepository = null;
-    this.serviceRepository = null;
-    this.appointmentRepository = null;
-    this.barberRepository = null;
-    this.commentRepository = null;
+    this.apiServiceInstance = null;
+    this.apiServiceV2Instance = null;
+    this.serviceRepositoryInstance = null;
+    this.userRepositoryInstance = null;
+    this.appointmentRepositoryInstance = null;
+    this.barberRepositoryInstance = null;
+    this.commentRepositoryInstance = null;
+    logger.info('ServiceFactory instances reset');
   }
 
   /**
-   * Configura dependências customizadas (útil para testes)
+   * Create a new ApiService instance with custom configuration
    */
-  static configure(dependencies: {
-    apiService?: IApiService;
-    userRepository?: UserRepository;
-    serviceRepository?: ServiceRepository;
-    appointmentRepository?: AppointmentRepository;
-    barberRepository?: BarberRepository;
-    commentRepository?: CommentRepository;
-  }): void {
-    if (dependencies.apiService) {
-      this.apiService = dependencies.apiService;
-    }
-    if (dependencies.userRepository) {
-      this.userRepository = dependencies.userRepository;
-    }
-    if (dependencies.serviceRepository) {
-      this.serviceRepository = dependencies.serviceRepository;
-    }
-    if (dependencies.appointmentRepository) {
-      this.appointmentRepository = dependencies.appointmentRepository;
-    }
-    if (dependencies.barberRepository) {
-      this.barberRepository = dependencies.barberRepository;
-    }
-    if (dependencies.commentRepository) {
-      this.commentRepository = dependencies.commentRepository;
-    }
+  static createApiService(): IApiService {
+    return new ApiService();
+  }
+
+  /**
+   * Create a new ApiServiceV2 instance with custom configuration
+   */
+  static createApiServiceV2(config?: {
+    baseURL?: string;
+    timeout?: number;
+    retryAttempts?: number;
+    retryDelay?: number;
+  }): ApiServiceV2 {
+    return new ApiServiceV2(config);
   }
 }
 
-/**
- * Hooks para facilitar o uso nos componentes React
- */
+// Export singleton instances for convenience
+export const apiService = ServiceFactory.getApiService();
+export const apiServiceV2 = ServiceFactory.getApiServiceV2();
+
+// Export repository hooks for React components
 export const useApiService = () => ServiceFactory.getApiService();
 export const useUserRepository = () => ServiceFactory.getUserRepository();
 export const useServiceRepository = () => ServiceFactory.getServiceRepository();

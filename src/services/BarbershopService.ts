@@ -1,5 +1,3 @@
-import { ServiceFactory } from './ServiceFactory';
-
 // Interfaces para tipagem
 export interface BarbershopRegistrationData {
   name: string;
@@ -73,143 +71,82 @@ export interface EmailVerificationResponse {
   };
 }
 
-export interface EmailCodeVerificationRequest {
-  email: string;
-  code: string;
-}
-
-export interface EmailCodeVerificationResponse {
-  success: boolean;
-  message: string;
-  data: {
-    email: string;
-    verified: boolean;
-  };
-}
-
-// Get API service instance with proper error handling
-const getApiService = () => ServiceFactory.getApiService();
+// Interfaces removidas - agora usamos magic link diretamente
 
 /**
- * Iniciar processo de verificação de email
+ * Iniciar processo de verificação de email usando Edge Function
  */
 export const initiateEmailVerification = async (data: EmailVerificationRequest): Promise<EmailVerificationResponse> => {
   try {
     console.log('Iniciando verificação de email:', data.email);
 
-    const apiService = getApiService();
-    const response = await apiService.post<EmailVerificationResponse>('/api/barbershops/verify-email', data);
-
-    if (!response || !response.success) {
-      throw new Error(response?.message || 'Erro ao enviar código de verificação');
+    // Validar formato do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      throw new Error('Formato de email inválido.');
     }
 
-    console.log('Código de verificação enviado para:', data.email);
-    return response;
+    const { supabase } = await import('../config/supabaseConfig');
+    
+    try {
+      // Usar magic link do Supabase Auth diretamente (sem verificação prévia de usuário)
+      const redirectUrl = `${window.location.origin}/register?email=${encodeURIComponent(data.email)}&barbershop=${encodeURIComponent(data.barbershopName)}&verified=true`;
+      
+      const { error } = await supabase.auth.signInWithOtp({
+        email: data.email,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            barbershop_name: data.barbershopName,
+            verification_type: 'registration'
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao enviar magic link:', error);
+        if (error.message.includes('rate limit')) {
+          throw new Error('Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.');
+        }
+        throw new Error('Erro ao enviar link de verificação');
+      }
+
+      console.log('Magic link enviado para:', data.email);
+      
+      return {
+        success: true,
+        message: 'Link de verificação enviado para seu email. Clique no link para continuar o cadastro.',
+        data: {
+          email: data.email,
+          expiresIn: 3600 // 1 hora
+        }
+      };
+
+    } catch (error: unknown) {
+      console.error('Erro ao iniciar verificação de email:', error);
+
+      if (error instanceof Error) {
+        // Re-throw known errors
+        throw error;
+      }
+
+      // Handle unknown errors
+      throw new Error('Erro interno do servidor');
+    }
 
   } catch (error: unknown) {
     console.error('Erro ao iniciar verificação de email:', error);
 
-    // Handle network connection errors specifically
     if (error instanceof Error) {
-      const message = error.message;
-      
-      // Check for specific HTTP status codes and business logic errors
-      if (message.includes('409') || message.includes('Conflict')) {
-        throw new Error('Este email já está cadastrado. Use outro email.');
-      }
-      
-      // Check for connection refused or network errors
-      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
-        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
-      }
-      
-      if (message.includes('EMAIL_ALREADY_EXISTS')) {
-        throw new Error('Este email já está cadastrado. Use outro email.');
-      }
-      if (message.includes('INVALID_EMAIL_FORMAT')) {
-        throw new Error('Formato de email inválido.');
-      }
-      if (message.includes('MISSING_FIELDS')) {
-        throw new Error('Email e nome da barbearia são obrigatórios.');
-      }
-      if (message.includes('EMAIL_SEND_FAILED')) {
-        throw new Error('Erro ao enviar email. Tente novamente.');
-      }
-      
-      // Generic network/server error
-      if (message.includes('timeout')) {
-        throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
-      }
-      
-      // Re-throw the error as-is if it's already user-friendly
-      throw new Error('Ocorreu um erro no servidor, tente mais tarde');
+      // Re-throw known errors
+      throw error;
     }
 
     throw new Error('Ocorreu um erro no servidor, tente mais tarde');
   }
 };
 
-/**
- * Verificar código de email
- */
-export const verifyEmailCode = async (data: EmailCodeVerificationRequest): Promise<EmailCodeVerificationResponse> => {
-  try {
-    console.log('Verificando código de email:', data.email);
-
-    const apiService = getApiService();
-    const response = await apiService.post<EmailCodeVerificationResponse>('/api/barbershops/verify-code', data);
-
-    if (!response || !response.success) {
-      throw new Error(response?.message || 'Erro ao verificar código');
-    }
-
-    console.log('Código verificado com sucesso para:', data.email);
-    return response;
-
-  } catch (error: unknown) {
-    console.error('Erro ao verificar código:', error);
-
-    // Handle network connection errors specifically
-    if (error instanceof Error) {
-      const message = error.message;
-      
-      // Check for connection refused or network errors
-      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
-        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
-      }
-      
-      if (message.includes('CODE_NOT_FOUND')) {
-        throw new Error('Código de verificação não encontrado ou expirado. Solicite um novo código.');
-      }
-      if (message.includes('CODE_EXPIRED')) {
-        throw new Error('Código de verificação expirado. Solicite um novo código.');
-      }
-      if (message.includes('INVALID_CODE')) {
-        // Extract attempts left if available
-        const attemptsMatch = message.match(/(\d+) tentativas restantes/);
-        const attemptsMsg = attemptsMatch ? ` (${attemptsMatch[1]} tentativas restantes)` : '';
-        throw new Error(`Código inválido${attemptsMsg}`);
-      }
-      if (message.includes('TOO_MANY_ATTEMPTS')) {
-        throw new Error('Muitas tentativas. Solicite um novo código.');
-      }
-      if (message.includes('MISSING_FIELDS')) {
-        throw new Error('Email e código são obrigatórios.');
-      }
-      
-      // Generic network/server error
-      if (message.includes('timeout')) {
-        throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
-      }
-      
-      // Re-throw the error as-is if it's already user-friendly
-      throw new Error('Ocorreu um erro no servidor, tente mais tarde');
-    }
-
-    throw new Error('Ocorreu um erro no servidor, tente mais tarde');
-  }
-};
+// Função removida - agora usamos magic link diretamente
 
 /**
  * Registrar nova barbearia
@@ -218,51 +155,114 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
   try {
     console.log('Registrando barbearia:', { name: data.name, slug: data.slug });
 
-    const apiService = getApiService();
-    const response = await apiService.post<BarbershopRegistrationResponse>('/api/barbershops/register', data);
+    const { supabase } = await import('../config/supabaseConfig');
+    
+    // Verificar se o slug já existe
+    const { data: existingBarbershop } = await supabase
+      .from('Barbershops')
+      .select('slug')
+      .eq('slug', data.slug)
+      .single();
 
-    if (!response || !response.success) {
-      throw new Error(response?.message || 'Erro ao registrar barbearia');
+    if (existingBarbershop) {
+      throw new Error('Este nome de barbearia já está em uso. Escolha outro nome.');
     }
 
-    console.log('Barbearia registrada com sucesso:', response.data.barbershop.slug);
-    return response;
+    // Criar usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.ownerEmail,
+      password: data.ownerPassword,
+      options: {
+        data: {
+          name: data.ownerName,
+          username: data.ownerUsername
+        }
+      }
+    });
+
+    if (authError) {
+      console.error('Erro ao criar usuário:', authError);
+      if (authError.message.includes('already registered')) {
+        throw new Error('Este email já está cadastrado. Use outro email.');
+      }
+      throw new Error('Erro ao criar conta de usuário');
+    }
+
+    if (!authData.user) {
+      throw new Error('Erro ao criar usuário');
+    }
+
+    // Criar barbearia na tabela
+    const { data: barbershopData, error: barbershopError } = await supabase
+      .from('Barbershops')
+      .insert({
+        name: data.name,
+        slug: data.slug,
+        owner_email: data.ownerEmail,
+        plan_type: data.planType || 'free',
+        settings: {},
+        owner_id: authData.user.id
+      })
+      .select()
+      .single();
+
+    if (barbershopError) {
+      console.error('Erro ao criar barbearia:', barbershopError);
+      // Se falhou ao criar barbearia, tentar deletar o usuário criado
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      throw new Error('Erro ao registrar barbearia');
+    }
+
+    // Criar perfil do usuário
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        name: data.ownerName,
+        username: data.ownerUsername,
+        email: data.ownerEmail,
+        role: 'owner',
+        barbershop_id: barbershopData.id
+      });
+
+    if (profileError) {
+      console.error('Erro ao criar perfil:', profileError);
+      // Cleanup: deletar barbearia e usuário se falhou
+      await supabase.from('barbershops').delete().eq('id', barbershopData.id);
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      throw new Error('Erro ao criar perfil do usuário');
+    }
+
+    console.log('Barbearia registrada com sucesso:', barbershopData.slug);
+    
+    return {
+      success: true,
+      message: 'Barbearia registrada com sucesso',
+      data: {
+        barbershop: {
+          id: barbershopData.id,
+          name: barbershopData.name,
+          slug: barbershopData.slug,
+          planType: barbershopData.plan_type,
+          settings: barbershopData.settings
+        },
+        user: {
+          id: authData.user.id,
+          username: data.ownerUsername,
+          role: 'owner',
+          name: data.ownerName,
+          barbershopId: barbershopData.id
+        },
+        token: authData.session?.access_token || '',
+        refreshToken: authData.session?.refresh_token || ''
+      }
+    };
 
   } catch (error: unknown) {
     console.error('Erro ao registrar barbearia:', error);
 
-    // Handle network connection errors specifically
     if (error instanceof Error) {
-      const message = error.message;
-      
-      // Check for connection refused or network errors
-      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
-        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
-      }
-      
-      if (message.includes('SLUG_ALREADY_EXISTS')) {
-        throw new Error('Este nome de barbearia já está em uso. Escolha outro nome.');
-      }
-      if (message.includes('EMAIL_ALREADY_EXISTS')) {
-        throw new Error('Este email já está cadastrado. Use outro email.');
-      }
-      if (message.includes('USERNAME_ALREADY_EXISTS')) {
-        throw new Error('Este nome de usuário já está em uso. Escolha outro.');
-      }
-      if (message.includes('INVALID_SLUG_FORMAT')) {
-        throw new Error('Nome da barbearia deve conter apenas letras, números e hífens.');
-      }
-      if (message.includes('MISSING_FIELDS')) {
-        throw new Error('Todos os campos são obrigatórios.');
-      }
-      
-      // Generic network/server error
-      if (message.includes('timeout')) {
-        throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
-      }
-      
-      // Re-throw the error as-is if it's already user-friendly
-      throw new Error('Ocorreu um erro no servidor, tente mais tarde');
+      throw error;
     }
 
     throw new Error('Ocorreu um erro no servidor, tente mais tarde');
@@ -285,31 +285,43 @@ export const checkSlugAvailability = async (slug: string): Promise<SlugCheckResp
       };
     }
 
-    const apiService = getApiService();
-    const response = await apiService.get<SlugCheckResponse>(`/api/barbershops/check-slug/${encodeURIComponent(slug)}`);
+    const { supabase } = await import('../config/supabaseConfig');
+    
+    // Verificar se o slug já existe na tabela Barbershops
+    const { data: existingBarbershop, error } = await supabase
+      .from('Barbershops')
+      .select('slug')
+      .eq('slug', slug)
+      .single();
 
-    return response;
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      console.error('Erro ao verificar slug no Supabase:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw new Error(`Erro ao verificar disponibilidade do slug: ${error.message || 'Erro desconhecido'}`);
+    }
+
+    const isAvailable = !existingBarbershop;
+    
+    return {
+      success: true,
+      available: isAvailable,
+      slug,
+      message: isAvailable ? 'Slug disponível' : 'Este nome já está em uso. Escolha outro nome.'
+    };
 
   } catch (error: unknown) {
     console.error('Erro ao verificar disponibilidade do slug:', error);
 
-    // Handle network connection errors specifically
     let errorMessage = 'Erro ao verificar disponibilidade';
     
     if (error instanceof Error) {
-      const message = error.message;
-      
-      // Check for connection refused or network errors
-      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
-        errorMessage = 'Ocorreu um erro no servidor, tente mais tarde';
-      } else if (message.includes('timeout')) {
-        errorMessage = 'Tempo limite excedido. Verifique sua conexão e tente novamente.';
-      } else {
-        errorMessage = message;
-      }
+      errorMessage = error.message;
     }
 
-    // For this endpoint, we want to return a safe response on any error
     return {
       success: false,
       available: false,
@@ -332,42 +344,50 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
       throw new Error(`Slug inválido: ${slugValidation.message}`);
     }
 
-    const apiService = getApiService();
-    const response = await apiService.get<BarbershopResponse>(`/api/barbershops/slug/${encodeURIComponent(slug)}`);
+    const { supabase } = await import('../config/supabaseConfig');
+    
+    const { data: barbershop, error } = await supabase
+      .from('Barbershops')
+      .select('*')
+      .eq('slug', slug)
+      .single();
 
-    if (!response || !response.success) {
+    if (error || !barbershop) {
+      console.error('Erro ao buscar barbearia:', error);
       throw new Error('Barbearia não encontrada');
     }
 
-    console.log('Barbearia encontrada:', response.data.name);
-    return response.data;
+    console.log('Barbearia encontrada:', barbershop.name);
+    
+    return {
+      id: barbershop.id,
+      name: barbershop.name,
+      slug: barbershop.slug,
+      ownerEmail: barbershop.owner_email,
+      planType: barbershop.plan_type,
+      settings: barbershop.settings || {},
+      createdAt: barbershop.created_at,
+      description: barbershop.description,
+      address: barbershop.address,
+      phone: barbershop.phone
+    };
 
   } catch (error: unknown) {
     console.error('Erro ao buscar barbearia pelo slug:', error);
 
     if (error instanceof Error) {
-      const message = error.message;
-      
-      // Handle network connection errors specifically
-      if (message.includes('fetch') || message.includes('network') || message.includes('ECONNREFUSED') || message.includes('Connection refused')) {
-        throw new Error('Ocorreu um erro no servidor, tente mais tarde');
-      }
-      
       // Re-throw validation errors
-      if (message.includes('Slug inválido')) {
+      if (error.message.includes('Slug inválido')) {
         throw error;
       }
       
-      // Handle 404 errors
-      if (message.includes('BARBERSHOP_NOT_FOUND') || message.includes('404')) {
-        throw new Error('Barbearia não encontrada');
-      }
-      if (message.includes('MISSING_SLUG')) {
-        throw new Error('Slug é obrigatório');
+      // Handle not found errors
+      if (error.message.includes('Barbearia não encontrada')) {
+        throw error;
       }
       
       // Handle timeout errors
-      if (message.includes('timeout')) {
+      if (error.message.includes('timeout')) {
         throw new Error('Tempo limite excedido. Verifique sua conexão e tente novamente.');
       }
       
@@ -385,37 +405,54 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
  */
 export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
   try {
-    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    const { supabase } = await import('../config/supabaseConfig');
     
-    if (!token) {
-      throw new Error('Token de autenticação não encontrado');
+    // Verificar se o usuário está autenticado
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      throw new Error('Usuário não autenticado');
     }
 
-    const apiService = getApiService();
-    const response = await apiService.get<BarbershopResponse>('/api/barbershops/my-barbershop');
+    // Buscar o perfil do usuário para obter o barbershop_id
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('barbershop_id')
+      .eq('id', user.id)
+      .single();
 
-    if (!response || !response.success) {
-      throw new Error('Erro ao obter dados da barbearia');
+    if (profileError || !profile?.barbershop_id) {
+      throw new Error('Usuário não possui barbearia associada');
     }
 
-    return response.data;
+    // Buscar os dados da barbearia
+    const { data: barbershop, error: barbershopError } = await supabase
+      .from('Barbershops')
+      .select('*')
+      .eq('id', profile.barbershop_id)
+      .single();
+
+    if (barbershopError || !barbershop) {
+      throw new Error('Barbearia não encontrada');
+    }
+
+    return {
+      id: barbershop.id,
+      name: barbershop.name,
+      slug: barbershop.slug,
+      ownerEmail: barbershop.owner_email,
+      planType: barbershop.plan_type,
+      settings: barbershop.settings || {},
+      createdAt: barbershop.created_at,
+      description: barbershop.description,
+      address: barbershop.address,
+      phone: barbershop.phone
+    };
 
   } catch (error: unknown) {
     console.error('Erro ao obter barbearia atual:', error);
 
-    // The ApiService already handles timeout, network errors, and 401 authentication errors
-    // We just need to handle specific business logic errors
     if (error instanceof Error) {
-      const message = error.message;
-      
-      if (message.includes('401') || message.includes('Unauthorized')) {
-        throw new Error('Sessão expirada. Faça login novamente.');
-      }
-      if (message.includes('404') || message.includes('Not Found')) {
-        throw new Error('Usuário não possui barbearia associada');
-      }
-      
-      // Re-throw the error as-is if it's already user-friendly
       throw error;
     }
 

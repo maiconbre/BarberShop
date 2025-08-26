@@ -9,6 +9,7 @@ export interface BackendUser {
   password?: string; // Only for creation/update operations
   role: string;
   name: string;
+  barbershopId: string; // Required for tenant isolation
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -18,14 +19,21 @@ export interface BackendBarber {
   name: string;
   whatsapp: string;
   pix: string;
+  userId?: string; // Reference to User model
+  barbershopId: string; // Required for tenant isolation
   // Note: Backend also includes username from related User model
   username?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface BackendService {
   id: string; // UUID
   name: string;
   price: number; // Float
+  barbershopId: string; // Required for tenant isolation
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface BackendAppointment {
@@ -39,6 +47,9 @@ export interface BackendAppointment {
   barberName: string;
   price: number;
   wppclient: string;
+  barbershopId: string; // Required for tenant isolation
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface BackendComment {
@@ -46,6 +57,7 @@ export interface BackendComment {
   name: string;
   comment: string;
   status: 'pending' | 'approved' | 'rejected';
+  barbershopId: string; // Required for tenant isolation
   createdAt: Date;
   updatedAt: Date;
 }

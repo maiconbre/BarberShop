@@ -5,8 +5,7 @@ import { useParams } from 'react-router-dom';
 import BarbershopHero from '../components/feature/BarbershopHero';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import BarbershopNavbar from '../components/ui/BarbershopNavbar';
-import ServicesDebug from '../components/debug/ServicesDebug';
-import ApiTest from '../components/debug/ApiTest';
+
 
 
 // Componentes com lazy loading
@@ -129,7 +128,7 @@ const BarbershopHomePage: React.FC = () => {
     );
   }
 
-  // Removido redirecionamento automático para permitir acesso direto
+  
 
   return (
     <motion.div
@@ -139,9 +138,7 @@ const BarbershopHomePage: React.FC = () => {
       transition={{ duration: 0.3 }}
       className="flex flex-col min-h-screen bg-[#0D121E]"
     >
-      {/* Debug components - temporary */}
-      <ServicesDebug />
-      <ApiTest />
+
       
       {/* Navbar específica da barbearia */}
       <BarbershopNavbar onBookingClick={handleHeroBookingClick} />

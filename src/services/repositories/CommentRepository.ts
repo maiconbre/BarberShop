@@ -20,13 +20,16 @@ export class CommentRepository implements IRepository<PublicComment> {
    */
   private getTenantAwareUrl(endpoint: string): string {
     const barbershopSlug = localStorage.getItem('barbershopSlug');
+    const barbershopId = localStorage.getItem('barbershopId');
     
     if (barbershopSlug) {
-      // Use tenant-aware endpoint
-      return endpoint.replace('/api/', `/api/app/${barbershopSlug}/`);
+      // Remove /api do início do endpoint para evitar duplicação
+      const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint;
+      return `/api/app/${barbershopSlug}${cleanEndpoint}`;
+    } else if (barbershopId) {
+      return `${endpoint}?barbershopId=${barbershopId}`;
     }
     
-    // Fallback to standard endpoint
     return endpoint;
   }
 

@@ -1,18 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, TrendingUp, Users, Clock, DollarSign } from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
-import Stats from '../components/feature/Stats';
 import StandardLayout from '../components/layout/StandardLayout';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
 import OnboardingModal from '../components/onboarding/OnboardingModal';
 import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
 import ApiService from '../services/ApiService';
-import { isFirstAccess, clearFirstAccess, isOnboardingCompleted } from '../services/SetupService';
 import { useTenant } from '../contexts/TenantContext';
-import { PlanUpgradeNotification, UsageDashboard } from '../components/plan';
-import { PlanProvider } from '../contexts/PlanContext';
 import toast from 'react-hot-toast';
 
 interface Appointment {
@@ -31,13 +27,123 @@ interface Appointment {
   isBlocked?: boolean;
 }
 
+interface StatsProps {
+  appointments: Appointment[];
+  revenueDisplayMode: string;
+  setRevenueDisplayMode: (mode: string) => void;
+}
+
+const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  // Filtrar agendamentos por período
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter(appointment => {
+      const appointmentDate = new Date(appointment.date);
+      
+      if (revenueDisplayMode === 'month') {
+        return appointmentDate.getMonth() === currentMonth && 
+               appointmentDate.getFullYear() === currentYear;
+      } else if (revenueDisplayMode === 'week') {
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        return appointmentDate >= weekStart && appointmentDate <= weekEnd;
+      }
+      
+      return true;
+    });
+  }, [appointments, revenueDisplayMode, currentMonth, currentYear, today]);
+  
+  // Calcular estatísticas
+  const totalAppointments = filteredAppointments.length;
+  const completedAppointments = filteredAppointments.filter(app => app.status === 'completed').length;
+  const pendingAppointments = filteredAppointments.filter(app => app.status === 'pending').length;
+  const totalRevenue = filteredAppointments
+    .filter(app => app.status === 'completed')
+    .reduce((sum, app) => sum + (app.price || 0), 0);
+  
+  const stats = [
+    {
+      title: 'Total de Agendamentos',
+      value: totalAppointments,
+      icon: Calendar,
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/20'
+    },
+    {
+      title: 'Agendamentos Concluídos',
+      value: completedAppointments,
+      icon: Users,
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/20'
+    },
+    {
+      title: 'Agendamentos Pendentes',
+      value: pendingAppointments,
+      icon: Clock,
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/20'
+    },
+    {
+      title: 'Receita Total',
+      value: `R$ ${totalRevenue.toFixed(2)}`,
+      icon: DollarSign,
+      color: 'text-[#F0B35B]',
+      bgColor: 'bg-[#F0B35B]/20'
+    }
+  ];
+  
+  return (
+    <div className="bg-[#1A1F2E]/50 shadow-lg p-6 border border-[#F0B35B]/20">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-[#F0B35B]" />
+          Estatísticas
+        </h2>
+        <select
+          value={revenueDisplayMode}
+          onChange={(e) => setRevenueDisplayMode(e.target.value)}
+          className="appearance-none bg-[#252B3B] text-white text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] cursor-pointer border border-[#F0B35B]/30"
+        >
+          <option value="month">Este Mês</option>
+          <option value="week">Esta Semana</option>
+          <option value="all">Todos</option>
+        </select>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, index) => {
+          const IconComponent = stat.icon;
+          return (
+            <div key={index} className="bg-[#252B3B]/50 p-4 rounded-lg border border-white/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm">{stat.title}</p>
+                  <p className="text-white text-xl font-semibold mt-1">{stat.value}</p>
+                </div>
+                <div className={`p-3 rounded-full ${stat.bgColor}`}>
+                  <IconComponent className={`w-6 h-6 ${stat.color}`} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const APPOINTMENTS_PER_PAGE = 6;
 
 const DashboardPageNew: React.FC = () => {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
+  const { user } = useAuth();
   const location = useLocation();
-  const { currentTenant } = useTenant();
+  const { barbershopData, loading: tenantLoading, isValidTenant } = useTenant();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
@@ -53,8 +159,8 @@ const DashboardPageNew: React.FC = () => {
     let filtered = appointments;
 
     // Filtro por role do usuário: barbeiros veem apenas seus agendamentos
-    if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'barber' && 'id' in currentUser) {
-      filtered = filtered.filter(app => app.barberId === (currentUser as { id: string | number }).id.toString());
+    if (user && user.role === 'barber') {
+      filtered = filtered.filter(app => app.barberId === user.id);
     }
 
     const now = new Date();
@@ -67,9 +173,7 @@ const DashboardPageNew: React.FC = () => {
       return filtered.filter(app => app.date === tomorrow);
     }
     return filtered;
-  }, [appointments, filterMode, currentUser]);
-
-
+  }, [appointments, filterMode, user]);
 
   const indexOfLastAppointment = currentPage * APPOINTMENTS_PER_PAGE;
   const indexOfFirstAppointment = indexOfLastAppointment - APPOINTMENTS_PER_PAGE;
@@ -88,20 +192,17 @@ const DashboardPageNew: React.FC = () => {
   // Verificar se deve mostrar onboarding
   useEffect(() => {
     const shouldShowOnboarding = () => {
-      // Mostrar se veio do registro (state) ou se é primeiro acesso e não completou onboarding
       const fromRegistration = location.state?.showOnboarding;
-      const firstAccess = isFirstAccess();
-      const onboardingCompleted = isOnboardingCompleted();
+      const firstAccess = !localStorage.getItem('hasVisitedDashboard');
+      const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
       
       return fromRegistration || (firstAccess && !onboardingCompleted);
     };
 
     if (shouldShowOnboarding()) {
-      // Pequeno delay para garantir que a página carregou
       const timer = setTimeout(() => {
         setShowOnboarding(true);
-        // Limpar flag de primeiro acesso
-        clearFirstAccess();
+        localStorage.setItem('hasVisitedDashboard', 'true');
       }, 1000);
       
       return () => clearTimeout(timer);
@@ -110,6 +211,7 @@ const DashboardPageNew: React.FC = () => {
 
   const handleAppointmentAction = useCallback(async (appointmentId: string, action: 'complete' | 'delete' | 'toggle' | 'view', currentStatus?: string) => {
     if (!appointmentId) return;
+    
     try {
       if (action === 'view') {
         const appointment = appointments.find(app => app.id === appointmentId);
@@ -132,68 +234,16 @@ const DashboardPageNew: React.FC = () => {
           return;
         }
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/appointments/${appointmentId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          mode: 'cors'
-        });
-
-        if (response.ok) {
-          setAppointments(prevAppointments => prevAppointments.filter(app => app.id !== appointmentId));
-
-          if (selectedAppointment?.id === appointmentId) {
-            setIsViewModalOpen(false);
-            setSelectedAppointment(null);
-          }
-
-          // Invalidar cache específico do usuário após exclusão
-          const userId = currentUser && typeof currentUser === 'object' && 'id' in currentUser ? (currentUser as { id: string | number }).id : null;
-          if (userId) {
-            window.dispatchEvent(new CustomEvent('cacheUpdated', {
-              detail: {
-                keys: [
-                  `/api/appointments_user_${userId}`,
-                  '/api/appointments',
-                  `schedule_appointments_${userId}`
-                ],
-                timestamp: Date.now()
-              }
-            }));
-          }
-
-          toast.success('Agendamento excluído com sucesso!', {
-            duration: 4000,
-            style: {
-              background: '#1A1F2E',
-              color: '#fff',
-              border: '1px solid #F0B35B',
-              borderRadius: '12px',
-              padding: '16px',
-              fontSize: '12px',
-              fontWeight: '500'
-            },
-            iconTheme: {
-              primary: '#F0B35B',
-              secondary: '#1A1F2E'
-            }
-          });
-        } else {
-          const errorData = await response.json().catch(() => null);
-          console.error('Erro ao deletar agendamento:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorData
-          });
-          throw new Error(`Erro ao deletar agendamento: ${response.status} ${response.statusText}`);
+        const barbershopSlug = localStorage.getItem('barbershopSlug');
+        if (!barbershopSlug) {
+          throw new Error('Slug da barbearia não encontrado. Faça login novamente.');
         }
+
+        // TODO: Implementar cancelamento de agendamento com Supabase
+        throw new Error('Cancelamento deve ser implementado com Supabase');
       } else if (action === 'toggle' && currentStatus) {
         let newStatus: string;
         
-        // Define o próximo status baseado no status atual
         switch (currentStatus) {
           case 'pending':
             newStatus = 'confirmed';
@@ -209,32 +259,21 @@ const DashboardPageNew: React.FC = () => {
         }
         
         try {
-          // Usar o ApiService para requisições PATCH com retry e cache
-          await ApiService.patch(`/api/appointments/${appointmentId}`, { status: newStatus });
-          
-          // Se chegou aqui, a requisição foi bem-sucedida
-          setAppointments(prevAppointments =>
-            prevAppointments.map(app =>
-              app.id === appointmentId ? { ...app, status: newStatus } : app
-            )
-          );
-          if (selectedAppointment?.id === appointmentId) {
-            setSelectedAppointment(prev => prev ? { ...prev, status: newStatus } : null);
+          const barbershopSlug = localStorage.getItem('barbershopSlug');
+          if (!barbershopSlug) {
+            throw new Error('Slug da barbearia não encontrado. Faça login novamente.');
           }
 
-          // Invalidar cache específico do usuário após atualização
-          const userId = currentUser && typeof currentUser === 'object' && 'id' in currentUser ? currentUser.id : null;
-          if (userId) {
-            window.dispatchEvent(new CustomEvent('cacheUpdated', {
-              detail: {
-                keys: [
-                  `/api/appointments_user_${userId}`,
-                  '/api/appointments',
-                  `schedule_appointments_${userId}`
-                ],
-                timestamp: Date.now()
-              }
-            }));
+          await ApiService.patch(`/api/app/${barbershopSlug}/appointments/${appointmentId}`, { status: newStatus });
+          
+          setAppointments(prevAppointments =>
+            prevAppointments.map(app =>
+              app.id === appointmentId ? { ...app, status: newStatus as 'pending' | 'confirmed' | 'completed' } : app
+            )
+          );
+          
+          if (selectedAppointment?.id === appointmentId) {
+            setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as 'pending' | 'confirmed' | 'completed' } : null);
           }
 
           let statusMessage: string;
@@ -312,7 +351,7 @@ const DashboardPageNew: React.FC = () => {
         });
       }
     }
-  }, [appointments, selectedAppointment, currentUser]);
+  }, [appointments, selectedAppointment]);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -327,26 +366,20 @@ const DashboardPageNew: React.FC = () => {
         ]);
         
         if (isSubscribed && Array.isArray(appointments)) {
-          // Criar um mapa de serviceId para serviceName
           const serviceMap = new Map();
           if (Array.isArray(services)) {
-            services.forEach((service: unknown) => {
-              if (typeof service === 'object' && service !== null && 'id' in service && 'name' in service) {
+            services.forEach((service: any) => {
+              if (service && service.id && service.name) {
                 serviceMap.set(service.id, service.name);
               }
             });
           }
           
-          // Transformar os agendamentos para incluir o campo service
-          const transformedAppointments = appointments.map((appointment: unknown) => {
-            if (typeof appointment === 'object' && appointment !== null) {
-              const apt = appointment as { service?: string; serviceName?: string; serviceId?: string; [key: string]: unknown };
-              return {
-                ...appointment,
-                service: apt.service || apt.serviceName || serviceMap.get(apt.serviceId ?? '') || 'Serviço não especificado'
-              };
-            }
-            return appointment;
+          const transformedAppointments = appointments.map((appointment: any) => {
+            return {
+              ...appointment,
+              service: appointment.service || appointment.serviceName || serviceMap.get(appointment.serviceId) || 'Serviço não especificado'
+            };
           });
           
           setAppointments(transformedAppointments as Appointment[]);
@@ -365,7 +398,7 @@ const DashboardPageNew: React.FC = () => {
       isSubscribed = false;
       clearTimeout(timeoutId);
     };
-  }, [setAppointments]);
+  }, []);
 
   useEffect(() => {
     const handleOpenAppointmentModal = (event: CustomEvent) => {
@@ -382,35 +415,37 @@ const DashboardPageNew: React.FC = () => {
     };
   }, [appointments, handleAppointmentAction]);
 
+  // Aguardar carregamento do tenant antes de renderizar
+  if (tenantLoading) {
+    return (
+      <StandardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-[#F0B35B] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-400">Carregando dados da barbearia...</p>
+          </div>
+        </div>
+      </StandardLayout>
+    );
+  }
+
+  if (!isValidTenant) {
+    return (
+      <StandardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-400">Contexto de tenant inválido</p>
+        </div>
+      </StandardLayout>
+    );
+  }
+
   return (
     <StandardLayout>
-      {/* Dashboard sem título - apenas cards */}
-      <style>{`
-
-        .card-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1rem;
-        }
-        @media (min-width: 768px) {
-          .card-grid {
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1.25rem;
-          }
-        }
-        @media (min-width: 1024px) {
-          .card-grid {
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-          }
-        }
-      `}</style>
-
       <div className="space-y-6">
         {/* Layout principal do dashboard */}
-        <div className="flex flex-col lg:flex-row h-full">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Seção de Estatísticas */}
-          <div className="w-full lg:w-1/2 flex flex-col space-y-4">
+          <div className="w-full lg:w-1/2">
             <Stats 
               appointments={appointments} 
               revenueDisplayMode={revenueDisplayMode} 
@@ -419,8 +454,8 @@ const DashboardPageNew: React.FC = () => {
           </div>
 
           {/* Seção de Agendamentos */}
-          <div className="w-full lg:w-1/2 flex flex-col">
-            <div className="bg-[#1A1F2E]/50 shadow-lg p-6 flex-1 flex flex-col border border-[#F0B35B]/20">
+          <div className="w-full lg:w-1/2">
+            <div className="bg-[#1A1F2E]/50 shadow-lg p-6 h-full border border-[#F0B35B]/20">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -430,19 +465,18 @@ const DashboardPageNew: React.FC = () => {
                   <select
                     value={filterMode}
                     onChange={(e) => setFilterMode(e.target.value)}
-                    className="appearance-none bg-[#252B3B] text-white text-sm rounded-lg px-3 ml-8 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] cursor-pointer border border-[#F0B35B]/30"
+                    className="appearance-none bg-[#252B3B] text-white text-sm rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] cursor-pointer border border-[#F0B35B]/30"
                   >
                     <option value="today">Hoje</option>
                     <option value="tomorrow">Amanhã</option>
                     <option value="all">Todos</option>
                   </select>
                 </div>
-
               </div>
 
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1">
                 {currentAppointments.length === 0 ? (
-                  <div className="text-center py-8 flex-1 flex flex-col justify-center">
+                  <div className="text-center py-8">
                     <div className="w-20 h-20 bg-[#252B3B] rounded-full flex items-center justify-center mx-auto mb-4">
                       <Calendar className="w-10 h-10 text-gray-400" />
                     </div>
@@ -458,7 +492,7 @@ const DashboardPageNew: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="flex-1 space-y-3">
+                  <div className="space-y-3">
                     {currentAppointments.map((appointment) => (
                       <AppointmentCardNew
                         key={`appointment-${appointment.id}-${appointment.status}`}
@@ -472,7 +506,7 @@ const DashboardPageNew: React.FC = () => {
 
                     {totalPages > 1 && (
                       <div className="mt-4 pt-4 border-t border-white/10">
-                        <div className="flex justify-center items-center gap-2 flex-wrap overflow-x-hidden">
+                        <div className="flex justify-center items-center gap-2">
                           <button
                             onClick={() => {
                               const prevPage = currentPage - 1;
@@ -486,27 +520,24 @@ const DashboardPageNew: React.FC = () => {
                             <ChevronLeft className="w-4 h-4" />
                           </button>
 
-                          {(() => {
-                            const startPage = Math.max(1, currentPage - 1);
-                            const endPage = Math.min(totalPages, startPage + 1);
-                            const pages = [];
-                            for (let i = startPage; i <= endPage; i++) {
-                              pages.push(i);
-                            }
-                            return pages.map((number) => (
+                          {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                            const pageNumber = currentPage - 1 + i;
+                            if (pageNumber < 1 || pageNumber > totalPages) return null;
+                            
+                            return (
                               <button
-                                key={number}
-                                onClick={() => paginate(number)}
-                                className={`px-4 py-2 rounded-lg transition-all duration-200 font-medium ${
-                                  currentPage === number
-                                    ? 'bg-[#F0B35B] text-black shadow-lg'
-                                    : 'bg-[#252B3B] text-white hover:bg-[#2E354A] hover:shadow-md'
+                                key={pageNumber}
+                                onClick={() => paginate(pageNumber)}
+                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                  currentPage === pageNumber
+                                    ? 'bg-[#F0B35B] text-black'
+                                    : 'bg-[#252B3B] text-white hover:bg-[#2E354A]'
                                 }`}
                               >
-                                {number}
+                                {pageNumber}
                               </button>
-                            ));
-                          })()}
+                            );
+                          })}
 
                           <button
                             onClick={() => {
@@ -529,34 +560,28 @@ const DashboardPageNew: React.FC = () => {
             </div>
           </div>
         </div>
-
-
       </div>
 
+      {/* Modais */}
       <AppointmentViewModal
         isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setSelectedAppointment(null);
+        }}
         appointment={selectedAppointment}
-        onDelete={() => {
-          if (selectedAppointment) {
-            handleAppointmentAction(selectedAppointment.id, 'delete');
-            setIsViewModalOpen(false);
-          }
-        }}
-        onToggleStatus={async () => {
-          if (selectedAppointment) {
-            await handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status);
-            setIsViewModalOpen(false);
-          }
-        }}
+        onDelete={selectedAppointment ? () => handleAppointmentAction(selectedAppointment.id, 'delete') : undefined}
+        onToggleStatus={selectedAppointment ? () => handleAppointmentAction(selectedAppointment.id, 'toggle', selectedAppointment.status) : undefined}
       />
 
-      {/* Onboarding Modal */}
       {showOnboarding && (
         <OnboardingModal
           isOpen={showOnboarding}
-          onClose={() => setShowOnboarding(false)}
-          barbershopName={currentTenant?.name || 'Sua Barbearia'}
+          onClose={() => {
+            setShowOnboarding(false);
+            localStorage.setItem('onboardingCompleted', 'true');
+          }}
+          barbershopName={barbershopData?.name || 'Sua Barbearia'}
         />
       )}
     </StandardLayout>

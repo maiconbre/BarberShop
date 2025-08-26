@@ -8,7 +8,6 @@ import {
     validateSlugFormat,
     type BarbershopRegistrationData
 } from '../services/BarbershopService';
-import { setupInitialBarbershopData, markFirstAccess } from '../services/SetupService';
 import { useAuth } from '../contexts/AuthContext';
 
 interface LocationState {

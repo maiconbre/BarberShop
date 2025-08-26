@@ -17,29 +17,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     const checkAuth = () => {
-      // Verificar se há dados de autenticação válidos
-      const token = localStorage.getItem('token');
+      // Usar a nova estrutura de autenticação com Supabase
       const user = getCurrentUser();
-      const sessionExpiry = localStorage.getItem('sessionExpiry');
       
-      if (!token || !user || !sessionExpiry) {
-        setShouldRedirect(true);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Verificar se o token não expirou
-      const currentTime = new Date().getTime();
-      const isTokenValid = currentTime < parseInt(sessionExpiry);
-      
-      if (!isTokenValid) {
-        // Token expirado - limpar dados
-        const items = ['token', 'authToken', 'currentBarberId', 'user', 'sessionExpiry', 'rememberMe'];
-        items.forEach(item => {
-          localStorage.removeItem(item);
-          sessionStorage.removeItem(item);
-        });
-        sessionStorage.removeItem('sessionStart');
+      if (!user) {
         setShouldRedirect(true);
       } else {
         setShouldRedirect(false);

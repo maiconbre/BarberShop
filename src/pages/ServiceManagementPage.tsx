@@ -70,7 +70,6 @@ const ServiceManagementPage: React.FC = () => {
 
   const [newService, setNewService] = useState({ name: '', price: '' as unknown as number });
   const [error, setError] = useState('');
-  const [success] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

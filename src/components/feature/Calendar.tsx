@@ -46,7 +46,7 @@ const Calendar: React.FC<CalendarProps> = ({
   
   // Multi-tenant hooks
   const { loadAppointments: loadTenantAppointments } = useAppointments();
-  const { isValidTenant } = useTenant();
+  const { isValidTenant, barbershopId } = useTenant();
 
   // Gerar datas disponíveis (próximos 15 dias)
   const availableDates = useMemo(() => {
@@ -116,7 +116,7 @@ const Calendar: React.FC<CalendarProps> = ({
        
        // Verificar se os caches relevantes foram atualizados
        const relevantKeys = [
-         '/api/appointments',
+         `tenant_${barbershopId}_appointments`,
          `schedule_appointments_${selectedBarber || ''}`
        ];
        
@@ -137,7 +137,7 @@ const Calendar: React.FC<CalendarProps> = ({
     return () => {
       window.removeEventListener('cacheUpdated', handleCacheUpdated as EventListener);
     };
-  }, [fetchAppointments, selectedBarber]);
+  }, [fetchAppointments, selectedBarber, barbershopId]);
 
   // Atualizar com agendamentos pré-carregados
   useEffect(() => {

@@ -1,324 +1,130 @@
-import type { IApiService, RequestOptions, IErrorHandler, IApiMetrics } from '../interfaces/IApiService';
-import type { IHttpClient } from '../interfaces/IHttpClient';
-import type { ICacheService } from '../interfaces/ICacheService';
+import type { IApiService } from '../interfaces/IApiService';
 import { HttpClient } from './HttpClient';
 import { ErrorHandler } from './ErrorHandler';
 import { ApiMetrics } from './ApiMetrics';
+import { supabase as supabaseClient } from '../../config/supabaseConfig';
+import { logger } from '../../utils/logger';
 
-/**
- * Implementação do ApiService seguindo princípios SOLID
- * - SRP: Responsabilidade única de coordenar requisições HTTP
- * - OCP: Aberto para extensão através de interfaces
- * - LSP: Implementa IApiService de forma substituível
- * - ISP: Usa interfaces específicas e segregadas
- * - DIP: Depende de abstrações, não de implementações concretas
- */
+export interface ApiServiceConfig {
+  baseURL?: string;
+  timeout?: number;
+  retryAttempts?: number;
+  retryDelay?: number;
+}
+
 export class ApiServiceV2 implements IApiService {
-  private static instance: ApiServiceV2;
+  private httpClient: HttpClient;
+  private metrics: ApiMetrics;
+  private retryAttempts: number;
+  private retryDelay: number;
 
-  constructor(
-    private httpClient: IHttpClient,
-    private cacheService: ICacheService,
-    private errorHandler: IErrorHandler,
-    private metrics: IApiMetrics,
-    // Removed unused baseURL parameter since it's already handled by HttpClient
-  ) {}
-
-  /**
-   * Factory method para criar instância com dependências padrão
-   */
-  static create(baseURL: string, cacheService: ICacheService): ApiServiceV2 {
-    if (!ApiServiceV2.instance) {
-      const httpClient = new HttpClient(baseURL);
-      const errorHandler = new ErrorHandler();
-      const metrics = new ApiMetrics();
-
-      // Adiciona interceptadores padrão
-      httpClient.addRequestInterceptor({
-        onRequest: async (config) => {
-          // Adiciona token de autenticação se disponível
-          const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-          if (token) {
-            config.headers = {
-              ...config.headers,
-              'Authorization': `Bearer ${token}`,
-            };
-          }
-          
-          // Adiciona contexto de tenant (barbershopId) se disponível
-          const storedBarbershopId = localStorage.getItem('barbershopId') || 
-                                   sessionStorage.getItem('barbershopId');
-          
-          if (storedBarbershopId) {
-            // Adiciona barbershopId como query parameter ou header
-            if (config.url?.includes('/api/plans/')) {
-              // Para endpoints de planos, adiciona barbershopId como query parameter
-              if (config.url.includes('?')) {
-                config.url += `&barbershopId=${storedBarbershopId}`;
-              } else {
-                config.url += `?barbershopId=${storedBarbershopId}`;
-              }
-            } else {
-              // Para outros endpoints, adiciona como header
-              config.headers = {
-                ...config.headers,
-                'X-Barbershop-Id': storedBarbershopId,
-              };
-            }
-          }
-          
-          return config;
-        },
-        onRequestError: async (error) => {
-          throw error;
-        },
-      });
-
-      httpClient.addResponseInterceptor({
-        onResponse: async (response) => {
-          return response;
-        },
-        onResponseError: async (error) => {
-          // Trata erros de autenticação
-          if (error instanceof Error && 'status' in error && error.status === 401) {
-            // Remove tokens inválidos
-            localStorage.removeItem('authToken');
-            sessionStorage.removeItem('authToken');
-            
-            // Redireciona para login se necessário
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
-            }
-          }
-          throw error;
-        },
-      });
-
-      ApiServiceV2.instance = new ApiServiceV2(
-        httpClient,
-        cacheService,
-        errorHandler,
-        metrics,
-      );
-    }
-
-    return ApiServiceV2.instance;
+  constructor(config: ApiServiceConfig = {}) {
+    this.httpClient = new HttpClient({
+      baseURL: config.baseURL || import.meta.env.VITE_API_URL || 'http://localhost:3000',
+      timeout: config.timeout || 30000
+    });
+    this.metrics = ApiMetrics.getInstance();
+    this.retryAttempts = config.retryAttempts || 3;
+    this.retryDelay = config.retryDelay || 1000;
   }
 
-  /**
-   * Requisição GET com cache inteligente
-   */
-  async get<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const cacheKey = `GET:${endpoint}`;
-    
-    // Registra métricas
-    this.metrics.recordRequest(endpoint, 'GET');
-    const startTime = Date.now();
+  async get<T>(url: string): Promise<T> {
+    return this.executeWithMetrics('GET', url, () => 
+      this.executeWithRetry(async () => this.httpClient.get<T>(url, await this.getAuthHeaders()))
+    );
+  }
 
+  async post<T>(url: string, data?: any): Promise<T> {
+    return this.executeWithMetrics('POST', url, () => 
+      this.executeWithRetry(async () => this.httpClient.post<T>(url, data, await this.getAuthHeaders()))
+    );
+  }
+
+  async patch<T>(url: string, data?: any): Promise<T> {
+    return this.executeWithMetrics('PATCH', url, () => 
+      this.executeWithRetry(() => this.httpClient.patch<T>(url, data, this.getAuthHeaders()))
+    );
+  }
+
+  async delete<T>(url: string): Promise<T> {
+    return this.executeWithMetrics('DELETE', url, () => 
+      this.executeWithRetry(() => this.httpClient.delete<T>(url, this.getAuthHeaders()))
+    );
+  }
+
+  private async getAuthHeaders(): Promise<Record<string, string>> {
     try {
-      // Verifica cache se habilitado
-      if (options.cache !== false) {
-        const cachedData = await this.cacheService.get<T>(cacheKey);
-        if (cachedData !== null) {
-          this.metrics.recordResponse(endpoint, 'GET', Date.now() - startTime, 200);
-          return cachedData;
-        }
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`
+        };
       }
-
-      // Faz a requisição
-      const response = await this.executeWithRetry<T>(
-        () => this.httpClient.request<T>({
-          url: endpoint,
-          method: 'GET',
-          headers: options.headers,
-          timeout: options.timeout,
-        }),
-        endpoint,
-        'GET',
-        options.retries
-      );
-
-      // Salva no cache se habilitado
-      if (options.cache !== false) {
-        await this.cacheService.set(cacheKey, response.data, {
-          ttl: options.ttl,
-        });
-      }
-
-      this.metrics.recordResponse(endpoint, 'GET', Date.now() - startTime, response.status);
-      return response.data;
-
     } catch (error) {
-      this.metrics.recordError(endpoint, 'GET', error);
-      this.errorHandler.handleError(error, `GET ${endpoint}`);
-      throw error;
+      logger.warn('Failed to get auth token:', error);
     }
+    return {};
   }
 
-  /**
-   * Requisição POST
-   */
-  async post<T>(endpoint: string, data: unknown, options: RequestOptions = {}): Promise<T> {
-    this.metrics.recordRequest(endpoint, 'POST');
-    const startTime = Date.now();
-
-    try {
-      const response = await this.executeWithRetry<T>(
-        () => this.httpClient.request<T>({
-          url: endpoint,
-          method: 'POST',
-          headers: options.headers,
-          body: data,
-          timeout: options.timeout,
-        }),
-        endpoint,
-        'POST',
-        options.retries
-      );
-
-      // Invalida caches relacionados
-      await this.invalidateRelatedCaches(endpoint);
-
-      this.metrics.recordResponse(endpoint, 'POST', Date.now() - startTime, response.status);
-      return response.data;
-
-    } catch (error) {
-      this.metrics.recordError(endpoint, 'POST', error);
-      this.errorHandler.handleError(error, `POST ${endpoint}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Requisição PATCH
-   */
-  async patch<T>(endpoint: string, data: unknown, options: RequestOptions = {}): Promise<T> {
-    this.metrics.recordRequest(endpoint, 'PATCH');
-    const startTime = Date.now();
-
-    try {
-      const response = await this.executeWithRetry<T>(
-        () => this.httpClient.request<T>({
-          url: endpoint,
-          method: 'PATCH',
-          headers: options.headers,
-          body: data,
-          timeout: options.timeout,
-        }),
-        endpoint,
-        'PATCH',
-        options.retries
-      );
-
-      // Invalida caches relacionados
-      await this.invalidateRelatedCaches(endpoint);
-
-      this.metrics.recordResponse(endpoint, 'PATCH', Date.now() - startTime, response.status);
-      return response.data;
-
-    } catch (error) {
-      this.metrics.recordError(endpoint, 'PATCH', error);
-      this.errorHandler.handleError(error, `PATCH ${endpoint}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Requisição DELETE
-   */
-  async delete<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    this.metrics.recordRequest(endpoint, 'DELETE');
-    const startTime = Date.now();
-
-    try {
-      const response = await this.executeWithRetry<T>(
-        () => this.httpClient.request<T>({
-          url: endpoint,
-          method: 'DELETE',
-          headers: options.headers,
-          timeout: options.timeout,
-        }),
-        endpoint,
-        'DELETE',
-        options.retries
-      );
-
-      // Invalida caches relacionados
-      await this.invalidateRelatedCaches(endpoint);
-
-      this.metrics.recordResponse(endpoint, 'DELETE', Date.now() - startTime, response.status);
-      return response.data;
-
-    } catch (error) {
-      this.metrics.recordError(endpoint, 'DELETE', error);
-      this.errorHandler.handleError(error, `DELETE ${endpoint}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Executa requisição com retry automático
-   */
-  private async executeWithRetry<T>(
-    requestFn: () => Promise<{ data: T; status: number }>,
-    endpoint: string,
+  private async executeWithMetrics<T>(
     method: string,
-    maxRetries: number = 3
-  ): Promise<{ data: T; status: number }> {
-    let lastError: unknown;
+    url: string,
+    operation: () => Promise<T>
+  ): Promise<T> {
+    const startTime = Date.now();
+    let status = 200;
 
-    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      const result = await operation();
+      return result;
+    } catch (error) {
+      const apiError = ErrorHandler.handle(error);
+      status = apiError.status || 500;
+      throw apiError;
+    } finally {
+      const duration = Date.now() - startTime;
+      this.metrics.recordRequest(url, method, duration, status);
+    }
+  }
+
+  private async executeWithRetry<T>(operation: () => Promise<T>): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
-        return await requestFn();
+        return await operation();
       } catch (error) {
         lastError = error;
+        const apiError = ErrorHandler.handle(error);
 
-        // Se não é retentável ou é a última tentativa, lança o erro
-        if (!this.errorHandler.isRetryableError(error) || attempt > maxRetries) {
-          throw error;
+        // Don't retry on client errors (4xx) except 429
+        if (!ErrorHandler.isRetryableError(apiError)) {
+          throw apiError;
         }
 
-        // Aguarda antes da próxima tentativa
-        const delay = this.errorHandler.getRetryDelay(attempt);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        // Don't retry on the last attempt
+        if (attempt === this.retryAttempts) {
+          throw apiError;
+        }
+
+        // Wait before retrying
+        await this.delay(this.retryDelay * attempt);
+        logger.info(`Retrying request (attempt ${attempt + 1}/${this.retryAttempts})`);
       }
     }
 
-    throw lastError;
+    throw ErrorHandler.handle(lastError);
   }
 
-  /**
-   * Invalida caches relacionados ao endpoint
-   */
-  private async invalidateRelatedCaches(endpoint: string): Promise<void> {
-    // Estratégia simples: invalida caches que começam com o mesmo path base
-    const basePath = endpoint.split('/').slice(0, 3).join('/'); // Ex: /api/users
-    
-    // Esta implementação dependeria de uma funcionalidade no CacheService
-    // para listar e invalidar chaves por padrão
-    // Por enquanto, implementação básica
-    const commonCacheKeys = [
-      `GET:${basePath}`,
-      `GET:${endpoint}`,
-    ];
-
-    for (const key of commonCacheKeys) {
-      await this.cacheService.delete(key);
-    }
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Obtém métricas da API
-   */
   getMetrics() {
     return this.metrics.getMetrics();
   }
 
-  /**
-   * Reseta métricas
-   */
-  resetMetrics(): void {
-    // Since reset() is not defined in IApiMetrics interface, we'll clear metrics by reassigning
-    this.metrics = new ApiMetrics();
+  clearMetrics() {
+    this.metrics.clearMetrics();
   }
 }

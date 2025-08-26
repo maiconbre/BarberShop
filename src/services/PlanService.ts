@@ -261,11 +261,15 @@ export const checkPlanLimits = async (feature: 'barbers' | 'appointments'): Prom
   try {
     const usage = await getUsageStats();
     
+    if (!usage || !usage.usage) {
+      return true; // Fail-safe: permitir operação se dados não estão disponíveis
+    }
+    
     switch (feature) {
       case 'barbers':
-        return usage.usage.barbers.remaining > 0;
+        return (usage.usage.barbers?.remaining ?? 1) > 0;
       case 'appointments':
-        return usage.usage.appointments.remaining > 0;
+        return (usage.usage.appointments?.remaining ?? 1) > 0;
       default:
         return true;
     }

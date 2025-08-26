@@ -22,9 +22,7 @@ import {
 import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
 import { useBarbershopNavigation } from '../../hooks/useBarbershopNavigation';
-// Removed unused import: useTenant
 import { usePlan } from '../../hooks/usePlan';
-import UserFeedback from '../feature/UserFeedback';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
@@ -39,7 +37,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const navigate = useNavigate();
   const pageConfig = usePageConfig();
   const { goToPage, currentSlug } = useBarbershopNavigation();
-  // Removed unused tenant context
   const { planInfo, usage } = usePlan();
   
   // Use props if provided, otherwise use dynamic page config
@@ -50,7 +47,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Detectar mudanças no tamanho da tela
   useEffect(() => {
@@ -397,7 +393,8 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => setIsFeedbackOpen(true)}
+                    // Removido: onClick={() => setIsFeedbackOpen(true)}
+                onClick={() => {/* TODO: Implementar feedback com Supabase */}}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Enviar Feedback' : ''}
                   >
@@ -476,10 +473,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       </main>
 
       {/* User Feedback Modal */}
-      <UserFeedback 
-        isOpen={isFeedbackOpen} 
-        onClose={() => setIsFeedbackOpen(false)} 
-      />
+      {/* Removido: UserFeedback component */}
     </div>
   );
 };

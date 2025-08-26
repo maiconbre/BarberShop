@@ -115,6 +115,20 @@ const CommentManagementPage: React.FC = () => {
     );
   }, [filteredComments, currentPage, commentsPerPage]);
 
+  if (!isValidTenant) {
+    return (
+      <StandardLayout 
+        title="Comentários" 
+        subtitle="Gerencie os comentários dos clientes que serão exibidos no seu site"
+        icon={<MessageCircle className="w-6 h-6" />}
+      >
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-400">Contexto de tenant inválido</p>
+        </div>
+      </StandardLayout>
+    );
+  }
+
   return (
     <StandardLayout 
       title="Comentários" 

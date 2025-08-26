@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useTenant } from '../contexts/TenantContext';
 import toast from 'react-hot-toast';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
@@ -50,6 +51,7 @@ const convertAppointment = (baseAppointment: BaseAppointment): Appointment => {
 
 const AgendaPage: React.FC = memo(() => {
   const { getCurrentUser } = useAuth();
+  const { isValidTenant } = useTenant();
   const currentUser = useMemo(() => getCurrentUser(), [getCurrentUser]);
 
   // Hook de agendamentos com suporte a tenant
@@ -267,6 +269,20 @@ const AgendaPage: React.FC = memo(() => {
       window.removeEventListener('openAppointmentModal', handleOpenAppointmentModal as EventListener);
     };
   }, [handleAppointmentAction]);
+
+  if (!isValidTenant) {
+    return (
+      <StandardLayout
+        title="Agenda"
+        subtitle="Gerencie seus agendamentos e visualize o calendário"
+        icon={<Calendar className="w-6 h-6" />}
+      >
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-400">Contexto de tenant inválido</p>
+        </div>
+      </StandardLayout>
+    );
+  }
 
   return (
     <StandardLayout

@@ -4,7 +4,6 @@ import { useTenant } from '@/contexts/TenantContext';
 import { createTenantAwareRepository } from '@/services/TenantAwareRepository';
 import { createTenantAwareCache } from '@/services/TenantAwareCache';
 import type { Appointment, AppointmentStatus } from '@/types';
-// Removed unused import: AppointmentStatistics
 
 /**
  * Tenant-aware hook for appointment management

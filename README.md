@@ -108,12 +108,12 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 - **Vite Plugin Compression2 1.3.3** - Compressão Gzip
 - **Sharp 0.33.5** - Otimização de imagens
 
-### 🗄️ Banco de Dados e Backend
-- **Supabase** - Backend-as-a-Service para autenticação e storage
-- **API Externa** - Backend Node.js + Express + Sequelize
-- **PostgreSQL** - Banco de dados principal
-- **Multi-tenant Architecture** - Isolamento de dados por barbearia
-- **Rate Limiting** - Proteção contra abuso (200-300 req/min)
+### 🗄️ Backend e Banco de Dados
+- **Supabase** - Backend completo (Auth + Database + Storage + Edge Functions)
+- **PostgreSQL** - Banco de dados com Row Level Security (RLS)
+- **Multi-tenant Architecture** - Isolamento de dados por tenant
+- **Edge Functions** - API serverless para integrações externas
+- **Real-time** - Subscriptions automáticas para atualizações
 
 ### 🔧 Monitoramento e Produção
 - **Audit Logger** - Sistema de logs estruturados

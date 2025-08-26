@@ -72,13 +72,10 @@ const CountUp = ({ end, duration = 0.4, prefix = '', suffix = '' }: { end: numbe
 };
 
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
-  // Removed unused state
   const [showValues, setShowValues] = useState(true);
   const [cachedData, setCachedData] = useState<CachedStats | null>(null);
   const { getCurrentUser } = useAuth();
   const currentUser = getCurrentUser();
-
-  // Removido log desnecessário que causava chamadas repetidas
 
   // Estado para controlar a animação do olho
   const [isBlinking, setIsBlinking] = useState(false);
@@ -184,16 +181,12 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
   }, [appointments, generateCacheKey, isCacheValid]);
 
   // Filtrar agendamentos por usuário para estatísticas gerais
-  // Removed unused memoized value since it's not being used anywhere
   useMemo(() => {
     if ((currentUser as { role?: string })?.role === 'barber' && (currentUser as { id: string })?.id) {
       return appointments.filter(app => app.barberId === (currentUser as { id: string }).id);
     }
     return appointments;
   }, [appointments, currentUser]);
-
-  // Removed unused totalAppointments declaration
-  // Removed unused completedAppointments declaration
 
   // Usar cache para estatísticas com otimização
   const currentStats = useMemo(() => {

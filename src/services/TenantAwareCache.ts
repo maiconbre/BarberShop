@@ -55,7 +55,22 @@ export class TenantAwareCache {
    */
   remove(key: string): void {
     try {
-      cacheService.remove(this.getTenantKey(key));
+      cacheService.delete(this.getTenantKey(key));
+    } catch (error) {
+      // If tenant context is not available, silently fail
+      if (error instanceof Error && error.message.includes('Tenant context is required')) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Delete cached data for current tenant (alias for remove to match ICacheService interface)
+   */
+  async delete(key: string): Promise<void> {
+    try {
+      cacheService.delete(this.getTenantKey(key));
     } catch (error) {
       // If tenant context is not available, silently fail
       if (error instanceof Error && error.message.includes('Tenant context is required')) {
@@ -107,6 +122,25 @@ export class TenantAwareCache {
       }
       
       keysToRemove.forEach(key => localStorage.removeItem(key));
+    }
+  }
+
+  /**
+   * Fetch data with cache fallback for current tenant
+   */
+  async getOrFetch<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    options?: CacheOptions
+  ): Promise<T> {
+    try {
+      return await cacheService.getOrFetch<T>(this.getTenantKey(key), fetcher, options);
+    } catch (error) {
+      // If tenant context is not available, execute fetcher directly
+      if (error instanceof Error && error.message.includes('Tenant context is required')) {
+        return await fetcher();
+      }
+      throw error;
     }
   }
 

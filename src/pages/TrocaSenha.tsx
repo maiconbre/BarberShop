@@ -5,10 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useBarbershopNavigation } from '../hooks/useBarbershopNavigation';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
-import { CURRENT_ENV } from '../config/environmentConfig';
 
 const TrocaSenha: React.FC = () => {
-  const { getCurrentUser } = useAuth();
+  const { getCurrentUser, updatePassword } = useAuth();
   const { goToDashboard } = useBarbershopNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -88,34 +87,11 @@ const TrocaSenha: React.FC = () => {
         throw new Error('Usuário não encontrado');
       }
 
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/users/change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          currentPassword: formData.senhaAtual,
-          newPassword: formData.novaSenha
-        })
-      });
+      const result = await updatePassword(formData.novaSenha);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erro ao alterar senha');
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao alterar senha');
       }
-
-      // Atualizar o token de autenticação
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-
-      // Atualizar informações do usuário no storage
-      const updatedUser = { ...currentUser };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      sessionStorage.setItem('user', JSON.stringify(updatedUser));
 
       // Notificação visual elaborada para sucesso
       toast.success('Senha alterada com sucesso!', {

@@ -27,10 +27,10 @@ export const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
   const [limitError, setLimitError] = useState<PlanError | null>(null);
 
   // Determinar se pode executar baseado no usage atual
-  const canExecute = usage ? (
+  const canExecute = usage && usage.usage ? (
     feature === 'barbers' 
-      ? usage.usage.barbers.remaining > 0
-      : usage.usage.appointments.remaining > 0
+      ? usage.usage.barbers?.remaining > 0
+      : usage.usage.appointments?.remaining > 0
   ) : true;
 
   const execute = async () => {
@@ -52,8 +52,8 @@ export const PlanLimitGuard: React.FC<PlanLimitGuardProps> = ({
           code: feature === 'barbers' ? 'BARBER_LIMIT_EXCEEDED' : 'APPOINTMENT_LIMIT_EXCEEDED',
           message: fallbackMessage || `Limite de ${feature === 'barbers' ? 'barbeiros' : 'agendamentos'} atingido`,
           data: {
-            current: usage?.usage[feature].current || 0,
-            limit: usage?.usage[feature].limit || 0,
+            current: usage?.usage?.[feature]?.current || 0,
+            limit: usage?.usage?.[feature]?.limit || 0,
             planType: usage?.planType || 'free',
             upgradeRequired: true
           }

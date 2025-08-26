@@ -15,6 +15,17 @@ export { useBarbers } from './useBarbers';
 export { useServices } from './useServices';
 export { useComments } from './useComments';
 
+// Tenant-aware repository hooks
+export {
+  useTenantRepositories,
+  useTenantApiService,
+  useTenantUserRepository,
+  useTenantServiceRepository,
+  useTenantAppointmentRepository,
+  useTenantBarberRepository,
+  useTenantCommentRepository
+} from './useTenantRepositories';
+
 // Re-export types
 export type {
   CacheOptions,

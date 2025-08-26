@@ -48,7 +48,7 @@ export class UserRepository implements IPaginatedRepository<UserType> {
   async create(userData: Omit<UserType, 'id' | 'createdAt' | 'updatedAt'>): Promise<UserType> {
     // Valida os dados antes de enviar
     const validatedData = User.validateRegisterData(userData);
-    const newUser = await this.apiService.post<UserType>('/api/users', validatedData);
+    const newUser = await this.apiService.post<UserType>(this.getTenantAwareUrl('/api/users'), validatedData);
     return newUser;
   }
 
@@ -56,7 +56,7 @@ export class UserRepository implements IPaginatedRepository<UserType> {
    * Atualiza um usuário existente
    */
   async update(id: string, updates: Partial<UserType>): Promise<UserType> {
-    const updatedUser = await this.apiService.patch<UserType>(`/api/users/${id}`, updates);
+    const updatedUser = await this.apiService.patch<UserType>(this.getTenantAwareUrl(`/api/users/${id}`), updates);
     return updatedUser;
   }
 

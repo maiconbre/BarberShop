@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { adjustToBrasilia } from '../utils/DateTimeUtils';
-import { cacheService } from './CacheService';
+import { createTenantAwareCache } from './TenantAwareCache';
 import { logger } from '../utils/logger';
 import ApiService from './ApiService';
 import { LogConfig } from '../config/logConfig';
@@ -76,28 +76,36 @@ export const AVAILABLE_TIME_SLOTS = [
 
 // Configurações de cache para agendamentos
 const getAppointmentsCacheKey = (userId?: string) => {
-  // Se temos um userId, usar cache específico do usuário
-  if (userId) {
-    return `/api/appointments_user_${userId}`;
+  const barbershopId = localStorage.getItem('barbershopId');
+  if (!barbershopId) {
+    throw new Error('Barbershop ID não encontrado. Faça login novamente.');
   }
-  // Fallback para cache global (compatibilidade)
-  return '/api/appointments';
+  
+  if (userId) {
+    return `tenant_${barbershopId}_appointments_user_${userId}`;
+  }
+  // Fallback para cache global do tenant
+  return `tenant_${barbershopId}_appointments`;
 };
 
 // Função auxiliar para obter a URL base com tenant context
 const getTenantAwareUrl = (): string => {
   const barbershopSlug = localStorage.getItem('barbershopSlug');
+  const barbershopId = localStorage.getItem('barbershopId');
+  
   if (barbershopSlug) {
     return `/api/app/${barbershopSlug}/appointments`;
-  }
-  
-  // Fallback para compatibilidade
-  const barbershopId = localStorage.getItem('barbershopId');
-  if (barbershopId) {
+  } else if (barbershopId) {
     return `/api/appointments?barbershopId=${barbershopId}`;
   }
   
-  return '/api/appointments';
+  throw new Error('Slug da barbearia não encontrado. Faça login novamente.');
+};
+
+// Função para obter o tenant cache
+const getTenantCache = () => {
+  const barbershopId = localStorage.getItem('barbershopId') || 'default';
+  return createTenantAwareCache(() => barbershopId);
 };
 const APPOINTMENTS_CACHE_TTL = 10 * 60 * 1000; // 10 minutos (aumentado para reduzir requisições)
 
@@ -125,7 +133,8 @@ export const isTimeSlotAvailable = async (date: string, time: string, barberId: 
   try {
     // Verificar no cache global específico do barbeiro
     const barberCacheKey = `schedule_appointments_${barberId}`;
-    const barberCache = cacheService.get<AppointmentCacheItem[]>(barberCacheKey) || [];
+    const tenantCache = getTenantCache();
+    const barberCache = tenantCache.get<AppointmentCacheItem[]>(barberCacheKey) || [];
     
     const isAvailableInBarberCache = checkLocalAvailability(date, time, barberId, barberCache);
     if (!isAvailableInBarberCache) return false;
@@ -134,7 +143,7 @@ export const isTimeSlotAvailable = async (date: string, time: string, barberId: 
     const currentUser: CurrentUser = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = currentUser?.id;
     const userAppointmentsKey = getAppointmentsCacheKey(userId);
-    const userAppointments = cacheService.get<AppointmentCacheItem[]>(userAppointmentsKey) || [];
+    const userAppointments = tenantCache.get<AppointmentCacheItem[]>(userAppointmentsKey) || [];
     
     return checkLocalAvailability(date, time, barberId, userAppointments);
   } catch (error) {
@@ -205,7 +214,8 @@ export const loadAppointments = async (): Promise<AppointmentCacheItem[]> => {
     });
     
     // Durante backoff, sempre usar cache (mesmo que obsoleto) se disponível
-    const cachedData = cacheService.get<AppointmentCacheItem[]>(APPOINTMENTS_CACHE_KEY);
+    const tenantCache = getTenantCache();
+    const cachedData = tenantCache.get<AppointmentCacheItem[]>(APPOINTMENTS_CACHE_KEY);
     if (cachedData) {
       logger.apiWarn(`Usando cache durante período de backoff`);
       AppointmentLogger.logCacheOperation('BACKOFF_CACHE_HIT', APPOINTMENTS_CACHE_KEY, `${cachedData.length} appointments`);
@@ -223,7 +233,8 @@ export const loadAppointments = async (): Promise<AppointmentCacheItem[]> => {
   }
   
   // 3. Verificar se temos dados em cache válidos
-  const cachedData = cacheService.get<AppointmentCacheItem[]>(APPOINTMENTS_CACHE_KEY);
+  const tenantCache = getTenantCache();
+  const cachedData = tenantCache.get<AppointmentCacheItem[]>(APPOINTMENTS_CACHE_KEY);
   
   // 4. SEMPRE retornar cache se disponível para evitar "zeramento" dos dados
   // Só fazer nova requisição se não houver cache ou se for explicitamente solicitado
@@ -241,7 +252,8 @@ export const loadAppointments = async (): Promise<AppointmentCacheItem[]> => {
               lastFetchTime = Date.now();
               consecutiveFailures = 0;
               // Atualizar cache com novos dados
-              cacheService.set(APPOINTMENTS_CACHE_KEY, newData, { ttl: APPOINTMENTS_CACHE_TTL });
+              const tenantCache = getTenantCache();
+              tenantCache.set(APPOINTMENTS_CACHE_KEY, newData, { ttl: APPOINTMENTS_CACHE_TTL });
             }
           })
           .catch(err => {
@@ -346,7 +358,8 @@ async function fetchAppointments(): Promise<AppointmentCacheItem[]> {
       );
       
       // Armazenar no cache específico do usuário
-      cacheService.set(APPOINTMENTS_CACHE_KEY, validAppointments);
+      const tenantCache = getTenantCache();
+      tenantCache.set(APPOINTMENTS_CACHE_KEY, validAppointments);
       
       // Também manter o cache local para compatibilidade
       localStorage.setItem('appointments', JSON.stringify(validAppointments));
@@ -416,9 +429,10 @@ export const createAppointment = async (appointmentData: {
   try {
     logger.apiInfo('Criando novo agendamento', appointmentData);
     
-    // Usar o ApiService otimizado para POST
+    // Usar o ApiService otimizado para POST com tenant context
+    const tenantUrl = getTenantAwareUrl();
     const response = await ApiService.post<AppointmentCacheItem>(
-      '/api/appointments',
+      tenantUrl,
       appointmentData
     );
     
@@ -441,19 +455,23 @@ export const createAppointment = async (appointmentData: {
         const userId = currentUser?.id;
         
         // Limpar cache específico do usuário
+        const tenantCache = getTenantCache();
         if (userId) {
           const userCacheKey = getAppointmentsCacheKey(userId);
-          cacheService.remove(userCacheKey);
-          cacheService.remove(`schedule_appointments_${userId}`);
+          tenantCache.remove(userCacheKey);
+          tenantCache.remove(`schedule_appointments_${userId}`);
         }
         
-        // Limpar cache global
-        cacheService.remove('/api/appointments');
-        cacheService.remove('appointments');
+        // Limpar cache global do tenant
+        const barbershopId = localStorage.getItem('barbershopId');
+        if (barbershopId) {
+          tenantCache.remove(`tenant_${barbershopId}_appointments`);
+        }
+        tenantCache.remove('appointments');
         
         // Limpar cache específico do barbeiro
         if (appointmentData.barberId) {
-          cacheService.remove(`schedule_appointments_${appointmentData.barberId}`);
+          tenantCache.remove(`schedule_appointments_${appointmentData.barberId}`);
         }
         
         // Forçar atualização dos dados
@@ -463,9 +481,9 @@ export const createAppointment = async (appointmentData: {
         window.dispatchEvent(new CustomEvent('cacheUpdated', {
           detail: {
             keys: [
-              userId ? getAppointmentsCacheKey(userId) : '/api/appointments',
+              userId ? getAppointmentsCacheKey(userId) : getAppointmentsCacheKey(),
               `schedule_appointments_${appointmentData.barberId}`,
-              '/api/appointments'
+              getAppointmentsCacheKey()
             ],
             timestamp: Date.now()
           }

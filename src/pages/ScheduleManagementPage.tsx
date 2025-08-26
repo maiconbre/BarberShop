@@ -42,7 +42,7 @@ const ScheduleManagementPage: React.FC = () => {
     };
 
     loadBarbersData();
-  }, [currentUser, isValidTenant, loadBarbers, setIsLoading, setBarbers]);
+  }, [currentUser, isValidTenant, loadBarbers]);
   
   // Atualizar barbeiros quando os dados do hook mudarem
   const currentUserRole = currentUser && typeof currentUser === 'object' && 'role' in currentUser ? currentUser.role : undefined;
@@ -59,6 +59,16 @@ const ScheduleManagementPage: React.FC = () => {
   }, [tenantBarbers, currentUserRole, currentUser, setBarbers, setIsLoading]);
 
   if (!currentUser) return null;
+
+  if (!isValidTenant) {
+    return (
+      <StandardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-400">Contexto de tenant inválido</p>
+        </div>
+      </StandardLayout>
+    );
+  }
 
   return (
     <StandardLayout>

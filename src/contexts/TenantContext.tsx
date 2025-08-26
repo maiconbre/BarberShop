@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getBarbershopBySlug, type BarbershopData } from '../services/BarbershopService';
+import { ServiceFactory } from '../services/ServiceFactory';
 import { logger } from '../utils/logger';
 
 interface TenantContextType {
@@ -45,7 +46,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
-  const params = useParams();
+  const params = useParams<{ barbershopSlug: string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,8 +72,12 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       setBarbershopId(data.id);
       setBarbershopData(data);
       
-      // Store barbershopId in localStorage for API requests
+      // Store barbershopId and barbershopSlug in localStorage for API requests
       localStorage.setItem('barbershopId', data.id);
+      localStorage.setItem('barbershopSlug', tenantSlug);
+      
+      // Update ServiceFactory with new tenant context
+      ServiceFactory.updateTenantContext(data.id);
       
       // Load settings (default for now, can be extended)
       const defaultSettings = {
@@ -119,8 +124,12 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     setSettings(null);
     setError(null);
     
-    // Clear barbershopId from localStorage
+    // Clear barbershopId and barbershopSlug from localStorage
     localStorage.removeItem('barbershopId');
+    localStorage.removeItem('barbershopSlug');
+    
+    // Reset ServiceFactory to clear tenant-specific services
+    ServiceFactory.reset();
     
     logger.componentInfo('TenantContext', 'Tenant data cleared');
   }, []);
@@ -155,11 +164,22 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       return;
     }
     
-    // Capturar slug tanto de /app/:barbershopSlug quanto de /:barbershopSlug
-    let urlSlug = params.barbershopSlug;
+    // Capturar slug de forma mais robusta
+    let urlSlug: string | null = null;
     
-    // Para rotas diretas como /:barbershopSlug, capturar do pathname
-    if (!urlSlug && !isAppRoute) {
+    // Primeiro, tentar usar params.barbershopSlug (funciona quando as rotas estão bem definidas)
+    if (params.barbershopSlug) {
+      urlSlug = params.barbershopSlug;
+    }
+    // Se params não funcionar, extrair diretamente do pathname
+    else if (isAppRoute) {
+      const appRouteMatch = location.pathname.match(/^\/app\/([a-zA-Z0-9-]+)/);
+      if (appRouteMatch) {
+        urlSlug = appRouteMatch[1];
+      }
+    }
+    // Para rotas diretas como /:barbershopSlug
+    else {
       const pathMatch = location.pathname.match(/^\/([a-zA-Z0-9-]+)$/);
       if (pathMatch) {
         const potentialSlug = pathMatch[1];
@@ -181,7 +201,8 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       pathname: location.pathname,
       paramsSlug: params.barbershopSlug,
       isPublicRoute,
-      isAppRoute
+      isAppRoute,
+      paramsObject: params
     });
 
     if (urlSlug && urlSlug !== slug) {
@@ -191,7 +212,6 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       loadTenant(urlSlug).catch(error => {
         logger.componentError('TenantContext', 'Auto-load tenant failed:', error);
         console.error('TenantContext - Erro ao carregar tenant:', error);
-        // Removido redirecionamento automático para permitir acesso direto
       });
     } else if (!urlSlug && slug && !isAppRoute) {
       // Clear tenant if no slug in URL, but not for app routes during navigation
@@ -200,7 +220,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     } else {
       console.log('TenantContext - Nenhuma ação necessária');
     }
-  }, [params.barbershopSlug, location.pathname, slug, loadTenant, clearTenant, navigate]);
+  }, [params.barbershopSlug, location.pathname, slug, loadTenant, clearTenant]);
 
   const contextValue: TenantContextType = {
     // Tenant data

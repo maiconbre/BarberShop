@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import type { Appointment, BookingFormData, AppointmentFilters, AppointmentStatus } from '@/types';
-// Removed unused imports - these should be handled by components
+
 
 interface AppointmentState {
   // State

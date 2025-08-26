@@ -116,13 +116,13 @@ const UpgradePage: React.FC = () => {
                       <div className="bg-yellow-500/5 rounded-lg p-3">
                         <div className="text-yellow-300 font-medium">Barbeiros</div>
                         <div className="text-yellow-200">
-                          {usage.usage.barbers.current}/{usage.usage.barbers.limit}
+                          {usage.usage?.barbers?.current || 0}/{usage.usage?.barbers?.limit || 0}
                         </div>
                       </div>
                       <div className="bg-yellow-500/5 rounded-lg p-3">
                         <div className="text-yellow-300 font-medium">Agendamentos/mês</div>
                         <div className="text-yellow-200">
-                          {usage.usage.appointments.current}/{usage.usage.appointments.limit}
+                          {usage.usage?.appointments?.current || 0}/{usage.usage?.appointments?.limit || 0}
                         </div>
                       </div>
                     </div>
