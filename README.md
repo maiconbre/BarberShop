@@ -4,7 +4,7 @@
   <img src="./public/img/tela-inicial.png" alt="Barbershop" " />
 </p>
 
-## 🎯 Visão Gerall
+## 🎯 Visão Geral
 
 O **Barbershop** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
 
