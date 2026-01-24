@@ -29,12 +29,20 @@ export const useAuthRedirect = (enabled: boolean = true) => {
             navigate(redirectTo, { replace: true });
           } else {
             // Se não há barbearia, redireciona para registro
+            console.log('useAuthRedirect - Sem barbearia associada, redirecionando para registro');
             navigate('/register-barbershop', { replace: true });
           }
         } catch (error) {
           console.error('Erro ao carregar tenant para redirecionamento:', error);
-          // Em caso de erro, redireciona para login
-          navigate('/login', { replace: true });
+          
+          // Se o erro for que o usuário não tem barbearia, redirecionar para registro
+          if (error instanceof Error && error.message.includes('não possui barbearia')) {
+            console.log('useAuthRedirect - Usuário sem barbearia, redirecionando para registro');
+            navigate('/register-barbershop', { replace: true });
+          } else {
+            // Para outros erros, manter na página atual (não redirecionar)
+            console.warn('useAuthRedirect - Erro ao verificar barbearia, mantendo na página atual');
+          }
         }
       };
       

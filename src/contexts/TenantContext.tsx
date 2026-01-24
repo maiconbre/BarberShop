@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { getBarbershopBySlug, type BarbershopData } from '../services/BarbershopService';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { logger } from '../utils/logger';
@@ -18,6 +18,7 @@ interface TenantContextType {
   // Actions
   loadTenant: (slug: string) => Promise<void>;
   clearTenant: () => void;
+  refreshTenant: () => Promise<void>; // Invalidar cache e recarregar
   updateSettings: (newSettings: Record<string, unknown>) => void;
 
   // Utility
@@ -47,14 +48,13 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
   const [error, setError] = useState<Error | null>(null);
 
   const params = useParams<{ barbershopSlug: string }>();
-  const navigate = useNavigate();
   const location = useLocation();
 
   // Check if current tenant is valid
   const isValidTenant = Boolean(barbershopId && slug && barbershopData);
 
   /**
-   * Load tenant data from backend
+   * Load tenant data from backend (with cache)
    */
   const loadTenant = useCallback(async (tenantSlug: string) => {
     try {
@@ -65,6 +65,53 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
 
       // Store slug immediately
       setSlug(tenantSlug);
+
+      // ========================================
+      // PASSO 1: Verificar cache primeiro
+      // ========================================
+      const { TenantCacheService } = await import('../services/TenantCacheService');
+      const cachedData = TenantCacheService.get(tenantSlug);
+
+      if (cachedData) {
+        logger.componentInfo('TenantContext', `Using cached data for slug: ${tenantSlug}`);
+
+        setBarbershopId(cachedData.id);
+        setBarbershopData(cachedData);
+
+        // Store barbershopId and barbershopSlug in localStorage for API requests
+        localStorage.setItem('barbershopId', cachedData.id);
+        localStorage.setItem('barbershopSlug', tenantSlug);
+
+        // Update ServiceFactory with new tenant context
+        ServiceFactory.updateTenantContext(cachedData.id);
+
+        // Load settings from cached data or use defaults
+        const defaultSettings = {
+          theme: 'default',
+          timezone: 'America/Sao_Paulo',
+          workingHours: {
+            monday: { start: '09:00', end: '18:00' },
+            tuesday: { start: '09:00', end: '18:00' },
+            wednesday: { start: '09:00', end: '18:00' },
+            thursday: { start: '09:00', end: '18:00' },
+            friday: { start: '09:00', end: '18:00' },
+            saturday: { start: '09:00', end: '16:00' },
+            sunday: { start: '10:00', end: '14:00' }
+          },
+          ...(cachedData.settings || {})
+        };
+
+        setSettings(defaultSettings);
+
+        logger.componentInfo('TenantContext', `Tenant loaded from cache: ${cachedData.name} (${cachedData.slug})`);
+        setLoading(false);
+        return;
+      }
+
+      // ========================================
+      // PASSO 2: Buscar do backend se não estiver em cache
+      // ========================================
+      logger.componentInfo('TenantContext', `Cache miss, fetching from backend for slug: ${tenantSlug}`);
 
       // Get barbershop data from backend using public endpoint
       const data = await getBarbershopBySlug(tenantSlug);
@@ -91,12 +138,18 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
           friday: { start: '09:00', end: '18:00' },
           saturday: { start: '09:00', end: '16:00' },
           sunday: { start: '10:00', end: '14:00' }
-        }
+        },
+        ...(data.settings || {})
       };
 
       setSettings(defaultSettings);
 
-      logger.componentInfo('TenantContext', `Tenant loaded successfully: ${data.name} (${data.slug})`);
+      // ========================================
+      // PASSO 3: Salvar no cache
+      // ========================================
+      TenantCacheService.set(tenantSlug, data);
+
+      logger.componentInfo('TenantContext', `Tenant loaded successfully from backend: ${data.name} (${data.slug})`);
 
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
@@ -115,9 +168,9 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
   }, []);
 
   /**
-   * Clear tenant data
+   * Clear tenant data (including cache)
    */
-  const clearTenant = useCallback(() => {
+  const clearTenant = useCallback(async () => {
     setBarbershopId(null);
     setSlug(null);
     setBarbershopData(null);
@@ -128,11 +181,34 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     localStorage.removeItem('barbershopId');
     localStorage.removeItem('barbershopSlug');
 
+    // Clear cache
+    const { TenantCacheService } = await import('../services/TenantCacheService');
+    TenantCacheService.clear();
+
     // Reset ServiceFactory to clear tenant-specific services
     ServiceFactory.reset();
 
-    logger.componentInfo('TenantContext', 'Tenant data cleared');
+    logger.componentInfo('TenantContext', 'Tenant data and cache cleared');
   }, []);
+
+  /**
+   * Refresh tenant data (invalidate cache and reload)
+   */
+  const refreshTenant = useCallback(async () => {
+    if (!slug) {
+      logger.componentWarn('TenantContext', 'Cannot refresh: no slug available');
+      return;
+    }
+
+    logger.componentInfo('TenantContext', `Refreshing tenant data for slug: ${slug}`);
+
+    // Invalidar cache
+    const { TenantCacheService } = await import('../services/TenantCacheService');
+    TenantCacheService.invalidate(slug);
+
+    // Recarregar
+    await loadTenant(slug);
+  }, [slug, loadTenant]);
 
   /**
    * Update tenant settings
@@ -236,6 +312,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     // Actions
     loadTenant,
     clearTenant,
+    refreshTenant,
     updateSettings,
 
     // Utility
@@ -249,6 +326,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     error,
     loadTenant,
     clearTenant,
+    refreshTenant,
     updateSettings,
     isValidTenant
   ]);

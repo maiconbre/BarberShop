@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth} from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import { getCurrentBarbershop } from '../services/BarbershopService';
@@ -36,18 +36,18 @@ const LoginPage: React.FC = () => {
       }
 
       const result = await login({ email: formData.username, password: formData.password });
-      
+
       if (result.success) {
         try {
           // After successful login, load tenant context and redirect to tenant dashboard
           logger.componentInfo('LoginPage', 'Login successful, loading tenant context');
-          
+
           const barbershopData = await getCurrentBarbershop();
-          
+
           if (barbershopData && barbershopData.slug) {
             // Load tenant context
             await loadTenant(barbershopData.slug);
-            
+
             // Redirect to tenant-aware dashboard
             logger.componentInfo('LoginPage', `Redirecting to tenant dashboard: /app/${barbershopData.slug}/dashboard`);
             navigate(`/app/${barbershopData.slug}/dashboard`, { replace: true });
@@ -58,9 +58,16 @@ const LoginPage: React.FC = () => {
           }
         } catch (tenantError) {
           logger.componentError('LoginPage', 'Failed to load tenant context after login:', tenantError);
-          
-          // Fallback to registration if tenant loading fails
-          navigate('/register-barbershop', { replace: true });
+
+          // Se o erro for que o usuário não tem barbearia, redirecionar para registro
+          if (tenantError instanceof Error && tenantError.message.includes('não possui barbearia')) {
+            logger.componentInfo('LoginPage', 'User has no barbershop, redirecting to registration');
+            navigate('/register-barbershop', { replace: true });
+          } else {
+            // Para outros erros, também redirecionar para registro como fallback
+            logger.componentWarn('LoginPage', 'Error loading tenant, redirecting to registration as fallback');
+            navigate('/register-barbershop', { replace: true });
+          }
         }
       } else {
         setError(result.error || 'Email ou senha incorretos');
@@ -68,8 +75,8 @@ const LoginPage: React.FC = () => {
     } catch (err: unknown) {
       console.error('Erro durante o login:', err);
       setError(
-        err instanceof Error 
-          ? err.message 
+        err instanceof Error
+          ? err.message
           : 'Ocorreu um erro ao tentar fazer login. Tente novamente mais tarde.'
       );
     } finally {
@@ -82,11 +89,11 @@ const LoginPage: React.FC = () => {
       {/* Elementos decorativos */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3 animate-pulse-slow delay-1000"></div>
-      
+
       {/* Padrão de linhas decorativas */}
       <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{ 
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)', 
+        <div className="h-full w-full" style={{
+          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
           backgroundSize: '40px 40px'
         }}></div>
       </div>
@@ -111,7 +118,7 @@ const LoginPage: React.FC = () => {
           <p className="mt-2 text-center text-sm text-gray-400">
             Faça login para acessar o painel
           </p>
-          
+
           {/* Mensagem exclusiva para barbeiros */}
           <div className="mt-4 p-3 bg-[#F0B35B]/10 border border-[#F0B35B]/30 rounded-lg">
             <p className="text-center text-sm text-[#F0B35B] font-medium">

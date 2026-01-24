@@ -150,6 +150,7 @@ export const initiateEmailVerification = async (data: EmailVerificationRequest):
 
 /**
  * Registrar nova barbearia
+ * IMPORTANTE: Esta função garante que usuário e barbearia sejam criados em conjunto
  */
 export const registerBarbershop = async (data: BarbershopRegistrationData): Promise<BarbershopRegistrationResponse> => {
   try {
@@ -157,85 +158,163 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
 
     const { supabase } = await import('../config/supabaseConfig');
     
+    // ========================================
+    // PASSO 1: Verificar se já existe barbearia ou usuário
+    // ========================================
+    
     // Verificar se o slug já existe
     const { data: existingBarbershop } = await supabase
       .from('Barbershops')
       .select('slug')
       .eq('slug', data.slug)
-      .single();
+      .maybeSingle();
 
     if (existingBarbershop) {
       throw new Error('Este nome de barbearia já está em uso. Escolha outro nome.');
     }
 
-    // Criar usuário no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.ownerEmail,
-      password: data.ownerPassword,
-      options: {
-        data: {
-          name: data.ownerName,
-          username: data.ownerUsername
+    // Verificar se já existe usuário autenticado (para evitar criar duplicado)
+    const { data: { user: existingUser } } = await supabase.auth.getUser();
+    
+    if (existingUser) {
+      // Usuário já está autenticado, verificar se já tem barbearia
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('barbershop_id')
+        .eq('id', existingUser.id)
+        .maybeSingle();
+      
+      if (existingProfile?.barbershop_id) {
+        throw new Error('Você já possui uma barbearia cadastrada. Um usuário pode ter apenas uma barbearia.');
+      }
+      
+      console.log('Usuário já autenticado, pulando criação de conta');
+    }
+
+    // ========================================
+    // PASSO 2: Criar usuário no Supabase Auth (se não existir)
+    // ========================================
+    
+    let userId: string;
+    let userEmail: string;
+    let session = null;
+    
+    if (existingUser) {
+      // Usuário já existe
+      userId = existingUser.id;
+      userEmail = existingUser.email || data.ownerEmail;
+    } else {
+      // Criar novo usuário
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.ownerEmail,
+        password: data.ownerPassword,
+        options: {
+          data: {
+            name: data.ownerName,
+            username: data.ownerUsername
+          }
         }
-      }
-    });
+      });
 
-    if (authError) {
-      console.error('Erro ao criar usuário:', authError);
-      if (authError.message.includes('already registered')) {
-        throw new Error('Este email já está cadastrado. Use outro email.');
+      if (authError) {
+        console.error('Erro ao criar usuário:', authError);
+        if (authError.message.includes('already registered')) {
+          throw new Error('Este email já está cadastrado. Use outro email ou faça login.');
+        }
+        throw new Error('Erro ao criar conta de usuário: ' + authError.message);
       }
-      throw new Error('Erro ao criar conta de usuário');
+
+      if (!authData.user) {
+        throw new Error('Erro ao criar usuário');
+      }
+
+      userId = authData.user.id;
+      userEmail = authData.user.email || data.ownerEmail;
+      session = authData.session;
+      
+      console.log('Usuário criado com sucesso:', userId);
     }
 
-    if (!authData.user) {
-      throw new Error('Erro ao criar usuário');
-    }
-
-    // Criar barbearia na tabela
+    // ========================================
+    // PASSO 3: Criar barbearia
+    // ========================================
+    
     const { data: barbershopData, error: barbershopError } = await supabase
       .from('Barbershops')
       .insert({
         name: data.name,
         slug: data.slug,
-        owner_email: data.ownerEmail,
+        owner_email: userEmail,
         plan_type: data.planType || 'free',
         settings: {},
-        owner_id: authData.user.id
+        owner_id: userId
       })
       .select()
       .single();
 
     if (barbershopError) {
       console.error('Erro ao criar barbearia:', barbershopError);
-      // Se falhou ao criar barbearia, tentar deletar o usuário criado para manter consistência
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      
+      // Se falhou ao criar barbearia e acabamos de criar o usuário, tentar limpar
+      if (!existingUser && userId) {
+        console.warn('Tentando remover usuário criado devido a falha ao criar barbearia...');
+        try {
+          await supabase.auth.admin.deleteUser(userId);
+        } catch (cleanupError) {
+          console.error('Erro ao limpar usuário:', cleanupError);
+        }
+      }
+      
       throw new Error('Erro ao registrar barbearia: ' + barbershopError.message);
     }
 
     console.log('Barbearia registrada com sucesso:', barbershopData.slug);
 
-    // Criar ou atualizar o perfil do usuário explicitamente
-    console.log('Criando perfil do usuário...');
+    // ========================================
+    // PASSO 4: Criar/atualizar perfil do usuário com barbershop_id
+    // ========================================
+    
+    console.log('Atualizando perfil do usuário com barbershop_id...');
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert({
-        id: authData.user.id,
-        email: data.ownerEmail,
+        id: userId,
+        email: userEmail,
         name: data.ownerName,
-        username: data.ownerUsername, // Assumindo que a coluna existe baseada no input
+        username: data.ownerUsername,
         role: 'owner',
         barbershop_id: barbershopData.id,
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' });
 
     if (profileError) {
-      console.error('Erro ao criar perfil:', profileError);
-      // Não lançar erro fatal aqui para não bloquear o fluxo, mas logar
-      // O login pode falhar se o perfil não existir, mas o registro da barbearia foi feito
+      console.error('Erro ao atualizar perfil:', profileError);
+      // Não lançar erro fatal aqui, pois o trigger pode já ter criado o perfil
+      // Tentar novamente com UPDATE direto
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          name: data.ownerName,
+          username: data.ownerUsername,
+          role: 'owner',
+          barbershop_id: barbershopData.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+        
+      if (updateError) {
+        console.error('Erro ao fazer update do perfil:', updateError);
+        // Ainda assim não falhar, o importante é que a barbearia foi criada
+      } else {
+        console.log('Perfil atualizado com sucesso via UPDATE');
+      }
     } else {
       console.log('Perfil criado/atualizado com sucesso');
     }
+    
+    // ========================================
+    // PASSO 5: Retornar dados de sucesso
+    // ========================================
     
     return {
       success: true,
@@ -249,14 +328,14 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
           settings: barbershopData.settings
         },
         user: {
-          id: authData.user.id,
+          id: userId,
           username: data.ownerUsername,
           role: 'owner',
           name: data.ownerName,
           barbershopId: barbershopData.id
         },
-        token: authData.session?.access_token || '',
-        refreshToken: authData.session?.refresh_token || ''
+        token: session?.access_token || '',
+        refreshToken: session?.refresh_token || ''
       }
     };
 
@@ -417,22 +496,24 @@ export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
     }
 
     // Buscar o perfil do usuário para obter o barbershop_id
+    // Usando maybeSingle() em vez de single() para evitar erro 406 quando não há registros
     let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('barbershop_id')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     // Self-healing: Se o perfil não for encontrado, tentar recuperar
-    if (profileError) {
+    if (!profile || profileError) {
       console.warn('Perfil não encontrado, tentando recuperação automática...', profileError);
       
       // Tentar encontrar uma barbearia onde este usuário é o dono
+      // Usando maybeSingle() para evitar erro 406
       const { data: ownedBarbershop } = await supabase
         .from('Barbershops')
         .select('id')
         .eq('owner_id', user.id)
-        .single();
+        .maybeSingle();
         
       if (ownedBarbershop) {
         console.log('Barbearia encontrada para o usuário, recriando perfil...');
@@ -457,7 +538,7 @@ export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
             .from('profiles')
             .select('barbershop_id')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
             
           if (newProfile) {
             profile = newProfile;
@@ -469,8 +550,8 @@ export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
       }
     }
 
-    if (profileError || !profile?.barbershop_id) {
-      console.error('Falha final ao obter perfil:', profileError);
+    if (!profile?.barbershop_id) {
+      console.warn('Usuário não possui barbearia associada');
       throw new Error('Usuário não possui barbearia associada');
     }
 
