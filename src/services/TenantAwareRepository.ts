@@ -1,4 +1,4 @@
-import type { IRepository, SearchOptions } from './interfaces/IRepository';
+import type { IRepository } from './interfaces/IRepository';
 
 /**
  * Wrapper that adds tenant context to repository operations
@@ -29,7 +29,7 @@ export class TenantAwareRepository<T> implements IRepository<T> {
   /**
    * Add tenant context to data
    */
-  private addTenantToData(data: Partial<T>): Partial<T> {
+  private addTenantToData<D>(data: D): D & { barbershopId: string } {
     const tenantId = this.getTenantId();
     
     if (!tenantId) {
@@ -39,7 +39,7 @@ export class TenantAwareRepository<T> implements IRepository<T> {
     return {
       ...data,
       barbershopId: tenantId
-    } as Partial<T>;
+    } as D & { barbershopId: string };
   }
 
   async findAll(filters?: Record<string, unknown>): Promise<T[]> {
@@ -90,17 +90,6 @@ export class TenantAwareRepository<T> implements IRepository<T> {
   async exists(id: string): Promise<boolean> {
     const result = await this.findById(id);
     return result !== null;
-  }
-
-  async search(query: string, options?: SearchOptions): Promise<T[]> {
-    return this.baseRepository.search(query, {
-      ...options,
-      filters: this.addTenantContext(options?.filters)
-    });
-  }
-
-  async count(filters?: Record<string, unknown>): Promise<number> {
-    return this.baseRepository.count(this.addTenantContext(filters));
   }
 }
 

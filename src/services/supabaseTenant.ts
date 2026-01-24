@@ -24,12 +24,7 @@ class SupabaseTenantService {
   // Operações de Tenant
   async createTenant(data: CreateTenantData): Promise<{ tenant: Tenant | null; error: string | null }> {
     try {
-      const { data: tenant, error } = await rpc.createTenant({
-        p_name: data.name,
-        p_slug: data.slug,
-        p_description: data.description,
-        p_settings: data.settings
-      });
+      const { data: tenant, error } = await rpc.createTenant(data.name, data.slug);
 
       if (error) {
         return { tenant: null, error: error.message };
@@ -43,7 +38,7 @@ class SupabaseTenantService {
 
   async getTenantBySlug(slug: string): Promise<{ tenant: Tenant | null; error: string | null }> {
     try {
-      const { data: tenant, error } = await rpc.getTenantBySlug({ p_slug: slug });
+      const { data: tenant, error } = await rpc.getTenantBySlug(slug);
 
       if (error) {
         return { tenant: null, error: error.message };
@@ -329,7 +324,7 @@ class SupabaseTenantService {
   }
 
   // Estatísticas do tenant
-  async getTenantStats(tenantId?: string): Promise<{ stats: Record<string, number>; error: string | null }> {
+  async getTenantStats(_tenantId?: string): Promise<{ stats: Record<string, number>; error: string | null }> {
     try {
       const stats: Record<string, number> = {};
 

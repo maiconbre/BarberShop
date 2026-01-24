@@ -1,11 +1,5 @@
 import { logger } from '../utils/logger';
 
-interface RequestOptions {
-  headers?: Record<string, string>;
-  params?: Record<string, string | number | boolean>;
-  [key: string]: any;
-}
-
 class ApiService {
   private static baseURL = '/api';
 

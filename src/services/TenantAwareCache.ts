@@ -1,4 +1,5 @@
-import { cacheService, type CacheOptions } from './CacheService';
+import { cacheService } from './CacheService';
+import type { CacheOptions } from '@/types';
 
 /**
  * Tenant-aware cache service that isolates cache data by tenant
