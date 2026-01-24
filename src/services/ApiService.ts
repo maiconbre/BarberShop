@@ -1,125 +1,135 @@
-import { supabase as supabaseClient } from '../config/supabaseConfig';
 import { logger } from '../utils/logger';
 
-/**
- * Legacy ApiService for backward compatibility
- * This is a simplified version that delegates to Supabase client
- */
+interface RequestOptions {
+  headers?: Record<string, string>;
+  params?: Record<string, string | number | boolean>;
+  [key: string]: any;
+}
+
 class ApiService {
-  private baseURL: string;
+  private static baseURL = '/api';
 
-  constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  }
+  private static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    // Prevent double /api if endpoint already starts with it
+    const url = endpoint.startsWith('http') 
+        ? endpoint 
+        : endpoint.startsWith('/api')
+            ? endpoint
+            : `${this.baseURL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+    
+    // Default headers
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
 
-  async get<T>(url: string): Promise<T> {
+    if (options.headers) {
+      Object.assign(headers, options.headers);
+    }
+
+    const config: RequestInit = {
+      ...options,
+      headers,
+    };
+
     try {
-      logger.info(`API GET: ${url}`);
-      
-      // For Supabase operations, use the supabase client directly
-      if (url.includes('/api/')) {
-        const response = await fetch(`${this.baseURL}${url}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabaseClient.auth.getSession()).data.session?.access_token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        let errorData: any;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { message: response.statusText };
         }
         
-        return await response.json();
+        const error = new Error(errorData.message || `Request failed with status ${response.status}`);
+        (error as any).response = { data: errorData, status: response.status };
+        throw error;
       }
-      
-      throw new Error('Invalid API endpoint');
-    } catch (error) {
-      logger.error('API GET error:', 'ApiService', error);
-      throw error;
-    }
-  }
 
-  async post<T>(url: string, data?: any): Promise<T> {
-    try {
-      logger.info(`API POST: ${url}`);
-      
-      const response = await fetch(`${this.baseURL}${url}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabaseClient.auth.getSession()).data.session?.access_token}`
-        },
-        body: data ? JSON.stringify(data) : undefined
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Check for 204 No Content
+      if (response.status === 204) {
+        return {} as T;
       }
-      
+
       return await response.json();
     } catch (error) {
-      logger.error('API POST error:', 'ApiService', error);
+      logger.apiError(`Request failed: ${options.method || 'GET'} ${url}`, error);
       throw error;
     }
   }
 
-  async patch<T>(url: string, data?: any): Promise<T> {
-    try {
-      logger.info(`API PATCH: ${url}`);
-      
-      const response = await fetch(`${this.baseURL}${url}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabaseClient.auth.getSession()).data.session?.access_token}`
-        },
-        body: data ? JSON.stringify(data) : undefined
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      logger.error('API PATCH error:', 'ApiService', error);
-      throw error;
-    }
-  }
-
-  async delete(url: string): Promise<void> {
-    try {
-      logger.info(`API DELETE: ${url}`);
-      
-      const response = await fetch(`${this.baseURL}${url}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabaseClient.auth.getSession()).data.session?.access_token}`
+  static async get<T>(url: string, params?: Record<string, any>): Promise<T> {
+    let queryString = '';
+    if (params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value));
         }
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      queryString = `?${searchParams.toString()}`;
+    }
+    
+    return this.request<T>(`${url}${queryString}`, { method: 'GET' });
+  }
+
+  static async post<T>(url: string, data?: any): Promise<T> {
+    return this.request<T>(url, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async put<T>(url: string, data?: any): Promise<T> {
+    return this.request<T>(url, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async patch<T>(url: string, data?: any): Promise<T> {
+    return this.request<T>(url, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async delete<T>(url: string): Promise<T> {
+    return this.request<T>(url, { method: 'DELETE' });
+  }
+
+  /**
+   * Loads critical data required for app initialization
+   */
+  static async preloadCriticalData(): Promise<void> {
+    try {
+      logger.apiInfo('Preloading critical data...');
+      // Implement specific preloading logic here if needed
     } catch (error) {
-      logger.error('API DELETE error:', 'ApiService', error);
-      throw error;
+      logger.apiWarn('Failed to preload data', error);
     }
   }
 
-  // Legacy methods for backward compatibility
-  async preloadCriticalData(): Promise<void> {
-    logger.info('Preloading critical data...');
-    // Implementation can be added as needed
-  }
-
-  async getAppointments(): Promise<any[]> {
-    return this.get('/api/appointments');
+  /**
+   * Fetches the list of services for the current barbershop
+   * @deprecated Should be replaced by ServiceRepository
+   */
+  static async getServices(): Promise<any[]> {
+    try {
+      const barbershopSlug = localStorage.getItem('barbershopSlug');
+      
+      // If we are migrating to Supabase, we might want to use the Repository here
+      // But for backward compatibility with existing ApiService calls in components:
+      if (barbershopSlug) {
+           return await this.get<any[]>(`/api/app/${barbershopSlug}/services`);
+      }
+      return [];
+    } catch (error) {
+      logger.apiError('Failed to get services', error);
+      return [];
+    }
   }
 }
 
-const apiService = new ApiService();
-export default apiService;
-export { ApiService };
+export default ApiService;

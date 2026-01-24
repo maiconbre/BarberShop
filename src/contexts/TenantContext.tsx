@@ -10,16 +10,16 @@ interface TenantContextType {
   slug: string | null;
   barbershopData: BarbershopData | null;
   settings: Record<string, unknown> | null;
-  
+
   // Loading states
   loading: boolean;
   error: Error | null;
-  
+
   // Actions
   loadTenant: (slug: string) => Promise<void>;
   clearTenant: () => void;
   updateSettings: (newSettings: Record<string, unknown>) => void;
-  
+
   // Utility
   isValidTenant: boolean;
 }
@@ -45,7 +45,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
   const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
+
   const params = useParams<{ barbershopSlug: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,25 +60,25 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     try {
       setLoading(true);
       setError(null);
-      
+
       logger.componentInfo('TenantContext', `Loading tenant data for slug: ${tenantSlug}`);
-      
+
       // Store slug immediately
       setSlug(tenantSlug);
-      
+
       // Get barbershop data from backend using public endpoint
       const data = await getBarbershopBySlug(tenantSlug);
-      
+
       setBarbershopId(data.id);
       setBarbershopData(data);
-      
+
       // Store barbershopId and barbershopSlug in localStorage for API requests
       localStorage.setItem('barbershopId', data.id);
       localStorage.setItem('barbershopSlug', tenantSlug);
-      
+
       // Update ServiceFactory with new tenant context
       ServiceFactory.updateTenantContext(data.id);
-      
+
       // Load settings (default for now, can be extended)
       const defaultSettings = {
         theme: 'default',
@@ -93,21 +93,21 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
           sunday: { start: '10:00', end: '14:00' }
         }
       };
-      
+
       setSettings(defaultSettings);
-      
+
       logger.componentInfo('TenantContext', `Tenant loaded successfully: ${data.name} (${data.slug})`);
-      
+
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
       setError(errorObj);
       logger.componentError('TenantContext', 'Failed to load tenant:', errorObj);
-      
+
       // Clear tenant data on error
       setBarbershopId(null);
       setBarbershopData(null);
       setSettings(null);
-      
+
       throw errorObj;
     } finally {
       setLoading(false);
@@ -123,14 +123,14 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     setBarbershopData(null);
     setSettings(null);
     setError(null);
-    
+
     // Clear barbershopId and barbershopSlug from localStorage
     localStorage.removeItem('barbershopId');
     localStorage.removeItem('barbershopSlug');
-    
+
     // Reset ServiceFactory to clear tenant-specific services
     ServiceFactory.reset();
-    
+
     logger.componentInfo('TenantContext', 'Tenant data cleared');
   }, []);
 
@@ -142,7 +142,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       ...prev,
       ...newSettings
     }));
-    
+
     logger.componentInfo('TenantContext', 'Settings updated:', newSettings);
   }, []);
 
@@ -154,19 +154,19 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     const publicRoutes = [
       '/', '/showcase', '/about', '/services', '/contacts', '/login', '/register-barbershop', '/verify-email'
     ];
-    
+
     const isPublicRoute = publicRoutes.includes(location.pathname);
     const isAppRoute = location.pathname.startsWith('/app/');
-    
+
     if (isPublicRoute) {
       console.log('TenantContext - Public route detected, skipping tenant loading');
       clearTenant();
       return;
     }
-    
+
     // Capturar slug de forma mais robusta
     let urlSlug: string | null = null;
-    
+
     // Primeiro, tentar usar params.barbershopSlug (funciona quando as rotas estão bem definidas)
     if (params.barbershopSlug) {
       urlSlug = params.barbershopSlug;
@@ -194,7 +194,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
         }
       }
     }
-    
+
     console.log('TenantContext useEffect - Debug:', {
       urlSlug,
       currentSlug: slug,
@@ -208,7 +208,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     if (urlSlug && urlSlug !== slug) {
       logger.componentInfo('TenantContext', `URL slug changed to: ${urlSlug}`);
       console.log('TenantContext - Carregando tenant para slug:', urlSlug);
-      
+
       loadTenant(urlSlug).catch(error => {
         logger.componentError('TenantContext', 'Auto-load tenant failed:', error);
         console.error('TenantContext - Erro ao carregar tenant:', error);
@@ -222,25 +222,36 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     }
   }, [params.barbershopSlug, location.pathname, slug, loadTenant, clearTenant]);
 
-  const contextValue: TenantContextType = {
+  const contextValue: TenantContextType = React.useMemo(() => ({
     // Tenant data
     barbershopId,
     slug,
     barbershopData,
     settings,
-    
+
     // Loading states
     loading,
     error,
-    
+
     // Actions
     loadTenant,
     clearTenant,
     updateSettings,
-    
+
     // Utility
     isValidTenant
-  };
+  }), [
+    barbershopId,
+    slug,
+    barbershopData,
+    settings,
+    loading,
+    error,
+    loadTenant,
+    clearTenant,
+    updateSettings,
+    isValidTenant
+  ]);
 
   return (
     <TenantContext.Provider value={contextValue}>

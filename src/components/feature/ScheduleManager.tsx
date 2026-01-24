@@ -8,6 +8,8 @@ import { adjustToBrasilia, formatToISODate } from '../../utils/DateTimeUtils';
 import { useTenantCache } from '../../hooks/useTenantCache';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAppointments } from '../../hooks/useAppointments';
+import { AppointmentRepository } from '../../services/repositories/AppointmentRepository';
+
 
 
 interface ScheduleManagerProps {
@@ -30,20 +32,6 @@ interface Appointment {
   isCancelled?: boolean;
 }
 
-interface AppointmentData {
-  id?: string;
-  date?: string;
-  time?: string;
-  barberId?: string;
-  barberName?: string;
-  clientName?: string;
-  serviceName?: string;
-  price?: number;
-  status?: string;
-  isBlocked?: boolean;
-  isCancelled?: boolean;
-}
-
 // Atualizar array de horários disponíveis para sincronizar com o BookingModal
 const timeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
@@ -56,7 +44,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   currentBarberId
 }) => {
   const tenantCache = useTenantCache();
-  const { isValidTenant } = useTenant();
+  const { isValidTenant, barbershopId } = useTenant();
   const { appointments: tenantAppointments, loadAppointments: loadTenantAppointments } = useAppointments();
   const [selectedBarber, setSelectedBarber] = useState(currentBarberId || '');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -90,7 +78,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     });
   }, []);
 
-  const fetchAppointments = useCallback(async (forceRefresh = false) => {
+  const fetchAppointments = useCallback(async (_forceRefresh = false) => {
     if (!isValidTenant) {
       setAppointments([]);
       return;
@@ -99,27 +87,27 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     try {
       // Usar hook tenant-aware para carregar agendamentos
       await loadTenantAppointments();
-      
+
       // Filtrar agendamentos por barbeiro e critérios válidos
-      const filteredAppointments = (tenantAppointments || []).filter((apt: AppointmentData) => 
-        apt && 
+      const filteredAppointments = ((tenantAppointments || []) as unknown as Appointment[]).filter((apt) =>
+        apt &&
         apt.barberId === selectedBarber &&
-        apt.date && 
-        apt.time && 
-        timeSlots.includes(apt.time) && 
+        apt.date &&
+        apt.time &&
+        timeSlots.includes(apt.time) &&
         !apt.isCancelled
       );
 
       setAppointments(filteredAppointments);
       setError(null);
-      
+
       // Disparar evento para sincronizar com BookingModal
       window.dispatchEvent(new Event('appointmentsUpdated'));
-      
+
     } catch (error) {
       console.error('Erro ao buscar agendamentos:', error);
       setError('Erro ao carregar agendamentos. Tente novamente mais tarde.');
-      
+
       // Tentar usar cache em caso de erro
       const cachedData = await tenantCache.get(`schedule_appointments_${selectedBarber}`);
       if (cachedData) {
@@ -134,21 +122,20 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       setError(null); // Limpa possíveis erros anteriores
       fetchAppointments();
       const interval = setInterval(() => fetchAppointments(false), 30000); // Atualiza a cada 30 segundos
-      
+
       // Listener para atualizações de cache
       const handleCacheUpdate = (event: CustomEvent) => {
         const { keys } = event.detail;
         const cacheKey = `schedule_appointments_${selectedBarber}`;
-        const { barbershopId } = useTenant();
         const tenantAppointmentsKey = `tenant_${barbershopId}_appointments`;
         if (keys.includes(cacheKey) || keys.includes(tenantAppointmentsKey)) {
           // Recarregar dados do cache atualizado
           fetchAppointments(false);
         }
       };
-      
+
       window.addEventListener('cacheUpdated', handleCacheUpdate as EventListener);
-      
+
       return () => {
         clearInterval(interval);
         window.removeEventListener('cacheUpdated', handleCacheUpdate as EventListener);
@@ -163,9 +150,9 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
 
   const handleTimeClick = useCallback((time: string, appointment: Appointment | null) => {
     if (!selectedDate) return;
-    
+
     setSelectedTime(time);
-    
+
     if (appointment) {
       // Se já existe um agendamento, abre o modal de confirmação para excluir
       setAppointmentToDelete(appointment);
@@ -187,7 +174,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     }
 
     const barberName = barbers.find(b => b.id === selectedBarber)?.name || 'Desconhecido';
-    
+
     const tempAppointment: Appointment = {
       id: `temp-${Date.now()}`,
       date: formattedDate,
@@ -212,7 +199,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       const cachedData = await tenantCache.get(cacheKey) || [];
       const updatedCache = Array.isArray(cachedData) ? [...cachedData, tempAppointment] : [tempAppointment];
       await tenantCache.set(cacheKey, updatedCache);
-      
+
       // Atualizar também o cache global de agendamentos do tenant
       const { barbershopId } = useTenant();
       const globalCacheKey = `tenant_${barbershopId}_appointments`;
@@ -231,93 +218,94 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     setIsLoading(true);
     try {
       // Usar AppointmentRepository com tenant context
-       const appointmentRepository = new AppointmentRepository(new ApiService());
-       const result = await appointmentRepository.createWithBackendData({
-         clientName: blockedAppointmentData.name,
-         wppclient: blockedAppointmentData.phone,
-         serviceName: blockedAppointmentData.service,
-         date: new Date(formattedDate),
-         time: selectedTime,
-         barberId: selectedBarber,
-         barberName: barberName,
-         price: blockedAppointmentData.price,
-         status: 'pending'
-       });
-        const confirmedAppointment = {
-          ...tempAppointment,
-          id: result.data.id
-        };
+      const appointmentRepository = new AppointmentRepository();
+      const result = await appointmentRepository.createWithBackendData({
+        clientName: blockedAppointmentData.name,
+        wppclient: blockedAppointmentData.phone,
+        serviceName: blockedAppointmentData.service,
+        date: new Date(formattedDate),
+        time: selectedTime,
+        barberId: selectedBarber,
+        barberName: barberName,
+        price: blockedAppointmentData.price,
+        status: 'pending'
+      });
+      const confirmedAppointment = {
+        ...tempAppointment,
+        id: result.id
+      };
 
-        // Atualizar o appointment com o ID real no estado
-        setAppointments(prev => prev.map(app => 
-          app.id === tempAppointment.id ? confirmedAppointment : app
-        ));
+      // Atualizar o appointment com o ID real no estado
+      setAppointments(prev => prev.map(app =>
+        app.id === tempAppointment.id ? confirmedAppointment : app
+      ));
 
-        // Atualizar cache com o ID real do servidor
-        try {
-          const cacheKey = `schedule_appointments_${selectedBarber}`;
-          const cachedData = await tenantCache.get(cacheKey) || [];
-          const updatedCache = Array.isArray(cachedData) 
-            ? cachedData.map(app => app.id === tempAppointment.id ? confirmedAppointment : app)
-            : [confirmedAppointment];
-          await tenantCache.set(cacheKey, updatedCache);
-          
-          // Atualizar também o cache global do tenant
-          const { barbershopId } = useTenant();
-          const globalCacheKey = `tenant_${barbershopId}_appointments`;
-          const globalCachedData = await tenantCache.get(globalCacheKey) || [];
-          const updatedGlobalCache = Array.isArray(globalCachedData)
-            ? globalCachedData.map(app => app.id === tempAppointment.id ? confirmedAppointment : app)
-            : [confirmedAppointment];
-          await tenantCache.set(globalCacheKey, updatedGlobalCache);
-        } catch (cacheError) {
-          console.warn('Erro ao atualizar cache com ID real:', cacheError);
+      // Atualizar cache com o ID real do servidor
+      try {
+        const cacheKey = `schedule_appointments_${selectedBarber}`;
+        const cachedData = await tenantCache.get(cacheKey) || [];
+        const updatedCache = Array.isArray(cachedData)
+          ? cachedData.map(app => app.id === tempAppointment.id ? confirmedAppointment : app)
+          : [confirmedAppointment];
+        await tenantCache.set(cacheKey, updatedCache);
+
+        // Atualizar também o cache global do tenant
+        // Usar barbershopId do contexto de tenant
+        const globalCacheKey = `tenant_${barbershopId}_appointments`;
+        const globalCachedData = await tenantCache.get(globalCacheKey) || [];
+        const updatedGlobalCache = Array.isArray(globalCachedData)
+          ? globalCachedData.map(app => app.id === tempAppointment.id ? confirmedAppointment : app)
+          : [confirmedAppointment];
+        await tenantCache.set(globalCacheKey, updatedGlobalCache);
+      } catch (cacheError) {
+        console.warn('Erro ao atualizar cache com ID real:', cacheError);
+      }
+
+      // Disparar evento de atualização com o ID real
+      window.dispatchEvent(new CustomEvent('appointmentUpdate', {
+        detail: confirmedAppointment
+      }));
+
+      // Disparar evento para notificar outros componentes sobre a atualização do cache
+      window.dispatchEvent(new CustomEvent('cacheUpdated', {
+        detail: {
+          keys: [`schedule_appointments_${selectedBarber}`, `tenant_${barbershopId}_appointments`],
+          timestamp: Date.now()
         }
+      }));
 
-        // Disparar evento de atualização com o ID real
-        window.dispatchEvent(new CustomEvent('appointmentUpdate', {
-          detail: confirmedAppointment
-        }));
-
-        // Disparar evento para notificar outros componentes sobre a atualização do cache
-        window.dispatchEvent(new CustomEvent('cacheUpdated', {
-          detail: {
-            keys: [`schedule_appointments_${selectedBarber}`, `tenant_${useTenant().barbershopId}_appointments`],
-            timestamp: Date.now()
-          }
-        }));
-
-        // Notificação visual elaborada para bloqueio
-        toast.success('Horário bloqueado com sucesso!', {
-          duration: 4000,
-          style: {
-            background: '#1A1F2E',
-            color: '#fff',
-            border: '1px solid #F0B35B',
-            borderRadius: '12px',
-            padding: '16px',
-            fontSize: '12px',
-            fontWeight: '500'
-          },
-          iconTheme: {
-            primary: '#F0B35B',
-            secondary: '#1A1F2E'
-          }
-        });
+      // Notificação visual elaborada para bloqueio
+      toast.success('Horário bloqueado com sucesso!', {
+        duration: 4000,
+        style: {
+          background: '#1A1F2E',
+          color: '#fff',
+          border: '1px solid #F0B35B',
+          borderRadius: '12px',
+          padding: '16px',
+          fontSize: '12px',
+          fontWeight: '500'
+        },
+        iconTheme: {
+          primary: '#F0B35B',
+          secondary: '#1A1F2E'
+        }
+      });
     } catch (error) {
       // Reverter a atualização otimista no estado
       setAppointments(prev => prev.filter(app => app.id !== tempAppointment.id));
-      
+
       // Reverter também no cache
       try {
         const cacheKey = `schedule_appointments_${selectedBarber}`;
         const cachedData = await tenantCache.get(cacheKey) || [];
-        const revertedCache = Array.isArray(cachedData) 
+        const revertedCache = Array.isArray(cachedData)
           ? cachedData.filter(app => app.id !== tempAppointment.id)
           : [];
         await tenantCache.set(cacheKey, revertedCache);
-        
+
         // Reverter também o cache global do tenant
+        // Usar barbershopId do contexto de tenant para o cache global
         const globalCacheKey = `tenant_${barbershopId}_appointments`;
         const globalCachedData = await tenantCache.get(globalCacheKey) || [];
         const revertedGlobalCache = Array.isArray(globalCachedData)
@@ -327,7 +315,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
       } catch (cacheError) {
         console.warn('Erro ao reverter cache:', cacheError);
       }
-      
+
       console.error('Erro ao bloquear horário:', error);
       toast.error('Erro ao bloquear horário', {
         duration: 4000,
@@ -405,10 +393,10 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
 
       // TODO: Implementar operação com Supabase
       // Por enquanto, simular sucesso para não quebrar a funcionalidade
-      const successMessage = deletedAppointment.isBlocked 
-        ? 'Horário desbloqueado com sucesso!' 
+      const successMessage = deletedAppointment.isBlocked
+        ? 'Horário desbloqueado com sucesso!'
         : 'Agendamento cancelado com sucesso!';
-      
+
       toast.success(successMessage, {
         duration: 4000,
         style: {
@@ -425,21 +413,21 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           secondary: '#1A1F2E'
         }
       });
-      
+
       // Atualizar o cache após uma exclusão bem-sucedida
       const cacheKey = `schedule_appointments_${selectedBarber}`;
       const cachedData = await tenantCache.get(cacheKey);
       if (cachedData) {
-        const updatedCache = Array.isArray(cachedData) 
+        const updatedCache = Array.isArray(cachedData)
           ? cachedData.filter(app => app.id !== deletedAppointment.id)
           : [];
         await tenantCache.set(cacheKey, updatedCache);
       }
-      
+
       // Atualizar também o cache específico do usuário
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = currentUser?.id;
-      const { barbershopId } = useTenant();
+      // Usar barbershopId do contexto de tenant
       if (userId) {
         const userCacheKey = `tenant_${barbershopId}_appointments_user_${userId}`;
         const userCachedData = await tenantCache.get(userCacheKey);
@@ -450,7 +438,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           await tenantCache.set(userCacheKey, updatedUserCache);
         }
       }
-      
+
       // Atualizar também o cache global de agendamentos do tenant
       const globalCacheKey = `tenant_${barbershopId}_appointments`;
       const globalCachedData = await tenantCache.get(globalCacheKey);
@@ -460,30 +448,30 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           : [];
         await tenantCache.set(globalCacheKey, updatedGlobalCache);
       }
-      
+
       // Disparar evento para notificar outros componentes sobre a atualização do cache
       window.dispatchEvent(new CustomEvent('cacheUpdated', {
         detail: {
           keys: [
-            `schedule_appointments_${selectedBarber}`, 
+            `schedule_appointments_${selectedBarber}`,
             `tenant_${barbershopId}_appointments`,
             userId ? `tenant_${barbershopId}_appointments_user_${userId}` : null
           ].filter(Boolean),
           timestamp: Date.now()
         }
       }));
-      
+
       // Recarregar os agendamentos
       fetchAppointments();
     } catch (error) {
       // Reverter a atualização otimista
       setAppointments(prev => [...prev, deletedAppointment]);
-      
+
       // Reverter o evento
       window.dispatchEvent(new CustomEvent('appointmentUpdate', {
         detail: deletedAppointment
       }));
-      
+
       console.error('Erro ao excluir agendamento:', error);
       toast.error('Erro ao excluir agendamento', {
         duration: 4000,
@@ -508,25 +496,25 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
 
   const getAppointmentForTimeSlot = useCallback((date: Date, time: string): Appointment | null => {
     if (!date || !Array.isArray(appointments)) return null;
-    
+
     const dateInBrasilia = adjustToBrasilia(date);
     const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
-    
+
     return appointments.find(
-      appointment => 
-        appointment.date === formattedDate && 
-        appointment.time === time && 
-        appointment.barberId === selectedBarber && 
-        !appointment.isCancelled && 
+      appointment =>
+        appointment.date === formattedDate &&
+        appointment.time === time &&
+        appointment.barberId === selectedBarber &&
+        !appointment.isCancelled &&
         timeSlots.includes(appointment.time)
     ) || null;
   }, [appointments, selectedBarber]);
 
   const isTimeSlotAvailable = useCallback((date: string, time: string, barberId: string): boolean => {
-    return !appointments.some(appointment => 
-      appointment.date === date && 
-      appointment.time === time && 
-      appointment.barberId === barberId && 
+    return !appointments.some(appointment =>
+      appointment.date === date &&
+      appointment.time === time &&
+      appointment.barberId === barberId &&
       !appointment.isCancelled
     );
   }, [appointments]);
@@ -561,54 +549,54 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           </div>
         </div>
 
-          <div className="flex justify-center">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-4 max-w-3xl mx-auto">
-              {isLoading ? (
-                <div className="col-span-full flex justify-center py-6">
-                  <Loader2 className="w-7 h-7 animate-spin text-[#F0B35B]" />
-                </div>
-              ) : error ? (
-                <div className="col-span-full text-center text-red-500 py-6">
-                  {error}
-                </div>
-              ) : (
-                timeSlots.map(time => {
-                  const appointment = selectedDate ? getAppointmentForTimeSlot(selectedDate, time) : null;
-                  const isBooked = !!appointment;
-                  const isBlocked = appointment?.isBlocked;
-                  
-                  return (
-                    <button
-                      type="button"
-                      key={time}
-                      onClick={() => handleTimeClick(time, appointment)}
-                      className={`
+        <div className="flex justify-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-4 max-w-3xl mx-auto">
+            {isLoading ? (
+              <div className="col-span-full flex justify-center py-6">
+                <Loader2 className="w-7 h-7 animate-spin text-[#F0B35B]" />
+              </div>
+            ) : error ? (
+              <div className="col-span-full text-center text-red-500 py-6">
+                {error}
+              </div>
+            ) : (
+              timeSlots.map(time => {
+                const appointment = selectedDate ? getAppointmentForTimeSlot(selectedDate, time) : null;
+                const isBooked = !!appointment;
+                const isBlocked = appointment?.isBlocked;
+
+                return (
+                  <button
+                    type="button"
+                    key={time}
+                    onClick={() => handleTimeClick(time, appointment)}
+                    className={`
                         py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden
-                        ${isBlocked 
-                          ? 'bg-orange-500/20 text-orange-300 cursor-pointer border border-orange-500/30' 
-                          : isBooked
-                            ? 'bg-red-500/20 text-red-300 cursor-pointer border border-red-500/30' 
-                            : time === selectedTime
-                              ? 'bg-[#F0B35B] text-black transform scale-105 shadow-md shadow-[#F0B35B]/20' 
-                              : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 cursor-pointer border border-[#F0B35B]/10'}
+                        ${isBlocked
+                        ? 'bg-orange-500/20 text-orange-300 cursor-pointer border border-orange-500/30'
+                        : isBooked
+                          ? 'bg-red-500/20 text-red-300 cursor-pointer border border-red-500/30'
+                          : time === selectedTime
+                            ? 'bg-[#F0B35B] text-black transform scale-105 shadow-md shadow-[#F0B35B]/20'
+                            : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:scale-105 cursor-pointer border border-[#F0B35B]/10'}
                       `}
-                    >
-                      <div className="flex flex-col items-center justify-center text-center gap-1">
-                        <span className="relative z-10 font-bold">{time}</span>
-                        {isBlocked && (
-                          <span className="text-xs bg-orange-500/30 text-orange-200 px-2 py-0.5 rounded-full w-full">Bloqueado</span>
-                        )}
-                        {isBooked && !isBlocked && (
-                          <span className="text-xs bg-red-500/30 text-red-200 px-2 py-0.5 rounded-full w-full">Ocupado</span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
+                  >
+                    <div className="flex flex-col items-center justify-center text-center gap-1">
+                      <span className="relative z-10 font-bold">{time}</span>
+                      {isBlocked && (
+                        <span className="text-xs bg-orange-500/30 text-orange-200 px-2 py-0.5 rounded-full w-full">Bloqueado</span>
+                      )}
+                      {isBooked && !isBlocked && (
+                        <span className="text-xs bg-red-500/30 text-red-200 px-2 py-0.5 rounded-full w-full">Ocupado</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </div>
-        
+        </div>
+
       </div>
     );
   };
@@ -643,13 +631,13 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
     const today = adjustToBrasilia(new Date());
     today.setHours(0, 0, 0, 0);
     const currentDate = formatToISODate(today);
-    
+
     // Filtrar apenas agendamentos do dia atual em diante
     const filteredAppointments = appointments.filter(appointment => {
       // Garantir que estamos comparando apenas as datas, sem considerar o horário
       return appointment.date >= currentDate;
     });
-    
+
     // Agrupar agendamentos por data
     const groupedAppointments: Record<string, Appointment[]> = {};
     filteredAppointments.forEach(appointment => {
@@ -685,11 +673,11 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
               </h3>
               <div className="space-y-3">
                 {dateAppointments.map(appointment => (
-                  <div 
-                    key={appointment.id} 
+                  <div
+                    key={appointment.id}
                     className={`flex justify-between items-center p-4 rounded-lg transition-all duration-200 hover:shadow-md
-                      ${appointment.isBlocked 
-                        ? 'bg-orange-500/10 border border-orange-500/30' 
+                      ${appointment.isBlocked
+                        ? 'bg-orange-500/10 border border-orange-500/30'
                         : 'bg-[#252B3B] border border-[#F0B35B]/10'}
                     `}
                   >
@@ -700,8 +688,8 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                       <div>
                         <p className="font-medium text-lg">{appointment.time}</p>
                         <p className="text-sm text-gray-400">
-                          {appointment.isBlocked 
-                            ? 'Horário Bloqueado' 
+                          {appointment.isBlocked
+                            ? 'Horário Bloqueado'
                             : `${appointment.clientName || 'Cliente'} - ${appointment.serviceName || 'Serviço'}`}
                         </p>
                       </div>
@@ -761,8 +749,8 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           <button
             onClick={() => setViewMode('calendar')}
             className={`px-5 py-2.5 rounded-md text-sm font-medium transition-all flex items-center gap-2
-              ${viewMode === 'calendar' 
-                ? 'bg-[#F0B35B] text-black shadow-inner' 
+              ${viewMode === 'calendar'
+                ? 'bg-[#F0B35B] text-black shadow-inner'
                 : 'bg-transparent text-white hover:bg-[#1A1F2E]'}
             `}
           >
@@ -772,8 +760,8 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
           <button
             onClick={() => setViewMode('list')}
             className={`px-5 py-2.5 rounded-md text-sm font-medium transition-all flex items-center gap-2
-              ${viewMode === 'list' 
-                ? 'bg-[#F0B35B] text-black shadow-inner' 
+              ${viewMode === 'list'
+                ? 'bg-[#F0B35B] text-black shadow-inner'
                 : 'bg-transparent text-white hover:bg-[#1A1F2E]'}
             `}
           >
@@ -817,11 +805,11 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                   {selectedDate?.toLocaleDateString('pt-BR')} às {selectedTime}
                 </span>
               </div>
-              
+
               <div className="flex items-start gap-2 text-yellow-400/80 bg-yellow-400/10 p-3 rounded-lg">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <p className="text-sm">
-                  {actionType === 'block' 
+                  {actionType === 'block'
                     ? 'Este horário será marcado como ocupado e não estará disponível para agendamentos de clientes.'
                     : 'Este horário será liberado e estará disponível para agendamentos de clientes.'}
                 </p>
@@ -875,14 +863,14 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                   {new Date(appointmentToDelete.date).toLocaleDateString('pt-BR')} às {appointmentToDelete.time}
                 </span>
               </div>
-              
+
               {!appointmentToDelete.isBlocked && (
                 <div className="flex flex-col gap-1 text-sm text-gray-400">
                   <p><span className="text-gray-500">Cliente:</span> {appointmentToDelete.clientName}</p>
                   <p><span className="text-gray-500">Serviço:</span> {appointmentToDelete.serviceName}</p>
                 </div>
               )}
-              
+
               <div className="flex items-start gap-2 text-red-400/80 bg-red-500/10 p-3 rounded-lg">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <p className="text-sm">

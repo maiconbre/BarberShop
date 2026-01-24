@@ -2,7 +2,6 @@ import { format } from 'date-fns';
 import { adjustToBrasilia } from '../utils/DateTimeUtils';
 import { createTenantAwareCache } from './TenantAwareCache';
 import { logger } from '../utils/logger';
-import ApiService from './ApiService';
 import { LogConfig } from '../config/logConfig';
 import { safeFixed } from '../utils/numberUtils';
 
@@ -88,19 +87,7 @@ const getAppointmentsCacheKey = (userId?: string) => {
   return `tenant_${barbershopId}_appointments`;
 };
 
-// Função auxiliar para obter a URL base com tenant context
-const getTenantAwareUrl = (): string => {
-  const barbershopSlug = localStorage.getItem('barbershopSlug');
-  const barbershopId = localStorage.getItem('barbershopId');
-  
-  if (barbershopSlug) {
-    return `/api/app/${barbershopSlug}/appointments`;
-  } else if (barbershopId) {
-    return `/api/appointments?barbershopId=${barbershopId}`;
-  }
-  
-  throw new Error('Slug da barbearia não encontrado. Faça login novamente.');
-};
+
 
 // Função para obter o tenant cache
 const getTenantCache = () => {
@@ -189,7 +176,6 @@ export const loadAppointments = async (): Promise<AppointmentCacheItem[]> => {
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
   const userId = currentUser?.id;
   const APPOINTMENTS_CACHE_KEY = getAppointmentsCacheKey(userId);
-  const API_URL = getTenantAwareUrl();
   
   AppointmentLogger.logOperation('LOAD_APPOINTMENTS_START', {
     operationId,
@@ -340,6 +326,10 @@ async function fetchAppointments(): Promise<AppointmentCacheItem[]> {
   const userId = currentUser?.id;
   const APPOINTMENTS_CACHE_KEY = getAppointmentsCacheKey(userId);
 
+  // Usar AppointmentRepository
+  const { ServiceFactory } = await import('./ServiceFactory');
+  const appointmentRepository = ServiceFactory.getAppointmentRepository();
+
   while (retryCount <= maxRetries) {
     try {
       // Se não é a primeira tentativa, aguardar com backoff exponencial
@@ -349,11 +339,12 @@ async function fetchAppointments(): Promise<AppointmentCacheItem[]> {
         await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
 
-      // Usar o ApiService para aproveitar seu sistema de cache e retry
-      const appointments = await ApiService.getAppointments();
+      // Usar o Repository em vez do ApiService
+      const appointments = await appointmentRepository.findAll();
       
-      // Filtrar apenas agendamentos válidos e não cancelados
-      const validAppointments = (appointments as AppointmentCacheItem[]).filter((apt) =>
+      // Mapear Appointment[] para AppointmentCacheItem[]
+      // AppointmentCacheItem tem estrutura compatível com Appointment
+      const validAppointments = (appointments as unknown as AppointmentCacheItem[]).filter((apt) =>
         apt && apt.date && apt.time && !apt.isCancelled
       );
       
@@ -374,47 +365,31 @@ async function fetchAppointments(): Promise<AppointmentCacheItem[]> {
         logger.apiInfo(`Recuperado com sucesso após ${retryCount} tentativas`);
       }
       
-      return validAppointments as AppointmentCacheItem[];
+      return validAppointments;
     } catch (error: unknown) {
       const apiError = error as ApiError;
       lastError = apiError;
       
-      // Verificar se é um erro 429 (Too Many Requests)
-      const is429Error = apiError?.message?.includes('429') || 
-                        apiError?.response?.status === 429 ||
-                        apiError?.status === 429;
-      
-      // Para erro 429, sempre tentar novamente com backoff
-      if (is429Error && retryCount < maxRetries) {
-        logger.apiWarn(`Erro 429 (Rate Limit) detectado. Tentativa ${retryCount + 1}/${maxRetries}`);
-        retryCount++;
-        continue;
-      }
-      
-      // Para outros erros, verificar se vale a pena tentar novamente
-      const isNetworkError = apiError?.message?.includes('network') || 
-                            apiError?.message?.includes('connection') ||
-                            apiError?.message?.includes('timeout');
+      // Se é um erro desconhecido ou de rede, tentar novamente
+      const isNetworkError = !apiError?.status || apiError.message?.includes('network');
       
       if (isNetworkError && retryCount < maxRetries) {
-        logger.apiWarn(`Erro de rede detectado. Tentativa ${retryCount + 1}/${maxRetries}`);
+        logger.apiWarn(`Erro de rede/conexão. Tentativa ${retryCount + 1}/${maxRetries}`);
         retryCount++;
         continue;
       }
       
-      // Se chegou aqui, não vamos mais tentar
       logger.apiError(`Erro na requisição de agendamentos após ${retryCount} tentativas:`, apiError);
       throw apiError;
     }
   }
   
-  // Se todas as tentativas falharam
   throw lastError;
 }
 
 /**
  * Cria um novo agendamento
- * Usa o ApiService otimizado para resolver problemas de CORS
+ * Usa o AppointmentRepository para salvar no Supabase
  */
 export const createAppointment = async (appointmentData: {
   clientName: string;
@@ -429,55 +404,65 @@ export const createAppointment = async (appointmentData: {
   try {
     logger.apiInfo('Criando novo agendamento', appointmentData);
     
-    // Usar o ApiService otimizado para POST com tenant context
-    const tenantUrl = getTenantAwareUrl();
-    const response = await ApiService.post<AppointmentCacheItem>(
-      tenantUrl,
-      appointmentData
-    );
+    const { ServiceFactory } = await import('./ServiceFactory');
+    const appointmentRepository = ServiceFactory.getAppointmentRepository();
+
+    // Adaptar dados para o formato do repository
+    // O repository espera Omit<Appointment, ...>
+    // Precisamos de um cast ou adaptação manual
+    const repositoryData = {
+      clientId: appointmentData.clientName, // Usando nome como ID por enquanto (adapter cuida)
+      serviceId: appointmentData.serviceName, // Usando nome como ID por enquanto
+      date: new Date(appointmentData.date),
+      startTime: appointmentData.time,
+      barberId: appointmentData.barberId,
+      status: 'pending' as const,
+      // Passar dados extras para o backend
+      _backendData: {
+        clientName: appointmentData.clientName,
+        barberName: appointmentData.barberName,
+        serviceName: appointmentData.serviceName,
+        price: appointmentData.price,
+        wppclient: appointmentData.wppclient
+      }
+    };
+
+    const newAppointment = await appointmentRepository.create(repositoryData as any);
     
-    logger.apiInfo('Resposta da API:', response);
+    logger.apiInfo('Agendamento criado via Repository:', newAppointment);
     
     // Normalizar a resposta para garantir formato consistente
     const normalizedResponse = {
       success: true,
-      data: response || { id: `temp-${Date.now()}` },
-      id: response?.id || `temp-${Date.now()}`
+      data: newAppointment as unknown as AppointmentCacheItem,
+      id: newAppointment.id
     };
     
-    logger.apiInfo('Agendamento criado com sucesso:', normalizedResponse);
-    
-    // Invalidar caches específicos após criar um novo agendamento
+    // Invalidar caches (mantendo a lógica existente)
     setTimeout(async () => {
       try {
-        // Obter usuário atual para limpar cache específico
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = currentUser?.id;
-        
-        // Limpar cache específico do usuário
         const tenantCache = getTenantCache();
+        
         if (userId) {
           const userCacheKey = getAppointmentsCacheKey(userId);
           tenantCache.remove(userCacheKey);
           tenantCache.remove(`schedule_appointments_${userId}`);
         }
         
-        // Limpar cache global do tenant
         const barbershopId = localStorage.getItem('barbershopId');
         if (barbershopId) {
           tenantCache.remove(`tenant_${barbershopId}_appointments`);
         }
         tenantCache.remove('appointments');
         
-        // Limpar cache específico do barbeiro
         if (appointmentData.barberId) {
           tenantCache.remove(`schedule_appointments_${appointmentData.barberId}`);
         }
         
-        // Forçar atualização dos dados
         await fetchAppointments();
         
-        // Disparar evento para notificar outros componentes
         window.dispatchEvent(new CustomEvent('cacheUpdated', {
           detail: {
             keys: [
@@ -499,7 +484,6 @@ export const createAppointment = async (appointmentData: {
   } catch (error) {
     logger.apiError('Erro ao criar agendamento:', error);
     
-    // Retornar erro estruturado
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erro desconhecido',

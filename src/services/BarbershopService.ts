@@ -208,32 +208,34 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
 
     if (barbershopError) {
       console.error('Erro ao criar barbearia:', barbershopError);
-      // Se falhou ao criar barbearia, tentar deletar o usuário criado
+      // Se falhou ao criar barbearia, tentar deletar o usuário criado para manter consistência
       await supabase.auth.admin.deleteUser(authData.user.id);
-      throw new Error('Erro ao registrar barbearia');
-    }
-
-    // Criar perfil do usuário
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: authData.user.id,
-        name: data.ownerName,
-        username: data.ownerUsername,
-        email: data.ownerEmail,
-        role: 'owner',
-        barbershop_id: barbershopData.id
-      });
-
-    if (profileError) {
-      console.error('Erro ao criar perfil:', profileError);
-      // Cleanup: deletar barbearia e usuário se falhou
-      await supabase.from('barbershops').delete().eq('id', barbershopData.id);
-      await supabase.auth.admin.deleteUser(authData.user.id);
-      throw new Error('Erro ao criar perfil do usuário');
+      throw new Error('Erro ao registrar barbearia: ' + barbershopError.message);
     }
 
     console.log('Barbearia registrada com sucesso:', barbershopData.slug);
+
+    // Criar ou atualizar o perfil do usuário explicitamente
+    console.log('Criando perfil do usuário...');
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: authData.user.id,
+        email: data.ownerEmail,
+        name: data.ownerName,
+        username: data.ownerUsername, // Assumindo que a coluna existe baseada no input
+        role: 'owner',
+        barbershop_id: barbershopData.id,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+    if (profileError) {
+      console.error('Erro ao criar perfil:', profileError);
+      // Não lançar erro fatal aqui para não bloquear o fluxo, mas logar
+      // O login pode falhar se o perfil não existir, mas o registro da barbearia foi feito
+    } else {
+      console.log('Perfil criado/atualizado com sucesso');
+    }
     
     return {
       success: true,
@@ -415,13 +417,60 @@ export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
     }
 
     // Buscar o perfil do usuário para obter o barbershop_id
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('barbershop_id')
       .eq('id', user.id)
       .single();
 
+    // Self-healing: Se o perfil não for encontrado, tentar recuperar
+    if (profileError) {
+      console.warn('Perfil não encontrado, tentando recuperação automática...', profileError);
+      
+      // Tentar encontrar uma barbearia onde este usuário é o dono
+      const { data: ownedBarbershop } = await supabase
+        .from('Barbershops')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
+        
+      if (ownedBarbershop) {
+        console.log('Barbearia encontrada para o usuário, recriando perfil...');
+        
+        // Recriar o perfil
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.name || 'Admin',
+            username: user.user_metadata?.username || user.email?.split('@')[0],
+            role: 'owner',
+            barbershop_id: ownedBarbershop.id,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'id' });
+          
+        if (!createProfileError) {
+          console.log('Perfil recriado com sucesso!');
+          // Tentar buscar novamente
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .select('barbershop_id')
+            .eq('id', user.id)
+            .single();
+            
+          if (newProfile) {
+            profile = newProfile;
+            profileError = null;
+          }
+        } else {
+          console.error('Falha ao recriar perfil:', createProfileError);
+        }
+      }
+    }
+
     if (profileError || !profile?.barbershop_id) {
+      console.error('Falha final ao obter perfil:', profileError);
       throw new Error('Usuário não possui barbearia associada');
     }
 

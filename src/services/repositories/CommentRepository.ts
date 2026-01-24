@@ -1,81 +1,71 @@
 import type { IRepository } from '../interfaces/IRepository';
-import type { IApiService } from '../interfaces/IApiService';
 import type { PublicComment } from '@/types';
-import type { BackendComment } from '@/types/backend';
-
-// Interface for API errors with status
-interface ApiError extends Error {
-  status?: number;
-}
+import { supabase } from '../../config/supabaseConfig';
 
 /**
  * Repository for comments following Repository Pattern
- * Based on the real backend Comment model structure
+ * Based on the Supabase 'comments' table structure
  */
 export class CommentRepository implements IRepository<PublicComment> {
-  constructor(private apiService: IApiService) {}
-
-  /**
-   * Helper to construct tenant-aware URLs
-   */
-  private getTenantAwareUrl(endpoint: string): string {
-    const barbershopSlug = localStorage.getItem('barbershopSlug');
-    const barbershopId = localStorage.getItem('barbershopId');
-    
-    if (barbershopSlug) {
-      // Remove /api do início do endpoint para evitar duplicação
-      const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint;
-      return `/api/app/${barbershopSlug}${cleanEndpoint}`;
-    } else if (barbershopId) {
-      return `${endpoint}?barbershopId=${barbershopId}`;
-    }
-    
-    return endpoint;
-  }
+  constructor() {}
 
   /**
    * Find comment by ID
    */
   async findById(id: string): Promise<PublicComment | null> {
     try {
-      const comment = await this.apiService.get<BackendComment>(this.getTenantAwareUrl(`/api/comments/${id}`));
-      return this.adaptFromBackend(comment);
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) return null;
+      return this.adaptFromBackend(data);
     } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return null;
-      }
-      throw error;
+      return null;
     }
   }
 
   /**
    * Find all comments with optional filters
-   * Uses GET /api/comments?status=X for filtering
    */
   async findAll(filters?: Record<string, unknown>): Promise<PublicComment[]> {
-    const queryParams = this.buildQueryParams(filters);
-    const baseUrl = this.getTenantAwareUrl('/api/comments');
-    const fullUrl = queryParams ? `${baseUrl}${queryParams}` : baseUrl;
-    const comments = await this.apiService.get<BackendComment[]>(fullUrl);
-    return Array.isArray(comments) ? comments.map(c => this.adaptFromBackend(c)) : [];
+    try {
+      let query = supabase.from('comments').select('*');
+      
+      const barbershopId = localStorage.getItem('barbershopId');
+      if (barbershopId) {
+        query = query.eq('barbershopId', barbershopId);
+      }
+
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return (data || []).map(c => this.adaptFromBackend(c));
+    } catch (error) {
+      console.error('CommentRepository: findAll failed:', error);
+      return [];
+    }
   }
 
   /**
    * Find comments by status
-   * Uses GET /api/comments?status=X endpoint
    */
   async findByStatus(status: 'pending' | 'approved' | 'rejected'): Promise<PublicComment[]> {
-    const comments = await this.apiService.get<BackendComment[]>(this.getTenantAwareUrl(`/api/comments?status=${status}`));
-    return Array.isArray(comments) ? comments.map(c => this.adaptFromBackend(c)) : [];
+    return this.findAll({ status });
   }
 
   /**
-   * Find all comments for admin (requires admin authentication)
-   * Uses GET /api/comments/admin endpoint
+   * Find all comments for admin (same as findAll but could check roles broadly)
    */
   async findAllForAdmin(): Promise<PublicComment[]> {
-    const comments = await this.apiService.get<BackendComment[]>(this.getTenantAwareUrl('/api/comments/admin'));
-    return Array.isArray(comments) ? comments.map(c => this.adaptFromBackend(c)) : [];
+    return this.findAll();
   }
 
   /**
@@ -94,89 +84,107 @@ export class CommentRepository implements IRepository<PublicComment> {
 
   /**
    * Create a new comment
-   * Uses POST /api/comments
    */
   async create(commentData: Omit<PublicComment, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<PublicComment> {
-    const backendData = {
-      name: commentData.name,
-      comment: commentData.comment,
-      // Status defaults to 'pending' on backend
-    };
+    try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      const dbData = {
+        name: commentData.name,
+        comment: commentData.comment,
+        status: 'pending',
+        barbershopId: barbershopId
+      };
 
-    const newComment = await this.apiService.post<BackendComment>(this.getTenantAwareUrl('/api/comments'), backendData);
-    return this.adaptFromBackend(newComment);
+      const { data, error } = await supabase
+        .from('comments')
+        .insert(dbData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return this.adaptFromBackend(data);
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      throw error;
+    }
   }
 
   /**
-   * Update comment (mainly for status updates, requires admin)
-   * Uses PATCH /api/comments/:id
+   * Update comment
    */
   async update(id: string, updates: Partial<PublicComment>): Promise<PublicComment> {
-    const backendUpdates: Partial<BackendComment> = {};
-    
-    if (updates.name) backendUpdates.name = updates.name;
-    if (updates.comment) backendUpdates.comment = updates.comment;
-    if (updates.status) backendUpdates.status = updates.status;
+    try {
+      const dbUpdates: any = {};
+      
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.comment) dbUpdates.comment = updates.comment;
+      if (updates.status) dbUpdates.status = updates.status;
+      dbUpdates.updated_at = new Date().toISOString();
 
-    const updatedComment = await this.apiService.patch<BackendComment>(this.getTenantAwareUrl(`/api/comments/${id}`), backendUpdates);
-    return this.adaptFromBackend(updatedComment);
+      const { data, error } = await supabase
+        .from('comments')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return this.adaptFromBackend(data);
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      throw error;
+    }
   }
 
   /**
-   * Update comment status (requires admin authentication)
-   * Uses PATCH /api/comments/:id
+   * Update comment status
    */
   async updateStatus(id: string, status: 'pending' | 'approved' | 'rejected'): Promise<PublicComment> {
-    const updatedComment = await this.apiService.patch<BackendComment>(this.getTenantAwareUrl(`/api/comments/${id}`), { status });
-    return this.adaptFromBackend(updatedComment);
+    return this.update(id, { status });
   }
 
   /**
-   * Delete comment (requires admin authentication)
-   * Uses DELETE /api/comments/:id
+   * Delete comment
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(this.getTenantAwareUrl(`/api/comments/${id}`));
+    const { error } = await supabase.from('comments').delete().eq('id', id);
+    if (error) throw error;
   }
 
   /**
    * Check if comment exists
    */
   async exists(id: string): Promise<boolean> {
-    try {
-      const comment = await this.findById(id);
-      return comment !== null;
-    } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return false;
-      }
-      throw error;
-    }
+    const { count } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('id', id);
+    return (count || 0) > 0;
   }
 
   /**
-   * Approve comment (admin operation)
+   * Approve comment
    */
   async approve(id: string): Promise<PublicComment> {
     return this.updateStatus(id, 'approved');
   }
 
   /**
-   * Reject comment (admin operation)
+   * Reject comment
    */
   async reject(id: string): Promise<PublicComment> {
     return this.updateStatus(id, 'rejected');
   }
 
   /**
-   * Reset comment to pending (admin operation)
+   * Reset comment to pending
    */
   async resetToPending(id: string): Promise<PublicComment> {
     return this.updateStatus(id, 'pending');
   }
 
   /**
-   * Get comment statistics (admin operation)
+   * Get comment statistics
    */
   async getStatistics(): Promise<{
     total: number;
@@ -184,7 +192,7 @@ export class CommentRepository implements IRepository<PublicComment> {
     approved: number;
     rejected: number;
   }> {
-    const allComments = await this.findAllForAdmin();
+    const allComments = await this.findAll();
     
     return {
       total: allComments.length,
@@ -195,49 +203,17 @@ export class CommentRepository implements IRepository<PublicComment> {
   }
 
   /**
-   * Build query parameters for API requests
-   */
-  private buildQueryParams(filters?: Record<string, unknown>): string {
-    if (!filters) return '';
-    
-    const params = new URLSearchParams();
-    const barbershopSlug = localStorage.getItem('barbershopSlug');
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        // Skip barbershopId if we're using slug-based URLs
-        if (key === 'barbershopId' && barbershopSlug) {
-          return;
-        }
-        params.append(key, String(value));
-      }
-    });
-    
-    return params.toString() ? `?${params.toString()}` : '';
-  }
-
-  /**
    * Adapt backend comment to frontend PublicComment interface
    */
-  private adaptFromBackend(backendComment: BackendComment): PublicComment {
+  private adaptFromBackend(backendComment: any): PublicComment {
+    if (!backendComment) return {} as PublicComment;
     return {
       id: backendComment.id,
       name: backendComment.name,
       comment: backendComment.comment,
-      status: backendComment.status,
-      createdAt: backendComment.createdAt.toISOString(),
-      updatedAt: backendComment.updatedAt?.toISOString(),
+      status: backendComment.status || 'pending',
+      createdAt: backendComment.created_at || new Date().toISOString(),
+      updatedAt: backendComment.updated_at,
     };
-  }
-
-  /**
-   * Check if error is a "not found" error
-   */
-  private isNotFoundError(error: unknown): boolean {
-    return (
-      error instanceof Error &&
-      'status' in error &&
-      (error as ApiError).status === 404
-    );
   }
 }

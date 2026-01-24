@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth as useSupabaseAuth, type UseAuthReturn } from '../hooks/useAuth';
-import { authService, type AuthUser } from '../services/supabaseAuth';
+import { authService } from '../services/supabaseAuth';
 
 interface AuthContextType extends UseAuthReturn {
   initialized: boolean;
@@ -30,10 +30,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         // Aguardar um pouco para garantir que o Supabase foi inicializado
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         // Verificar se há uma sessão ativa
         const currentUser = authService.getCurrentUser();
-        
+
         if (currentUser) {
           console.log('User authenticated:', currentUser.email);
         } else {

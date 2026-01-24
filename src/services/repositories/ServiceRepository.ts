@@ -1,60 +1,81 @@
 import type { ISearchableRepository, SearchOptions } from '../interfaces/IRepository';
-import type { IApiService } from '../interfaces/IApiService';
 import type { Service as ServiceType } from '@/types';
-import type { BackendService } from '@/types/backend';
-import { BackendServiceFormDataSchema } from '@/validation/schemas';
+import { supabase } from '../../config/supabaseConfig';
 
 /**
- * Repositório para serviços seguindo Repository Pattern
+ * Repositório para serviços usando Supabase direto (MVP)
  */
 export class ServiceRepository implements ISearchableRepository<ServiceType> {
-  constructor(private apiService: IApiService) {}
-
-  /**
-   * Helper para construir URLs tenant-aware
-   */
-  private getTenantAwareUrl(endpoint: string): string {
-    const barbershopSlug = localStorage.getItem('barbershopSlug');
-    const barbershopId = localStorage.getItem('barbershopId');
-    
-    if (barbershopSlug) {
-      // Remove /api do início do endpoint para evitar duplicação
-      const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint;
-      return `/api/app/${barbershopSlug}${cleanEndpoint}`;
-    } else if (barbershopId) {
-      return `${endpoint}?barbershopId=${barbershopId}`;
-    }
-    
-    return endpoint;
-  }
+  // ApiService dependency removed
+  constructor() {}
 
   /**
    * Busca serviço por ID
    */
   async findById(id: string): Promise<ServiceType | null> {
     try {
-      const backendService = await this.apiService.get<BackendService>(this.getTenantAwareUrl(`/api/services/${id}`));
-      return backendService ? this.adaptBackendServiceToFrontend(backendService) : null;
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) return null;
+      return this.adaptSupabaseServiceToFrontend(data);
     } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return null;
-      }
-      throw error;
+      return null;
     }
   }
 
   /**
-   * Busca todos os serviços com filtros opcionais
+   * Busca todos os serviços (com filtro básico)
    */
   async findAll(filters?: Record<string, unknown>): Promise<ServiceType[]> {
-    const queryParams = filters ? this.buildQueryParams(filters) : '';
-    const baseUrl = this.getTenantAwareUrl('/api/services');
-    const fullUrl = queryParams ? `${baseUrl}${queryParams}` : baseUrl;
-    const backendServices = await this.apiService.get<BackendService[]>(fullUrl);
-    const services = Array.isArray(backendServices) ? backendServices : [];
-    
-    // Convert backend services to frontend format
-    return services.map(this.adaptBackendServiceToFrontend);
+    try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      
+      if (!barbershopId) return [];
+
+      let query = supabase.from('services').select('*').eq('barbershopId', barbershopId);
+      
+      if (filters?.name) {
+        query = query.ilike('name', `%${filters.name}%`);
+      }
+
+      if (filters?.isActive !== undefined) {
+        query = query.eq('isActive', filters.isActive);
+      }
+      
+      // Filtros de preço
+      if (filters?.minPrice) query = query.gte('price', filters.minPrice);
+      if (filters?.maxPrice) query = query.lte('price', filters.maxPrice);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return (data || []).map(this.adaptSupabaseServiceToFrontend);
+    } catch (error) {
+      console.error('ServiceRepository: findAll failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Adapta dados do banco para o frontend
+   */
+  private adaptSupabaseServiceToFrontend(data: any): ServiceType {
+    if (!data) return {} as ServiceType;
+    return {
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      description: data.description || '', 
+      duration: data.duration || 60, 
+      isActive: data.isActive !== false,
+      createdAt: new Date(data.created_at || Date.now()),
+      updatedAt: new Date(data.updated_at || Date.now()),
+    };
   }
 
   /**
@@ -64,286 +85,169 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
     return this.findAll({ isActive: true });
   }
 
-
-
   /**
-   * Busca serviços por duração
+   * Implementação da interface ISearchableRepository
    */
-  async findByDuration(minDuration: number, maxDuration?: number): Promise<ServiceType[]> {
-    const filters: Record<string, unknown> = { minDuration };
-    if (maxDuration) {
-      filters.maxDuration = maxDuration;
-    }
-    return this.findAll(filters);
-  }
+  async search(query: string, _options?: SearchOptions): Promise<ServiceType[]> {
+    try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      if (!barbershopId) return [];
 
-  /**
-   * Busca serviços com texto
-   */
-  async search(query: string, options?: SearchOptions): Promise<ServiceType[]> {
-    const params = new URLSearchParams();
-    params.append('q', query);
-    
-    if (options?.fields) {
-      params.append('fields', options.fields.join(','));
+      // Busca simples por nome usando ilike
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('barbershopId', barbershopId)
+        .ilike('name', `%${query}%`);
+
+      if (error) throw error;
+
+      return (data || []).map(this.adaptSupabaseServiceToFrontend);
+    } catch (error) {
+       console.error('Search failed:', error);
+       return [];
     }
-    
-    if (options?.limit) {
-      params.append('limit', String(options.limit));
-    }
-    
-    if (options?.fuzzy) {
-      params.append('fuzzy', String(options.fuzzy));
-    }
-    
-    const baseUrl = this.getTenantAwareUrl('/api/services/search');
-    const services = await this.apiService.get<ServiceType[]>(`${baseUrl}?${params.toString()}`);
-    return Array.isArray(services) ? services : [];
   }
 
   /**
    * Cria um novo serviço
    */
   async create(serviceData: Omit<ServiceType, 'id' | 'createdAt' | 'updatedAt'>): Promise<ServiceType> {
-    // Adapta para formato do backend (apenas name e price são suportados)
-    const backendData = {
-      name: serviceData.name,
-      price: serviceData.price,
-    };
-    
-    // Valida apenas os campos suportados pelo backend
-    const validatedData = BackendServiceFormDataSchema.parse(backendData);
-    
-    const backendService = await this.apiService.post<BackendService>(this.getTenantAwareUrl('/api/services'), validatedData);
-    return this.adaptBackendServiceToFrontend(backendService);
+    try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      if (!barbershopId) throw new Error('Barbershop ID required');
+
+      const dbData = {
+        name: serviceData.name,
+        price: serviceData.price,
+        barbershopId: barbershopId,
+        duration: serviceData.duration,
+        description: serviceData.description,
+        isActive: serviceData.isActive,
+        created_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('services')
+        .insert(dbData)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      return this.adaptSupabaseServiceToFrontend(data);
+    } catch (error) {
+      console.error('Error creating service:', error);
+      throw error;
+    }
   }
 
   /**
    * Atualiza um serviço existente
    */
   async update(id: string, updates: Partial<ServiceType>): Promise<ServiceType> {
-    // Adapta updates para formato do backend (apenas name e price são suportados)
-    const backendUpdates: Partial<BackendService> = {};
-    
-    if (updates.name !== undefined) {
-      backendUpdates.name = updates.name;
+    try {
+       const dbUpdates: any = {
+         updated_at: new Date().toISOString()
+       };
+
+       if (updates.name !== undefined) dbUpdates.name = updates.name;
+       if (updates.price !== undefined) dbUpdates.price = updates.price;
+       if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
+       if (updates.description !== undefined) dbUpdates.description = updates.description;
+       if (updates.isActive !== undefined) dbUpdates.isActive = updates.isActive;
+       
+       const { data, error } = await supabase
+         .from('services')
+         .update(dbUpdates)
+         .eq('id', id)
+         .select()
+         .single();
+         
+       if (error) throw error;
+       
+       return this.adaptSupabaseServiceToFrontend(data);
+    } catch (error) {
+      console.error('Error updating service:', error);
+      throw error;
     }
-    if (updates.price !== undefined) {
-      backendUpdates.price = updates.price;
-    }
-    
-    const backendService = await this.apiService.patch<BackendService>(this.getTenantAwareUrl(`/api/services/${id}`), backendUpdates);
-    return this.adaptBackendServiceToFrontend(backendService);
   }
 
   /**
    * Remove um serviço
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(this.getTenantAwareUrl(`/api/services/${id}`));
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (error) throw error;
   }
 
   /**
    * Verifica se um serviço existe
    */
   async exists(id: string): Promise<boolean> {
-    try {
-      await this.apiService.get(this.getTenantAwareUrl(`/api/services/${id}/exists`));
-      return true;
-    } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return false;
-      }
-      throw error;
-    }
+    const { count } = await supabase
+      .from('services')
+      .select('*', { count: 'exact', head: true })
+      .eq('id', id);
+    return (count || 0) > 0;
   }
 
   /**
    * Ativa/desativa serviço
    */
   async toggleActive(id: string, isActive: boolean): Promise<ServiceType> {
-    const updatedService = await this.apiService.patch<ServiceType>(this.getTenantAwareUrl(`/api/services/${id}`), { isActive });
-    return updatedService;
+    return this.update(id, { isActive });
   }
 
-  /**
-   * Obtém estatísticas dos serviços
-   */
-  async getStatistics(): Promise<ServiceStatistics> {
-    const stats = await this.apiService.get<ServiceStatistics>(this.getTenantAwareUrl('/api/services/statistics'));
-    return stats;
+  // --- Métodos Extras da Interface (Mockados ou Simplificados) ---
+
+  async findByDuration(min: number, max?: number): Promise<ServiceType[]> {
+    return this.findAll({ minDuration: min, maxDuration: max });
   }
 
-  /**
-   * Obtém serviços mais populares
-   */
-  async getMostPopular(limit: number = 10): Promise<ServiceType[]> {
-    const services = await this.apiService.get<ServiceType[]>(this.getTenantAwareUrl(`/api/services/popular?limit=${limit}`));
-    return Array.isArray(services) ? services : [];
+  async findByPriceRange(min: number, max: number): Promise<ServiceType[]> {
+    return this.findAll({ minPrice: min, maxPrice: max });
   }
 
-  /**
-   * Obtém serviços por categoria de duração
-   */
-  async getByCategory(category: 'quick' | 'standard' | 'long'): Promise<ServiceType[]> {
-    const durationRanges = {
-      quick: { max: 30 },
-      standard: { min: 30, max: 120 },
-      long: { min: 120 }
-    };
-    
-    const range = durationRanges[category];
-    return this.findByDuration(range.min || 0, range.max);
-  }
-
-  /**
-   * Duplica um serviço existente
-   */
-  async duplicate(id: string, newName: string): Promise<ServiceType> {
-    const originalService = await this.findById(id);
-    if (!originalService) {
-      throw new Error(`Serviço com ID ${id} não encontrado`);
-    }
-
-    const duplicatedData: Omit<ServiceType, 'id' | 'createdAt' | 'updatedAt'> = {
-      name: newName,
-      description: `${originalService.description} (Cópia)`,
-      duration: originalService.duration,
-      price: originalService.price,
-      isActive: false, // Inicia como inativo por segurança
-    };
-
-    return this.create(duplicatedData);
-  }
-
-  /**
-   * Busca serviços por barbeiro usando endpoint específico
-   * GET /api/services/barber/:barberId
-   */
-  async findByBarber(barberId: string): Promise<ServiceType[]> {
-    try {
-      const backendServices = await this.apiService.get<BackendService[]>(this.getTenantAwareUrl(`/api/services/barber/${barberId}`));
-      const services = Array.isArray(backendServices) ? backendServices : [];
-      
-      // Convert backend services to frontend format
-      return services.map(this.adaptBackendServiceToFrontend);
-    } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return [];
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Associa barbeiros a um serviço usando endpoint específico
-   * POST /api/services/:id/barbers (requer autenticação)
-   */
-  async associateBarbers(serviceId: string, barberIds: string[]): Promise<void> {
-    try {
-      await this.apiService.post(this.getTenantAwareUrl(`/api/services/${serviceId}/barbers`), {
-        barberIds: barberIds
-      });
-    } catch (error) {
-      throw new Error(`Erro ao associar barbeiros ao serviço: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-    }
-  }
-
-  /**
-   * Busca serviços por nome (filtro frontend)
-   */
   async findByName(name: string): Promise<ServiceType[]> {
-    const allServices = await this.findAll();
-    return allServices.filter(service => 
-      service.name.toLowerCase().includes(name.toLowerCase())
-    );
+    return this.findAll({ name });
   }
 
-  /**
-   * Busca serviços por faixa de preço (filtro frontend otimizado)
-   */
-  async findByPriceRange(minPrice: number, maxPrice: number): Promise<ServiceType[]> {
-    const allServices = await this.findAll();
-    return allServices.filter(service => 
-      service.price >= minPrice && service.price <= maxPrice
-    );
-  }
-
-  /**
-   * Busca serviços associados a um barbeiro específico (filtro frontend)
-   * Nota: Este método requer que o backend retorne informações de associação
-   * ou pode ser implementado fazendo uma chamada para findByBarber
-   */
-  async findByAssociatedBarber(barberId: string): Promise<ServiceType[]> {
-    return this.findByBarber(barberId);
-  }
-
-  /**
-   * Constrói parâmetros de query para filtros
-   */
-  private buildQueryParams(filters: Record<string, unknown>): string {
-    const params = new URLSearchParams();
-    const barbershopSlug = localStorage.getItem('barbershopSlug');
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        // Skip barbershopId if we're using slug-based URLs
-        if (key === 'barbershopId' && barbershopSlug) {
-          return;
-        }
-        params.append(key, String(value));
-      }
-    });
-    
-    return params.toString() ? `?${params.toString()}` : '';
-  }
-
-  /**
-   * Verifica se o erro é de "não encontrado"
-   */
-  private isNotFoundError(error: unknown): boolean {
-    return (
-      error instanceof Error &&
-      'status' in error &&
-      error.status === 404
-    );
-  }
-
-  /**
-   * Adapta serviço do backend para formato do frontend
-   */
-  private adaptBackendServiceToFrontend(backendService: BackendService): ServiceType {
+  // Estatísticas simplificadas (count)
+  async getStatistics(): Promise<any> {
+    const services = await this.findAll();
     return {
-      id: backendService.id,
-      name: backendService.name,
-      price: backendService.price,
-      // Campos não disponíveis no backend - usar valores padrão
-      description: '', // Backend não tem description
-      duration: 60, // Backend não tem duration - assumir 60 minutos
-      isActive: true, // Backend não tem isActive - assumir ativo
-      createdAt: new Date(), // Backend não retorna timestamps
-      updatedAt: new Date(), // Backend não retorna timestamps
+      total: services.length,
+      active: services.filter(s => s.isActive).length,
+      inactive: services.filter(s => !s.isActive).length,
+      averagePrice: 0, 
+      averageDuration: 0
     };
   }
-}
 
-export interface ServiceStatistics {
-  total: number;
-  active: number;
-  inactive: number;
-  averagePrice: number;
-  averageDuration: number;
-  priceRange: {
-    min: number;
-    max: number;
-  };
-  durationRange: {
-    min: number;
-    max: number;
-  };
-  categoryDistribution: {
-    quick: number;
-    standard: number;
-    long: number;
-  };
+  async getMostPopular(_limit: number): Promise<ServiceType[]> {
+    // TODO: Implementar lógica de popularidade e limitar resultados
+    return this.findAll();
+  }
+
+  async duplicate(id: string, newName: string): Promise<ServiceType> {
+    const original = await this.findById(id);
+    if (!original) throw new Error('Service not found');
+    
+    return this.create({
+      ...original,
+      name: newName,
+      description: original.description + ' (Cópia)',
+      isActive: false
+    });
+  }
+
+  async getByCategory(_category: string): Promise<ServiceType[]> {
+    return this.findAll();
+  }
+
+  async findByBarber(_barberId: string): Promise<ServiceType[]> {
+    // MVP: Retorna todos (assumindo que barbeiros fazem tudo por enquanto)
+    return this.findAll(); 
+  }
 }

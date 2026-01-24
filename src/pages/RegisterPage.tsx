@@ -226,19 +226,19 @@ const RegisterPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
 
   // Use multi-tenant barber hooks
-  const { 
-    barbers, 
-    loadBarbers, 
-    createBarber, 
-    updateBarber, 
-    deleteBarber, 
+  const {
+    barbers,
+    loadBarbers,
+    createBarber,
+    updateBarber,
+    deleteBarber,
     error: barbersError,
   } = useBarbers();
   const { isValidTenant, barbershopData } = useTenant();
 
   // Filtrar barbeiros - mostrar todos os barbeiros da barbearia
   const filteredBarbers = barbers || [];
-  
+
   // Plan limits hooks
   const { checkAndExecute, lastError: planError, clearError: clearPlanError } = usePlanLimits();
   const { usage, canCreateBarber, refreshUsage } = usePlan();
@@ -279,7 +279,7 @@ const RegisterPage: React.FC = () => {
         const size = 250;
         const quality = 0.8;
         const format = 'image/png';
-        
+
         canvas.width = size;
         canvas.height = size;
 
@@ -292,7 +292,7 @@ const RegisterPage: React.FC = () => {
         const dataURL = canvas.toDataURL(format, quality);
         const timestamp = Date.now();
         const uniqueId = Math.random().toString(36).substr(2, 9);
-        
+
         const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" data-timestamp="${timestamp}" data-id="${uniqueId}"><image href="${dataURL}" width="${size}" height="${size}"/></svg>`;
 
         const svgSize = new Blob([svgContent]).size;
@@ -309,8 +309,8 @@ const RegisterPage: React.FC = () => {
   // Função para salvar a imagem como SVG
   const handleImageUpload = async (username: string) => {
     if (!selectedImage) return;
-    
-    const uploadFilename = username && username.trim() 
+
+    const uploadFilename = username && username.trim()
       ? username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
       : `temp_${Date.now()}`;
 
@@ -437,7 +437,7 @@ const RegisterPage: React.FC = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       // Iniciar upload automático
       setTimeout(() => {
         if (!isEditMode && formData.username && formData.username.trim()) {
@@ -493,7 +493,7 @@ const RegisterPage: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    
+
     setTimeout(() => {
       setImagePreview(null);
       setSelectedImage(null);
@@ -522,19 +522,11 @@ const RegisterPage: React.FC = () => {
     }
 
     if (!formData.username.trim()) {
-      setError('Nome de usuário é obrigatório');
+      setError('Email (Usuário) é obrigatório');
       return;
     }
 
-    if (!formData.password.trim()) {
-      setError('Senha é obrigatória');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Senha deve ter pelo menos 6 caracteres');
-      return;
-    }
+    // Removida validação de senha pois o cadastro é via convite
 
     setIsLoading(true);
     setError('');
@@ -546,7 +538,7 @@ const RegisterPage: React.FC = () => {
         const newBarber = await createBarber({
           name: formData.name.trim(),
           email: formData.username.trim(),
-          password: formData.password,
+          // password: formData.password, // Removido
           whatsapp: formData.whatsapp.trim() || undefined,
           pix: formData.pix.trim() || undefined
         });
@@ -558,39 +550,35 @@ const RegisterPage: React.FC = () => {
         setSuccess('Barbeiro cadastrado com sucesso!');
         resetFormStates();
         setShowForm(false);
-        
+
         // Recarregar dados
         await loadBarbers();
         await refreshUsage();
 
-        toast.success('Barbeiro cadastrado com sucesso!', {
-          style: {
-            fontSize: '14px',
-            fontWeight: '600',
-            borderRadius: '12px',
-            padding: '16px',
-            backgroundColor: '#F0FDF4',
-            color: '#16A34A',
-            border: '1px solid #BBF7D0'
+        toast.success(
+          <div>
+            <b>Barbeiro cadastrado!</b>
+            <p className="text-sm mt-1">Peça para ele se cadastrar no sistema com o email: <u>{formData.username}</u> para acessar o painel.</p>
+          </div>,
+          {
+            duration: 6000,
+            style: {
+              fontSize: '14px',
+              borderRadius: '12px',
+              padding: '16px',
+              backgroundColor: '#F0FDF4',
+              color: '#16A34A',
+              border: '1px solid #BBF7D0'
+            }
           }
-        });
+        );
       }
     } catch (err) {
       console.error('Erro ao cadastrar barbeiro:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao cadastrar barbeiro';
       setError(errorMessage);
-      
-      toast.error(errorMessage, {
-        style: {
-          fontSize: '14px',
-          fontWeight: '600',
-          borderRadius: '12px',
-          padding: '16px',
-          backgroundColor: '#FEF2F2',
-          color: '#DC2626',
-          border: '1px solid #FECACA'
-        }
-      });
+
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -616,7 +604,7 @@ const RegisterPage: React.FC = () => {
       setIsEditMode(false);
       setSelectedUser(null);
       setShowForm(false);
-      
+
       // Recarregar dados
       await loadBarbers();
 
@@ -635,7 +623,7 @@ const RegisterPage: React.FC = () => {
       console.error('Erro ao atualizar barbeiro:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar barbeiro';
       setError(errorMessage);
-      
+
       toast.error(errorMessage, {
         style: {
           fontSize: '14px',
@@ -658,10 +646,10 @@ const RegisterPage: React.FC = () => {
 
     try {
       await deleteBarber(selectedUser.id);
-      
+
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
-      
+
       // Recarregar dados
       await loadBarbers();
       await refreshUsage();
@@ -680,7 +668,7 @@ const RegisterPage: React.FC = () => {
     } catch (err) {
       console.error('Erro ao excluir barbeiro:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao excluir barbeiro';
-      
+
       toast.error(errorMessage, {
         style: {
           fontSize: '14px',
@@ -739,7 +727,7 @@ const RegisterPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-white mb-2">Gerenciar Barbeiros</h1>
             <p className="text-gray-400">Cadastre e gerencie os barbeiros da sua barbearia</p>
           </div>
-          
+
           {!showForm && (
             <button
               onClick={() => {
@@ -760,11 +748,10 @@ const RegisterPage: React.FC = () => {
                   });
                 }
               }}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                canCreateBarber
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${canCreateBarber
                   ? 'bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90'
                   : 'bg-gray-600 text-gray-300 cursor-not-allowed'
-              }`}
+                }`}
               disabled={!canCreateBarber}
             >
               <UserPlus className="w-5 h-5" />
@@ -786,7 +773,7 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
             <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className="bg-[#F0B35B] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(usage.barbers.current / usage.barbers.limit) * 100}%` }}
               ></div>
@@ -820,14 +807,14 @@ const RegisterPage: React.FC = () => {
                   <span>{error}</span>
                 </div>
               )}
-              
+
               {success && (
                 <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5" />
                   <span>{success}</span>
                 </div>
               )}
-              
+
               {editSuccess && (
                 <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg flex items-center space-x-3">
                   <CheckCircle className="w-5 h-5" />
@@ -922,7 +909,7 @@ const RegisterPage: React.FC = () => {
                   <Upload className="w-5 h-5 text-[#F0B35B]" />
                   <span>QR Code PIX (Opcional)</span>
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <input
@@ -932,7 +919,7 @@ const RegisterPage: React.FC = () => {
                       onChange={handleImageSelect}
                       className="hidden"
                     />
-                    
+
                     <button
                       type="button"
                       onClick={openFileSelector}
@@ -947,7 +934,7 @@ const RegisterPage: React.FC = () => {
                       </div>
                     </button>
                   </div>
-                  
+
                   {imagePreview && (
                     <div className="relative">
                       <img
@@ -962,7 +949,7 @@ const RegisterPage: React.FC = () => {
                       >
                         <X className="w-4 h-4" />
                       </button>
-                      
+
                       {isUploadingImage && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
                           <div className="text-center text-white">
@@ -971,7 +958,7 @@ const RegisterPage: React.FC = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       {imageUploadSuccess && (
                         <div className="absolute top-2 left-2 p-1 bg-green-500 text-white rounded-full">
                           <CheckCircle className="w-4 h-4" />
@@ -995,7 +982,7 @@ const RegisterPage: React.FC = () => {
                   <X className="w-5 h-5" />
                   <span>Cancelar</span>
                 </button>
-                
+
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -1038,7 +1025,7 @@ const RegisterPage: React.FC = () => {
               </span>
             </h2>
           </div>
-          
+
           {filteredBarbers.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-20 h-20 bg-[#F0B35B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1082,7 +1069,7 @@ const RegisterPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleEdit(barber)}
@@ -1091,7 +1078,7 @@ const RegisterPage: React.FC = () => {
                       >
                         <Edit className="w-5 h-5" />
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           setSelectedUser(barber);

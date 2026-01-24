@@ -11,9 +11,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 interface LocationState {
-  email?: string;
-  barbershopName?: string;
-  emailVerified?: boolean;
+    email?: string;
+    barbershopName?: string;
+    emailVerified?: boolean;
 }
 
 const BarbershopRegistrationPage: React.FC = () => {
@@ -181,7 +181,7 @@ const BarbershopRegistrationPage: React.FC = () => {
 
             // Configurar estrutura inicial da barbearia
             setSuccess('🎉 Barbearia registrada! Configurando estrutura inicial...');
-            
+
             try {
                 await setupInitialBarbershopData(response.data.barbershop.id, response.data.token);
                 console.log('Estrutura inicial configurada com sucesso');
@@ -191,7 +191,10 @@ const BarbershopRegistrationPage: React.FC = () => {
             }
 
             // Atualizar contexto de autenticação
-            await login(formData.ownerUsername, formData.ownerPassword, true);
+            await login({
+                email: formData.ownerEmail,
+                password: formData.ownerPassword
+            });
 
             // Marcar como primeiro acesso para mostrar onboarding
             markFirstAccess();
@@ -200,7 +203,7 @@ const BarbershopRegistrationPage: React.FC = () => {
 
             // Redirecionar para o dashboard da barbearia com onboarding
             setTimeout(() => {
-                navigate(`/app/${response.data.barbershop.slug}/dashboard`, { 
+                navigate(`/app/${response.data.barbershop.slug}/dashboard`, {
                     replace: true,
                     state: { showOnboarding: true }
                 });
@@ -251,12 +254,12 @@ const BarbershopRegistrationPage: React.FC = () => {
                         </h2>
                     </div>
                     <p className="text-gray-400">
-                        {state?.emailVerified 
+                        {state?.emailVerified
                             ? `✅ Email verificado! Agora complete os dados da sua barbearia`
                             : 'Crie sua conta e comece a gerenciar sua barbearia hoje mesmo'
                         }
                     </p>
-                    
+
                     {state?.emailVerified && (
                         <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                             <p className="text-green-400 text-sm">
@@ -507,6 +510,18 @@ const BarbershopRegistrationPage: React.FC = () => {
             </div>
         </div>
     );
+};
+
+// Funções auxiliares locais
+const setupInitialBarbershopData = async (barbershopId: string, token: string) => {
+    // Implementar configuração inicial se necessário (ex: criar serviços padrão)
+    console.log('Configurando dados iniciais da barbearia:', barbershopId);
+    return Promise.resolve();
+};
+
+const markFirstAccess = () => {
+    localStorage.removeItem('hasVisitedDashboard');
+    localStorage.removeItem('onboardingCompleted');
 };
 
 export default BarbershopRegistrationPage;

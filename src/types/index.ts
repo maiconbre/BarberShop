@@ -31,6 +31,14 @@ export interface Barber {
   workingHours: WorkingHours;
   createdAt: Date;
   updatedAt: Date;
+  // UI helper properties
+  profileImage?: string;
+  rating?: number;
+  experience?: string;
+  totalAppointments?: number;
+  bio?: string;
+  photo?: string;
+  avatar?: string;
 }
 
 export interface WorkingHours {

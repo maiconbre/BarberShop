@@ -32,13 +32,19 @@ interface StandardLayoutProps {
 }
 
 const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon }) => {
-  const { getCurrentUser, logout } = useAuth();
-  const currentUser = getCurrentUser();
+  const { user, logout: authLogout } = useAuth();
+  const currentUser = user;
   const navigate = useNavigate();
+
+  // Wrapper for logout to match previous interface
+  const logout = async () => {
+    await authLogout();
+    navigate('/login');
+  };
   const pageConfig = usePageConfig();
   const { goToPage, currentSlug } = useBarbershopNavigation();
   const { planInfo, usage } = usePlan();
-  
+
   // Use props if provided, otherwise use dynamic page config
   const pageTitle = title || pageConfig.title;
   const pageSubtitle = subtitle || pageConfig.subtitle;
@@ -71,9 +77,9 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    // Navigation is already handled in the logout wrapper
   };
 
   const navigateToPage = (path: string) => {
@@ -200,13 +206,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 x: isMobile ? 288 : 0
               }}
               transition={{ duration: 0.15, ease: "easeInOut" }}
-              className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${
-                isMobile
-                  ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
-                  : isSidebarCollapsed
-                    ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
-                    : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
-              } transition-all duration-150`}
+              className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${isMobile
+                ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
+                : isSidebarCollapsed
+                  ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
+                  : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
+                } transition-all duration-150`}
             >
               {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
@@ -351,11 +356,10 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   {planInfo?.planType === 'free' && (usage?.upgradeRecommended || usage?.upgradeRequired) && (
                     <button
                       onClick={() => navigateToPage('upgrade')}
-                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105 ${
-                        usage?.upgradeRequired 
-                          ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg' 
-                          : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg'
-                      }`}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105 ${usage?.upgradeRequired
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg'
+                        : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg'
+                        }`}
                       title={isSidebarCollapsed ? (usage?.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade para Pro') : ''}
                     >
                       <Crown className="w-5 h-5 flex-shrink-0" />
@@ -394,7 +398,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
                   <button
                     // Removido: onClick={() => setIsFeedbackOpen(true)}
-                onClick={() => {/* TODO: Implementar feedback com Supabase */}}
+                    onClick={() => {/* TODO: Implementar feedback com Supabase */ }}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Enviar Feedback' : ''}
                   >
@@ -438,13 +442,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={`relative z-10 transition-all duration-300 ${
-        isMobile
-          ? 'pt-16'
-          : isSidebarCollapsed
-            ? 'ml-16'
-            : 'ml-64'
-      }`}>
+      <main className={`relative z-10 transition-all duration-300 ${isMobile
+        ? 'pt-16'
+        : isSidebarCollapsed
+          ? 'ml-16'
+          : 'ml-64'
+        }`}>
         <div className="w-full">
           {/* Page Header */}
           {(pageTitle || pageSubtitle) && (

@@ -17,7 +17,7 @@ const EmailVerificationPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [linkSent, setLinkSent] = useState(false);
-  
+
   // Email step state
   const [email, setEmail] = useState(state?.email || '');
   const [barbershopName, setBarbershopName] = useState(state?.barbershopName || '');
@@ -140,12 +140,12 @@ const EmailVerificationPage: React.FC = () => {
             </h2>
           </div>
           <p className="text-gray-400">
-            {linkSent 
+            {linkSent
               ? `Enviamos um link de verificação para ${email}. Clique no link para continuar o cadastro.`
               : 'Vamos verificar seu email antes de criar sua barbearia. É rápido e gratuito!'
             }
           </p>
-          
+
           {!linkSent && (
             <div className="mt-6 p-4 bg-[#F0B35B]/10 border border-[#F0B35B]/20 rounded-lg">
               <h3 className="text-[#F0B35B] font-semibold mb-2">🎉 Comece grátis hoje mesmo!</h3>
@@ -230,6 +230,25 @@ const EmailVerificationPage: React.FC = () => {
               </button>
 
               <div className="text-center">
+                {/* DEV BYPASS BUTTON */}
+                {import.meta.env.DEV && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigate('/register-barbershop', {
+                        state: {
+                          email: email,
+                          barbershopName: barbershopName,
+                          emailVerified: true
+                        }
+                      });
+                    }}
+                    className="mb-4 text-xs bg-purple-900/50 text-purple-300 px-3 py-1 rounded border border-purple-500/30 hover:bg-purple-900/80 transition-colors"
+                  >
+                    [DEV] Bypass Verificação
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
@@ -250,7 +269,7 @@ const EmailVerificationPage: React.FC = () => {
                   Verifique sua caixa de entrada e pasta de spam.
                 </p>
               </div>
-              
+
               <div className="bg-[#F0B35B]/10 border border-[#F0B35B]/20 rounded-lg p-4 mb-4">
                 <h4 className="text-[#F0B35B] font-semibold mb-2">📧 Próximos passos:</h4>
                 <ol className="text-sm text-gray-300 space-y-1 text-left">
@@ -279,7 +298,7 @@ const EmailVerificationPage: React.FC = () => {
                   </>
                 )}
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => {

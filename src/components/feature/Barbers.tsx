@@ -15,6 +15,10 @@ interface Barber {
   rating?: number;
   totalAppointments?: number;
   profileImage?: string;
+  // Fallback properties if API returns different structure
+  photo?: string;
+  avatar?: string;
+  bio?: string;
 }
 
 interface BarbersProps {
@@ -69,7 +73,7 @@ const Barbers: React.FC<BarbersProps> = ({ isShowcase = false }) => {
               </h2>
             </div>
             <p className="text-gray-400 text-lg">
-              {error || 'Nenhum barbeiro disponível no momento.'}
+              {typeof error === 'string' ? error : 'Erro ao carregar barbeiros.'}
             </p>
           </div>
         </div>
@@ -96,7 +100,7 @@ const Barbers: React.FC<BarbersProps> = ({ isShowcase = false }) => {
               Nossa Equipe
             </h2>
           </motion.div>
-          
+
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -144,7 +148,7 @@ const Barbers: React.FC<BarbersProps> = ({ isShowcase = false }) => {
                 <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#F0B35B] transition-colors">
                   {barber.name}
                 </h3>
-                
+
                 {/* Especialidades */}
                 {barber.specialties && barber.specialties.length > 0 && (
                   <div className="mb-4">
@@ -172,7 +176,7 @@ const Barbers: React.FC<BarbersProps> = ({ isShowcase = false }) => {
                       <p className="text-gray-400 text-xs">Avaliação</p>
                     </div>
                   )}
-                  
+
                   {barber.totalAppointments && (
                     <div className="text-center">
                       <div className="flex items-center justify-center space-x-1 mb-1">

@@ -22,8 +22,8 @@ interface Appointment {
 }
 
 const AnalyticsPage: React.FC = () => {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
+  const { user } = useAuth();
+  const currentUser = user;
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
@@ -50,13 +50,13 @@ const AnalyticsPage: React.FC = () => {
 
       try {
         const fetchedAppointments = await loadAppointmentsService();
-        
+
         if (!isSubscribed) return;
-        
+
         if (!Array.isArray(fetchedAppointments)) {
           throw new Error('Invalid appointments data received');
         }
-        
+
         setAppointments(fetchedAppointments as Appointment[]);
       } catch (error: unknown) {
         console.error('Erro ao carregar agendamentos:', error);

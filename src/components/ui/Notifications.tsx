@@ -9,7 +9,8 @@ import { useComments } from '../../hooks/useComments';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useTenantCache } from '../../hooks/useTenantCache';
 
-interface Appointment {
+// Tipo local para notificações de agendamentos (compatível com dados mapeados)
+interface NotificationAppointment {
   id: string;
   clientName: string;
   service: string;
@@ -32,34 +33,20 @@ interface Comment {
   createdAt: string;
 }
 
-interface RawAppointmentData {
-  id: string;
-  clientName: string;
-  serviceName: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'completed';
-  barberId: string;
-  barberName: string;
-  price: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export const useNotifications = () => {
   const [pendingComments, setPendingComments] = useState<Comment[]>([]);
-  const [newAppointments, setNewAppointments] = useState<Appointment[]>([]);
+  const [newAppointments, setNewAppointments] = useState<NotificationAppointment[]>([]);
   const [isNotificationDropdownOpen, setIsNotificationDropdownOpen] = useState(false);
   const [notificationTab, setNotificationTab] = useState<'comments' | 'appointments'>('comments');
   const [hasError, setHasError] = useState(false);
-  const [cachedAppointments, setCachedAppointments] = useState<Appointment[]>([]);
+  const [cachedAppointments, setCachedAppointments] = useState<NotificationAppointment[]>([]);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshCompleted, setRefreshCompleted] = useState<boolean>(false);
   const [usingExpiredCache, setUsingExpiredCache] = useState<boolean>(false);
   const [rateLimitRetryCount, setRateLimitRetryCount] = useState<number>(0);
 
-  const { getCurrentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const { isValidTenant } = useTenant();
   const { comments, loadComments } = useComments();
   const { appointments, loadAppointments: loadTenantAppointments } = useAppointments();
@@ -77,7 +64,7 @@ export const useNotifications = () => {
         setLastFetchTime(parseInt(cacheTimestamp));
 
         const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
-        const newApps = parsedData.filter((app: Appointment) => !viewedAppointmentIds.includes(app.id));
+        const newApps = parsedData.filter((app: NotificationAppointment) => !viewedAppointmentIds.includes(app.id));
         setNewAppointments(newApps);
       }
     } catch (error) {
@@ -88,7 +75,7 @@ export const useNotifications = () => {
   const loadPendingComments = useCallback(async (): Promise<Comment[]> => {
     const requestKey = 'loadPendingComments';
 
-    return requestDebouncer.execute(requestKey, async () => {
+    return requestDebouncer.execute<Comment[]>(requestKey, async () => {
       if (!isValidTenant) {
         console.warn('Notifications: Tenant inválido, não carregando comentários');
         return [];
@@ -101,7 +88,7 @@ export const useNotifications = () => {
       if (cachedData && typeof cachedData === 'object' && 'data' in cachedData) {
         console.log('Usando comentários pendentes do cache');
         setPendingComments(cachedData.data as Comment[]);
-        return cachedData.data;
+        return cachedData.data as Comment[];
       }
 
       try {
@@ -115,23 +102,23 @@ export const useNotifications = () => {
 
         // Cache por 10 minutos para reduzir chamadas
         tenantCache.set(cacheKey, { data: comments }, { ttl: 600 });
-        return comments;
+        return (comments || []) as Comment[];
       } catch (error) {
         console.error('Erro ao buscar comentários pendentes:', error);
         setHasError(true);
-        
+
         // Tentar usar cache expirado como último recurso
         const fallbackData = tenantCache.get(cacheKey);
         if (fallbackData && typeof fallbackData === 'object' && 'data' in fallbackData) {
           console.log('Usando cache expirado como último recurso');
           setPendingComments(fallbackData.data as Comment[]);
           setUsingExpiredCache(true);
-          return fallbackData.data;
+          return fallbackData.data as Comment[];
         }
-        
+
         return [];
       } finally {
-// Removed setIsLoading call since it's not defined in state
+        // Removed setIsLoading call since it's not defined in state
 
         if (isRefreshing && !refreshCompleted) {
           setTimeout(() => {
@@ -157,7 +144,7 @@ export const useNotifications = () => {
           setIsRefreshing(true);
           setRefreshCompleted(false);
         }
-        const currentUser = getCurrentUser();
+        // currentUser já vem do useAuth acima
 
         // Registrar o momento da tentativa de busca
         const fetchStartTime = Date.now();
@@ -168,16 +155,25 @@ export const useNotifications = () => {
           const appointmentsData = appointments || [];
 
           const viewedAppointmentIds = JSON.parse(localStorage.getItem('viewedAppointments') || '[]');
-          let formattedAppointments = appointmentsData.map((app) => ({
-            ...app,
-            service: app.serviceName,
+          let formattedAppointments: NotificationAppointment[] = appointmentsData.map((app) => ({
+            id: app.id,
+            clientName: app._backendData?.clientName || 'Cliente',
+            service: app._backendData?.serviceName || 'Serviço',
+            date: typeof app.date === 'string' ? app.date : app.date.toISOString().split('T')[0],
+            time: app.time || app.startTime,
+            status: app.status as 'pending' | 'confirmed' | 'completed',
+            barberId: app.barberId,
+            barberName: app._backendData?.barberName || app.barberName || 'Barbeiro',
+            price: app._backendData?.price || 0,
+            createdAt: typeof app.createdAt === 'string' ? app.createdAt : app.createdAt?.toISOString(),
+            updatedAt: typeof app.updatedAt === 'string' ? app.updatedAt : app.updatedAt?.toISOString(),
             viewed: viewedAppointmentIds.includes(app.id)
           }));
 
           // Filtrar por role: admin vê todos, barbeiros só veem os seus
           if ((currentUser as { role?: string })?.role !== 'admin') {
             formattedAppointments = formattedAppointments.filter(
-              (app: Appointment) => app.barberId === (currentUser as { id: string })?.id
+              (app) => app.barberId === (currentUser as { id: string })?.id
             );
           }
 
@@ -185,20 +181,20 @@ export const useNotifications = () => {
           const threeDaysAgo = new Date();
           threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
           threeDaysAgo.setHours(0, 0, 0, 0);
-          
+
           const today = new Date();
           today.setHours(23, 59, 59, 999);
 
-          formattedAppointments = formattedAppointments.filter((app: Appointment) => {
+          formattedAppointments = formattedAppointments.filter((app) => {
             const appDate = new Date(app.date);
             return appDate >= threeDaysAgo && appDate <= today;
           });
 
-          formattedAppointments.sort((a: Appointment, b: Appointment) => {
+          formattedAppointments.sort((a, b) => {
             return new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime();
           });
 
-          const newApps = formattedAppointments.filter((app: Appointment) => !app.viewed);
+          const newApps = formattedAppointments.filter((app) => !app.viewed);
           setNewAppointments(newApps);
 
           // Atualizar o cache e o timestamp
@@ -228,20 +224,20 @@ export const useNotifications = () => {
 
         return [];
       } finally {
-// Removed setIsLoading call since it's not defined in state
+        // Removed setIsLoading call since it's not defined in state
       }
     });
-  }, [getCurrentUser, isValidTenant, loadTenantAppointments, appointments]);
+  }, [currentUser, isValidTenant, loadTenantAppointments, appointments]);
 
   const handleCommentAction = async (commentId: string, action: 'approve' | 'reject') => {
     if (!commentId) return;
 
     try {
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
-      
+
       // Usar o ApiService para requisições PATCH com retry e cache
       await ApiService.patch(`/api/comments/${commentId}`, { status: newStatus });
-      
+
       // Se chegou aqui, a requisição foi bem-sucedida
       setPendingComments(prev => prev.filter(comment => comment.id !== commentId));
       setIsNotificationDropdownOpen(pendingComments.length > 1);
@@ -296,7 +292,7 @@ export const useNotifications = () => {
         }
 
         // Verificar se o usuário está carregado antes de fazer requisições
-        const currentUser = getCurrentUser();
+        // currentUser já vem do useAuth via hook acima
         if (!currentUser) {
           console.log('Usuário não carregado, adiando requisições de notificações');
           return;
@@ -344,7 +340,7 @@ export const useNotifications = () => {
       clearTimeout(initialFetchTimeout);
       if (interval) clearInterval(interval);
     };
-  }, [getCurrentUser, loadPendingComments, loadAppointments, lastFetchTime, setHasError]);
+  }, [currentUser, loadPendingComments, loadAppointments, lastFetchTime, setHasError]);
 
   const toggleNotificationDropdown = () => {
     setIsNotificationDropdownOpen(!isNotificationDropdownOpen);
@@ -461,10 +457,10 @@ const Notifications = React.memo(() => {
                   onClick={() => !refreshCompleted && !isRefreshing && loadAppointments(true)}
                   disabled={refreshCompleted || isRefreshing}
                   className={`text-xs px-2 py-1 rounded-md transition-all duration-300 flex items-center gap-1 ${refreshCompleted
-                      ? 'text-green-400 bg-green-500/20 cursor-not-allowed'
-                      : isRefreshing
-                        ? 'text-[#F0B35B] bg-[#F0B35B]/20 cursor-not-allowed'
-                        : 'text-[#F0B35B] hover:text-[#F0B35B]/80 bg-[#F0B35B]/10 hover:bg-[#F0B35B]/20'
+                    ? 'text-green-400 bg-green-500/20 cursor-not-allowed'
+                    : isRefreshing
+                      ? 'text-[#F0B35B] bg-[#F0B35B]/20 cursor-not-allowed'
+                      : 'text-[#F0B35B] hover:text-[#F0B35B]/80 bg-[#F0B35B]/10 hover:bg-[#F0B35B]/20'
                     }`}
                 >
                   {isRefreshing && (
@@ -504,10 +500,9 @@ const Notifications = React.memo(() => {
 
             {/* Alerta de erro, cache desatualizado ou rate limiting */}
             {(hasError || isCacheStale() || usingExpiredCache) && (
-              <div className={`mx-3 sm:mx-4 my-2 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${
-                usingExpiredCache ? 'bg-orange-500/20 text-orange-300' :
+              <div className={`mx-3 sm:mx-4 my-2 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${usingExpiredCache ? 'bg-orange-500/20 text-orange-300' :
                 hasError ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/20 text-yellow-300'
-              }`}>
+                }`}>
                 {usingExpiredCache ? (
                   <div className="flex items-center gap-2">
                     <span>⚠️</span>

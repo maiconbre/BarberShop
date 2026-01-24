@@ -43,7 +43,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const [appointments, setAppointments] = useState<CalendarAppointment[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Multi-tenant hooks
   const { loadAppointments: loadTenantAppointments } = useAppointments();
   const { isValidTenant, barbershopId } = useTenant();
@@ -65,25 +65,25 @@ const Calendar: React.FC<CalendarProps> = ({
       logger.componentWarn('Calendar: Barbeiro não selecionado ou tenant inválido');
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Usar o hook multi-tenant para carregar agendamentos
       const filters = { barberId: selectedBarber };
       const data = await loadTenantAppointments(filters);
-      
+
       // Garantir que sempre seja um array
       let appointmentsArray: CalendarAppointment[] = [];
-      
+
       if (Array.isArray(data)) {
         appointmentsArray = data
           .filter(appointment => appointment.time) // Filtrar apenas appointments com time
           .map(appointment => ({
             id: appointment.id,
             date: typeof appointment.date === 'string' ? appointment.date : appointment.date.toISOString().split('T')[0],
-            time: appointment.time,
+            time: appointment.time!,
             barberId: appointment.barberId || '',
             barberName: appointment.barberName || '',
             isBlocked: false,
@@ -91,11 +91,11 @@ const Calendar: React.FC<CalendarProps> = ({
             isCancelled: appointment.status === 'cancelled'
           }));
       }
-      
+
       setAppointments(appointmentsArray);
-      
+
       logger.componentDebug(`Calendar: ${appointmentsArray.length} agendamentos carregados para barbeiro ${selectedBarber}`);
-      
+
     } catch (err) {
       console.error('Erro ao carregar agendamentos:', err);
       setError('Não foi possível carregar os horários.');
@@ -108,31 +108,31 @@ const Calendar: React.FC<CalendarProps> = ({
   // Carregar agendamentos quando barbeiro for selecionado
   useEffect(() => {
     fetchAppointments();
-    
+
     // Adicionar listener para o evento 'cacheUpdated'
-     const handleCacheUpdated = (event: CustomEvent) => {
-       const { keys, timestamp } = event.detail;
-       logger.componentDebug('Evento cacheUpdated recebido:', { keys, timestamp });
-       
-       // Verificar se os caches relevantes foram atualizados
-       const relevantKeys = [
-         `tenant_${barbershopId}_appointments`,
-         `schedule_appointments_${selectedBarber || ''}`
-       ];
-       
-       const shouldRefresh = keys.some((key: string) => 
-         relevantKeys.includes(key) || key.startsWith('schedule_appointments_')
-       );
-       
-       if (shouldRefresh) {
-         logger.componentInfo('Atualizando agendamentos após evento cacheUpdated');
-         fetchAppointments();
-       }
-     };
-    
+    const handleCacheUpdated = (event: CustomEvent) => {
+      const { keys, timestamp } = event.detail;
+      logger.componentDebug('Evento cacheUpdated recebido:', { keys, timestamp });
+
+      // Verificar se os caches relevantes foram atualizados
+      const relevantKeys = [
+        `tenant_${barbershopId}_appointments`,
+        `schedule_appointments_${selectedBarber || ''}`
+      ];
+
+      const shouldRefresh = keys.some((key: string) =>
+        relevantKeys.includes(key) || key.startsWith('schedule_appointments_')
+      );
+
+      if (shouldRefresh) {
+        logger.componentInfo('Atualizando agendamentos após evento cacheUpdated');
+        fetchAppointments();
+      }
+    };
+
     // Adicionar listener para eventos de atualização de cache
     window.addEventListener('cacheUpdated', handleCacheUpdated as EventListener);
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('cacheUpdated', handleCacheUpdated as EventListener);
@@ -155,49 +155,49 @@ const Calendar: React.FC<CalendarProps> = ({
     if (!selectedBarber || !appointments || !Array.isArray(appointments)) {
       return true;
     }
-    
+
     const dateInBrasilia = adjustToBrasilia(date);
     const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
-    
+
     try {
       // Usar a função isTimeSlotAvailable do AppointmentService que verifica todos os caches
       return await checkTimeSlotAvailability(
-        formattedDate, 
-        time, 
-        selectedBarber, 
+        formattedDate,
+        time,
+        selectedBarber,
         appointments
       );
     } catch (error) {
       console.error('Erro ao verificar disponibilidade completa:', error);
-      
+
       // Em caso de erro, verificar apenas no cache local
       return checkLocalAvailability(
-        formattedDate, 
-        time, 
-        selectedBarber, 
+        formattedDate,
+        time,
+        selectedBarber,
         appointments
       );
     }
   }, [selectedBarber, appointments]);
-  
+
   // Função para verificar disponibilidade local para feedback imediato na UI
   const isLocallyAvailable = useCallback((date: Date, time: string): boolean => {
     if (!selectedBarber || !appointments || !Array.isArray(appointments)) {
       return true;
     }
-    
+
     const dateInBrasilia = adjustToBrasilia(date);
     const formattedDate = format(dateInBrasilia, 'yyyy-MM-dd');
-    
-    return !appointments.some(appointment => 
-      appointment.date === formattedDate && 
-      appointment.time === time && 
+
+    return !appointments.some(appointment =>
+      appointment.date === formattedDate &&
+      appointment.time === time &&
       (appointment.barberId === selectedBarber || appointment.barberName === selectedBarber) &&
-      !appointment.isCancelled && 
+      !appointment.isCancelled &&
       !appointment.isRemoved
     );
   }, [selectedBarber, appointments]);
-  
+
 
 
   // Selecionar data
@@ -227,7 +227,7 @@ const Calendar: React.FC<CalendarProps> = ({
       });
       return;
     }
-    
+
     if (!selectedBarber) {
       toast.error('Selecione um barbeiro primeiro', {
         duration: 4000,
@@ -247,7 +247,7 @@ const Calendar: React.FC<CalendarProps> = ({
       });
       return;
     }
-    
+
     // Verificar primeiro no cache local para feedback imediato
     if (!isLocallyAvailable(selectedDate, time)) {
       toast.error('Este horário já está ocupado', {
@@ -268,7 +268,7 @@ const Calendar: React.FC<CalendarProps> = ({
       });
       return;
     }
-    
+
     // Verificar disponibilidade de forma assíncrona
     try {
       const isAvailable = await checkAsyncTimeSlotAvailability(selectedDate, time);
@@ -293,12 +293,12 @@ const Calendar: React.FC<CalendarProps> = ({
       }
     } catch (error) {
       // Se houver erro na verificação global, confiar na verificação local
-       logger.componentError('Erro ao verificar disponibilidade global:', error);
+      logger.componentError('Erro ao verificar disponibilidade global:', error);
     }
 
     const dateInBrasilia = adjustToBrasilia(selectedDate);
     setSelectedTime(time);
-    
+
     if (onTimeSelect) {
       onTimeSelect(dateInBrasilia, time);
     }
@@ -318,10 +318,9 @@ const Calendar: React.FC<CalendarProps> = ({
                 className={`
                   flex flex-col items-center justify-center p-1.5 rounded-md min-w-[60px] flex-shrink-0
                   transition-all duration-200
-                  ${
-                    selectedDate && isSameDay(date, selectedDate)
-                      ? 'bg-[#F0B35B] text-black'
-                      : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
+                  ${selectedDate && isSameDay(date, selectedDate)
+                    ? 'bg-[#F0B35B] text-black'
+                    : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B]'
                   }
                 `}
               >
@@ -349,7 +348,7 @@ const Calendar: React.FC<CalendarProps> = ({
             ) : error ? (
               <div className="col-span-full text-center text-red-500 py-2">
                 <span className="text-xs">{error}</span>
-                <button 
+                <button
                   onClick={fetchAppointments}
                   className="block mx-auto mt-1 px-2 py-1 text-xs bg-[#F0B35B] text-black rounded-md hover:bg-[#F0B35B]/90 transition-colors"
                 >
@@ -359,16 +358,16 @@ const Calendar: React.FC<CalendarProps> = ({
             ) : (
               timeSlots.map(time => {
                 // Verificar disponibilidade com base no cache local para feedback imediato
-                const isLocallyAvailable = selectedDate ? !appointments.some(appointment => 
-                  appointment.date === format(adjustToBrasilia(selectedDate), 'yyyy-MM-dd') && 
-                  appointment.time === time && 
-                  (appointment.barberId === selectedBarber || appointment.barberName === selectedBarber) && 
-                  !appointment.isCancelled && 
+                const isLocallyAvailable = selectedDate ? !appointments.some(appointment =>
+                  appointment.date === format(adjustToBrasilia(selectedDate), 'yyyy-MM-dd') &&
+                  appointment.time === time &&
+                  (appointment.barberId === selectedBarber || appointment.barberName === selectedBarber) &&
+                  !appointment.isCancelled &&
                   !appointment.isRemoved
                 ) : false;
-                
+
                 const isSelected = selectedTime === time;
-                
+
                 return (
                   <button
                     type="button"
@@ -377,12 +376,11 @@ const Calendar: React.FC<CalendarProps> = ({
                     disabled={!isLocallyAvailable}
                     className={`
                       py-1.5 px-2 rounded-md text-xs font-medium transition-all duration-200 h-fit
-                      ${
-                        !isLocallyAvailable 
-                          ? 'bg-red-500/20 text-red-300 cursor-not-allowed border border-red-500/30' 
-                          : isSelected
-                            ? 'bg-[#F0B35B] text-black border border-[#F0B35B]'
-                            : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:border-[#F0B35B]/30 border border-transparent'
+                      ${!isLocallyAvailable
+                        ? 'bg-red-500/20 text-red-300 cursor-not-allowed border border-red-500/30'
+                        : isSelected
+                          ? 'bg-[#F0B35B] text-black border border-[#F0B35B]'
+                          : 'bg-[#1A1F2E] text-white hover:bg-[#252B3B] hover:border-[#F0B35B]/30 border border-transparent'
                       }
                     `}
                   >

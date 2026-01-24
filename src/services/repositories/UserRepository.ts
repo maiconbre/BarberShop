@@ -1,184 +1,204 @@
 import type { IPaginatedRepository, PaginationOptions, PaginatedResult } from '../interfaces/IRepository';
-import type { IApiService } from '../interfaces/IApiService';
 import type { User as UserType } from '@/types';
-import { User } from '@/models/User';
+import { supabase } from '../../config/supabaseConfig';
 
 /**
- * Repositório para usuários seguindo Repository Pattern
+ * Repositório para usuários usando Supabase diretamente
+ * Simplificado para trabalhar apenas com a tabela 'profiles' e 'auth'
  */
 export class UserRepository implements IPaginatedRepository<UserType> {
-  constructor(private apiService: IApiService) {}
+  // ApiService dependency removed
+  constructor() {}
 
   /**
-   * Busca usuário por ID
+   * Busca usuário por ID (consulta tabela profiles)
    */
   async findById(id: string): Promise<UserType | null> {
     try {
-      const userData = await this.apiService.get<UserType>(`/api/users/${id}`);
-      return userData;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) return null;
+      
+      return this.mapProfileToUser(data);
     } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return null;
-      }
-      throw error;
+      return null;
     }
   }
 
   /**
-   * Busca todos os usuários com filtros opcionais
+   * Busca todos os usuários com filtros
    */
   async findAll(filters?: Record<string, unknown>): Promise<UserType[]> {
-    const queryParams = filters ? this.buildQueryParams(filters) : '';
-    const users = await this.apiService.get<UserType[]>(`/api/users${queryParams}`);
-    return Array.isArray(users) ? users : [];
+    try {
+      let query = supabase.from('profiles').select('*');
+      
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && key !== 'barbershopId') {
+             query = query.eq(key, value);
+          }
+          // Filtro por barbearia
+          if (key === 'barbershopId') {
+            query = query.eq('barbershop_id', value);
+          }
+        });
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      return (data || []).map(this.mapProfileToUser);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+      return [];
+    }
   }
 
   /**
    * Busca usuários com paginação
    */
   async findPaginated(options: PaginationOptions): Promise<PaginatedResult<UserType>> {
-    const queryParams = this.buildPaginationParams(options);
-    const result = await this.apiService.get<PaginatedResult<UserType>>(`/api/users${queryParams}`);
-    return result;
+    try {
+      let query = supabase.from('profiles').select('*', { count: 'exact' });
+      
+      // Aplicar filtros
+      if (options.filters) {
+        Object.entries(options.filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (key === 'barbershopId') {
+              query = query.eq('barbershop_id', value);
+            } else {
+              query = query.eq(key, value);
+            }
+          }
+        });
+      }
+
+      // Aplicar ordenação
+      if (options.sortBy) {
+        query = query.order(options.sortBy, { ascending: options.sortOrder === 'asc' });
+      }
+
+      // Aplicar paginação
+      const page = options.page || 1;
+      const limit = options.limit || 10;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, count, error } = await query.range(from, to);
+
+      if (error) throw error;
+
+      return {
+        data: (data || []).map(this.mapProfileToUser),
+        total: count || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((count || 0) / limit)
+      };
+    } catch (error) {
+      console.error('Erro na paginação de usuários:', error);
+      return { data: [], total: 0, page: 1, limit: 10, totalPages: 0 };
+    }
   }
 
   /**
-   * Cria um novo usuário
+   * Cria um novo usuário (Geralmente criado via Auth, aqui cria perfil)
    */
-  async create(userData: Omit<UserType, 'id' | 'createdAt' | 'updatedAt'>): Promise<UserType> {
-    // Valida os dados antes de enviar
-    const validatedData = User.validateRegisterData(userData);
-    const newUser = await this.apiService.post<UserType>(this.getTenantAwareUrl('/api/users'), validatedData);
-    return newUser;
+  async create(_userData: Partial<UserType>): Promise<UserType> {
+    // Nota: Em Supabase, a criação de usuário é feita via Auth.SignUp
+    // Este método pode ser usado para criar o perfil se ele não existir
+    throw new Error('Use auth triggers ou registerBarbershop para criar usuários');
   }
 
   /**
    * Atualiza um usuário existente
    */
   async update(id: string, updates: Partial<UserType>): Promise<UserType> {
-    const updatedUser = await this.apiService.patch<UserType>(this.getTenantAwareUrl(`/api/users/${id}`), updates);
-    return updatedUser;
+    try {
+      // Mapear campos do frontend para o banco
+      const dbUpdates: any = {
+        updated_at: new Date().toISOString()
+      };
+      
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.email) dbUpdates.email = updates.email;
+      if (updates.role) dbUpdates.role = updates.role;
+      // Adicione outros campos conforme necessário
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      return this.mapProfileToUser(data);
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      throw error;
+    }
   }
 
   /**
    * Remove um usuário
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(`/api/users/${id}`);
+    // Remover perfil (Auth user deve ser removido via Admin API, não acessível aqui)
+    await supabase.from('profiles').delete().eq('id', id);
   }
 
   /**
    * Verifica se um usuário existe
    */
   async exists(id: string): Promise<boolean> {
-    try {
-      await this.apiService.get(`/api/users/${id}/exists`);
-      return true;
-    } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return false;
-      }
-      throw error;
-    }
+    const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('id', id);
+    return (count || 0) > 0;
   }
 
   /**
    * Busca usuário por email
    */
   async findByEmail(email: string): Promise<UserType | null> {
-    try {
-      const user = await this.apiService.get<UserType>(`/api/users/email/${encodeURIComponent(email)}`);
-      return user;
-    } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return null;
-      }
-      throw error;
-    }
+    const { data } = await supabase.from('profiles').select('*').eq('email', email).single();
+    return data ? this.mapProfileToUser(data) : null;
   }
 
   /**
-   * Busca usuários por role
+   * Helper para mapear perfil do banco para tipo User
    */
-  async findByRole(role: 'client' | 'barber' | 'admin'): Promise<UserType[]> {
-    const users = await this.apiService.get<UserType[]>(`/api/users?role=${role}`);
-    return Array.isArray(users) ? users : [];
+  private mapProfileToUser(profile: any): UserType {
+    if (!profile) return {} as UserType;
+    
+    return {
+      id: profile.id,
+      name: profile.name || '',
+      email: profile.email || '',
+      role: profile.role || 'client',
+      createdAt: new Date(profile.created_at),
+      updatedAt: new Date(profile.updated_at || profile.created_at),
+      // Campos extras
+      isActive: true, // Assumindo ativo se tem perfil
+    } as unknown as UserType;
   }
 
-  /**
-   * Atualiza senha do usuário
-   */
-  async updatePassword(id: string, currentPassword: string, newPassword: string): Promise<void> {
-    await this.apiService.patch(`/api/users/${id}/password`, {
-      currentPassword,
-      newPassword,
-    });
+  // Métodos interfaceados não utilizados
+  async findByRole(role: string): Promise<UserType[]> {
+    return this.findAll({ role });
   }
-
-  /**
-   * Ativa/desativa usuário
-   */
-  async toggleActive(id: string, isActive: boolean): Promise<UserType> {
-    const updatedUser = await this.apiService.patch<UserType>(`/api/users/${id}`, { isActive });
-    return updatedUser;
+  
+  async updatePassword(): Promise<void> {
+    throw new Error('Use supabase.auth.updateUser para mudar senhas');
   }
-
-  /**
-   * Constrói parâmetros de query para filtros
-   */
-  private buildQueryParams(filters: Record<string, unknown>): string {
-    const params = new URLSearchParams();
-    const barbershopSlug = localStorage.getItem('barbershopSlug');
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        // Skip barbershopId if we're using slug-based URLs
-        if (key === 'barbershopId' && barbershopSlug) {
-          return;
-        }
-        params.append(key, String(value));
-      }
-    });
-    
-    return params.toString() ? `?${params.toString()}` : '';
-  }
-
-  /**
-   * Constrói parâmetros de paginação
-   */
-  private buildPaginationParams(options: PaginationOptions): string {
-    const params = new URLSearchParams();
-    
-    params.append('page', String(options.page));
-    params.append('limit', String(options.limit));
-    
-    if (options.sortBy) {
-      params.append('sortBy', options.sortBy);
-    }
-    
-    if (options.sortOrder) {
-      params.append('sortOrder', options.sortOrder);
-    }
-    
-    if (options.filters) {
-      Object.entries(options.filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params.append(key, String(value));
-        }
-      });
-    }
-    
-    return `?${params.toString()}`;
-  }
-
-  /**
-   * Verifica se o erro é de "não encontrado"
-   */
-  private isNotFoundError(error: unknown): boolean {
-    return (
-      error instanceof Error &&
-      'status' in error &&
-      error.status === 404
-    );
+  
+  async toggleActive(): Promise<UserType> {
+    throw new Error('Not implemented');
   }
 }

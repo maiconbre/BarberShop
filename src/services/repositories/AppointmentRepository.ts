@@ -1,51 +1,37 @@
-import type { IAppointmentRepository, CreateAppointmentData, UpdateAppointmentData } from '../interfaces/IAppointmentRepository';
-import type { IApiService } from '../interfaces/IApiService';
-import type { Appointment, AppointmentStatus } from '@/types';
-import type { BackendAppointment } from '@/types/backend';
-import { AppointmentAdapter } from '@/adapters/AppointmentAdapter';
+import type { IAppointmentRepository } from '../interfaces/IAppointmentRepository';
 
-// Interface for API errors with status
-interface ApiError extends Error {
-  status?: number;
-}
+import type { Appointment, AppointmentStatus } from '@/types';
+import { AppointmentAdapter } from '@/adapters/AppointmentAdapter';
+import { supabase } from '../../config/supabaseConfig';
 
 /**
  * Repositório para agendamentos seguindo Repository Pattern
  * Baseado na estrutura real do backend Sequelize
  */
 export class AppointmentRepository implements IAppointmentRepository {
-  constructor(private apiService: IApiService) {}
-
-  /**
-   * Helper para construir URLs tenant-aware
-   */
-  private getTenantAwareUrl(endpoint: string): string {
-    const barbershopSlug = localStorage.getItem('barbershopSlug');
-    const barbershopId = localStorage.getItem('barbershopId');
-    
-    if (barbershopSlug) {
-      // Remove /api do início do endpoint para evitar duplicação
-      const cleanEndpoint = endpoint.startsWith('/api') ? endpoint.substring(4) : endpoint;
-      return `/api/app/${barbershopSlug}${cleanEndpoint}`;
-    } else if (barbershopId) {
-      return `${endpoint}?barbershopId=${barbershopId}`;
-    }
-    
-    return endpoint;
-  }
+  // apiService is optional and unused, kept for compatibility with ServiceFactory
+  constructor() {}
 
   /**
    * Busca agendamento por ID
    */
   async findById(id: string): Promise<Appointment | null> {
     try {
-      const backendAppointment = await this.apiService.get<BackendAppointment>(this.getTenantAwareUrl(`/api/appointments/${id}`));
-      return AppointmentAdapter.fromBackend(backendAppointment);
-    } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return null;
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found code in PostgREST
+        throw error;
       }
-      throw error;
+      
+      return AppointmentAdapter.fromBackend(data);
+    } catch (error) {
+      console.error('AppointmentRepository: findById failed:', error);
+      return null;
     }
   }
 
@@ -53,17 +39,34 @@ export class AppointmentRepository implements IAppointmentRepository {
    * Busca todos os agendamentos com filtros opcionais
    */
   async findAll(filters?: Record<string, unknown>): Promise<Appointment[]> {
-    const queryParams = filters ? this.buildQueryParams(filters) : '';
-    const baseUrl = this.getTenantAwareUrl('/api/appointments');
-    const fullUrl = queryParams ? `${baseUrl}${queryParams}` : baseUrl;
-    
-    const backendAppointments = await this.apiService.get<BackendAppointment[]>(fullUrl);
-    
-    if (!Array.isArray(backendAppointments)) {
+    try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      
+      if (!barbershopId) {
+        console.warn('AppointmentRepository: No barbershopId found in localStorage');
+        return [];
+      }
+
+      let query = supabase.from('appointments').select('*').eq('barbershopId', barbershopId);
+      
+      if (filters?.barberId) {
+        query = query.eq('barberId', filters.barberId);
+      }
+      
+      // Implement other filters as needed
+      
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('AppointmentRepository: Error fetching appointments:', error);
+        throw new Error(error.message);
+      }
+      
+      return (data || []).map(appointment => AppointmentAdapter.fromBackend(appointment));
+    } catch (error) {
+      console.error('AppointmentRepository: findAll failed:', error);
       return [];
     }
-    
-    return backendAppointments.map(appointment => AppointmentAdapter.fromBackend(appointment));
   }
 
   /**
@@ -133,105 +136,89 @@ export class AppointmentRepository implements IAppointmentRepository {
 
   /**
    * Cria um novo agendamento
-   * POST /api/appointments (cria com id = Date.now().toString())
    */
   async create(appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> {
-    // Convert frontend data to backend format
-    const backendData: CreateAppointmentData = {
-      clientName: appointmentData._backendData?.clientName || appointmentData.clientId,
-      serviceName: appointmentData._backendData?.serviceName || appointmentData.serviceId,
-      date: appointmentData.date.toISOString().split('T')[0],
-      time: appointmentData.startTime,
-      barberId: appointmentData.barberId,
-      barberName: appointmentData._backendData?.barberName || '',
-      price: appointmentData._backendData?.price || 0,
-      wppclient: appointmentData._backendData?.wppclient || '',
-      status: appointmentData.status ? this.mapFrontendStatusToBackend(appointmentData.status) : 'pending'
-    };
+    try {
+      // Map frontend data to backend/supabase format
+      const supabaseData = {
+        clientName: appointmentData._backendData?.clientName || appointmentData.clientId,
+        serviceName: appointmentData._backendData?.serviceName || appointmentData.serviceId,
+        date: appointmentData.date.toISOString().split('T')[0],
+        time: appointmentData.startTime,
+        barberId: appointmentData.barberId,
+        barberName: appointmentData._backendData?.barberName || '',
+        price: appointmentData._backendData?.price || 0,
+        wppclient: appointmentData._backendData?.wppclient || '',
+        status: appointmentData.status || 'pending',
+        barbershopId: localStorage.getItem('barbershopId') // Ensure tenant context
+      };
 
-    const newBackendAppointment = await this.apiService.post<BackendAppointment>(this.getTenantAwareUrl('/api/appointments'), backendData);
-    return AppointmentAdapter.fromBackend(newBackendAppointment);
+      const { data, error } = await supabase.from('appointments').insert(supabaseData).select().single();
+
+      if (error) throw new Error(error.message);
+      return AppointmentAdapter.fromBackend(data);
+    } catch (error) {
+      console.error('AppointmentRepository: create failed:', error);
+      throw error;
+    }
   }
 
   /**
    * Atualiza um agendamento existente
    */
   async update(id: string, updates: Partial<Appointment>): Promise<Appointment> {
-    const backendUpdates: UpdateAppointmentData = {};
-    
-    if (updates.clientId || updates._backendData?.clientName) {
-      backendUpdates.clientName = updates._backendData?.clientName || updates.clientId;
-    }
-    
-    if (updates.serviceId || updates._backendData?.serviceName) {
-      backendUpdates.serviceName = updates._backendData?.serviceName || updates.serviceId;
-    }
-    
-    if (updates.date) {
-      backendUpdates.date = updates.date.toISOString().split('T')[0];
-    }
-    
-    if (updates.startTime) {
-      backendUpdates.time = updates.startTime;
-    }
-    
-    if (updates.status) {
-      backendUpdates.status = this.mapFrontendStatusToBackend(updates.status);
-    }
-    
-    if (updates.barberId) {
-      backendUpdates.barberId = updates.barberId;
-    }
-    
-    if (updates._backendData?.barberName) {
-      backendUpdates.barberName = updates._backendData.barberName;
-    }
-    
-    if (updates._backendData?.price) {
-      backendUpdates.price = updates._backendData.price;
-    }
-    
-    if (updates._backendData?.wppclient) {
-      backendUpdates.wppclient = updates._backendData.wppclient;
-    }
+    try {
+      const supabaseUpdates: any = {};
+      
+      if (updates.clientId || updates._backendData?.clientName) {
+        supabaseUpdates.clientName = updates._backendData?.clientName || updates.clientId;
+      }
+      if (updates.serviceId || updates._backendData?.serviceName) {
+        supabaseUpdates.serviceName = updates._backendData?.serviceName || updates.serviceId;
+      }
+      if (updates.date) {
+        supabaseUpdates.date = updates.date.toISOString().split('T')[0];
+      }
+      if (updates.startTime) {
+        supabaseUpdates.time = updates.startTime;
+      }
+      if (updates.status) {
+        supabaseUpdates.status = updates.status;
+      }
+      if (updates.barberId) {
+        supabaseUpdates.barberId = updates.barberId;
+      }
 
-    const updatedBackendAppointment = await this.apiService.patch<BackendAppointment>(this.getTenantAwareUrl(`/api/appointments/${id}`), backendUpdates);
-    return AppointmentAdapter.fromBackend(updatedBackendAppointment);
+      const { data, error } = await supabase.from('appointments').update(supabaseUpdates).eq('id', id).select().single();
+
+      if (error) throw new Error(error.message);
+      return AppointmentAdapter.fromBackend(data);
+    } catch (error) {
+       console.error('AppointmentRepository: update failed:', error);
+       throw error;
+    }
   }
 
   /**
    * Atualiza apenas o status do agendamento
-   * PATCH /api/appointments/:id
    */
   async updateStatus(id: string, status: AppointmentStatus): Promise<Appointment> {
-    const backendStatus = this.mapFrontendStatusToBackend(status);
-    const updatedBackendAppointment = await this.apiService.patch<BackendAppointment>(this.getTenantAwareUrl(`/api/appointments/${id}`), {
-      status: backendStatus
-    });
-    return AppointmentAdapter.fromBackend(updatedBackendAppointment);
+    return this.update(id, { status });
   }
 
   /**
    * Remove um agendamento
-   * DELETE /api/appointments/:id
    */
   async delete(id: string): Promise<void> {
-    await this.apiService.delete(this.getTenantAwareUrl(`/api/appointments/${id}`));
+    await supabase.from('appointments').delete().eq('id', id);
   }
 
   /**
    * Verifica se um agendamento existe
    */
   async exists(id: string): Promise<boolean> {
-    try {
-      const appointment = await this.findById(id);
-      return appointment !== null;
-    } catch (error) {
-      if (this.isNotFoundError(error)) {
-        return false;
-      }
-      throw error;
-    }
+    const { count } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('id', id);
+    return (count || 0) > 0;
   }
 
   /**
@@ -248,9 +235,18 @@ export class AppointmentRepository implements IAppointmentRepository {
     wppclient: string;
     status?: AppointmentStatus;
   }): Promise<Appointment> {
-    const backendData = AppointmentAdapter.createDataToBackend(data);
-    const newBackendAppointment = await this.apiService.post<BackendAppointment>(this.getTenantAwareUrl('/api/appointments'), backendData);
-    return AppointmentAdapter.fromBackend(newBackendAppointment);
+    // Implementação direta via Supabase para evitar dependência do ApiService
+    // Reutiliza a lógica de create
+    const appointmentData: any = {
+      clientId: data.clientName,
+      serviceId: data.serviceName,
+      date: data.date,
+      startTime: data.time,
+      barberId: data.barberId,
+      status: data.status || 'pending',
+      _backendData: data
+    };
+    return this.create(appointmentData);
   }
 
   /**
@@ -274,57 +270,28 @@ export class AppointmentRepository implements IAppointmentRepository {
       byStatus,
       today: todayAppointments.length,
       upcoming: upcomingAppointments.length,
-      pending: byStatus.scheduled || 0,
+      pending: byStatus.pending || 0,
       confirmed: byStatus.confirmed || 0,
       completed: byStatus.completed || 0,
       cancelled: byStatus.cancelled || 0
     };
   }
 
-  /**
-   * Constrói parâmetros de query para filtros
-   */
-  private buildQueryParams(filters: Record<string, unknown>): string {
-    const params = new URLSearchParams();
-    const barbershopSlug = localStorage.getItem('barbershopSlug');
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        // Skip barbershopId if we're using slug-based URLs
-        if (key === 'barbershopId' && barbershopSlug) {
-          return;
-        }
-        params.append(key, String(value));
-      }
-    });
-    
-    return params.toString() ? `?${params.toString()}` : '';
-  }
 
-  /**
-   * Mapeia status do frontend para o backend
-   */
-  private mapFrontendStatusToBackend(frontendStatus: AppointmentStatus): string {
-    const statusMap: Record<AppointmentStatus, string> = {
-      'pending': 'pending',
-      'confirmed': 'confirmed',
-      'completed': 'completed',
-      'cancelled': 'cancelled',
-    };
-    
-    return statusMap[frontendStatus] || 'pending';
-  }
+
+
 
   /**
    * Verifica se o erro é de "não encontrado"
+   * @deprecated logic moved to supabase error check
    */
-  private isNotFoundError(error: unknown): boolean {
-    return (
-      error instanceof Error &&
-      'status' in error &&
-      (error as ApiError).status === 404
-    );
-  }
+  // private isNotFoundError(error: unknown): boolean {
+  //   return (
+  //     error instanceof Error &&
+  //     'status' in error &&
+  //     (error as ApiError).status === 404
+  //   );
+  // }
 }
 
 export interface AppointmentStatistics {

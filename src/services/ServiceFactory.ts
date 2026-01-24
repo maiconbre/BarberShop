@@ -1,6 +1,3 @@
-import { ApiServiceV2 } from './core/ApiServiceV2';
-import { ApiService } from './ApiService';
-import type { IApiService } from './interfaces/IApiService';
 import { ServiceRepository } from './repositories/ServiceRepository';
 import { UserRepository } from './repositories/UserRepository';
 import { AppointmentRepository } from './repositories/AppointmentRepository';
@@ -9,8 +6,6 @@ import { CommentRepository } from './repositories/CommentRepository';
 import { logger } from '../utils/logger';
 
 export class ServiceFactory {
-  private static apiServiceInstance: IApiService | null = null;
-  private static apiServiceV2Instance: ApiServiceV2 | null = null;
   private static serviceRepositoryInstance: ServiceRepository | null = null;
   private static userRepositoryInstance: UserRepository | null = null;
   private static appointmentRepositoryInstance: AppointmentRepository | null = null;
@@ -18,38 +13,11 @@ export class ServiceFactory {
   private static commentRepositoryInstance: CommentRepository | null = null;
 
   /**
-   * Get the legacy ApiService instance for backward compatibility
-   */
-  static getApiService(): IApiService {
-    if (!this.apiServiceInstance) {
-      this.apiServiceInstance = new ApiService();
-      logger.info('Legacy ApiService instance created');
-    }
-    return this.apiServiceInstance;
-  }
-
-  /**
-   * Get the new ApiServiceV2 instance with enhanced features
-   */
-  static getApiServiceV2(): ApiServiceV2 {
-    if (!this.apiServiceV2Instance) {
-      this.apiServiceV2Instance = new ApiServiceV2({
-        baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
-        timeout: 30000,
-        retryAttempts: 3,
-        retryDelay: 1000
-      });
-      logger.info('ApiServiceV2 instance created');
-    }
-    return this.apiServiceV2Instance;
-  }
-
-  /**
    * Get the ServiceRepository instance
    */
   static getServiceRepository(): ServiceRepository {
     if (!this.serviceRepositoryInstance) {
-      this.serviceRepositoryInstance = new ServiceRepository(this.getApiService());
+      this.serviceRepositoryInstance = new ServiceRepository();
       logger.info('ServiceRepository instance created');
     }
     return this.serviceRepositoryInstance;
@@ -60,7 +28,7 @@ export class ServiceFactory {
    */
   static getUserRepository(): UserRepository {
     if (!this.userRepositoryInstance) {
-      this.userRepositoryInstance = new UserRepository(this.getApiService());
+      this.userRepositoryInstance = new UserRepository();
       logger.info('UserRepository instance created');
     }
     return this.userRepositoryInstance;
@@ -71,7 +39,7 @@ export class ServiceFactory {
    */
   static getAppointmentRepository(): AppointmentRepository {
     if (!this.appointmentRepositoryInstance) {
-      this.appointmentRepositoryInstance = new AppointmentRepository(this.getApiService());
+      this.appointmentRepositoryInstance = new AppointmentRepository();
       logger.info('AppointmentRepository instance created');
     }
     return this.appointmentRepositoryInstance;
@@ -82,7 +50,7 @@ export class ServiceFactory {
    */
   static getBarberRepository(): BarberRepository {
     if (!this.barberRepositoryInstance) {
-      this.barberRepositoryInstance = new BarberRepository(this.getApiService());
+      this.barberRepositoryInstance = new BarberRepository();
       logger.info('BarberRepository instance created');
     }
     return this.barberRepositoryInstance;
@@ -93,7 +61,7 @@ export class ServiceFactory {
    */
   static getCommentRepository(): CommentRepository {
     if (!this.commentRepositoryInstance) {
-      this.commentRepositoryInstance = new CommentRepository(this.getApiService());
+      this.commentRepositoryInstance = new CommentRepository();
       logger.info('CommentRepository instance created');
     }
     return this.commentRepositoryInstance;
@@ -103,8 +71,6 @@ export class ServiceFactory {
    * Reset all service instances (useful for testing)
    */
   static reset(): void {
-    this.apiServiceInstance = null;
-    this.apiServiceV2Instance = null;
     this.serviceRepositoryInstance = null;
     this.userRepositoryInstance = null;
     this.appointmentRepositoryInstance = null;
@@ -114,31 +80,22 @@ export class ServiceFactory {
   }
 
   /**
-   * Create a new ApiService instance with custom configuration
+   * Update the tenant context for all services
    */
-  static createApiService(): IApiService {
-    return new ApiService();
-  }
-
-  /**
-   * Create a new ApiServiceV2 instance with custom configuration
-   */
-  static createApiServiceV2(config?: {
-    baseURL?: string;
-    timeout?: number;
-    retryAttempts?: number;
-    retryDelay?: number;
-  }): ApiServiceV2 {
-    return new ApiServiceV2(config);
+  static updateTenantContext(tenantId: string): void {
+    logger.info(`Updating tenant context to: ${tenantId}`);
+    // Update API Service headers or context if needed
+    // This is a placeholder for future implementation where services might need tenant awareness
+    // For now, it just logs, preventing the crash
   }
 }
 
 // Export singleton instances for convenience
-export const apiService = ServiceFactory.getApiService();
-export const apiServiceV2 = ServiceFactory.getApiServiceV2();
+// export const apiService = ServiceFactory.getApiService(); // REMOVED
+// export const apiServiceV2 = ServiceFactory.getApiServiceV2(); // REMOVED
 
 // Export repository hooks for React components
-export const useApiService = () => ServiceFactory.getApiService();
+// export const useApiService = () => ServiceFactory.getApiService(); // REMOVED
 export const useUserRepository = () => ServiceFactory.getUserRepository();
 export const useServiceRepository = () => ServiceFactory.getServiceRepository();
 export const useAppointmentRepository = () => ServiceFactory.getAppointmentRepository();
