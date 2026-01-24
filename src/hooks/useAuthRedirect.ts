@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import { getCurrentBarbershop } from '../services/BarbershopService';
@@ -13,10 +13,19 @@ import { getCurrentBarbershop } from '../services/BarbershopService';
  */
 export const useAuthRedirect = (enabled: boolean = true) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const { loadTenant } = useTenant();
 
   useEffect(() => {
+    // Não redirecionar se estiver em rotas admin
+    const isAdminRoute = location.pathname.startsWith('/admin');
+    
+    if (isAdminRoute) {
+      console.log('useAuthRedirect - Rota admin detectada, pulando redirecionamento');
+      return;
+    }
+
     if (enabled && isAuthenticated) {
       const redirectToTenantDashboard = async () => {
         try {
@@ -48,7 +57,7 @@ export const useAuthRedirect = (enabled: boolean = true) => {
       
       redirectToTenantDashboard();
     }
-  }, [isAuthenticated, navigate, enabled, loadTenant]);
+  }, [isAuthenticated, navigate, enabled, loadTenant, location.pathname]);
 
   return { isAuthenticated };
 };

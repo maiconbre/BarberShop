@@ -7,6 +7,7 @@ import { logger } from '../utils/logger';
 interface TenantContextType {
   // Tenant data
   barbershopId: string | null;
+  tenantId: string | null;
   slug: string | null;
   barbershopData: BarbershopData | null;
   settings: Record<string, unknown> | null;
@@ -41,6 +42,7 @@ export const useTenant = () => {
 
 export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => {
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
   const [barbershopData, setBarbershopData] = useState<BarbershopData | null>(null);
   const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
@@ -76,10 +78,14 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
         logger.componentInfo('TenantContext', `Using cached data for slug: ${tenantSlug}`);
 
         setBarbershopId(cachedData.id);
+        setTenantId(cachedData.tenantId || null);
         setBarbershopData(cachedData);
 
         // Store barbershopId and barbershopSlug in localStorage for API requests
         localStorage.setItem('barbershopId', cachedData.id);
+        if (cachedData.tenantId) {
+          localStorage.setItem('tenantId', cachedData.tenantId);
+        }
         localStorage.setItem('barbershopSlug', tenantSlug);
 
         // Update ServiceFactory with new tenant context
@@ -117,10 +123,14 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       const data = await getBarbershopBySlug(tenantSlug);
 
       setBarbershopId(data.id);
+      setTenantId(data.tenantId || null);
       setBarbershopData(data);
 
       // Store barbershopId and barbershopSlug in localStorage for API requests
       localStorage.setItem('barbershopId', data.id);
+      if (data.tenantId) {
+        localStorage.setItem('tenantId', data.tenantId);
+      }
       localStorage.setItem('barbershopSlug', tenantSlug);
 
       // Update ServiceFactory with new tenant context
@@ -171,14 +181,9 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
    * Clear tenant data (including cache)
    */
   const clearTenant = useCallback(async () => {
-    setBarbershopId(null);
-    setSlug(null);
-    setBarbershopData(null);
-    setSettings(null);
-    setError(null);
-
     // Clear barbershopId and barbershopSlug from localStorage
     localStorage.removeItem('barbershopId');
+    localStorage.removeItem('tenantId');
     localStorage.removeItem('barbershopSlug');
 
     // Clear cache
@@ -301,6 +306,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
   const contextValue: TenantContextType = React.useMemo(() => ({
     // Tenant data
     barbershopId,
+    tenantId,
     slug,
     barbershopData,
     settings,
@@ -319,6 +325,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     isValidTenant
   }), [
     barbershopId,
+    tenantId,
     slug,
     barbershopData,
     settings,

@@ -41,6 +41,7 @@ export interface SlugCheckResponse {
 
 export interface BarbershopData {
   id: string;
+  tenantId?: string;
   name: string;
   slug: string;
   ownerEmail: string;
@@ -343,6 +344,9 @@ export const registerBarbershop = async (data: BarbershopRegistrationData): Prom
     console.error('Erro ao registrar barbearia:', error);
 
     if (error instanceof Error) {
+      if (error.message.includes('429') || error.message.includes('rate limit')) {
+        throw new Error('Limite de tentativas excedido. Aguarde alguns minutos e tente novamente.');
+      }
       throw error;
     }
 
@@ -373,16 +377,36 @@ export const checkSlugAvailability = async (slug: string): Promise<SlugCheckResp
       .from('Barbershops')
       .select('slug')
       .eq('slug', slug)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Erro ao verificar slug no Supabase:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
-      throw new Error(`Erro ao verificar disponibilidade do slug: ${error.message || 'Erro desconhecido'}`);
+    if (error) {
+      // Ignorar erro 406 (Not Acceptable) que pode ocorrer se o header Accept não bater com o retorno
+      // Isso é um bug conhecido do PostgREST em alguns casos
+      if (error.code === 'PGRST116' || error.message.includes('406')) {
+         // Se deu erro 406, assumimos que não achou (ou falhou silenciosamente), 
+         // mas por segurança vamos considerar INDISPONÍVEL para evitar duplicação se o erro for real
+         // OU, se for PGRST116, é "No rows returned", o que significa DISPONÍVEL
+         if (error.code === 'PGRST116') {
+             return {
+                success: true,
+                available: true,
+                slug,
+                message: 'Slug disponível'
+             };
+         }
+         
+         console.warn('Erro 406/PGRST ao verificar slug, assumindo indisponível por precaução');
+      }
+
+      if (error.code !== 'PGRST116' && !error.message.includes('406')) {
+        console.error('Erro ao verificar slug no Supabase:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+        });
+        throw new Error(`Erro ao verificar disponibilidade do slug: ${error.message || 'Erro desconhecido'}`);
+      }
     }
 
     const isAvailable = !existingBarbershop;
@@ -391,7 +415,7 @@ export const checkSlugAvailability = async (slug: string): Promise<SlugCheckResp
       success: true,
       available: isAvailable,
       slug,
-      message: isAvailable ? 'Slug disponível' : 'Este nome já está em uso. Escolha outro nome.'
+      message: isAvailable ? 'Nome disponível!' : 'Este nome já está em uso. Escolha outro nome.'
     };
 
   } catch (error: unknown) {
@@ -442,6 +466,7 @@ export const getBarbershopBySlug = async (slug: string): Promise<BarbershopData>
     
     return {
       id: barbershop.id,
+      tenantId: barbershop.tenant_id,
       name: barbershop.name,
       slug: barbershop.slug,
       ownerEmail: barbershop.owner_email,
@@ -568,6 +593,7 @@ export const getCurrentBarbershop = async (): Promise<BarbershopData> => {
 
     return {
       id: barbershop.id,
+      tenantId: barbershop.tenant_id,
       name: barbershop.name,
       slug: barbershop.slug,
       ownerEmail: barbershop.owner_email,

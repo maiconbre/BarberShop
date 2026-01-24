@@ -33,10 +33,27 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   async findAll(filters?: Record<string, unknown>): Promise<ServiceType[]> {
     try {
       const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
       
-      if (!barbershopId) return [];
+      console.log('ServiceRepository.findAll - IDs:', { barbershopId, tenantId });
 
-      let query = supabase.from('services').select('*').eq('barbershopId', barbershopId);
+      if (!barbershopId && !tenantId) {
+        console.warn('ServiceRepository.findAll - Nenhum ID encontrado');
+        return [];
+      }
+
+      let query = supabase.from('services').select('*');
+      
+      // Priorizar filtro por tenant_id se disponível (padrão novo)
+      if (tenantId) {
+        console.log('ServiceRepository.findAll - Usando filtro tenant_id:', tenantId);
+        query = query.eq('tenant_id', tenantId);
+      } else if (barbershopId) {
+        console.log('ServiceRepository.findAll - Usando filtro barbershopId:', barbershopId);
+        // Fallback para filtro por barbershopId (padrão legado)
+        // Usar aspas para garantir case sensitivity se necessário no Postgres
+        query = query.eq('barbershopId', barbershopId);
+      }
       
       if (filters?.name) {
         query = query.ilike('name', `%${filters.name}%`);
@@ -52,8 +69,13 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('ServiceRepository.findAll - Erro Supabase:', error);
+        throw error;
+      }
 
+      console.log(`ServiceRepository.findAll - Encontrados ${data?.length || 0} serviços`);
+      
       return (data || []).map(this.adaptSupabaseServiceToFrontend);
     } catch (error) {
       console.error('ServiceRepository: findAll failed:', error);
@@ -91,14 +113,19 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   async search(query: string, _options?: SearchOptions): Promise<ServiceType[]> {
     try {
       const barbershopId = localStorage.getItem('barbershopId');
-      if (!barbershopId) return [];
+      const tenantId = localStorage.getItem('tenantId');
+      
+      if (!barbershopId && !tenantId) return [];
 
-      // Busca simples por nome usando ilike
-      const { data, error } = await supabase
-        .from('services')
-        .select('*')
-        .eq('barbershopId', barbershopId)
-        .ilike('name', `%${query}%`);
+      let dbQuery = supabase.from('services').select('*');
+      
+      if (tenantId) {
+        dbQuery = dbQuery.eq('tenant_id', tenantId);
+      } else if (barbershopId) {
+        dbQuery = dbQuery.eq('barbershopId', barbershopId);
+      }
+      
+      const { data, error } = await dbQuery.ilike('name', `%${query}%`);
 
       if (error) throw error;
 
@@ -115,12 +142,15 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   async create(serviceData: Omit<ServiceType, 'id' | 'createdAt' | 'updatedAt'>): Promise<ServiceType> {
     try {
       const barbershopId = localStorage.getItem('barbershopId');
-      if (!barbershopId) throw new Error('Barbershop ID required');
+      const tenantId = localStorage.getItem('tenantId');
+      
+      if (!barbershopId && !tenantId) throw new Error('Barbershop ID required');
 
       const dbData = {
         name: serviceData.name,
         price: serviceData.price,
-        barbershopId: barbershopId,
+        barbershopId: barbershopId || '', // Fallback para string vazia se undefined, mas deve ter um dos dois
+        tenant_id: tenantId, // Incluir tenant_id se disponível
         duration: serviceData.duration,
         description: serviceData.description,
         isActive: serviceData.isActive,

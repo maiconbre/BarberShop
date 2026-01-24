@@ -211,7 +211,23 @@ const BarbershopRegistrationPage: React.FC = () => {
 
         } catch (err: unknown) {
             console.error('Erro no registro:', err);
-            setError(err instanceof Error ? err.message : 'Erro inesperado. Tente novamente.');
+
+            let errorMessage = 'Erro inesperado. Tente novamente.';
+
+            if (err instanceof Error) {
+                // Tratamento específico para Rate Limit (429)
+                if (err.message.includes('rate limit') || err.message.includes('Muitas tentativas')) {
+                    errorMessage = 'Muitas tentativas de cadastro recentes. Por favor, aguarde alguns minutos antes de tentar novamente.';
+                } else if (err.message.includes('406') || err.message.includes('Not Acceptable')) {
+                    // Erro 406 geralmente é problema de cabeçalho ou formato
+                    console.warn('Erro 406 detectado - tentando fallback ou ignorar se possível');
+                    errorMessage = 'Erro de comunicação com o servidor. Tente recarregar a página.';
+                } else {
+                    errorMessage = err.message;
+                }
+            }
+
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
