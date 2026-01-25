@@ -15,7 +15,7 @@ export class CommentRepository implements IRepository<PublicComment> {
   async findById(id: string): Promise<PublicComment | null> {
     try {
       const { data, error } = await supabase
-        .from('comments')
+        .from('Comments')
         .select('*')
         .eq('id', id)
         .single();
@@ -32,7 +32,7 @@ export class CommentRepository implements IRepository<PublicComment> {
    */
   async findAll(filters?: Record<string, unknown>): Promise<PublicComment[]> {
     try {
-      let query = supabase.from('comments').select('*');
+      let query = supabase.from('Comments').select('*');
       
       const barbershopId = localStorage.getItem('barbershopId');
       if (barbershopId) {
@@ -96,7 +96,7 @@ export class CommentRepository implements IRepository<PublicComment> {
       };
 
       const { data, error } = await supabase
-        .from('comments')
+        .from('Comments')
         .insert(dbData)
         .select()
         .single();
@@ -122,7 +122,7 @@ export class CommentRepository implements IRepository<PublicComment> {
       dbUpdates.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
-        .from('comments')
+        .from('Comments')
         .update(dbUpdates)
         .eq('id', id)
         .select()
@@ -147,7 +147,7 @@ export class CommentRepository implements IRepository<PublicComment> {
    * Delete comment
    */
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('comments').delete().eq('id', id);
+    const { error } = await supabase.from('Comments').delete().eq('id', id);
     if (error) throw error;
   }
 
@@ -156,7 +156,7 @@ export class CommentRepository implements IRepository<PublicComment> {
    */
   async exists(id: string): Promise<boolean> {
     const { count } = await supabase
-      .from('comments')
+      .from('Comments')
       .select('*', { count: 'exact', head: true })
       .eq('id', id);
     return (count || 0) > 0;

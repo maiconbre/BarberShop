@@ -1,6 +1,6 @@
 // Plan and billing types for multi-tenant SaaS
 
-export type PlanType = 'free' | 'pro';
+export type PlanType = 'free' | 'start' | 'pro';
 
 export interface PlanLimits {
   barbers: number;
@@ -73,6 +73,7 @@ export interface PlanHistoryResponse {
 export interface PlanFeature {
   name: string;
   free: string | number | boolean;
+  start: string | number | boolean;
   pro: string | number | boolean;
   highlight?: boolean;
 }
@@ -81,40 +82,47 @@ export const PLAN_FEATURES: PlanFeature[] = [
   {
     name: 'Barbeiros',
     free: 1,
-    pro: 'Ilimitados',
+    start: 1,
+    pro: 6,
     highlight: true
   },
   {
     name: 'Agendamentos/mês',
-    free: 20,
-    pro: 'Ilimitados',
+    free: 15,
+    start: 60,
+    pro: 1000,
     highlight: true
   },
   {
     name: 'Serviços',
-    free: 5,
+    free: 'Ilimitados',
+    start: 'Ilimitados',
     pro: 'Ilimitados'
   },
   {
     name: 'Armazenamento',
     free: '100MB',
+    start: '500MB',
     pro: '1GB'
   },
   {
     name: 'Suporte',
     free: 'Email',
+    start: 'Email/Chat',
     pro: 'Prioritário'
   },
   {
     name: 'Relatórios',
     free: false,
+    start: true,
     pro: true
   }
 ];
 
 export const PLAN_PRICES = {
   free: 0,
-  pro: 39.90
+  start: 19.90,
+  pro: 49.90
 } as const;
 
 // Notification types for plan limits

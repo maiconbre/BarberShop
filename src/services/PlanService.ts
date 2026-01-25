@@ -1,4 +1,8 @@
-import { ServiceFactory } from './ServiceFactory';
+import ApiService from './ApiService';
+import { 
+  getBarbershopBySlug, 
+  getCurrentBarbershop 
+} from './BarbershopService';
 import { 
   PlanUsage, 
   PlanInfo, 
@@ -9,8 +13,8 @@ import {
   PlanType 
 } from '../types/plan';
 
-// Get API service instance with proper error handling
-const getApiService = () => ServiceFactory.getApiService();
+// Helper removed, using ApiService directly
+
 
 /**
  * Obter estatísticas de uso do plano atual
@@ -19,54 +23,68 @@ export const getUsageStats = async (slug?: string): Promise<PlanUsage> => {
   try {
     console.log('Obtendo estatísticas de uso do plano...', { slug });
     
-    const apiService = getApiService();
-    
+    // Fallback imediato para dados locais, pois o backend /api ainda não existe
+    // Se no futuro existir, podemos descomentar o bloco try/catch abaixo
+    /*
     try {
       // Try to get real usage stats from the backend (public endpoint)
       const url = slug ? `/api/plans/public/usage?slug=${encodeURIComponent(slug)}` : '/api/plans/public/usage';
-      const response = await apiService.get<PlanUsage>(url);
+      const response = await ApiService.get<PlanUsage>(url);
       console.log('Estatísticas de uso obtidas:', response);
       return response;
     } catch (error) {
-      // If the endpoint is not implemented yet, return fallback data based on current barbershop
-      console.warn('Endpoint de estatísticas não implementado, usando dados de fallback:', error);
+       // ...
+    }
+    */
+
+    // Simulação de delay de rede
+    // await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Get current barbershop to determine plan type
-      const currentPlan = await getCurrentPlan(slug);
-      const isProPlan = currentPlan.planType === 'pro';
+    // Get current barbershop to determine plan type
+    const currentPlan = await getCurrentPlan(slug);
+    const planType = currentPlan.planType || 'free';
       
-      const fallbackData: PlanUsage = {
-        planType: currentPlan.planType,
+    // Definir limites baseados no plano
+    const limits = {
+      free: { barbers: 1, appointments: 15, services: Infinity, storage: 100 },
+      start: { barbers: 1, appointments: 60, services: Infinity, storage: 500 },
+      pro: { barbers: 6, appointments: 1000, services: Infinity, storage: 1024 }
+    };
+    
+    // Obter limites do plano atual (fallback para free)
+    const currentLimits = limits[planType as keyof typeof limits] || limits.free;
+
+    const fallbackData: PlanUsage = {
+        planType: planType,
         limits: {
-          barbers: isProPlan ? Infinity : 1,
-          appointments_per_month: isProPlan ? Infinity : 20,
-          services: isProPlan ? Infinity : 5,
-          storage_mb: isProPlan ? 1024 : 100
+          barbers: currentLimits.barbers,
+          appointments_per_month: currentLimits.appointments,
+          services: currentLimits.services,
+          storage_mb: currentLimits.storage
         },
         usage: {
           barbers: {
             current: 1,
-            limit: isProPlan ? Infinity : 1,
-            remaining: isProPlan ? Infinity : 0,
-            percentage: isProPlan ? 0 : 100,
-            nearLimit: !isProPlan
+            limit: currentLimits.barbers,
+            remaining: Math.max(0, currentLimits.barbers - 1),
+            percentage: getUsagePercentage(1, currentLimits.barbers),
+            nearLimit: 1 >= currentLimits.barbers
           },
           appointments: {
-            current: 18,
-            limit: isProPlan ? Infinity : 20,
-            remaining: isProPlan ? Infinity : 2,
-            percentage: isProPlan ? 0 : 90,
-            nearLimit: !isProPlan
+            current: 12,
+            limit: currentLimits.appointments,
+            remaining: Math.max(0, currentLimits.appointments - 12),
+            percentage: getUsagePercentage(12, currentLimits.appointments),
+            nearLimit: (12 / currentLimits.appointments) > 0.8
           }
         },
-        upgradeRecommended: !isProPlan,
-        upgradeRequired: false
-      };
+        upgradeRecommended: (12 / currentLimits.appointments) > 0.8,
+        upgradeRequired: (12 >= currentLimits.appointments)
+    };
       
-      console.log('Estatísticas de uso (fallback):', fallbackData);
-      return fallbackData;
-    }
-    
+    console.log('Estatísticas de uso (local):', fallbackData);
+    return fallbackData;
+
   } catch (error) {
     console.error('Erro ao obter estatísticas de uso:', error);
     throw error;
@@ -80,75 +98,31 @@ export const getCurrentPlan = async (slug?: string): Promise<PlanInfo> => {
   try {
     console.log('Obtendo informações do plano atual...', { slug });
     
-    const apiService = getApiService();
+    // Usar diretamente o BarbershopService que consulta o Supabase
+    // Evitando chamadas para /api que não existem
     
-    try {
-      // Try to get real plan info from the backend (public endpoint)
-      // Include slug parameter if provided
-      const url = slug ? `/api/plans/public/current?slug=${encodeURIComponent(slug)}` : '/api/plans/public/current';
-      const response = await apiService.get<PlanInfo>(url);
-      console.log('Informações do plano obtidas:', response);
-      return response;
-    } catch (error) {
-      // If the endpoint is not implemented yet, get data from barbershop endpoint
-      console.warn('Endpoint de plano não implementado, usando dados da barbearia:', error);
-      
-      // If slug is provided, try to get barbershop by slug
-      if (slug) {
-        try {
-          const barbershopResponse = await apiService.get<{
-            id: string;
-            name: string;
-            slug: string;
-            planType: PlanType;
-            settings: Record<string, unknown>;
-            createdAt: string;
-          }>(`/api/barbershops/slug/${encodeURIComponent(slug)}`);
-          
-          const planInfo: PlanInfo = {
-            barbershopId: barbershopResponse.id,
-            name: barbershopResponse.name,
-            slug: barbershopResponse.slug,
-            planType: barbershopResponse.planType || 'free',
-            settings: barbershopResponse.settings || {
-              theme: 'default',
-              timezone: 'America/Sao_Paulo'
-            },
-            createdAt: barbershopResponse.createdAt
-          };
-          
-          console.log('Informações do plano (via barbearia por slug):', planInfo);
-          return planInfo;
-        } catch (slugError) {
-          console.warn('Erro ao buscar barbearia por slug:', slugError);
-        }
-      }
-      
-      // Fallback to my-barbershop endpoint
-      const barbershopResponse = await apiService.get<{
-        id: string;
-        name: string;
-        slug: string;
-        planType: PlanType;
-        settings: Record<string, unknown>;
-        createdAt: string;
-      }>('/api/barbershops/my-barbershop');
-      
-      const planInfo: PlanInfo = {
-        barbershopId: barbershopResponse.id,
-        name: barbershopResponse.name,
-        slug: barbershopResponse.slug,
-        planType: barbershopResponse.planType || 'free',
-        settings: barbershopResponse.settings || {
-          theme: 'default',
-          timezone: 'America/Sao_Paulo'
-        },
-        createdAt: barbershopResponse.createdAt
-      };
-      
-      console.log('Informações do plano (via barbearia):', planInfo);
-      return planInfo;
+    let barbershopData;
+    
+    if (slug) {
+        barbershopData = await getBarbershopBySlug(slug);
+    } else {
+        barbershopData = await getCurrentBarbershop();
     }
+    
+    const planInfo: PlanInfo = {
+        barbershopId: barbershopData.id,
+        name: barbershopData.name,
+        slug: barbershopData.slug,
+        planType: (barbershopData.planType as PlanType) || 'free',
+        settings: barbershopData.settings || {
+            theme: 'default',
+            timezone: 'America/Sao_Paulo'
+        },
+        createdAt: barbershopData.createdAt
+    };
+      
+    console.log('Informações do plano (via Supabase):', planInfo);
+    return planInfo;
     
   } catch (error) {
     console.error('Erro ao obter informações do plano:', error);
@@ -163,11 +137,9 @@ export const upgradePlan = async (request: UpgradeRequest): Promise<UpgradeRespo
   try {
     console.log('Iniciando upgrade do plano:', request);
     
-    const apiService = getApiService();
-    
     try {
       // Try to upgrade using real API
-      const response = await apiService.post<UpgradeResponse>('/api/plans/upgrade', request);
+      const response = await ApiService.post<UpgradeResponse>('/api/plans/upgrade', request);
       console.log('Upgrade realizado com sucesso:', response);
       return response;
     } catch (error) {
@@ -210,11 +182,9 @@ export const getPlanHistory = async (): Promise<PlanHistoryResponse> => {
   try {
     console.log('Obtendo histórico de transações...');
     
-    const apiService = getApiService();
-    
     try {
       // Try to get real transaction history from the backend
-      const response = await apiService.get<PlanHistoryResponse>('/api/plans/history');
+      const response = await ApiService.get<PlanHistoryResponse>('/api/plans/history');
       console.log('Histórico obtido:', response);
       return response;
     } catch (error) {

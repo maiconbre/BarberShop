@@ -21,6 +21,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import TrocaSenha from './pages/TrocaSenha';
 import CommentManagementPage from './pages/CommentManagementPage';
 import ServiceManagementPage from './pages/ServiceManagementPage';
+import BarberManagementPage from './pages/BarberManagementPage';
 import UpgradePage from './pages/UpgradePage';
 import BookingModal from './components/feature/BookingModal';
 import ProtectedRoute from './components/ui/ProtectedRoute';
@@ -109,6 +110,7 @@ const AppContent = () => {
             <Route path="/app/:barbershopSlug/register" element={<ProtectedRoute><RegisterPage /></ProtectedRoute>} />
             <Route path="/app/:barbershopSlug/gerenciar-comentarios" element={<ProtectedRoute><CommentManagementPage /></ProtectedRoute>} />
             <Route path="/app/:barbershopSlug/servicos" element={<ProtectedRoute><ServiceManagementPage /></ProtectedRoute>} />
+            <Route path="/app/:barbershopSlug/equipe" element={<ProtectedRoute><BarberManagementPage /></ProtectedRoute>} />
             <Route path="/app/:barbershopSlug/gerenciar-horarios" element={<ProtectedRoute><ScheduleManagementPage /></ProtectedRoute>} />
             <Route path="/app/:barbershopSlug/upgrade" element={<ProtectedRoute><UpgradePage /></ProtectedRoute>} />
           </Routes>

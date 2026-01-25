@@ -7,33 +7,33 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  redirectTo = '/login' 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  redirectTo = '/login'
 }) => {
-  const { isAuthenticated, getCurrentUser } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
     const checkAuth = () => {
       // Usar a nova estrutura de autenticação com Supabase
-      const user = getCurrentUser();
-      
+      // const user = user; // already available
+
       if (!user) {
         setShouldRedirect(true);
       } else {
         setShouldRedirect(false);
       }
-      
+
       setIsLoading(false);
     };
 
     // Pequeno delay para permitir que o AuthContext inicialize
     const timer = setTimeout(checkAuth, 100);
-    
+
     return () => clearTimeout(timer);
-  }, [getCurrentUser]);
+  }, [user]);
 
   if (isLoading) {
     return (

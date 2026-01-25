@@ -278,164 +278,180 @@ const ServiceManagementPage: React.FC = () => {
 
   return (
     <StandardLayout>
-      <div className="relative z-10">
-
+      <div className="relative z-10 space-y-8">
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-4 p-4 bg-red-900/20 border border-red-500/30 text-red-400 rounded-lg"
+            className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl flex items-center gap-2"
           >
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
             {error}
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           <motion.div
-            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            className="bg-surface/50 backdrop-blur-md p-6 lg:p-8 rounded-2xl border border-white/5 shadow-xl relative overflow-hidden group"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-white flex items-center gap-3">
-              <Scissors className="text-[#F0B35B] w-5 h-5" />
-              <span>Adicionar Novo Serviço</span>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-colors duration-500"></div>
+
+            <h2 className="text-xl sm:text-2xl font-bold mb-6 text-white flex items-center gap-3 relative z-10">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Scissors className="text-primary w-6 h-6" />
+              </div>
+              <span>Adicionar Serviço</span>
             </h2>
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleAddService}>
-              <div className="mb-4">
-                <label className="block text-gray-300 mb-2 text-sm font-medium">Nome do Serviço</label>
+
+            <form className="space-y-5 relative z-10" onSubmit={handleAddService}>
+              <div>
+                <label className="block text-gray-400 mb-2 text-sm font-medium ml-1">Nome do Serviço</label>
                 <input
                   type="text"
                   value={newService.name}
                   onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                  className="w-full p-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-white placeholder-gray-500"
+                  className="w-full p-3.5 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
                   placeholder="Ex: Corte Tradicional"
                 />
               </div>
-              <div className="mb-4">
-                <label className="block text-gray-300 mb-2 text-sm font-medium">Valor (R$)</label>
-                <input
-                  type="number"
-                  value={newService.price}
-                  onChange={(e) => setNewService({ ...newService, price: Number(e.target.value) })}
-                  className="w-full p-3 bg-[#0D121E] rounded-lg focus:ring-2 focus:ring-[#F0B35B] outline-none transition-all duration-300 border border-transparent hover:border-[#F0B35B]/30 text-white placeholder-gray-500"
-                  placeholder="Ex: 45"
-                  step="0.01"
-                />
+              <div>
+                <label className="block text-gray-400 mb-2 text-sm font-medium ml-1">Valor (R$)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
+                  <input
+                    type="number"
+                    value={newService.price}
+                    onChange={(e) => setNewService({ ...newService, price: Number(e.target.value) })}
+                    className="w-full p-3.5 pl-10 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
+                    placeholder="0,00"
+                    step="0.01"
+                  />
+                </div>
               </div>
-              <motion.button
-                type="submit"
-                disabled={creating || !isValidTenant}
-                className="relative overflow-hidden group md:col-span-2 w-full py-3 bg-[#F0B35B] text-black rounded-xl font-semibold hover:shadow-lg transition-all duration-300 border-2 border-[#F0B35B]/70 flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {creating ? (
-                  <>
-                    <RefreshCw className="animate-spin h-4 w-4 mr-2" />
-                    Adicionando...
-                  </>
-                ) : (
-                  'Adicionar Serviço'
-                )}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/0 via-white/40 to-[#F0B35B]/0 -skew-x-45 animate-shine opacity-0 group-hover:opacity-100"></div>
-              </motion.button>
+
+              <div className="pt-2">
+                <motion.button
+                  type="submit"
+                  disabled={creating || !isValidTenant}
+                  className="w-full py-4 bg-primary text-black rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:shadow-none"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {creating ? (
+                    <>
+                      <RefreshCw className="animate-spin h-5 w-5" />
+                      Adicionando...
+                    </>
+                  ) : (
+                    'Cadastrar Serviço'
+                  )}
+                </motion.button>
+              </div>
             </form>
           </motion.div>
 
           <motion.div
-            className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-4 sm:p-6 shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col h-full"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-3">
-                <Scissors className="text-[#F0B35B] w-5 h-5" />
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3">
+                <div className="w-1.5 h-8 bg-primary rounded-full"></div>
                 <span>Serviços Cadastrados</span>
               </h2>
-              <div className="flex items-center gap-2">
-                {loading && <RefreshCw className="animate-spin h-4 w-4 text-[#F0B35B]" />}
-                <span className="bg-[#F0B35B] text-black text-xs font-bold px-2 py-0.5 rounded-full">
-                  {services?.length || 0}
+              <div className="flex items-center gap-3">
+                {loading && <RefreshCw className="animate-spin h-5 w-5 text-primary" />}
+                <span className="bg-surface border border-white/10 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                  {services?.length || 0} Serviços
                 </span>
               </div>
             </div>
 
             {!isValidTenant ? (
-              <p className="text-center text-gray-400 py-10">Contexto de barbearia inválido. Verifique se você está logado corretamente.</p>
+              <div className="flex-1 flex items-center justify-center bg-surface/30 rounded-2xl border border-white/5 p-8">
+                <p className="text-gray-400">Contexto de barbearia inválido. Verifique se você está logado corretamente.</p>
+              </div>
             ) : loading ? (
-              <div className="text-center py-10">
-                <RefreshCw className="animate-spin h-8 w-8 text-[#F0B35B] mx-auto mb-4" />
+              <div className="flex-1 flex flex-col items-center justify-center bg-surface/30 rounded-2xl border border-white/5 p-8">
+                <RefreshCw className="animate-spin h-8 w-8 text-primary mb-4" />
                 <p className="text-gray-400">Carregando serviços...</p>
               </div>
             ) : !services || services.length === 0 ? (
-              <p className="text-center text-gray-400 py-10">Nenhum serviço cadastrado ainda.</p>
+              <div className="flex-1 flex flex-col items-center justify-center bg-surface/30 rounded-2xl border border-white/5 p-12 text-center">
+                <div className="w-16 h-16 bg-background-paper rounded-full flex items-center justify-center mb-4 text-gray-600">
+                  <Scissors className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">Nenhum serviço encontrado</h3>
+                <p className="text-gray-500 max-w-xs mx-auto">Comece adicionando novos serviços através do formulário ao lado.</p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 h-[calc(100vh-320px)] overflow-y-auto pr-2 custom-scrollbar content-start">
                 {services.map(service => (
                   <motion.div
                     key={service.id}
-                    className="bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] p-6 shadow-xl border border-[#F0B35B]/20 hover:border-[#F0B35B]/40 transition-all duration-300"
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-surface/50 p-5 rounded-xl border border-white/5 hover:border-primary/30 transition-all duration-300 group"
+                    whileHover={{ y: -2, backgroundColor: 'rgba(30,35,50,0.8)' }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2 }}
                   >
                     <div className="flex flex-col h-full">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-lg sm:text-xl font-semibold text-white truncate">{service.name}</h3>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <h3 className="text-lg font-bold text-white truncate group-hover:text-primary transition-colors">{service.name}</h3>
+                          <p className="text-gray-500 text-xs mt-1 truncate">{service.barbers?.length || 0} barbeiros associados</p>
+                        </div>
+                        <div className="bg-background-paper px-3 py-1.5 rounded-lg border border-white/5 group-hover:border-primary/20 transition-colors">
+                          <span className="text-primary font-bold">R$ {safeFixed(service.price, 2)}</span>
+                        </div>
                       </div>
 
-                      <div className="mt-auto pt-2 flex justify-between items-center">
-                        <span className="text-sm text-gray-300">Valor:</span>
-                        <motion.div
-                          className="bg-[#F0B35B]/10 text-[#F0B35B] font-bold text-xl px-3 py-1 rounded"
-                          whileHover={{ scale: 1.05 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                        >
-                          R$ {safeFixed(service.price, 2)}
-                        </motion.div>
-                      </div>
-
-                      <div className="mt-3 pt-3 border-t border-[#F0B35B]/10 flex justify-end gap-2 flex-wrap">
+                      <div className="mt-auto pt-4 flex gap-2">
                         <motion.button
                           onClick={() => {
                             setServiceToAssociate(service);
                             setSelectedBarbers([]);
                             setIsAssociateModalOpen(true);
                           }}
-                          className="px-3 py-1.5 text-blue-400 hover:text-white hover:bg-blue-500 rounded-lg transition-all duration-300 border border-blue-500/30 text-sm font-medium flex items-center gap-1"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          className="flex-1 py-2 bg-background-paper hover:bg-surface text-gray-300 hover:text-white rounded-lg transition-colors border border-white/5 hover:border-white/10 text-xs font-medium flex items-center justify-center gap-1.5"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           disabled={!barbers || barbers.length === 0}
+                          title="Associar Barbeiros"
                         >
                           <Users size={14} />
-                          <span>Barbeiros</span>
+                          <span>Equipe</span>
                         </motion.button>
+
                         <motion.button
                           onClick={() => {
                             setServiceToEdit(service);
                             setIsEditModalOpen(true);
                           }}
-                          className="px-3 py-1.5 text-[#F0B35B] hover:text-black hover:bg-[#F0B35B] rounded-lg transition-all duration-300 border border-[#F0B35B]/30 text-sm font-medium flex items-center gap-1"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          className="w-9 h-9 flex items-center justify-center bg-background-paper hover:bg-primary/10 text-primary rounded-lg transition-colors border border-white/5 hover:border-primary/20"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          title="Editar"
                         >
                           <Edit size={14} />
-                          <span>Editar</span>
                         </motion.button>
+
                         <motion.button
                           onClick={() => {
                             setServiceToDelete(service);
                             setIsDeleteModalOpen(true);
                           }}
-                          className="px-3 py-1.5 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-all duration-300 border border-red-500/30 text-sm font-medium flex items-center gap-1"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          className="w-9 h-9 flex items-center justify-center bg-background-paper hover:bg-red-500/10 text-red-400 hover:text-red-500 rounded-lg transition-colors border border-white/5 hover:border-red-500/20"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          title="Excluir"
                         >
                           <Trash2 size={14} />
-                          <span>Excluir</span>
                         </motion.button>
                       </div>
                     </div>

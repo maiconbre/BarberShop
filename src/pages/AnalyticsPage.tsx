@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, TrendingUp } from 'lucide-react';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
 import StandardLayout from '../components/layout/StandardLayout';
 import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
@@ -95,28 +95,26 @@ const AnalyticsPage: React.FC = () => {
 
       `}</style>
 
-      <div className="space-y-1">
-
+      <div className="space-y-6">
 
         {/* Analytics de Clientes */}
-        <div className="bg-[#1A1F2E]/50 p-6 border border-[#F0B35B]/20">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-[#F0B35B]" />
-            Análise de Clientes
-          </h3>
+        <div className="bg-surface/50 backdrop-blur-md p-6 border border-white/5 rounded-2xl shadow-xl">
           <ClientAnalytics appointments={filteredAppointments} />
         </div>
 
         {/* Informações adicionais */}
-        <div className="bg-[#1A1F2E]/30 p-6 border border-[#F0B35B]/10">
-          <h4 className="text-md font-medium text-white mb-3">Sobre os Relatórios</h4>
+        <div className="bg-surface/30 p-6 border border-white/5 rounded-xl">
+          <h4 className="text-md font-medium text-white mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            Sobre os Relatórios
+          </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-400">
-            <div>
-              <h5 className="text-[#F0B35B] font-medium mb-1">Análise de Clientes</h5>
+            <div className="bg-background-paper/30 p-4 rounded-lg">
+              <h5 className="text-primary font-medium mb-1">Análise de Clientes</h5>
               <p>Insights detalhados sobre comportamento e preferências dos clientes, incluindo gráficos de serviços populares.</p>
             </div>
-            <div>
-              <h5 className="text-[#F0B35B] font-medium mb-1">Dados em Tempo Real</h5>
+            <div className="bg-background-paper/30 p-4 rounded-lg">
+              <h5 className="text-primary font-medium mb-1">Dados em Tempo Real</h5>
               <p>Informações atualizadas automaticamente com base nos agendamentos mais recentes.</p>
             </div>
           </div>

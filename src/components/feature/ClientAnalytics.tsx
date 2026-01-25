@@ -30,79 +30,82 @@ interface ClientAnalyticsProps {
 }
 
 interface ClientData {
-  id: string;
-  name: string;
-  whatsapp?: string;
-  visits: number;
-  totalSpent: number;
-  lastVisit: string;
-  services: Record<string, number>;
-  appointmentDates: string[];
-  barberName?: string;
-  barberId?: string;
+    id: string;
+    name: string;
+    whatsapp?: string;
+    visits: number;
+    totalSpent: number;
+    lastVisit: string;
+    services: Record<string, number>;
+    appointmentDates: string[];
+    barberName?: string;
+    barberId?: string;
 }
 
 interface User {
-  id: string;
-  role?: string;
-  userRole?: string;
-  type?: string | number;
-  userId?: string;
-  uid?: string;
+    id: string;
+    role?: string;
+    userRole?: string;
+    type?: string | number;
+    userId?: string;
+    uid?: string;
 }
 
 interface BarberStats {
-  id: string;
-  name: string;
-  appointments: number;
-  revenue: number;
-  clients: Set<string>;
+    id: string;
+    name: string;
+    appointments: number;
+    revenue: number;
+    clients: Set<string>;
 }
 
 // Função auxiliar para determinar se é admin de forma segura
 const checkIsAdmin = (user: unknown): boolean => {
-  // Verificar se temos um usuário válido
-  if (user && typeof user === 'object' && 'id' in user && user.id !== 'fallback-user') {
-    const userObj = user as User;
-    const role = userObj.role || userObj.userRole || userObj.type || '';
-    return role.toString().toLowerCase() === 'admin' || role.toString().toLowerCase() === 'administrator' || role === 1 || role === 'ADMIN';
-  }
-  
-  // Verificar se temos uma flag de debug no localStorage apenas para desenvolvimento
-  const debugModeActive = localStorage.getItem('debug_admin_mode') === 'true';
-  const env = import.meta.env.VITE_ENVIRONMENT;
-  if (debugModeActive && (env === 'development' || env === 'local')) {
-    console.warn('ClientAnalytics - Debug mode ativado em desenvolvimento, tratando como admin');
-    return true;
-  }
-  
-  return false;
+    // Verificar se temos um usuário válido
+    if (user && typeof user === 'object' && 'id' in user && user.id !== 'fallback-user') {
+        const userObj = user as User;
+        const role = userObj.role || userObj.userRole || userObj.type || '';
+        return role.toString().toLowerCase() === 'admin' || role.toString().toLowerCase() === 'administrator' || role === 1 || role === 'ADMIN';
+    }
+
+    // Verificar se temos uma flag de debug no localStorage apenas para desenvolvimento
+    const debugModeActive = localStorage.getItem('debug_admin_mode') === 'true';
+    const env = import.meta.env.VITE_ENVIRONMENT;
+    if (debugModeActive && (env === 'development' || env === 'local')) {
+        console.warn('ClientAnalytics - Debug mode ativado em desenvolvimento, tratando como admin');
+        return true;
+    }
+
+    return false;
 };
 
 // Função auxiliar para obter ID do usuário de forma segura
 const getUserId = (user: unknown): string | null => {
-  if (!user || (typeof user === 'object' && 'id' in user && user.id === 'fallback-user')) return null;
-  const userObj = user as User;
-  return userObj.id || userObj.userId || userObj.uid || null;
+    if (!user || (typeof user === 'object' && 'id' in user && user.id === 'fallback-user')) return null;
+    const userObj = user as User;
+    return userObj.id || userObj.userId || userObj.uid || null;
 };
 
 const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
-    const { getCurrentUser } = useAuth();
-  const { barbers, loadBarbers } = useBarbers();
-  const { isValidTenant } = useTenant();
-  const currentUser = getCurrentUser();
-  
-  // Estados
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'barbers'>('overview');
-  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [clientViewMode, setClientViewMode] = useState<'grid' | 'list'>('grid');
-  const [showAllAppointments, setShowAllAppointments] = useState(false);
+    const { user } = useAuth();
+    // const currentUser = user; // Simplification if needed, or just use user directly
 
-  // Get admin status and user ID using helper functions
-  const isAdmin = useMemo(() => checkIsAdmin(currentUser), [currentUser]);
-  const userId = useMemo(() => getUserId(currentUser), [currentUser]);
+    // NOTE: If the code uses currentUser variable later, we define it:
+    const currentUser = user;
+    const { barbers, loadBarbers } = useBarbers();
+    const { isValidTenant } = useTenant();
+
+    // Estados
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'barbers'>('overview');
+    const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [clientViewMode, setClientViewMode] = useState<'grid' | 'list'>('grid');
+    const [showAllAppointments, setShowAllAppointments] = useState(false);
+
+    // Get admin status and user ID using helper functions
+    const isAdmin = useMemo(() => checkIsAdmin(currentUser), [currentUser]);
+    const userId = useMemo(() => getUserId(currentUser), [currentUser]);
 
     const COLORS = ['#F0B35B', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -115,7 +118,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         console.log('ClientAnalytics - É admin (calculado):', isAdmin);
         console.log('ClientAnalytics - User ID:', userId);
         console.log('ClientAnalytics - Agendamentos filtrados:', filteredAppointments?.length || 0);
-        
+
         // Alerta se não houver usuário logado
         if (!currentUser) {
             console.warn('ClientAnalytics - ATENÇÃO: currentUser está null! Usuário não autenticado.');
@@ -321,53 +324,53 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         <div className="space-y-6">
             {/* Cards de Métricas */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Receita Total</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">R$ {safeFixed(metrics.totalRevenue, 2)}</p>
+                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">R$ {safeFixed(metrics.totalRevenue, 2)}</p>
                         </div>
-                        <DollarSign className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                        <DollarSign className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
                     </div>
                 </div>
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Clientes</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">{metrics.uniqueClients}</p>
+                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">{metrics.uniqueClients}</p>
                         </div>
-                        <Users className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                        <Users className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
                     </div>
                 </div>
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Ticket Médio</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">R$ {safeFixed(metrics.avgTicket, 2)}</p>
+                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">R$ {safeFixed(metrics.avgTicket, 2)}</p>
                         </div>
-                        <TrendingUp className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                        <TrendingUp className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
                     </div>
                 </div>
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Agendamentos</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">{metrics.totalAppointments}</p>
+                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">{metrics.totalAppointments}</p>
                         </div>
-                        <Calendar className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                        <Calendar className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
                     </div>
                 </div>
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
+                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-gray-400 text-xs sm:text-sm">Taxa Retorno</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">{safeFixed(metrics.returnRate, 1)}%</p>
+                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">{safeFixed(metrics.returnRate, 1)}%</p>
                         </div>
-                        <TrendingUp className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                        <TrendingUp className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
                     </div>
                 </div>
             </div>
@@ -377,28 +380,35 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
             {/* Gráficos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
                 {/* Receita Mensal */}
-                <div className="bg-[#1A1F2E] p-3 sm:p-6 rounded-xl border border-white/5">
-                    <h3 className="text-white text-sm sm:text-lg font-semibold mb-2 sm:mb-4">Receita Mensal</h3>
+                <div className="bg-background-paper/50 p-6 rounded-2xl border border-white/5">
+                    <h3 className="text-white text-sm sm:text-lg font-bold mb-6 flex items-center gap-2">
+                        <BarChart2 className="w-4 h-4 text-primary" />
+                        Receita Mensal
+                    </h3>
                     <div style={{ width: '100%', height: '256px', minHeight: '256px' }}>
                         {chartData.monthlyRevenue.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={256}>
                                 <LineChart data={chartData.monthlyRevenue}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                    <XAxis dataKey="month" tick={{ fill: '#fff', fontSize: 10 }} />
-                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis dataKey="month" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(value) => `R$${value}`} />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: 'rgba(26,31,46,0.95)',
-                                            border: '1px solid rgba(240,179,91,0.5)',
-                                            borderRadius: '8px'
+                                            backgroundColor: '#181B26',
+                                            border: '1px solid rgba(212, 175, 55, 0.2)',
+                                            borderRadius: '12px',
+                                            color: '#fff',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
                                         }}
+                                        cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
                                     />
                                     <Line
                                         type="monotone"
                                         dataKey="receita"
-                                        stroke="#F0B35B"
-                                        strokeWidth={2}
-                                        dot={{ fill: '#F0B35B', r: 3 }}
+                                        stroke="#D4AF37"
+                                        strokeWidth={3}
+                                        dot={{ fill: '#181B26', stroke: '#D4AF37', strokeWidth: 2, r: 4 }}
+                                        activeDot={{ r: 6, fill: '#D4AF37' }}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
@@ -411,8 +421,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                 </div>
 
                 {/* Serviços Populares */}
-                <div className="bg-[#1A1F2E] p-3 sm:p-6 rounded-xl border border-white/5">
-                    <h3 className="text-white text-sm sm:text-lg font-semibold mb-2 sm:mb-4">Serviços Populares</h3>
+                <div className="bg-background-paper/50 p-6 rounded-2xl border border-white/5">
+                    <h3 className="text-white text-sm sm:text-lg font-bold mb-6 flex items-center gap-2">
+                        <div className="w-2 h-4 bg-primary rounded-full"></div>
+                        Serviços Populares
+                    </h3>
                     <div className="space-y-3" style={{ minHeight: '200px' }}>
                         {/* Gráfico de barras horizontal para mobile */}
                         <div className="block sm:hidden">
@@ -422,9 +435,9 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                     <div key={service.name} className="mb-3">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="text-white text-xs font-medium truncate">{service.name}</span>
-                                            <span className="text-[#F0B35B] text-xs font-bold">{service.value}</span>
+                                            <span className="text-primary text-xs font-bold">{service.value}</span>
                                         </div>
-                                        <div className="w-full bg-gray-700 rounded-full h-2">
+                                        <div className="w-full bg-gray-800 rounded-full h-2">
                                             <div
                                                 className="h-2 rounded-full transition-all duration-300"
                                                 style={{
@@ -448,8 +461,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             data={chartData.topServices}
                                             cx="50%"
                                             cy="50%"
-                                            outerRadius={60}
+                                            outerRadius={80}
+                                            innerRadius={50}
                                             dataKey="value"
+                                            stroke="none"
                                             label={({ name, percent }) => `${name} ${safeFixed(percent * 100, 0)}%`}
                                         >
                                             {chartData.topServices.map((_, index) => (
@@ -458,9 +473,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                         </Pie>
                                         <Tooltip
                                             contentStyle={{
-                                                backgroundColor: 'rgba(26,31,46,0.95)',
-                                                border: '1px solid rgba(240,179,91,0.5)',
-                                                borderRadius: '8px'
+                                                backgroundColor: '#181B26',
+                                                border: '1px solid rgba(212, 175, 55, 0.2)',
+                                                borderRadius: '12px',
+                                                color: '#fff',
                                             }}
                                         />
                                     </PieChart>
@@ -474,23 +490,22 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
                         {/* Lista de serviços com estatísticas */}
                         <div className="mt-4 space-y-2">
-                            <h4 className="text-white text-sm font-medium">Estatísticas Detalhadas</h4>
                             {chartData.topServices.map((service, index) => {
                                 const avgRevenue = filteredAppointments
                                     .filter(app => app.service?.includes(service.name))
                                     .reduce((sum, app) => sum + app.price, 0) / service.value;
 
                                 return (
-                                    <div key={service.name} className="flex items-center justify-between p-2 bg-[#0F1419] rounded-lg">
-                                        <div className="flex items-center space-x-2">
+                                    <div key={service.name} className="flex items-center justify-between p-3 bg-background-dark/50 rounded-lg hover:bg-background-dark transition-colors border border-transparent hover:border-white/5">
+                                        <div className="flex items-center space-x-3">
                                             <div
-                                                className="w-3 h-3 rounded-full"
+                                                className="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]"
                                                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
                                             />
                                             <span className="text-white text-xs sm:text-sm font-medium">{service.name}</span>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-[#F0B35B] text-xs sm:text-sm font-bold">{service.value} agendamentos</div>
+                                            <div className="text-primary text-xs sm:text-sm font-bold">{service.value} <span className="text-gray-500 font-normal">agend.</span></div>
                                             <div className="text-gray-400 text-xs">R$ {safeFixed(avgRevenue, 2)} média</div>
                                         </div>
                                     </div>
@@ -622,8 +637,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                             <div className="text-right">
                                                                 <p className="text-[#F0B35B] font-bold text-sm">R$ {safeFixed(appointment.price, 2)}</p>
                                                                 <span className={`text-xs px-2 py-1 rounded-full ${appointment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                                                                        appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
-                                                                            'bg-yellow-500/20 text-yellow-400'
+                                                                    appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
+                                                                        'bg-yellow-500/20 text-yellow-400'
                                                                     }`}>
                                                                     {appointment.status === 'completed' ? 'Concluído' :
                                                                         appointment.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
@@ -844,8 +859,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         <button
                             onClick={() => setActiveTab('overview')}
                             className={`flex-1 py-2 px-2 sm:py-3 sm:px-4 rounded-lg font-medium transition-colors text-xs sm:text-sm ${activeTab === 'overview'
-                                    ? 'bg-[#F0B35B] text-black'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-[#F0B35B] text-black'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
@@ -855,8 +870,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         <button
                             onClick={() => setActiveTab('clients')}
                             className={`flex-1 py-2 px-2 sm:py-3 sm:px-4 rounded-lg font-medium transition-colors text-xs sm:text-sm ${activeTab === 'clients'
-                                    ? 'bg-[#F0B35B] text-black'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-[#F0B35B] text-black'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             <Users className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
@@ -866,8 +881,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             <button
                                 onClick={() => setActiveTab('barbers')}
                                 className={`flex-1 py-2 px-2 sm:py-3 sm:px-4 rounded-lg font-medium transition-colors text-xs sm:text-sm ${activeTab === 'barbers'
-                                        ? 'bg-[#F0B35B] text-black'
-                                        : 'text-gray-400 hover:text-white'
+                                    ? 'bg-[#F0B35B] text-black'
+                                    : 'text-gray-400 hover:text-white'
                                     }`}
                             >
                                 <User className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
@@ -958,8 +973,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                     <div className="text-right">
                                                         <p className="text-[#F0B35B] font-medium">R$ {safeFixed(appointment.price, 2)}</p>
                                                         <span className={`text-xs px-2 py-1 rounded-full ${appointment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                                                                appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
-                                                                    'bg-yellow-500/20 text-yellow-400'
+                                                            appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
+                                                                'bg-yellow-500/20 text-yellow-400'
                                                             }`}>
                                                             {appointment.status === 'completed' ? 'Concluído' :
                                                                 appointment.status === 'confirmed' ? 'Confirmado' : 'Pendente'}

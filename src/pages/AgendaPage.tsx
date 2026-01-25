@@ -50,9 +50,8 @@ const convertAppointment = (baseAppointment: BaseAppointment): Appointment => {
 };
 
 const AgendaPage: React.FC = memo(() => {
-  const { getCurrentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const { isValidTenant } = useTenant();
-  const currentUser = useMemo(() => getCurrentUser(), [getCurrentUser]);
 
   // Hook de agendamentos com suporte a tenant
   const {
@@ -71,7 +70,7 @@ const AgendaPage: React.FC = memo(() => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
-
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
 
   const calendarFilteredAppointments = useMemo(() => {
     if (!appointments || !appointments.length) return [];
@@ -84,14 +83,18 @@ const AgendaPage: React.FC = memo(() => {
     }
 
     return filtered.filter(app => {
+      // Filtro de data
+      if (app.date !== selectedDate) return false;
+
+      // Filtro de bloqueio
       if (app.isBlocked === true) return false;
-      return app.date === selectedDate;
+
+      // Filtro de status
+      if (statusFilter !== 'all' && app.status !== statusFilter) return false;
+
+      return true;
     });
-  }, [appointments, selectedDate, currentUser]);
-
-
-
-
+  }, [appointments, selectedDate, currentUser, statusFilter]);
 
   const indexOfLastAppointment = currentPage * APPOINTMENTS_PER_PAGE;
   const indexOfFirstAppointment = indexOfLastAppointment - APPOINTMENTS_PER_PAGE;
@@ -157,7 +160,7 @@ const AgendaPage: React.FC = memo(() => {
         });
       } else if (action === 'toggle' && currentStatus) {
         let newStatus: string;
-        
+
         // Define o próximo status baseado no status atual
         switch (currentStatus) {
           case 'pending':
@@ -253,8 +256,6 @@ const AgendaPage: React.FC = memo(() => {
     }
   }, [appointments, selectedAppointment, deleteAppointment, updateAppointmentStatus]);
 
-  // useEffect removido - agendamentos agora são gerenciados pelo hook useAppointments
-
   useEffect(() => {
     const handleOpenAppointmentModal = (event: CustomEvent) => {
       const { appointmentId } = event.detail;
@@ -313,93 +314,148 @@ const AgendaPage: React.FC = memo(() => {
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 1rem;
         }
-        @media (min-width: 768px) {
-          .card-grid {
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1.25rem;
-          }
+        /* Mobile fixes for calendar container */
+        .calendar-container {
+             height: auto;
+             min-height: 400px;
         }
         @media (min-width: 1024px) {
-          .card-grid {
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-          }
+            .calendar-container {
+                height: 100%;
+            }
         }
-
       `}</style>
 
       <div className="space-y-6">
+        {/* Layout Flex para Desktop / Column para Mobile */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-180px)]">
 
-
-        {/* Calendário */}
-        <div className="bg-[#1A1F2E]/50 p-4 border border-[#F0B35B]/20">
-          <CalendarView
-            appointments={(appointments || []).filter(app => !app.isBlocked)}
-            onDateSelect={handleDateSelection}
-            selectedDate={selectedDate}
-          />
-        </div>
-
-        {/* Lista de agendamentos */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white">
-            Agendamentos ({selectedDate})
-          </h3>
-
-          {calendarCurrentAppointments.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 text-lg mb-2">Nenhum agendamento encontrado</p>
-              <p className="text-gray-500 text-sm">
-                Selecione uma data no calendário
-              </p>
+          {/* Coluna Esquerda: Calendário */}
+          <div className="w-full lg:w-1/3 xl:w-1/4 shrink-0">
+            <div className="bg-surface/50 backdrop-blur-md p-4 border border-white/5 rounded-2xl shadow-xl calendar-container h-full">
+              <CalendarView
+                appointments={(appointments || []).filter(app => !app.isBlocked)}
+                onDateSelect={handleDateSelection}
+                selectedDate={selectedDate}
+              />
             </div>
-          ) : (
-            <>
-              <div className="card-grid">
-                {calendarCurrentAppointments.map((appointment) => (
-                  <motion.div
-                    key={appointment.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <AppointmentCardNew
-                      appointment={appointment as any}
-                      onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
-                      onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
-                      onView={() => handleAppointmentAction(appointment.id, 'view')}
-                    />
-                  </motion.div>
-                ))}
+          </div>
+
+          {/* Coluna Direita: Lista de Agendamentos */}
+          <div className="flex-1 flex flex-col bg-surface/30 backdrop-blur-md rounded-2xl border border-white/5 shadow-xl overflow-hidden min-h-[500px]">
+            {/* Header da Lista com Filtros */}
+            <div className="p-4 sm:p-6 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Calendar className="w-5 h-5 text-primary" />
+                  </div>
+                  Agendamentos
+                </h3>
+                <p className="text-gray-400 text-sm mt-1 ml-11">
+                  {new Date(selectedDate).toLocaleDateString('pt-BR', { dateStyle: 'full' })}
+                </p>
               </div>
 
-              {/* Paginação */}
-              {calendarTotalPages > 1 && (
-                <div className="flex justify-center items-center gap-2 mt-6">
+              {/* Filtros de Status (Tabs) */}
+              <div className="flex p-1 bg-[#1A1F2E] rounded-lg border border-white/5 self-start sm:self-auto overflow-x-auto max-w-full">
+                {[
+                  { id: 'all', label: 'Todos' },
+                  { id: 'pending', label: 'Pendentes' },
+                  { id: 'confirmed', label: 'Confirmados' },
+                  { id: 'completed', label: 'Concluídos' },
+                ].map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => setStatusFilter(filter.id as any)}
+                    className={`
+                            px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap
+                            ${statusFilter === filter.id
+                        ? 'bg-primary text-black shadow-lg'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                        `}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista Scrollável */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+              {calendarCurrentAppointments.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center py-10">
+                  <div className="w-20 h-20 bg-background-paper rounded-full flex items-center justify-center mb-4">
+                    <Calendar className="w-10 h-10 text-gray-600" />
+                  </div>
+                  <h4 className="text-gray-300 text-lg font-medium mb-1">
+                    {statusFilter === 'all' ? 'Nenhum agendamento' : 'Nenhum agendamento encontrado'}
+                  </h4>
+                  <p className="text-gray-500 text-sm max-w-xs mx-auto">
+                    {statusFilter === 'all'
+                      ? 'Não há horários marcados para este dia.'
+                      : `Não há agendamentos com status "${statusFilter}" para este dia.`}
+                  </p>
+
+                  {statusFilter !== 'all' && (
+                    <button
+                      onClick={() => setStatusFilter('all')}
+                      className="mt-4 text-primary text-sm hover:underline"
+                    >
+                      Limpar filtros
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {calendarCurrentAppointments.map((appointment) => (
+                    <motion.div
+                      key={appointment.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      layout
+                    >
+                      <AppointmentCardNew
+                        appointment={appointment as any}
+                        onDelete={() => handleAppointmentAction(appointment.id, 'delete')}
+                        onToggleStatus={() => handleAppointmentAction(appointment.id, 'toggle', appointment.status)}
+                        onView={() => handleAppointmentAction(appointment.id, 'view')}
+                        className="h-full"
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Paginação */}
+            {calendarTotalPages > 1 && (
+              <div className="p-4 border-t border-white/5 bg-surface/50">
+                <div className="flex justify-center items-center gap-2">
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-[#F0B35B]/30"
+                    className="p-2 rounded-lg bg-background-paper text-white hover:bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
 
-                  <span className="text-sm text-gray-400 px-3">
-                    {currentPage} de {calendarTotalPages}
+                  <span className="text-sm text-gray-400 px-3 font-medium">
+                    {currentPage} / {calendarTotalPages}
                   </span>
 
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === calendarTotalPages}
-                    className="p-2 rounded-lg bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-[#F0B35B]/30"
+                    className="p-2 rounded-lg bg-background-paper text-white hover:bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-              )}
-            </>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

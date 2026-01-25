@@ -13,7 +13,7 @@ interface BarbershopNavbarProps {
 const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  
+
   const { barbershopData, slug } = useTenant();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -33,13 +33,13 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
     navigate('/login');
   };
 
-  const { getCurrentUser } = useAuth();
-  
+  const { user } = useAuth();
+
   const handleDashboardClick = async () => {
     if (isAuthenticated) {
       try {
         // Verificar se o usuário pertence a esta barbearia
-        const currentUser = getCurrentUser();
+        const currentUser = user;
         if (currentUser && (currentUser as { barbershopId?: string }).barbershopId) {
           // Obter dados da barbearia do usuário
           const barbershopData = await getCurrentBarbershop();
@@ -53,9 +53,9 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
               navigate(`/app/${barbershopData.slug}/dashboard`);
             }
           } else {
-             // Fallback: ir para login
-             navigate('/login');
-           }
+            // Fallback: ir para login
+            navigate('/login');
+          }
         } else {
           // Usuário sem barbershopId, redirecionar para login
           navigate('/login');
@@ -91,11 +91,10 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-[#0D121E]/95 backdrop-blur-md shadow-lg' 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+          ? 'bg-[#0D121E]/95 backdrop-blur-md shadow-lg'
           : 'bg-transparent'
-      }`}
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -135,7 +134,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                 <span>Agendar</span>
               </button>
             )}
-            
+
             {isAuthenticated ? (
               <button
                 onClick={handleDashboardClick}
@@ -153,7 +152,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                   <LogIn className="w-4 h-4" />
                   <span>Entrar</span>
                 </button>
-                
+
                 {/* Botão discreto para barbeiros */}
                 <button
                   onClick={handleLoginClick}
@@ -195,7 +194,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                   {item.name}
                 </button>
               ))}
-              
+
               <div className="pt-4 border-t border-gray-800 space-y-3">
                 {onBookingClick && (
                   <button
@@ -209,7 +208,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                     <span>Agendar</span>
                   </button>
                 )}
-                
+
                 {isAuthenticated ? (
                   <button
                     onClick={() => {
@@ -233,7 +232,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                       <LogIn className="w-4 h-4" />
                       <span>Entrar</span>
                     </button>
-                    
+
                     {/* Botão discreto para barbeiros - Mobile */}
                     <button
                       onClick={() => {

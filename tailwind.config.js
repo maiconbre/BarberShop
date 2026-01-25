@@ -20,14 +20,31 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#F0B35B',
-          dark: '#d49843',
-          light: '#f4c27d'
+          DEFAULT: '#D4AF37', // Premium Gold
+          dark: '#AA8C2C',
+          light: '#F3CF68',
+          gold: '#FFD700', // Classic Gold for accents
+        },
+        secondary: {
+          DEFAULT: '#1E1E1E', // Dark Grey
+          light: '#2D2D2D',
+          dark: '#121212',
         },
         background: {
-          DEFAULT: '#0D121E',
-          light: '#1A1F2E',
-          dark: '#070a11'
+          DEFAULT: '#0F1115', // Rich Black/Blue tone
+          paper: '#161920',   // Slightly lighter for cards
+          dark: '#050608',    // Deepest background
+          light: '#1C212E',
+        },
+        surface: {
+          DEFAULT: '#181B26', // Card background
+          hover: '#222632',
+        },
+        text: {
+          primary: '#FFFFFF',
+          secondary: '#9CA3AF',
+          muted: '#6B7280',
+          accent: '#D4AF37'
         }
       },
       fontFamily: {

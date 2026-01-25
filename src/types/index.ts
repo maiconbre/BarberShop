@@ -17,6 +17,7 @@ export interface Service {
   duration: number; // in minutes
   price: number;
   isActive: boolean;
+  barbers?: string[]; // Optional array of barber IDs or names associated with the service
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +40,8 @@ export interface Barber {
   bio?: string;
   photo?: string;
   avatar?: string;
+  whatsapp?: string;
+  pix?: string;
 }
 
 export interface WorkingHours {

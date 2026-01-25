@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
 
 const TrocaSenha: React.FC = () => {
-  const { getCurrentUser, updatePassword } = useAuth();
+  const { user, updatePassword } = useAuth();
   const { goToDashboard } = useBarbershopNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -82,7 +82,7 @@ const TrocaSenha: React.FC = () => {
         return;
       }
 
-      const currentUser = getCurrentUser();
+      const currentUser = user;
       if (!currentUser || typeof currentUser !== 'object' || !('id' in currentUser)) {
         throw new Error('Usuário não encontrado');
       }
@@ -110,7 +110,7 @@ const TrocaSenha: React.FC = () => {
           secondary: '#1A1F2E'
         }
       });
-      
+
       // Limpar formulário
       setFormData({
         senhaAtual: '',
@@ -124,7 +124,7 @@ const TrocaSenha: React.FC = () => {
       }, 2000);
     } catch (err: unknown) {
       console.error('Erro ao alterar senha:', err);
-      
+
       // Notificação visual de erro
       toast.error(err instanceof Error ? err.message : 'Erro ao alterar senha. Por favor, tente novamente.', {
         duration: 4000,

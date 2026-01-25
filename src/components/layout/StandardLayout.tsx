@@ -16,7 +16,6 @@ import {
   ArrowLeft,
   ArrowRight,
   User,
-  BarChart3,
   Crown
 } from 'lucide-react';
 import Notifications from '../ui/Notifications';
@@ -283,15 +282,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('analytics')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
-                    title={isSidebarCollapsed ? 'Analytics' : ''}
-                  >
-                    <BarChart3 className="w-5 h-5 flex-shrink-0" />
-                    {!isSidebarCollapsed && <span className="text-sm font-medium">Analytics</span>}
-                  </button>
-
-                  <button
                     onClick={() => navigateToPage('agenda')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Agenda' : ''}
@@ -316,16 +306,14 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
                   </button>
 
-                  {(currentUser as { role?: string })?.role === 'admin' && (
-                    <button
-                      onClick={() => navigateToPage('register')}
-                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
-                      title={isSidebarCollapsed ? 'Barbeiros' : ''}
-                    >
-                      <UserCog className="w-5 h-5 flex-shrink-0" />
-                      {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigateToPage('equipe')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
+                    title={isSidebarCollapsed ? 'Equipe' : ''}
+                  >
+                    <UserCog className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Equipe (Barbeiros)</span>}
+                  </button>
 
                   <button
                     onClick={() => navigateToPage('gerenciar-horarios')}

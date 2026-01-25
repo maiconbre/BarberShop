@@ -15,7 +15,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   async findById(id: string): Promise<ServiceType | null> {
     try {
       const { data, error } = await supabase
-        .from('services')
+        .from('Services')
         .select('*')
         .eq('id', id)
         .single();
@@ -42,7 +42,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
         return [];
       }
 
-      let query = supabase.from('services').select('*');
+      let query = supabase.from('Services').select('*');
       
       // Priorizar filtro por tenant_id se disponível (padrão novo)
       if (tenantId) {
@@ -51,8 +51,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       } else if (barbershopId) {
         console.log('ServiceRepository.findAll - Usando filtro barbershopId:', barbershopId);
         // Fallback para filtro por barbershopId (padrão legado)
-        // Usar aspas para garantir case sensitivity se necessário no Postgres
-        query = query.eq('barbershopId', barbershopId);
+        query = query.eq('barbershop_id', barbershopId);
       }
       
       if (filters?.name) {
@@ -60,7 +59,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       }
 
       if (filters?.isActive !== undefined) {
-        query = query.eq('isActive', filters.isActive);
+        query = query.eq('is_active', filters.isActive);
       }
       
       // Filtros de preço
@@ -94,7 +93,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       price: data.price,
       description: data.description || '', 
       duration: data.duration || 60, 
-      isActive: data.isActive !== false,
+      isActive: data.is_active !== undefined ? data.is_active : (data.isActive !== false),
       createdAt: new Date(data.created_at || Date.now()),
       updatedAt: new Date(data.updated_at || Date.now()),
     };
@@ -117,12 +116,12 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       
       if (!barbershopId && !tenantId) return [];
 
-      let dbQuery = supabase.from('services').select('*');
+      let dbQuery = supabase.from('Services').select('*');
       
       if (tenantId) {
         dbQuery = dbQuery.eq('tenant_id', tenantId);
       } else if (barbershopId) {
-        dbQuery = dbQuery.eq('barbershopId', barbershopId);
+        dbQuery = dbQuery.eq('barbershop_id', barbershopId);
       }
       
       const { data, error } = await dbQuery.ilike('name', `%${query}%`);
@@ -149,16 +148,16 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       const dbData = {
         name: serviceData.name,
         price: serviceData.price,
-        barbershopId: barbershopId || '', // Fallback para string vazia se undefined, mas deve ter um dos dois
+        barbershop_id: barbershopId || undefined, 
         tenant_id: tenantId, // Incluir tenant_id se disponível
         duration: serviceData.duration,
         description: serviceData.description,
-        isActive: serviceData.isActive,
+        is_active: serviceData.isActive,
         created_at: new Date().toISOString()
       };
       
       const { data, error } = await supabase
-        .from('services')
+        .from('Services')
         .insert(dbData)
         .select()
         .single();
@@ -185,10 +184,10 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
        if (updates.price !== undefined) dbUpdates.price = updates.price;
        if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
        if (updates.description !== undefined) dbUpdates.description = updates.description;
-       if (updates.isActive !== undefined) dbUpdates.isActive = updates.isActive;
+       if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
        
        const { data, error } = await supabase
-         .from('services')
+         .from('Services')
          .update(dbUpdates)
          .eq('id', id)
          .select()
@@ -207,7 +206,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    * Remove um serviço
    */
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('services').delete().eq('id', id);
+    const { error } = await supabase.from('Services').delete().eq('id', id);
     if (error) throw error;
   }
 
@@ -216,7 +215,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async exists(id: string): Promise<boolean> {
     const { count } = await supabase
-      .from('services')
+      .from('Services')
       .select('*', { count: 'exact', head: true })
       .eq('id', id);
     return (count || 0) > 0;

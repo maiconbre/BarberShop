@@ -7,14 +7,14 @@ import { useTenant } from '../contexts/TenantContext';
 import StandardLayout from '../components/layout/StandardLayout';
 
 const ScheduleManagementPage: React.FC = () => {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
+  const { user } = useAuth();
+  const currentUser = user;
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Hooks multi-tenant
   const { barbers: tenantBarbers, loadBarbers } = useBarbers();
   const { isValidTenant } = useTenant();
-  
+
   // Local state for barbers (transformed for component use)
   const [barbers, setBarbers] = useState<Array<{ id: string; name: string }>>([]);
 
@@ -30,8 +30,8 @@ const ScheduleManagementPage: React.FC = () => {
         } else {
           // Se for barbeiro, usar os dados do usuário atual
           setBarbers([{
-            id: currentUser && typeof currentUser === 'object' && 'id' in currentUser && typeof currentUser.id === 'number' ? currentUser.id.toString() : '', // Ensure ID is string
-            name: currentUser && typeof currentUser === 'object' && 'name' in currentUser && typeof currentUser.name === 'string' ? currentUser.name : ''
+            id: currentUser?.id || '',
+            name: currentUser?.user_metadata?.name || currentUser?.email || 'Barbeiro'
           }]);
           setIsLoading(false);
         }
@@ -43,10 +43,10 @@ const ScheduleManagementPage: React.FC = () => {
 
     loadBarbersData();
   }, [currentUser, isValidTenant, loadBarbers]);
-  
+
   // Atualizar barbeiros quando os dados do hook mudarem
   const currentUserRole = currentUser && typeof currentUser === 'object' && 'role' in currentUser ? currentUser.role : undefined;
-  
+
   useEffect(() => {
     if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'admin' && tenantBarbers && tenantBarbers.length > 0) {
       const formattedBarbers = tenantBarbers.map((barber: { id: string; name: string }) => ({
@@ -96,7 +96,7 @@ const ScheduleManagementPage: React.FC = () => {
           <ScheduleManager
             barbers={barbers}
             userRole={typeof currentUser === 'object' && 'role' in currentUser && (currentUser.role === 'admin' || currentUser.role === 'barber') ? currentUser.role : 'barber'}
-            currentBarberId={currentUser && typeof currentUser === 'object' && 'id' in currentUser && typeof currentUser.id === 'number' ? currentUser.id.toString() : undefined}
+            currentBarberId={currentUser?.id}
           />
         )}
       </div>

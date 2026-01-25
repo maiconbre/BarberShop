@@ -371,21 +371,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
     if (isRangeActive) {
       if (isDateSelected) {
-        return 'bg-[#F0B35B] text-black font-bold';
+        return 'bg-primary text-black font-bold shadow-lg shadow-primary/20';
       }
       if (isInRange) {
-        return 'bg-[#F0B35B]/30 text-white';
+        return 'bg-primary/30 text-white';
       }
-      return hasApps ? 'bg-[#1A1F2E] text-white' : 'bg-[#252B3B]/50 text-gray-400';
+      return hasApps ? 'bg-surface text-white border border-primary/20' : 'bg-background-paper/50 text-gray-400 hover:bg-surface';
     }
 
     if (isDateSelected) {
-      return 'bg-[#F0B35B] text-black font-bold';
+      return 'bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105';
     }
     if (isTodayDate && !isRangeActive) {
-      return 'bg-[#F0B35B]/20 text-white';
+      return 'bg-primary/20 text-primary border border-primary/30';
     }
-    return hasApps ? 'bg-[#1A1F2E] text-white' : 'bg-[#252B3B]/50 text-gray-400';
+    return hasApps ? 'bg-surface text-white border border-primary/10 hover:border-primary/30' : 'bg-background-paper/50 text-gray-500 hover:bg-surface hover:text-gray-300';
   }, [selectedDate, startDate, endDate, isToday, isDateInRange]);
 
   // Gera o grid do calendário com memoização
@@ -413,20 +413,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <motion.button
           key={date}
           onClick={() => onDateSelect(date)}
-          className={`relative h-10 sm:h-14 rounded-lg flex flex-col items-center justify-center
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`relative h-10 sm:h-14 rounded-xl flex flex-col items-center justify-center transition-all duration-200
             ${dateStyles}
           `}
         >
-          <span className="text-sm sm:text-base">
+          <span className="text-sm sm:text-base z-10">
             {day}
           </span>
           {hasApps && (
-            <div className="absolute bottom-1 flex justify-center space-x-0.5">
+            <div className="absolute bottom-1.5 flex justify-center space-x-0.5">
               {appointmentsCount > 3 ? (
-                <span className="text-[9px] text-[#F0B35B] font-medium">{appointmentsCount}</span>
+                <span className="text-[9px] text-primary font-bold bg-black/40 px-1 rounded-full">{appointmentsCount}</span>
               ) : (
                 Array.from({ length: Math.min(3, appointmentsCount) }).map((_, i) => (
-                  <span key={i} className="w-1 h-1 rounded-full bg-[#F0B35B]"></span>
+                  <span key={i} className={`w-1 h-1 rounded-full ${date === selectedDate ? 'bg-black' : 'bg-primary'}`}></span>
                 ))
               )}
             </div>
@@ -449,14 +451,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
           return (
             <div key={day.formattedDate} className="flex flex-col">
-              <div className="text-xs text-center text-gray-400 mb-1">
+              <div className="text-xs text-center text-gray-400 mb-1 font-medium caption">
                 {day.dayName}
               </div>
               <motion.button
                 onClick={() => onDateSelect(day.formattedDate)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className={`
-                  relative flex flex-col items-center justify-center p-2 rounded-lg
-                  ${dateStyles} ${day.isToday ? 'ring-1 ring-[#F0B35B]/50' : ''}
+                  relative flex flex-col items-center justify-center p-2 rounded-xl transition-all
+                  ${dateStyles} ${day.isToday && !isSelected ? 'ring-1 ring-primary/50' : ''}
                 `}
               >
                 <span className={`text-sm ${isSelected ? 'font-bold' : ''}`}>
@@ -465,7 +469,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 {hasApps && (
                   <div className="mt-1 flex space-x-0.5">
                     {Array.from({ length: Math.min(3, filteredAppointments.filter(a => a.date === day.formattedDate).length) }).map((_, i) => (
-                      <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#F0B35B]"></div>
+                      <div key={i} className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-black' : 'bg-primary'}`}></div>
                     ))}
                   </div>
                 )}
@@ -488,23 +492,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   const renderDayView = useCallback(() => {
     const formattedDate = format(currentDay, 'EEEE, d MMMM', { locale: ptBR });
 
-
-
     return (
-      <div className="mt-2">
-        <div className="text-sm text-center text-gray-300 mb-3 capitalize">
+      <div className="mt-4 bg-surface/30 rounded-xl p-4 border border-white/5">
+        <div className="text-sm text-center text-gray-300 mb-3 capitalize font-medium">
           {formattedDate}
         </div>
-        <div className="space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-1 hide-scrollbar">
+        <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-1 custom-scrollbar">
           {dayHours.map((hourData) => {
             const hasApps = hourData.appointments.length > 0;
 
             return (
-              <div key={hourData.hour} className="flex">
-                <div className="w-12 flex-shrink-0 text-xs text-gray-400 pt-2">
+              <div key={hourData.hour} className="flex group">
+                <div className="w-12 flex-shrink-0 text-xs text-gray-500 pt-2 font-mono group-hover:text-primary transition-colors">
                   {hourData.formattedHour}
                 </div>
-                <div className={`flex-grow rounded-lg p-2 min-h-[60px] transition-colors ${hasApps ? 'bg-[#1A1F2E]' : 'bg-[#252B3B]/30'}`}>
+                <div className={`flex-grow rounded-lg p-2 min-h-[60px] transition-all duration-200 border border-transparent ${hasApps ? 'bg-surface border-white/5' : 'bg-background-paper/30 hover:bg-surface/50 hover:border-primary/10'}`}>
                   {hasApps ? (
                     <div className="space-y-1">
                       {hourData.appointments.map(app => (
@@ -512,28 +514,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           key={app.id}
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`p-2 rounded text-xs ${getAppointmentColorByStatus(app.status)}`}
+                          className={`p-2 rounded text-xs ${getAppointmentColorByStatus(app.status)} shadow-sm`}
                         >
-                          <div className="flex justify-between">
-                            <span className="font-medium">{app.clientName}</span>
-                            <span>{app.time}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold">{app.clientName}</span>
+                            <span className="font-mono text-[10px] opacity-80">{app.time}</span>
                           </div>
-                          <div className="text-[10px] opacity-80 mt-0.5">
-                            {app.service} • {app.barberName}
+                          <div className="flex justify-between items-center mt-1">
+                            <div className="text-[10px] opacity-80 truncate max-w-[120px]">
+                              {app.service}
+                            </div>
+                            {app.barberName && <div className="text-[9px] px-1.5 py-0.5 bg-black/20 rounded-full">{app.barberName}</div>}
                           </div>
                         </motion.div>
                       ))}
                     </div>
                   ) : (
-                    <div className="h-full flex items-center justify-center">
+                    <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => {
                           const date = format(currentDay, 'yyyy-MM-dd');
                           onDateSelect(date);
                         }}
-                        className="text-xs text-gray-500"
+                        className="text-xs text-primary font-medium hover:underline"
                       >
-                        Horário disponível
+                        + Agendar
                       </button>
                     </div>
                   )}
@@ -561,16 +566,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 setCurrentMonth(month.date);
                 setViewMode('month');
               }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className={`
-                p-3 rounded-lg flex flex-col items-center justify-center
-                ${isCurrentMonth ? 'bg-[#F0B35B]/20 ring-1 ring-[#F0B35B]/50' : ''}
-                ${month.hasAppointments ? 'bg-[#1A1F2E] text-white' : 'bg-[#252B3B]/50 text-gray-400'}
+                p-3 rounded-xl flex flex-col items-center justify-center transition-all border
+                ${isCurrentMonth ? 'bg-primary/20 ring-1 ring-primary border-primary/30' : 'border-transparent'}
+                ${month.hasAppointments ? 'bg-surface text-white border-white/5 hover:border-primary/30' : 'bg-background-paper/30 text-gray-500 hover:bg-surface hover:text-gray-300'}
               `}
             >
               <span className="text-sm font-medium capitalize">{month.monthName}</span>
               {month.hasAppointments && (
-                <div className="mt-1 text-[10px] text-[#F0B35B]">
-                  {month.appointmentsCount} {month.appointmentsCount === 1 ? 'agendamento' : 'agendamentos'}
+                <div className="mt-1 text-[10px] text-primary font-bold">
+                  {month.appointmentsCount}
                 </div>
               )}
             </motion.button>

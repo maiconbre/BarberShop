@@ -1,102 +1,49 @@
-import { useState, useCallback } from 'react';
-import { PlanError } from '../types/plan';
-import * as PlanService from '../services/PlanService';
+import { useCallback } from 'react';
+import { usePlan } from './usePlan';
+import { PlanType } from '../types/plan';
 
-interface UsePlanLimitsReturn {
-  checkAndExecute: (
-    feature: 'barbers' | 'appointments',
-    action: () => Promise<void> | void,
-    onLimitExceeded?: (error: PlanError) => void
-  ) => Promise<boolean>;
+export const usePlanLimits = () => {
+  const { usage, loading, planInfo, upgradePlan } = usePlan();
+
+  const planType = (planInfo?.planType || 'free') as PlanType;
+
+  // Limites específicos para UI
+  const limits = usage?.limits;
+  const metrics = usage?.usage;
+
+  // Verificações booleanas
+  const canAddBarber = (metrics?.barbers?.remaining ?? 0) > 0;
+  const canAddAppointment = (metrics?.appointments?.remaining ?? 0) > 0;
   
-  checkLimits: (feature: 'barbers' | 'appointments') => Promise<boolean>;
-  
-  lastError: PlanError | null;
-  clearError: () => void;
-}
-
-export const usePlanLimits = (): UsePlanLimitsReturn => {
-  const [lastError, setLastError] = useState<PlanError | null>(null);
-
-  const clearError = useCallback(() => {
-    setLastError(null);
-  }, []);
-
-  const checkLimits = useCallback(async (feature: 'barbers' | 'appointments'): Promise<boolean> => {
-    try {
-      return await PlanService.checkPlanLimits(feature);
-    } catch (error) {
-      console.error('Erro ao verificar limites:', error);
-      return true; // Fail-safe
+  // Mensagens de erro/aviso
+  const getBarberLimitMessage = useCallback(() => {
+    if (canAddBarber) return null;
+    
+    if (planType === 'free') {
+      return "O plano Grátis permite apenas 1 barbeiro. Faça upgrade para adicionar sua equipe.";
     }
-  }, []);
-
-  const checkAndExecute = useCallback(async (
-    feature: 'barbers' | 'appointments',
-    action: () => Promise<void> | void,
-    onLimitExceeded?: (error: PlanError) => void
-  ): Promise<boolean> => {
-    try {
-      clearError();
-      
-      // Verificar limites antes de executar
-      const canExecute = await checkLimits(feature);
-      
-      if (!canExecute) {
-        // Tentar obter informações mais detalhadas do erro
-        try {
-          await PlanService.getUsageStats();
-        } catch (usageError) {
-          if (usageError && typeof usageError === 'object' && 'code' in usageError) {
-            const planError = usageError as PlanError;
-            setLastError(planError);
-            onLimitExceeded?.(planError);
-            return false;
-          }
-        }
-        
-        // Erro genérico se não conseguir obter detalhes
-        const genericError: PlanError = {
-          code: feature === 'barbers' ? 'BARBER_LIMIT_EXCEEDED' : 'APPOINTMENT_LIMIT_EXCEEDED',
-          message: `Limite de ${feature === 'barbers' ? 'barbeiros' : 'agendamentos'} atingido`,
-          data: {
-            current: 0,
-            limit: 0,
-            planType: 'free',
-            upgradeRequired: true
-          }
-        };
-        
-        setLastError(genericError);
-        onLimitExceeded?.(genericError);
-        return false;
-      }
-      
-      // Executar ação se dentro dos limites
-      await action();
-      return true;
-      
-    } catch (error) {
-      // Se o erro for relacionado a limites de plano
-      if (error && typeof error === 'object' && 'code' in error) {
-        const planError = error as PlanError;
-        
-        if (planError.code === 'BARBER_LIMIT_EXCEEDED' || planError.code === 'APPOINTMENT_LIMIT_EXCEEDED') {
-          setLastError(planError);
-          onLimitExceeded?.(planError);
-          return false;
-        }
-      }
-      
-      // Re-throw outros tipos de erro
-      throw error;
+    if (planType === 'start') {
+      return "O plano Start inclui 1 barbeiro. Mude para o Premium para ter até 6 profissionais.";
     }
-  }, [checkLimits, clearError]);
+    return `Limite de ${limits?.barbers || 0} barbeiros atingido.`;
+  }, [canAddBarber, planType, limits]);
+
+  const getAppointmentLimitMessage = useCallback(() => {
+    if (canAddAppointment) return null;
+    const limit = limits?.appointments_per_month || 0;
+    
+    return `Você atingiu o limite de ${limit} agendamentos mensais. Faça upgrade para continuar recebendo reservas.`;
+  }, [canAddAppointment, limits]);
 
   return {
-    checkAndExecute,
-    checkLimits,
-    lastError,
-    clearError
+    planType,
+    loading,
+    limits,
+    metrics,
+    canAddBarber,
+    canAddAppointment,
+    getBarberLimitMessage,
+    getAppointmentLimitMessage,
+    upgradePlan
   };
 };

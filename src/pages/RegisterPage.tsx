@@ -540,7 +540,18 @@ const RegisterPage: React.FC = () => {
           email: formData.username.trim(),
           // password: formData.password, // Removido
           whatsapp: formData.whatsapp.trim() || undefined,
-          pix: formData.pix.trim() || undefined
+          pix: formData.pix.trim() || undefined,
+          specialties: [], // Default empty
+          isActive: true,  // Default true
+          workingHours: {  // Default working hours
+            monday: [{ start: '09:00', end: '18:00' }],
+            tuesday: [{ start: '09:00', end: '18:00' }],
+            wednesday: [{ start: '09:00', end: '18:00' }],
+            thursday: [{ start: '09:00', end: '18:00' }],
+            friday: [{ start: '09:00', end: '18:00' }],
+            saturday: [{ start: '09:00', end: '14:00' }],
+            sunday: []
+          }
         });
 
         return newBarber;
@@ -720,12 +731,13 @@ const RegisterPage: React.FC = () => {
 
   return (
     <StandardLayout>
-      <div className="max-w-6xl mx-auto p-6 space-y-8">
+      <div className="relative z-10 space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Gerenciar Barbeiros</h1>
-            <p className="text-gray-400">Cadastre e gerencie os barbeiros da sua barbearia</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div className="relative">
+            <div className="absolute -left-4 top-0 w-1 h-full bg-primary rounded-full"></div>
+            <h1 className="text-3xl font-bold text-white mb-2 ml-2">Gerenciar Barbeiros</h1>
+            <p className="text-gray-400 ml-2">Cadastre e gerencie a equipe da sua barbearia</p>
           </div>
 
           {!showForm && (
@@ -748,9 +760,9 @@ const RegisterPage: React.FC = () => {
                   });
                 }
               }}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${canCreateBarber
-                  ? 'bg-[#F0B35B] text-black hover:bg-[#F0B35B]/90'
-                  : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-primary/20 ${canCreateBarber
+                ? 'bg-primary text-black hover:bg-primary/90 hover:scale-105 active:scale-95'
+                : 'bg-gray-600 text-gray-300 cursor-not-allowed'
                 }`}
               disabled={!canCreateBarber}
             >
@@ -762,19 +774,26 @@ const RegisterPage: React.FC = () => {
 
         {/* Plan Usage Info */}
         {usage && (
-          <div className="bg-[#1A1F2E]/50 border border-[#F0B35B]/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Users className="w-5 h-5 text-[#F0B35B]" />
-                <span className="text-white font-medium">Barbeiros: {usage.barbers.current}/{usage.barbers.limit}</span>
+          <div className="bg-surface/50 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-colors duration-500"></div>
+
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <span className="text-white font-bold text-lg block">Capacidade da Equipe</span>
+                  <span className="text-gray-400 text-sm">Barbeiros ativos: {usage.barbers.current} de {usage.barbers.limit}</span>
+                </div>
               </div>
-              <div className="text-sm text-gray-400">
-                {usage.barbers.limit - usage.barbers.current} restantes
+              <div className="text-sm font-medium bg-background-paper/50 px-3 py-1 rounded-lg border border-white/5 text-primary">
+                {usage.barbers.limit - usage.barbers.current} vagas restantes
               </div>
             </div>
-            <div className="mt-2 w-full bg-gray-700 rounded-full h-2">
+            <div className="mt-4 w-full bg-background-paper rounded-full h-3 overflow-hidden border border-white/5">
               <div
-                className="bg-[#F0B35B] h-2 rounded-full transition-all duration-300"
+                className="bg-primary h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(212,175,55,0.5)]"
                 style={{ width: `${(usage.barbers.current / usage.barbers.limit) * 100}%` }}
               ></div>
             </div>
@@ -783,9 +802,13 @@ const RegisterPage: React.FC = () => {
 
         {/* Form */}
         {showForm && (
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252A3A] p-8 rounded-xl shadow-2xl border border-gray-700">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">
+          <div className="bg-surface/50 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/5 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  {isEditMode ? <Edit className="w-6 h-6 text-primary" /> : <UserPlus className="w-6 h-6 text-primary" />}
+                </div>
                 {isEditMode ? 'Editar Barbeiro' : 'Cadastrar Novo Barbeiro'}
               </h2>
               <button
@@ -793,7 +816,7 @@ const RegisterPage: React.FC = () => {
                   resetFormStates();
                   setShowForm(false);
                 }}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -880,28 +903,62 @@ const RegisterPage: React.FC = () => {
                     id="whatsapp"
                     name="whatsapp"
                     type="tel"
-                    className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-all duration-200"
-                    placeholder="(11) 99999-9999"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.toLowerCase().replace(/\s/g, '');
+                      setFormData({ ...formData, username: value });
+                    }}
+                    className="w-full p-3.5 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
+                    placeholder="email@exemplo.com"
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label htmlFor="pix" className="block text-sm font-medium text-gray-300 mb-2">
-                    Chave PIX
-                  </label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300 ml-1">WhatsApp</label>
                   <input
-                    id="pix"
-                    name="pix"
                     type="text"
-                    className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-all duration-200"
-                    placeholder="Digite a chave PIX"
+                    value={formData.whatsapp}
+                    onChange={(e) => {
+                      // Simple mask for Brazil phone
+                      let value = e.target.value.replace(/\D/g, '');
+                      if (value.length > 11) value = value.slice(0, 11);
+                      if (value.length > 2) value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                      if (value.length > 9) value = `${value.slice(0, 9)}-${value.slice(9)}`;
+                      setFormData({ ...formData, whatsapp: value });
+                    }}
+                    className="w-full p-3.5 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300 ml-1">Chave PIX <span className="text-xs text-gray-500">(Opcional)</span></label>
+                  <input
+                    type="text"
                     value={formData.pix}
                     onChange={(e) => setFormData({ ...formData, pix: e.target.value })}
+                    className="w-full p-3.5 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
+                    placeholder="CPF, Email, Telefone..."
                   />
                 </div>
               </div>
+
+              {isEditMode && (
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-3">
+                  <div className="flex items-center gap-2 text-yellow-500 font-medium">
+                    <AlertCircle className="w-5 h-5" />
+                    <h3>Alterar Senha</h3>
+                  </div>
+                  <p className="text-xs text-yellow-500/80">Preencha apenas se desejar alterar a senha do barbeiro.</p>
+
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full p-3.5 bg-background-paper/50 rounded-xl focus:ring-1 focus:ring-yellow-500 outline-none transition-all duration-300 border border-white/5 hover:border-yellow-500/30 text-white placeholder-gray-500"
+                    placeholder="Nova senha (mínimo 6 caracteres)"
+                  />
+                </div>
+              )}
 
               {/* QR Code Upload */}
               <div className="border-t border-gray-600 pt-6">
@@ -970,40 +1027,39 @@ const RegisterPage: React.FC = () => {
               </div>
 
               {/* Submit Button */}
-              <div className="flex justify-end space-x-4">
+              <div className="pt-4 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={isEditMode ? handleCancelEdit : () => {
                     resetFormStates();
                     setShowForm(false);
                   }}
-                  className="px-6 py-3 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-all duration-200 flex items-center space-x-2"
+                  className="px-6 py-3 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all"
                 >
-                  <X className="w-5 h-5" />
-                  <span>Cancelar</span>
+                  Cancelar
                 </button>
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex items-center justify-center px-6 py-3 bg-[#F0B35B] text-black font-medium rounded-lg hover:bg-[#F0B35B]/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
+                  className="flex items-center justify-center px-8 py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-primary/20 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="animate-spin h-5 w-5 mr-2" />
-                      <span>{isEditMode ? 'Atualizando...' : 'Cadastrando...'}</span>
+                      <span>{isEditMode ? 'Salvando...' : 'Cadastrando...'}</span>
                     </>
                   ) : (
                     <>
                       {isEditMode ? (
                         <>
                           <Edit className="w-5 h-5 mr-2" />
-                          <span>Atualizar</span>
+                          <span>Atualizar Dados</span>
                         </>
                       ) : (
                         <>
                           <UserPlus className="w-5 h-5 mr-2" />
-                          <span>Cadastrar</span>
+                          <span>Cadastrar Profissional</span>
                         </>
                       )}
                     </>
@@ -1014,29 +1070,31 @@ const RegisterPage: React.FC = () => {
           </div>
         )}
 
-        {/* Barbers List */}
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252A3A] rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
-          <div className="p-6 border-b border-gray-700">
-            <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
-              <Users className="w-6 h-6 text-[#F0B35B]" />
-              <span>Barbeiros Cadastrados</span>
-              <span className="text-sm bg-[#F0B35B]/20 text-[#F0B35B] px-3 py-1 rounded-full">
-                {filteredBarbers.length}
-              </span>
+        {/* Barbers Grid */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+              <div className="w-1.5 h-8 bg-primary rounded-full"></div>
+              <span>Equipe Cadastrada</span>
             </h2>
+            <div className="flex items-center gap-3">
+              <span className="bg-surface border border-white/10 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                {filteredBarbers.length} Profissionais
+              </span>
+            </div>
           </div>
 
           {filteredBarbers.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-20 h-20 bg-[#F0B35B]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-10 h-10 text-[#F0B35B]" />
+            <div className="bg-surface/30 rounded-2xl border border-white/5 p-12 text-center">
+              <div className="w-20 h-20 bg-background-paper rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <Users className="w-10 h-10 text-gray-600" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Nenhum barbeiro cadastrado</h3>
-              <p className="text-gray-400 mb-6">Comece cadastrando o primeiro barbeiro da sua equipe</p>
+              <h3 className="text-xl font-bold text-white mb-2">Sua equipe está vazia</h3>
+              <p className="text-gray-400 mb-8 max-w-md mx-auto">Comece cadastrando o primeiro talento da sua barbearia para iniciar os agendamentos.</p>
               {canCreateBarber && (
                 <button
                   onClick={() => setShowForm(true)}
-                  className="inline-flex items-center space-x-2 px-6 py-3 bg-[#F0B35B] text-black font-medium rounded-lg hover:bg-[#F0B35B]/90 transition-all duration-200"
+                  className="inline-flex items-center space-x-2 px-8 py-4 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-primary/20 hover:-translate-y-1"
                 >
                   <UserPlus className="w-5 h-5" />
                   <span>Cadastrar Primeiro Barbeiro</span>
@@ -1044,52 +1102,62 @@ const RegisterPage: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBarbers.map((barber) => (
-                <div key={barber.id} className="p-6 hover:bg-[#1A1F2E]/30 transition-all duration-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-[#F0B35B]/20 rounded-full flex items-center justify-center">
-                        <Users className="w-6 h-6 text-[#F0B35B]" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{barber.name}</h3>
-                        <p className="text-gray-400">{barber.email}</p>
-                        {barber.whatsapp && (
-                          <div className="flex items-center space-x-1 mt-1">
-                            <Phone className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-gray-500">{barber.whatsapp}</span>
-                          </div>
-                        )}
-                        {barber.pix && (
-                          <div className="flex items-center space-x-1 mt-1">
-                            <CreditCard className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-gray-500">PIX: {barber.pix}</span>
-                          </div>
-                        )}
-                      </div>
+                <div key={barber.id} className="bg-surface/50 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-primary/30 transition-all duration-300 group hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-background-paper to-surface rounded-2xl flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                      <Users className="w-8 h-8 text-primary" />
                     </div>
-
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <button
                         onClick={() => handleEdit(barber)}
-                        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-lg transition-all duration-200"
-                        title="Editar barbeiro"
+                        className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all duration-300"
+                        title="Editar"
                       >
                         <Edit className="w-5 h-5" />
                       </button>
-
                       <button
                         onClick={() => {
                           setSelectedUser(barber);
                           setIsDeleteModalOpen(true);
                         }}
-                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all duration-200"
-                        title="Excluir barbeiro"
+                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-300"
+                        title="Excluir"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
+                  </div>
+
+                  <div className="space-y-1 mb-6">
+                    <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors truncate">{barber.name}</h3>
+                    <p className="text-sm text-gray-400 truncate flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/50"></span>
+                      {barber.email}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-white/5">
+                    {barber.whatsapp && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500 flex items-center gap-2">
+                          <Phone className="w-4 h-4" /> WhatsApp
+                        </span>
+                        <span className="text-gray-300 font-medium">{barber.whatsapp}</span>
+                      </div>
+                    )}
+                    {barber.pix && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500 flex items-center gap-2">
+                          <CreditCard className="w-4 h-4" /> Chave PIX
+                        </span>
+                        <span className="text-gray-300 font-medium truncate max-w-[120px]" title={barber.pix}>{barber.pix}</span>
+                      </div>
+                    )}
+                    {!barber.whatsapp && !barber.pix && (
+                      <p className="text-xs text-center text-gray-600 italic py-1">Sem informações adicionais</p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1125,8 +1193,7 @@ const RegisterPage: React.FC = () => {
           setIsEditConfirmModalOpen(false);
           // Lógica de confirmação aqui
         }}
-        title="Confirmar Edição"
-        message="Tem certeza que deseja salvar as alterações?"
+        barberName={selectedUser?.name || ''}
       />
     </StandardLayout>
   );

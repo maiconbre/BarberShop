@@ -74,8 +74,8 @@ const CountUp = ({ end, duration = 0.4, prefix = '', suffix = '' }: { end: numbe
 const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
   const [showValues, setShowValues] = useState(true);
   const [cachedData, setCachedData] = useState<CachedStats | null>(null);
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
+  const { user } = useAuth();
+  const currentUser = user;
 
   // Estado para controlar a animação do olho
   const [isBlinking, setIsBlinking] = useState(false);

@@ -51,7 +51,7 @@ export const useNotifications = () => {
   const { comments, loadComments } = useComments();
   const { appointments, loadAppointments: loadTenantAppointments } = useAppointments();
   const tenantCache = useTenantCache();
-  const { getOrFetch } = tenantCache;
+
 
   useEffect(() => {
     try {
@@ -149,7 +149,7 @@ export const useNotifications = () => {
         // Registrar o momento da tentativa de busca
         const fetchStartTime = Date.now();
 
-        return await getOrFetch('appointments', async () => {
+        return await tenantCache.getOrFetch('appointments', async () => {
           // Usar hook tenant-aware para carregar agendamentos
           await loadTenantAppointments();
           const appointmentsData = appointments || [];
