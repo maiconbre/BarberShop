@@ -209,7 +209,7 @@ const BarberManagementPage: React.FC = () => {
                         <p className="text-gray-500 mt-2">Adicione o primeiro barbeiro para começar.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {barbers.map((barber) => (
                             <motion.div
                                 key={barber.id}

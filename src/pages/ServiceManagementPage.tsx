@@ -390,7 +390,7 @@ const ServiceManagementPage: React.FC = () => {
                 <p className="text-gray-500 max-w-xs mx-auto">Comece adicionando novos serviços através do formulário ao lado.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 h-[calc(100vh-320px)] overflow-y-auto pr-2 custom-scrollbar content-start">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-6 h-[calc(100vh-320px)] overflow-y-auto pr-2 custom-scrollbar content-start">
                 {services.map(service => (
                   <motion.div
                     key={service.id}

@@ -115,7 +115,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
         </select>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-6">
         {stats.map((stat, index) => {
           const IconComponent = stat.icon;
           return (
@@ -238,7 +238,7 @@ const DashboardPageNew: React.FC = () => {
         />
 
         {/* Main Dashboard Content - Responsive Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8">
 
           {/* Analytics Section (2/3 width on desktop) */}
           <div className="lg:col-span-2 bg-surface/50 backdrop-blur-md p-6 border border-white/5 rounded-2xl shadow-xl h-fit">
