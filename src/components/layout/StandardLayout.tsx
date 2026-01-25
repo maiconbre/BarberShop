@@ -28,9 +28,10 @@ interface StandardLayoutProps {
   title?: string;
   subtitle?: string;
   icon?: React.ReactNode;
+  hideMobileHeader?: boolean;
 }
 
-const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon }) => {
+const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon, hideMobileHeader = false }) => {
   const { user, logout: authLogout } = useAuth();
   const currentUser = user;
   const navigate = useNavigate();
@@ -149,7 +150,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       </div>
 
       {/* Mobile Header */}
-      {isMobile && (
+      {isMobile && !hideMobileHeader && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
@@ -436,10 +437,10 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           ? 'ml-16'
           : 'ml-64'
         }`}>
-        <div className="w-full">
+        <div className="w-full p-4 md:p-8">
           {/* Page Header */}
           {(pageTitle || pageSubtitle) && (
-            <div className={`mb-8 ${isMobile ? 'mt-4' : 'mt-6'}`}>
+            <div className="mb-8">
               <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 border border-[#F0B35B]/20">
                 {pageIcon && (
                   <div className="bg-[#F0B35B]/20 p-2 rounded-full flex-shrink-0">

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, X, BarChart2, Users, DollarSign, TrendingUp, Calendar, User } from 'lucide-react';
+import { Search, X, BarChart2, Users, DollarSign, TrendingUp, Calendar, User, Ghost } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,6 +27,7 @@ interface Appointment {
 interface ClientAnalyticsProps {
     appointments: Appointment[];
     onRefreshData?: () => Promise<void>;
+    simpleMode?: boolean;
 }
 
 interface ClientData {
@@ -86,7 +87,7 @@ const getUserId = (user: unknown): string | null => {
     return userObj.id || userObj.userId || userObj.uid || null;
 };
 
-const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
+const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleMode }) => {
     const { user } = useAuth();
     // const currentUser = user; // Simplification if needed, or just use user directly
 
@@ -322,196 +323,148 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     const renderOverviewTab = () => (
         <div className="space-y-6">
-            {/* Cards de Métricas */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
-                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Receita Total</p>
-                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">R$ {safeFixed(metrics.totalRevenue, 2)}</p>
-                        </div>
-                        <DollarSign className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
-                    </div>
-                </div>
+            {/* Header "Análise de Desempenho" is handled by parent or here? The parent DashboardPageNew puts "Análise de Desempenho" before calling this component.
+                But wait, ClientAnalytics renders the cards.
+                The design shows:
+                Análise de Desempenho
+                [Receita] [Ticket]
+                [Clientes] [Retorno]
+            */}
 
-                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Clientes</p>
-                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">{metrics.uniqueClients}</p>
-                        </div>
-                        <Users className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
+            {!simpleMode && (
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Receita</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">R$ {safeFixed(metrics.totalRevenue, 2)}</p>
                     </div>
-                </div>
 
-                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Ticket Médio</p>
-                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">R$ {safeFixed(metrics.avgTicket, 2)}</p>
-                        </div>
-                        <TrendingUp className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Ticket Médio</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">R$ {safeFixed(metrics.avgTicket, 2)}</p>
                     </div>
-                </div>
 
-                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Agendamentos</p>
-                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">{metrics.totalAppointments}</p>
-                        </div>
-                        <Calendar className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Clientes</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">{metrics.uniqueClients}</p>
                     </div>
-                </div>
 
-                <div className="bg-background-paper p-4 rounded-xl border border-white/5 hover:border-primary/20 transition-all hover:translate-y-[-2px] group">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Taxa Retorno</p>
-                            <p className="text-white text-sm sm:text-xl font-bold group-hover:text-primary transition-colors">{safeFixed(metrics.returnRate, 1)}%</p>
-                        </div>
-                        <TrendingUp className="text-primary w-5 h-5 sm:w-8 sm:h-8 p-1.5 bg-primary/10 rounded-lg group-hover:scale-110 transition-transform" />
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Retorno</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">{safeFixed(metrics.returnRate, 0)}%</p>
                     </div>
                 </div>
-            </div>
+            )}
 
 
 
             {/* Gráficos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+            <div className="grid grid-cols-1 gap-6">
                 {/* Receita Mensal */}
-                <div className="bg-background-paper/50 p-6 rounded-2xl border border-white/5">
-                    <h3 className="text-white text-sm sm:text-lg font-bold mb-6 flex items-center gap-2">
-                        <BarChart2 className="w-4 h-4 text-primary" />
+                <div className="bg-[#1A1F2E] p-4 sm:p-5 rounded-2xl border border-white/5">
+                    <h3 className="text-white text-sm font-bold mb-4 flex items-center gap-2">
+                        <BarChart2 className="w-4 h-4 text-[#E6A555]" />
                         Receita Mensal
                     </h3>
-                    <div style={{ width: '100%', height: '256px', minHeight: '256px' }}>
+                    <div style={{ width: '100%', minHeight: '180px' }} className="h-[180px] sm:h-[220px]">
                         {chartData.monthlyRevenue.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={256}>
+                            <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chartData.monthlyRevenue}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                                    <XAxis dataKey="month" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                                    <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(value) => `R$${value}`} />
+                                    <XAxis
+                                        dataKey="month"
+                                        tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        interval="preserveStartEnd"
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tickFormatter={(value) => `R$${value}`}
+                                        width={40}
+                                    />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: '#181B26',
-                                            border: '1px solid rgba(212, 175, 55, 0.2)',
-                                            borderRadius: '12px',
+                                            backgroundColor: '#0D121E',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '8px',
                                             color: '#fff',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                            fontSize: '12px'
                                         }}
+                                        itemStyle={{ color: '#E6A555' }}
                                         cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
                                     />
                                     <Line
                                         type="monotone"
                                         dataKey="receita"
-                                        stroke="#D4AF37"
-                                        strokeWidth={3}
-                                        dot={{ fill: '#181B26', stroke: '#D4AF37', strokeWidth: 2, r: 4 }}
-                                        activeDot={{ r: 6, fill: '#D4AF37' }}
+                                        stroke="#E6A555"
+                                        strokeWidth={2}
+                                        dot={{ fill: '#1A1F2E', stroke: '#E6A555', strokeWidth: 2, r: 4 }}
+                                        activeDot={{ r: 6, fill: '#E6A555' }}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex items-center justify-center h-full text-gray-400">
-                                <p>Nenhum dado disponível</p>
+                            <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2 opacity-50">
+                                <BarChart2 className="w-8 h-8" />
+                                <p className="text-xs">Sem dados suficientes</p>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Serviços Populares */}
-                <div className="bg-background-paper/50 p-6 rounded-2xl border border-white/5">
-                    <h3 className="text-white text-sm sm:text-lg font-bold mb-6 flex items-center gap-2">
-                        <div className="w-2 h-4 bg-primary rounded-full"></div>
+                <div className="bg-[#1A1F2E] p-4 sm:p-5 rounded-2xl border border-white/5">
+                    <h3 className="text-white text-sm font-bold mb-4 flex items-center gap-2">
+                        <User className="w-4 h-4 text-[#E6A555]" />
                         Serviços Populares
                     </h3>
-                    <div className="space-y-3" style={{ minHeight: '200px' }}>
-                        {/* Gráfico de barras horizontal para mobile */}
-                        <div className="block sm:hidden">
-                            {chartData.topServices.slice(0, 3).map((service, index) => {
-                                const percentage = (service.value / chartData.topServices.reduce((sum, s) => sum + s.value, 0)) * 100;
-                                return (
-                                    <div key={service.name} className="mb-3">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-white text-xs font-medium truncate">{service.name}</span>
-                                            <span className="text-primary text-xs font-bold">{service.value}</span>
-                                        </div>
-                                        <div className="w-full bg-gray-800 rounded-full h-2">
-                                            <div
-                                                className="h-2 rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${percentage}%`,
-                                                    backgroundColor: COLORS[index % COLORS.length]
-                                                }}
-                                            />
-                                        </div>
-                                        <span className="text-gray-400 text-xs">{safeFixed(percentage, 1)}%</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Gráfico de pizza para desktop */}
-                        <div className="hidden sm:block" style={{ width: '100%', height: '256px', minHeight: '256px' }}>
-                            {chartData.topServices.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={256}>
-                                    <PieChart>
-                                        <Pie
-                                            data={chartData.topServices}
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={80}
-                                            innerRadius={50}
-                                            dataKey="value"
-                                            stroke="none"
-                                            label={({ name, percent }) => `${name} ${safeFixed(percent * 100, 0)}%`}
-                                        >
-                                            {chartData.topServices.map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: '#181B26',
-                                                border: '1px solid rgba(212, 175, 55, 0.2)',
-                                                borderRadius: '12px',
-                                                color: '#fff',
-                                            }}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="flex items-center justify-center h-full text-gray-400">
-                                    <p>Nenhum dado disponível</p>
+                    <div style={{ minHeight: '180px' }}>
+                        {/* Empty State with Ghost */}
+                        {chartData.topServices.length === 0 && (
+                            <div className="flex flex-col items-start justify-center h-[180px] w-full relative overflow-hidden bg-gradient-to-br from-[#1A1F2E] to-[#151926] rounded-xl p-4">
+                                <div className="z-10">
+                                    <h4 className="text-white font-semibold text-sm mb-1">Ainda sem dados</h4>
+                                    <p className="text-gray-400 text-xs mb-4 max-w-[200px]">Cadastre serviços para acompanhar o desempenho.</p>
+                                    <button className="flex items-center gap-2 bg-[#252B3B] hover:bg-[#2E354A] text-[#E6A555] px-4 py-2 rounded-lg text-xs font-medium transition-colors border border-white/5">
+                                        <span className="text-lg leading-none">+</span>
+                                        Cadastrar serviço
+                                    </button>
                                 </div>
-                            )}
-                        </div>
+                                {/* Ghost Illustration Placeholder using pure CSS/SVG if possible or simplistic shapes */}
+                                <div className="absolute right-[-10px] bottom-[-20px] opacity-80 pointer-events-none">
+                                    <Ghost className="w-24 h-24 text-gray-700/30 rotate-12" />
+                                </div>
+                            </div>
+                        )}
 
-                        {/* Lista de serviços com estatísticas */}
-                        <div className="mt-4 space-y-2">
-                            {chartData.topServices.map((service, index) => {
-                                const avgRevenue = filteredAppointments
-                                    .filter(app => app.service?.includes(service.name))
-                                    .reduce((sum, app) => sum + app.price, 0) / service.value;
-
-                                return (
-                                    <div key={service.name} className="flex items-center justify-between p-3 bg-background-dark/50 rounded-lg hover:bg-background-dark transition-colors border border-transparent hover:border-white/5">
-                                        <div className="flex items-center space-x-3">
-                                            <div
-                                                className="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]"
-                                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                                            />
-                                            <span className="text-white text-xs sm:text-sm font-medium">{service.name}</span>
+                        {chartData.topServices.length > 0 && (
+                            /* Gráfico de barras horizontal para mobile */
+                            <div className="space-y-3">
+                                {chartData.topServices.slice(0, 5).map((service, index) => {
+                                    const percentage = (service.value / chartData.topServices.reduce((sum, s) => sum + s.value, 0)) * 100;
+                                    return (
+                                        <div key={service.name}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-gray-300 text-xs font-medium truncate">{service.name}</span>
+                                                <span className="text-white text-xs font-bold">{service.value}</span>
+                                            </div>
+                                            <div className="w-full bg-white/5 rounded-full h-1.5">
+                                                <div
+                                                    className="h-1.5 rounded-full transition-all duration-300"
+                                                    style={{
+                                                        width: `${percentage}%`,
+                                                        backgroundColor: COLORS[index % COLORS.length]
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-primary text-xs sm:text-sm font-bold">{service.value} <span className="text-gray-500 font-normal">agend.</span></div>
-                                            <div className="text-gray-400 text-xs">R$ {safeFixed(avgRevenue, 2)} média</div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -792,6 +745,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
             )}
         </div>
     );
+
+    // Simplified render for embedded mode
+    if (simpleMode) {
+        return renderOverviewTab();
+    }
 
     const renderBarbersTab = () => {
         if (!isAdmin) return null;

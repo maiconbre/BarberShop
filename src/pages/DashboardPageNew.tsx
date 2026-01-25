@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { TrendingUp, Users, Clock, DollarSign, BarChart3, Calendar } from 'lucide-react';
+import { TrendingUp, Users, Clock, DollarSign, BarChart3, Calendar, Bell, CheckCircle2, User, Search } from 'lucide-react';
 import StandardLayout from '../components/layout/StandardLayout';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
 import OnboardingModal from '../components/onboarding/OnboardingModal';
@@ -23,6 +24,11 @@ interface DashboardAppointment {
   viewed?: boolean;
   isBlocked?: boolean;
 }
+
+const safeFixed = (num: number | undefined, digits: number) => {
+  if (num === undefined || num === null || isNaN(num)) return '0.00';
+  return num.toFixed(digits);
+};
 
 interface StatsProps {
   appointments: DashboardAppointment[];
@@ -66,69 +72,76 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
   const stats = [
     {
-      title: 'Total de Agendamentos',
+      title: 'Total',
       value: totalAppointments,
       icon: Calendar,
-      color: 'text-blue-400',
+      color: 'text-blue-500',
       bgColor: 'bg-blue-500/10'
     },
     {
-      title: 'Agendamentos Concluídos',
+      title: 'Receita',
+      value: `R$ ${safeFixed(totalRevenue, 2)}`,
+      icon: DollarSign,
+      color: 'text-[#D4AF37]', // Gold color
+      bgColor: 'bg-[#D4AF37]/10'
+    },
+    {
+      title: 'Concluídos',
       value: completedAppointments,
-      icon: Users,
-      color: 'text-green-400',
+      icon: CheckCircle2,
+      color: 'text-green-500',
       bgColor: 'bg-green-500/10'
     },
     {
-      title: 'Agendamentos Pendentes',
+      title: 'Pendentes',
       value: pendingAppointments,
       icon: Clock,
-      color: 'text-yellow-400',
-      bgColor: 'bg-yellow-500/10'
-    },
-    {
-      title: 'Receita Total',
-      value: `R$ ${totalRevenue.toFixed(2)}`,
-      icon: DollarSign,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10'
+      color: 'text-[#E6A555]',
+      bgColor: 'bg-[#E6A555]/10'
     }
   ];
 
   return (
-    <div className="bg-surface/50 backdrop-blur-md shadow-xl p-6 border border-white/5 rounded-2xl">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl font-bold text-white flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <TrendingUp className="w-5 h-5 text-primary" />
+    <div>
+      {/* Header Mobile Filter Row - Replaces the old Visão Geral Header inside Stats */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-[#D4AF37]/10 rounded-md">
+            <TrendingUp className="w-4 h-4 text-[#D4AF37]" />
           </div>
-          Visão Geral
-        </h2>
-        <select
-          value={revenueDisplayMode}
-          onChange={(e) => setRevenueDisplayMode(e.target.value)}
-          className="appearance-none bg-background-dark text-white text-sm rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer border border-white/10 hover:border-primary/40 transition-colors"
-        >
-          <option value="month">Este Mês</option>
-          <option value="week">Esta Semana</option>
-          <option value="all">Todos</option>
-        </select>
+          <h2 className="text-lg font-bold text-white">Visão Geral</h2>
+        </div>
+        <div className="relative">
+          <select
+            value={revenueDisplayMode}
+            onChange={(e) => setRevenueDisplayMode(e.target.value)}
+            className="appearance-none bg-[#1A1F2E] text-white text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border border-white/10 focus:outline-none"
+          >
+            <option value="month">Este Mês</option>
+            <option value="week">Esta Semana</option>
+            <option value="all">Todos</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <Calendar className="h-3 w-3" />
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-8">
         {stats.map((stat, index) => {
           const IconComponent = stat.icon;
           return (
-            <div key={index} className="bg-background-paper p-5 rounded-xl border border-white/5 hover:border-primary/20 transition-all duration-300 hover:-translate-y-1 group">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
-                  <IconComponent className={`w-6 h-6 ${stat.color}`} />
+            <div key={index} className="bg-[#1A1F2E] p-3 sm:p-4 rounded-2xl border border-white/5 relative overflow-hidden group">
+              <div className="flex flex-col h-full justify-between gap-3">
+                <div className="flex items-start justify-between">
+                  <div className={`p-2 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                    <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
+                  </div>
                 </div>
-                {index === 3 && <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">HOT</span>}
-              </div>
-              <div>
-                <p className="text-gray-400 text-sm font-medium">{stat.title}</p>
-                <p className="text-2xl font-bold text-white mt-1 group-hover:text-primary transition-colors">{stat.value}</p>
+                <div>
+                  <span className="text-gray-400 text-xs sm:text-sm font-medium block mb-0.5">{stat.title}</span>
+                  <p className="text-xl sm:text-2xl font-bold text-white tracking-wide">{stat.value}</p>
+                </div>
               </div>
             </div>
           );
@@ -141,6 +154,7 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 const DashboardPageNew: React.FC = () => {
   const location = useLocation();
   const { barbershopData, loading: tenantLoading } = useTenant();
+  const { user } = useAuth(); // Get user for avatar
 
   const [appointments, setAppointments] = useState<DashboardAppointment[]>([]);
   const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
@@ -172,8 +186,6 @@ const DashboardPageNew: React.FC = () => {
       try {
         setLoading(true);
         const data = await loadAppointmentsService();
-        // Cast and map if necessary to ensure compatibility
-        // Assuming the service returns data that mostly matches our local interface
         setAppointments((data as unknown) as DashboardAppointment[]);
       } catch (error) {
         console.error('Erro ao carregar agendamentos:', error);
@@ -184,7 +196,6 @@ const DashboardPageNew: React.FC = () => {
 
     fetchAppointments();
 
-    // Listen for cache updates
     const handleCacheUpdate = () => {
       fetchAppointments();
     };
@@ -195,14 +206,11 @@ const DashboardPageNew: React.FC = () => {
     };
   }, []);
 
-  // Helper to get only completed appointments for analytics
-  // ClientAnalytics expects "Appointment[]" but likely only uses certain fields.
-  // We'll cast it to any to bypass strict type check for now, knowing the shape is compatible for charts
   const filteredForAnalytics = appointments.filter(app => app.status === 'completed') as any[];
 
   if (loading || tenantLoading) {
     return (
-      <StandardLayout>
+      <StandardLayout hideMobileHeader={true}>
         <div className="flex items-center justify-center h-[calc(100vh-100px)]">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
@@ -210,23 +218,31 @@ const DashboardPageNew: React.FC = () => {
     );
   }
 
-  return (
-    <StandardLayout>
-      <div className="space-y-6">
+  // Current Date formatted "Dom, 25 Jan"
+  const formattedDate = new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
 
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+  return (
+    <StandardLayout hideMobileHeader={true}>
+      <div className="space-y-6 pb-20 pt-2 px-2 sm:px-0"> {/* Adjusted padding */}
+
+        {/* Custom Header matching Design */}
+        <div className="flex items-center justify-between py-2 sm:py-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">
-              Olá, {barbershopData?.name || 'Barbearia'}
+            <h1 className="text-xl sm:text-2xl font-bold text-white capitalize">
+              Olá, {(user as any)?.name?.split(' ')[0] || 'Visitante'}
             </h1>
-            <p className="text-gray-400">
-              Aqui está o resumo do seu negócio hoje.
+            <p className="text-gray-400 text-xs sm:text-sm mt-1">
+              Resumo do dia • <span className="capitalize">{formattedDate}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-400 bg-surface/50 px-3 py-1.5 rounded-lg border border-white/5">
-            <Calendar className="w-4 h-4" />
-            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full border border-white/10 text-white relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#E6A555] rounded-full border border-[#0D121E]"></span>
+            </div>
+            <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden bg-[#1A1F2E] flex items-center justify-center">
+              <User className="w-5 h-5 text-gray-400" />
+            </div>
           </div>
         </div>
 
@@ -237,57 +253,55 @@ const DashboardPageNew: React.FC = () => {
           setRevenueDisplayMode={setRevenueDisplayMode}
         />
 
-        {/* Main Dashboard Content - Responsive Grid */}
+        {/* Main Dashboard Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8">
-
-          {/* Analytics Section (2/3 width on desktop) */}
-          <div className="lg:col-span-2 bg-surface/50 backdrop-blur-md p-6 border border-white/5 rounded-2xl shadow-xl h-fit">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-primary" />
+          {/* Analytics Section */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 bg-[#D4AF37]/10 rounded-md">
+                <BarChart3 className="w-4 h-4 text-[#D4AF37]" />
               </div>
               <h3 className="text-lg font-bold text-white">Análise de Desempenho</h3>
             </div>
-            <ClientAnalytics appointments={filteredForAnalytics} />
+            {/* ClientAnalytics with simpleMode to hide internal stats */}
+            <ClientAnalytics appointments={filteredForAnalytics} simpleMode={true} />
           </div>
 
-          {/* Recent/Upcoming Appointments (1/3 width on desktop) */}
-          <div className="bg-surface/50 backdrop-blur-md p-6 border border-white/5 rounded-2xl shadow-xl h-fit">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <Calendar className="w-5 h-5 text-green-400" />
-                </div>
+          {/* Upcoming Section */}
+          <div className="space-y-6">
+            {/* Upcoming Appointments Component */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-5 h-5 text-green-400" />
                 <h3 className="text-lg font-bold text-white">Próximos Agendamentos</h3>
               </div>
-            </div>
 
-            <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-              {appointments
-                .filter(app => new Date(app.date + 'T' + app.time) >= new Date() && app.status !== 'cancelled')
-                .sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime())
-                .slice(0, 5)
-                .map((app, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-background-paper border border-white/5 hover:border-primary/30 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-white truncate">{app.clientName || 'Cliente'}</p>
-                      <p className="text-xs text-gray-400 truncate">{app.serviceName} com {app.barberName}</p>
+              <div className="space-y-3">
+                {appointments
+                  .filter(app => new Date(app.date + 'T' + app.time) >= new Date() && app.status !== 'cancelled')
+                  .sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime())
+                  .slice(0, 5)
+                  .map((app, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-[#1A1F2E] border border-white/5">
+                      <div>
+                        <p className="font-bold text-white text-sm">{app.clientName || 'Cliente'}</p>
+                        <p className="text-xs text-gray-400">{app.serviceName}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white font-bold text-sm">{app.time}</p>
+                        <p className="text-xs text-gray-500">{new Date(app.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-primary font-bold text-sm">{app.time}</p>
-                      <p className="text-[10px] text-gray-500">{new Date(app.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
-                    </div>
+                  ))}
+
+                {appointments.filter(app => new Date(app.date + 'T' + app.time) >= new Date()).length === 0 && (
+                  <div className="p-6 rounded-2xl bg-[#1A1F2E] border border-white/5 text-center">
+                    <p className="text-gray-500 text-sm">Nenhum agendamento hoje</p>
                   </div>
-                ))}
-
-              {appointments.filter(app => new Date(app.date + 'T' + app.time) >= new Date()).length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-sm">Sem agendamentos futuros.</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-
         </div>
 
         {showOnboarding && (

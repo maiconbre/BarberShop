@@ -34,9 +34,9 @@ interface CalendarViewProps {
   onToggleRangeFilter?: () => void;
   onResetFilters?: () => void;
   totalValue?: number;
-  barbershopId?: string; // Add barbershopId for tenant filtering
+  barbershopId?: string;
+  miniMode?: boolean;
 }
-
 
 const CalendarView: React.FC<CalendarViewProps> = ({
   appointments,
@@ -46,6 +46,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   endDate,
   currentUser,
   barbershopId: propBarbershopId,
+  miniMode = false,
 }) => {
   // Multi-tenant context
   const { barbershopId: contextBarbershopId, isValidTenant } = useTenant();
@@ -604,144 +605,166 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5 text-[#F0B35B]" />
-          <h2 className="text-lg font-medium text-white truncate">
-            {viewMode === 'day' && `${format(currentDay, 'd MMMM yyyy', { locale: ptBR })}`}
-            {viewMode === 'week' && `Semana de ${format(weekDays[0].date, 'd MMM', { locale: ptBR })} - ${format(weekDays[6].date, 'd MMM', { locale: ptBR })}`}
-            {viewMode === 'month' && `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`}
-            {viewMode === 'year' && `${currentYear}`}
-          </h2>
+      {miniMode ? (
+        <div className="flex items-center justify-between mb-4 px-2">
+          <button
+            onClick={() => navigateMonth('prev')}
+            disabled={isLoading}
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-400" />
+          </button>
+          <span className="text-white font-medium capitalize">
+            {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+          </span>
+          <button
+            onClick={() => navigateMonth('next')}
+            disabled={isLoading}
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </button>
         </div>
-
-        <div className="flex items-center gap-2 justify-between sm:justify-end">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setViewMode('day')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'day' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
-              aria-label="Visualização diária"
-            >
-              <Calendar className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('week')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'week' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
-              aria-label="Visualização semanal"
-            >
-              <CalendarRange className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('month')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'month' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
-              aria-label="Visualização mensal"
-            >
-              <CalendarDays className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('year')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'year' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
-              aria-label="Visualização anual"
-            >
-              <Grid className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="relative flex items-center" ref={filterRef}>
-            <AnimatePresence>
-              {showFilters ? (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: "auto", opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="flex items-center overflow-hidden"
-                >
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Buscar cliente..."
-                    className="w-40 sm:w-48 bg-[#252B3B] text-white text-sm rounded-lg px-3 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] border border-gray-600 focus:border-[#F0B35B] transition-colors"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => {
-                      setShowFilters(false);
-                      setSearchTerm('');
-                    }}
-                    className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#252B3B] transition-colors"
-                    aria-label="Fechar busca"
-                  >
-
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  onClick={() => setShowFilters(true)}
-                  className="w-8 h-8 bg-[#252B3B] rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#1A1F2E] transition-colors border border-gray-600"
-                  aria-label="Buscar cliente"
-                >
-                  <Search className="w-4 h-4" />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                switch (viewMode) {
-                  case 'day':
-                    navigateDay('prev');
-                    break;
-                  case 'week':
-                    navigateWeek('prev');
-                    break;
-                  case 'month':
-                    navigateMonth('prev');
-                    break;
-                  case 'year':
-                    navigateYear('prev');
-                    break;
-                }
-              }}
-              disabled={isLoading}
-              className={`p-2 rounded-lg hover:bg-[#252B3B] transition-colors
+            <CalendarIcon className="w-5 h-5 text-[#F0B35B]" />
+            <h2 className="text-lg font-medium text-white truncate">
+              {viewMode === 'day' && `${format(currentDay, 'd MMMM yyyy', { locale: ptBR })}`}
+              {viewMode === 'week' && `Semana de ${format(weekDays[0].date, 'd MMM', { locale: ptBR })} - ${format(weekDays[6].date, 'd MMM', { locale: ptBR })}`}
+              {viewMode === 'month' && `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`}
+              {viewMode === 'year' && `${currentYear}`}
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-2 justify-between sm:justify-end">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setViewMode('day')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'day' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
+                aria-label="Visualização diária"
+              >
+                <Calendar className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('week')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'week' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
+                aria-label="Visualização semanal"
+              >
+                <CalendarRange className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('month')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'month' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
+                aria-label="Visualização mensal"
+              >
+                <CalendarDays className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('year')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'year' ? 'bg-[#F0B35B]/20 text-[#F0B35B]' : 'text-gray-400 hover:text-white hover:bg-[#252B3B]'}`}
+                aria-label="Visualização anual"
+              >
+                <Grid className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="relative flex items-center" ref={filterRef}>
+              <AnimatePresence>
+                {showFilters ? (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: "auto", opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="flex items-center overflow-hidden"
+                  >
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Buscar cliente..."
+                      className="w-40 sm:w-48 bg-[#252B3B] text-white text-sm rounded-lg px-3 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] border border-gray-600 focus:border-[#F0B35B] transition-colors"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => {
+                        setShowFilters(false);
+                        setSearchTerm('');
+                      }}
+                      className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-[#252B3B] transition-colors"
+                      aria-label="Fechar busca"
+                    >
+
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={() => setShowFilters(true)}
+                    className="w-8 h-8 bg-[#252B3B] rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-[#1A1F2E] transition-colors border border-gray-600"
+                    aria-label="Buscar cliente"
+                  >
+                    <Search className="w-4 h-4" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  switch (viewMode) {
+                    case 'day':
+                      navigateDay('prev');
+                      break;
+                    case 'week':
+                      navigateWeek('prev');
+                      break;
+                    case 'month':
+                      navigateMonth('prev');
+                      break;
+                    case 'year':
+                      navigateYear('prev');
+                      break;
+                  }
+                }}
+                disabled={isLoading}
+                className={`p-2 rounded-lg hover:bg-[#252B3B] transition-colors
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              aria-label="Anterior"
-            >
-              <ChevronLeft className="w-5 h-5 text-gray-400" />
-            </button>
-            <button
-              onClick={() => {
-                switch (viewMode) {
-                  case 'day':
-                    navigateDay('next');
-                    break;
-                  case 'week':
-                    navigateWeek('next');
-                    break;
-                  case 'month':
-                    navigateMonth('next');
-                    break;
-                  case 'year':
-                    navigateYear('next');
-                    break;
-                }
-              }}
-              disabled={isLoading}
-              className={`p-2 rounded-lg hover:bg-[#252B3B] transition-colors
+                aria-label="Anterior"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-400" />
+              </button>
+              <button
+                onClick={() => {
+                  switch (viewMode) {
+                    case 'day':
+                      navigateDay('next');
+                      break;
+                    case 'week':
+                      navigateWeek('next');
+                      break;
+                    case 'month':
+                      navigateMonth('next');
+                      break;
+                    case 'year':
+                      navigateYear('next');
+                      break;
+                  }
+                }}
+                disabled={isLoading}
+                className={`p-2 rounded-lg hover:bg-[#252B3B] transition-colors
                 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              aria-label="Próximo"
-            >
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+                aria-label="Próximo"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <AnimatePresence mode="wait">
         {viewMode === 'month' && (
