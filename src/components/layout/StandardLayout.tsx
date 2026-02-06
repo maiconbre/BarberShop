@@ -313,7 +313,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     title={isSidebarCollapsed ? 'Equipe' : ''}
                   >
                     <UserCog className="w-5 h-5 flex-shrink-0" />
-                    {!isSidebarCollapsed && <span className="text-sm">Equipe (Barbeiros)</span>}
+                    {!isSidebarCollapsed && <span className="text-sm">Equipe</span>}
                   </button>
 
                   <button

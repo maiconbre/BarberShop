@@ -92,8 +92,8 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-          ? 'bg-[#0D121E]/95 backdrop-blur-md shadow-lg'
-          : 'bg-transparent'
+        ? 'bg-[#0D121E]/95 backdrop-blur-md shadow-lg'
+        : 'bg-transparent'
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -135,7 +135,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
               </button>
             )}
 
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <button
                 onClick={handleDashboardClick}
                 className="text-gray-300 hover:text-[#F0B35B] transition-colors duration-200 flex items-center space-x-2"
@@ -143,25 +143,6 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                 <User className="w-4 h-4" />
                 <span>Dashboard</span>
               </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleLoginClick}
-                  className="text-gray-300 hover:text-[#F0B35B] transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Entrar</span>
-                </button>
-
-                {/* Botão discreto para barbeiros */}
-                <button
-                  onClick={handleLoginClick}
-                  className="text-xs text-gray-500 hover:text-gray-400 transition-colors duration-200 px-2 py-1 rounded border border-gray-600 hover:border-gray-500"
-                  title="Acesso para barbeiros"
-                >
-                  Login Barbeiros
-                </button>
-              </>
             )}
           </div>
 
@@ -209,7 +190,7 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                   </button>
                 )}
 
-                {isAuthenticated ? (
+                {isAuthenticated && (
                   <button
                     onClick={() => {
                       handleDashboardClick();
@@ -220,31 +201,6 @@ const BarbershopNavbar: React.FC<BarbershopNavbarProps> = ({ onBookingClick }) =
                     <User className="w-4 h-4" />
                     <span>Dashboard</span>
                   </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleLoginClick();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full text-gray-300 hover:text-[#F0B35B] transition-colors duration-200 flex items-center justify-center space-x-2 py-2"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      <span>Entrar</span>
-                    </button>
-
-                    {/* Botão discreto para barbeiros - Mobile */}
-                    <button
-                      onClick={() => {
-                        handleLoginClick();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full text-xs text-gray-500 hover:text-gray-400 transition-colors duration-200 py-2 rounded border border-gray-600 hover:border-gray-500"
-                      title="Acesso para barbeiros"
-                    >
-                      Login Barbeiros
-                    </button>
-                  </>
                 )}
               </div>
             </div>

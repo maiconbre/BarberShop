@@ -152,6 +152,15 @@ const AdminDashboard: React.FC = () => {
                                 <span className="absolute top-1 right-1 w-2 h-2 bg-[#F0B35B] rounded-full"></span>
                             </button>
 
+                            {/* Logout Button */}
+                            <button
+                                onClick={handleLogout}
+                                className="p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-800 transition-colors"
+                                title="Sair do Sistema"
+                            >
+                                <LogOut className="w-5 h-5" />
+                            </button>
+
                             {/* Profile */}
                             <div className="flex items-center space-x-3 pl-4 border-l border-gray-700">
                                 <div className="w-9 h-9 bg-gradient-to-br from-[#F0B35B] to-[#D4943D] rounded-full flex items-center justify-center">

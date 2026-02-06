@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapPin, Phone, Clock, Instagram, Facebook, Mail } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
 
 const BarbershopFooter: React.FC = () => {
   const { barbershopData } = useTenant();
+  const navigate = useNavigate();
 
   const currentYear = new Date().getFullYear();
 
@@ -46,10 +48,10 @@ const BarbershopFooter: React.FC = () => {
                 {barbershopData?.name || 'Barbearia'}
               </h3>
             </div>
-            
+
             <p className="text-gray-400 mb-6 max-w-md">
               {barbershopData?.description ||
-               'Transformamos seu visual com estilo e profissionalismo. Venha conhecer nossos serviços exclusivos.'}
+                'Transformamos seu visual com estilo e profissionalismo. Venha conhecer nossos serviços exclusivos.'}
             </p>
 
             {/* Redes Sociais */}
@@ -128,12 +130,12 @@ const BarbershopFooter: React.FC = () => {
                   <p className="text-white">{barbershopData?.address || defaultInfo.address}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <Phone className="w-5 h-5 text-[#F0B35B] mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-gray-400 text-sm">Telefone</p>
-                  <a 
+                  <a
                     href={`tel:${barbershopData?.phone || defaultInfo.phone}`}
                     className="text-white hover:text-[#F0B35B] transition-colors duration-200"
                   >
@@ -141,7 +143,7 @@ const BarbershopFooter: React.FC = () => {
                   </a>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <Clock className="w-5 h-5 text-[#F0B35B] mt-1 flex-shrink-0" />
                 <div>
@@ -163,7 +165,7 @@ const BarbershopFooter: React.FC = () => {
             <p className="text-gray-400 text-sm">
               © {currentYear} {barbershopData?.name || 'Barbearia'}. Todos os direitos reservados.
             </p>
-            
+
             <div className="flex items-center space-x-6 text-sm text-gray-400">
               <a href="#" className="hover:text-[#F0B35B] transition-colors duration-200">
                 Política de Privacidade
@@ -171,6 +173,12 @@ const BarbershopFooter: React.FC = () => {
               <a href="#" className="hover:text-[#F0B35B] transition-colors duration-200">
                 Termos de Uso
               </a>
+              <button
+                onClick={() => navigate('/login')}
+                className="hover:text-[#F0B35B] transition-colors duration-200 text-xs opacity-50 hover:opacity-100"
+              >
+                Login Barbeiros
+              </button>
             </div>
           </div>
         </div>
