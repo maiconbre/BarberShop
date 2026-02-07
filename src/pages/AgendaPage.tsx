@@ -190,7 +190,7 @@ const AgendaPage: React.FC = memo(() => {
 
   return (
     <StandardLayout hideMobileHeader={true}>
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-2rem)] gap-0 lg:gap-8 max-w-[1600px] mx-auto pb-4 pt-2 px-2 sm:px-0">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-2rem)] gap-0 lg:gap-8 max-w-[1600px] mx-auto pb-4 px-2 sm:px-0">
 
         {/* LEFT COLUMN - Main Content */}
         <div className="flex-1 flex flex-col h-full overflow-hidden">

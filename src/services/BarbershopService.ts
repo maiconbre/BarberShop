@@ -7,7 +7,6 @@ export interface BarbershopRegistrationData {
   ownerUsername: string;
   ownerPassword: string;
   planType?: 'free' | 'pro';
-  isBypass?: boolean;
 }
 
 export interface BarbershopRegistrationResponse {
@@ -187,14 +186,23 @@ export const registerUser = async (data: Partial<BarbershopRegistrationData>): P
         throw authError;
     }
 
-    // Se criou mas não logou (email confirm), tentar login se bypass
-    if (!authData.session && data.isBypass) {
-         console.log('Bypass: Tentando login imediato pós-criação');
-         const { data: bypassData, error: bypassError } = await supabase.auth.signInWithPassword({
+    // Se criou mas não logou (devido ao email confirm), tentar login imediato
+    // Isso permite que usuários acessem mesmo sem confirmar email (se o Supabase permitir ou se quisermos forçar o fluxo)
+    if (!authData.session) {
+         console.log('Sessão não criada (Email Confirm): Tentando login imediato pós-criação');
+         const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
             email: data.ownerEmail!,
             password: data.ownerPassword!
         });
-        return { user: bypassData.user, session: bypassData.session, error: bypassError };
+        
+        // Se o login falhar (ex: Supabase bloqueando unverified), retornamos o usuário criado sem sessão
+        // O frontend deverá lidar com isso
+        if (loginError) {
+             console.warn('Login automático falhou:', loginError.message);
+             return { user: authData.user, session: null, error: null }; // Retorna sucesso na criação, mas sem sessão
+        }
+        
+        return { user: loginData.user, session: loginData.session, error: null };
     }
 
     return { user: authData.user, session: authData.session };

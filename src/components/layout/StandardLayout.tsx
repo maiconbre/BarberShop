@@ -22,6 +22,8 @@ import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
 import { useBarbershopNavigation } from '../../hooks/useBarbershopNavigation';
 import { usePlan } from '../../hooks/usePlan';
+import { EmailVerificationBanner } from '../ui/EmailVerificationBanner';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
@@ -44,6 +46,20 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
   const pageConfig = usePageConfig();
   const { goToPage, currentSlug } = useBarbershopNavigation();
   const { planInfo, usage } = usePlan();
+  const { barbershopData } = useTenant();
+
+  // Use props if provided, otherwise use dynamic page config
+  // ... imports and previous code ...
+
+  // Helper to safely get user name
+  const getUserName = () => {
+    if (!currentUser) return 'Usuário';
+    const userAny = currentUser as any;
+    return userAny.user_metadata?.name || userAny.name || 'Usuário';
+  };
+
+  const userName = getUserName();
+  const barbershopName = barbershopData?.name || 'BarberShop';
 
   // Use props if provided, otherwise use dynamic page config
   const pageTitle = title || pageConfig.title;
@@ -159,7 +175,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
                 </div>
               )}
-              <h1 className="text-lg font-semibold text-white">Olá, {(currentUser as { name?: string })?.name || 'Usuário'}!</h1>
+              <h1 className="text-lg font-semibold text-white">Olá, {userName}!</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
@@ -223,7 +239,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                       </div>
                       <div>
                         <h2 className="text-white font-semibold text-base">Perfil</h2>
-                        <p className="text-gray-300 text-sm">{(currentUser as { name?: string })?.name || 'Usuário'}</p>
+                        <p className="text-gray-300 text-sm">{userName}</p>
                       </div>
                     </div>
                     <button
@@ -236,13 +252,13 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 ) : (
                   <div className="flex items-center justify-between">
                     {!isSidebarCollapsed && (
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg shrink-0">
                           <Scissors className="w-4 h-4 text-black" />
                         </div>
-                        <div>
-                          <h2 className="text-white font-semibold text-sm">BarberShop</h2>
-                          <p className="text-gray-400 text-xs">{(currentUser as { name?: string })?.name || 'Usuário'}</p>
+                        <div className="min-w-0">
+                          <h2 className="text-white font-semibold text-sm truncate" title={barbershopName}>{barbershopName}</h2>
+                          <p className="text-gray-400 text-xs truncate" title={userName}>{userName}</p>
                         </div>
                       </div>
                     )}
@@ -405,9 +421,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                       <UserCog className="w-4 h-4 text-black" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
-                        {(currentUser as { name?: string })?.name || 'Usuário'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-white truncate max-w-[100px]" title={userName}>
+                          {userName}
+                        </p>
+                        <EmailVerificationBanner variant="sidebar" />
+                      </div>
                       <p className="text-xs text-gray-400">Barbeiro</p>
                     </div>
                   </div>
@@ -437,7 +456,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           ? 'ml-16'
           : 'ml-64'
         }`}>
-        <div className="w-full p-4 md:p-8">
+        <div className="w-full p-4 md:px-8 md:pb-8 md:pt-5">
           {/* Page Header */}
           {(pageTitle || pageSubtitle) && (
             <div className="mb-8">
@@ -459,6 +478,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
           {/* Page Content */}
           <div className="relative">
+            {/* Removed top warning banner */}
             {children}
           </div>
         </div>

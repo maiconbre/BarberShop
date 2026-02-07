@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { TrendingUp, Users, Clock, DollarSign, BarChart3, Calendar, Bell, CheckCircle2, User, Search } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, BarChart3, Calendar, Bell, CheckCircle2 } from 'lucide-react';
 import StandardLayout from '../components/layout/StandardLayout';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
 import OnboardingModal from '../components/onboarding/OnboardingModal';
@@ -103,14 +103,8 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
   return (
     <div>
-      {/* Header Mobile Filter Row - Replaces the old Visão Geral Header inside Stats */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-[#D4AF37]/10 rounded-md">
-            <TrendingUp className="w-4 h-4 text-[#D4AF37]" />
-          </div>
-          <h2 className="text-lg font-bold text-white">Visão Geral</h2>
-        </div>
+      {/* Date Filter - Right Applied */}
+      <div className="flex justify-end mb-4">
         <div className="relative">
           <select
             value={revenueDisplayMode}
@@ -221,27 +215,43 @@ const DashboardPageNew: React.FC = () => {
   // Current Date formatted "Dom, 25 Jan"
   const formattedDate = new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
 
+  // Get user name safely
+  const getUserName = () => {
+    if (!user) return 'Visitante';
+    const userAny = user as any;
+    return userAny.user_metadata?.name || userAny.name || 'Visitante';
+  };
+  const userName = getUserName();
+
   return (
     <StandardLayout hideMobileHeader={true}>
-      <div className="space-y-6 pb-20 pt-2 px-2 sm:px-0"> {/* Adjusted padding */}
+      <div className="space-y-6 pb-20 px-2 sm:px-0"> {/* Adjusted padding */}
 
         {/* Custom Header matching Design */}
         <div className="flex items-center justify-between py-2 sm:py-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white capitalize">
-              Olá, {(user as any)?.name?.split(' ')[0] || 'Visitante'}
-            </h1>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">
-              Resumo do dia • <span className="capitalize">{formattedDate}</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full border border-white/10 text-white relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#E6A555] rounded-full border border-[#0D121E]"></span>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-[#D4AF37]/10 rounded-md">
+              <TrendingUp className="w-5 h-5 text-[#D4AF37]" />
             </div>
-            <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden bg-[#1A1F2E] flex items-center justify-center">
-              <User className="w-5 h-5 text-gray-400" />
+            <h1 className="text-xl sm:text-2xl font-bold text-white capitalize">
+              Visão Geral
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex flex-col items-end">
+              <h2 className="text-sm font-medium text-white capitalize leading-tight">
+                Olá, {userName.split(' ')[0]}
+              </h2>
+              <p className="text-gray-400 text-[10px] sm:text-xs leading-tight">
+                {formattedDate}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full border border-white/10 text-white relative">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#E6A555] rounded-full border border-[#0D121E]"></span>
+              </div>
             </div>
           </div>
         </div>
