@@ -31,9 +31,10 @@ interface StandardLayoutProps {
   subtitle?: string;
   icon?: React.ReactNode;
   hideMobileHeader?: boolean;
+  headerRight?: React.ReactNode;
 }
 
-const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon, hideMobileHeader = false }) => {
+const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon, hideMobileHeader = false, headerRight }) => {
   const { user, logout: authLogout } = useAuth();
   const currentUser = user;
   const navigate = useNavigate();
@@ -451,34 +452,48 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
 
       {/* Main Content */}
       <main className={`relative z-10 transition-all duration-300 ${isMobile
-        ? 'pt-16'
+        ? (hideMobileHeader ? '' : 'pt-16')
         : isSidebarCollapsed
           ? 'ml-16'
           : 'ml-64'
         }`}>
-        <div className="w-full p-4 md:px-8 md:pb-8 md:pt-5">
-          {/* Page Header */}
-          {(pageTitle || pageSubtitle) && (
-            <div className="mb-8">
-              <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 border border-[#F0B35B]/20">
+
+        {/* Unified Page Header - Top Bar with Background */}
+        {(pageTitle || pageSubtitle || headerRight) && (
+          <div className="w-full px-4 md:px-8 py-3 md:py-4 bg-[#1A1F2E]/95 backdrop-blur-md border-b border-[#F0B35B]/10 sticky top-0 z-20">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left: Title & Icon */}
+              <div className="flex items-center gap-3 min-w-0">
                 {pageIcon && (
-                  <div className="bg-[#F0B35B]/20 p-2 rounded-full flex-shrink-0">
+                  <div className="bg-[#F0B35B]/10 p-2 rounded-lg flex-shrink-0">
                     {React.cloneElement(pageIcon as React.ReactElement, { className: "w-5 h-5 text-[#F0B35B]" })}
                   </div>
                 )}
-                <div>
-                  {pageSubtitle && (
-                    <p className="text-sm text-gray-400">{pageSubtitle}</p>
+                <div className="min-w-0">
+                  {pageTitle && (
+                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
+                      {pageTitle}
+                    </h1>
                   )}
-                  <p className="text-white font-medium text-lg">{pageTitle}</p>
+                  {pageSubtitle && (
+                    <p className="text-xs sm:text-sm text-gray-400 truncate">{pageSubtitle}</p>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Page Content */}
+              {/* Right: Custom Actions */}
+              {headerRight && (
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {headerRight}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Page Content */}
+        <div className="w-full p-4 md:px-8 md:pb-8">
           <div className="relative">
-            {/* Removed top warning banner */}
             {children}
           </div>
         </div>

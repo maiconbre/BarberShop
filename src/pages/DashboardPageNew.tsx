@@ -32,35 +32,21 @@ const safeFixed = (num: number | undefined, digits: number) => {
 
 interface StatsProps {
   appointments: DashboardAppointment[];
-  revenueDisplayMode: string;
-  setRevenueDisplayMode: (mode: string) => void;
 }
 
-const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setRevenueDisplayMode }) => {
+const Stats: React.FC<StatsProps> = ({ appointments }) => {
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
 
-  // Filtrar agendamentos por período
+  // Filtrar agendamentos do mês atual
   const filteredAppointments = useMemo(() => {
     return appointments.filter(appointment => {
       const appointmentDate = new Date(appointment.date);
-
-      if (revenueDisplayMode === 'month') {
-        return appointmentDate.getMonth() === currentMonth &&
-          appointmentDate.getFullYear() === currentYear;
-      } else if (revenueDisplayMode === 'week') {
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay());
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-
-        return appointmentDate >= weekStart && appointmentDate <= weekEnd;
-      }
-
-      return true;
+      return appointmentDate.getMonth() === currentMonth &&
+        appointmentDate.getFullYear() === currentYear;
     });
-  }, [appointments, revenueDisplayMode, currentMonth, currentYear, today]);
+  }, [appointments, currentMonth, currentYear]);
 
   // Calcular estatísticas
   const totalAppointments = filteredAppointments.length;
@@ -103,23 +89,6 @@ const Stats: React.FC<StatsProps> = ({ appointments, revenueDisplayMode, setReve
 
   return (
     <div>
-      {/* Date Filter - Right Applied */}
-      <div className="flex justify-end mb-4">
-        <div className="relative">
-          <select
-            value={revenueDisplayMode}
-            onChange={(e) => setRevenueDisplayMode(e.target.value)}
-            className="appearance-none bg-[#1A1F2E] text-white text-xs font-medium rounded-lg px-3 py-1.5 pr-8 border border-white/10 focus:outline-none"
-          >
-            <option value="month">Este Mês</option>
-            <option value="week">Esta Semana</option>
-            <option value="all">Todos</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-            <Calendar className="h-3 w-3" />
-          </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-8">
         {stats.map((stat, index) => {
@@ -151,7 +120,6 @@ const DashboardPageNew: React.FC = () => {
   const { user } = useAuth(); // Get user for avatar
 
   const [appointments, setAppointments] = useState<DashboardAppointment[]>([]);
-  const [revenueDisplayMode, setRevenueDisplayMode] = useState('month');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -224,43 +192,32 @@ const DashboardPageNew: React.FC = () => {
   const userName = getUserName();
 
   return (
-    <StandardLayout hideMobileHeader={true}>
+    <StandardLayout
+      hideMobileHeader={true}
+      title="Visão Geral"
+      icon={<TrendingUp />}
+      headerRight={
+        <>
+          <div className="hidden sm:flex flex-col items-end">
+            <h2 className="text-sm font-medium text-white capitalize leading-tight">
+              Olá, {userName.split(' ')[0]}
+            </h2>
+            <p className="text-gray-400 text-[10px] sm:text-xs leading-tight">
+              {formattedDate}
+            </p>
+          </div>
+          <div className="p-2 rounded-full border border-white/10 text-white relative hover:bg-white/5 transition-colors cursor-pointer">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#E6A555] rounded-full border border-[#0D121E]"></span>
+          </div>
+        </>
+      }
+    >
       <div className="space-y-6 pb-20 px-2 sm:px-0"> {/* Adjusted padding */}
-
-        {/* Custom Header matching Design */}
-        <div className="flex items-center justify-between py-2 sm:py-4">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-[#D4AF37]/10 rounded-md">
-              <TrendingUp className="w-5 h-5 text-[#D4AF37]" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white capitalize">
-              Visão Geral
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex flex-col items-end">
-              <h2 className="text-sm font-medium text-white capitalize leading-tight">
-                Olá, {userName.split(' ')[0]}
-              </h2>
-              <p className="text-gray-400 text-[10px] sm:text-xs leading-tight">
-                {formattedDate}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full border border-white/10 text-white relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#E6A555] rounded-full border border-[#0D121E]"></span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Stats Cards */}
         <Stats
           appointments={appointments}
-          revenueDisplayMode={revenueDisplayMode}
-          setRevenueDisplayMode={setRevenueDisplayMode}
         />
 
         {/* Main Dashboard Content */}
@@ -322,7 +279,7 @@ const DashboardPageNew: React.FC = () => {
           />
         )}
       </div>
-    </StandardLayout>
+    </StandardLayout >
   );
 };
 

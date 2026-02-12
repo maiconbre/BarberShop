@@ -36,8 +36,7 @@ const EmailVerificationPage: React.FC = () => {
         ownerName: formData.ownerName,
         ownerUsername: formData.username,
         ownerEmail: formData.email,
-        ownerPassword: formData.password,
-        isBypass: true // Sempre bypass/auto-login neste novo fluxo fluído
+        ownerPassword: formData.password
       });
 
       // 2. Se sucesso, ir para passo 2 (Barbershop Setup) com user logado
@@ -52,7 +51,9 @@ const EmailVerificationPage: React.FC = () => {
 
     } catch (err: any) {
       console.error('Erro no registro:', err);
-      setError(err.message || 'Erro ao criar conta.');
+      let msg = err.message || 'Erro ao criar conta.';
+      if (msg === 'Failed to fetch') msg = 'Erro de conexão com o servidor. Verifique se o Supabase está acessível.';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +109,7 @@ const EmailVerificationPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Seu Nome Completo</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Seu Nome</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />

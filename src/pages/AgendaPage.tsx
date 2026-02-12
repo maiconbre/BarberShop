@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import toast from 'react-hot-toast';
 import {
   Calendar, ChevronLeft, ChevronRight, Search, Bell,
-  LayoutList, LayoutGrid, Plus, MoreHorizontal, Clock
+  LayoutList, LayoutGrid, MoreHorizontal
 } from 'lucide-react';
 import AppointmentCardNew from '../components/feature/AppointmentCardNew';
 import AppointmentViewModal from '../components/feature/AppointmentViewModal';
@@ -189,91 +188,87 @@ const AgendaPage: React.FC = memo(() => {
   if (!isValidTenant) return null;
 
   return (
-    <StandardLayout hideMobileHeader={true}>
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-2rem)] gap-0 lg:gap-8 max-w-[1600px] mx-auto pb-4 px-2 sm:px-0">
+    <StandardLayout
+      hideMobileHeader={true}
+      title="Agendamentos"
+      icon={<Calendar />}
+      headerRight={
+        <>
+          <div className="p-2 rounded-full border border-white/10 text-gray-400 hover:text-white cursor-pointer hover:bg-white/5 transition-colors">
+            <Search className="w-5 h-5" />
+          </div>
+          <div className="p-2 rounded-full border border-white/10 text-gray-400 hover:text-white cursor-pointer hover:bg-white/5 transition-colors relative">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-[#0D121E]"></span>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-[#D4AF37] flex items-center justify-center text-black font-bold">
+            {(currentUser as any)?.name?.[0] || 'U'}
+          </div>
+        </>
+      }
+    >
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-2rem)] gap-0 lg:gap-8 max-w-full mx-auto pb-4 px-2 sm:px-0 overflow-x-hidden">
 
         {/* LEFT COLUMN - Main Content */}
         <div className="flex-1 flex flex-col h-full overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8 py-2">
-            <h1 className="text-2xl font-bold text-white">Agendamentos</h1>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full border border-white/10 text-gray-400 hover:text-white cursor-pointer bg-[#1A1F2E]">
-                <Search className="w-5 h-5" />
-              </div>
-              <div className="p-2 rounded-full border border-white/10 text-gray-400 hover:text-white cursor-pointer bg-[#1A1F2E] relative">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-[#1A1F2E]"></span>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-[#D4AF37] flex items-center justify-center text-black font-bold">
-                {(currentUser as any)?.name?.[0] || 'U'}
-              </div>
-            </div>
-          </div>
 
-          {/* Filters & Controls */}
-          <div className="space-y-6 mb-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3 bg-[#1A1F2E] p-1.5 rounded-xl border border-white/5">
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#0D121E] rounded-lg border border-white/5 text-gray-300 text-sm hover:text-white transition-colors">
-                  <Calendar className="w-4 h-4 text-[#D4AF37]" />
-                  <span>{new Date(selectedDate).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
-                </button>
-                <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
-                <div className="flex bg-[#0D121E] rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-[#D4AF37] text-black' : 'text-gray-400 hover:text-white'}`}
-                  >
-                    <LayoutList className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-[#D4AF37] text-black' : 'text-gray-400 hover:text-white'}`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="hidden md:flex">
-                <button className="flex items-center gap-2 bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-[#0D121E] px-4 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-lg shadow-[#D4AF37]/20">
-                  <Plus className="w-4 h-4" />
-                  Novo agendamento
-                </button>
-              </div>
-            </div>
-
-            {/* Status Tabs */}
-            <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
-              {['all', 'confirmed', 'pending', 'completed'].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status as any)}
-                  className={`
-                                    px-4 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2
-                                    ${statusFilter === status
-                      ? 'bg-[#1A1F2E] border-[#D4AF37] text-white shadow-md'
-                      : 'bg-transparent border-white/10 text-gray-400 hover:border-white/30 hover:text-gray-300'}
-                                `}
-                >
-                  {status === 'all' && 'Todos'}
-                  {status === 'confirmed' && 'Confirmado'}
-                  {status === 'pending' && 'Pendente'}
-                  {status === 'completed' && 'Concluído'}
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === status ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/10 text-gray-500'}`}>
-                    {status === 'all' ? calendarFilteredAppointments.length : calendarFilteredAppointments.filter(a => a.status === status).length}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Content Area */}
+          {/* Content Area with Integrated Controls */}
           <div className="flex-1 bg-[#1A1F2E] rounded-2xl border border-white/5 overflow-hidden flex flex-col">
+
+            {/* Integrated Header with Controls */}
+            <div className="border-b border-white/5 p-4 space-y-3">
+              {/* Top Row: Date, View Mode, and Status Filters */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Date and View Mode Controls */}
+                <div className="flex items-center gap-2 bg-[#0D121E] px-2 py-1 rounded-lg border border-white/10 shrink-0">
+                  <Calendar className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span className="text-xs text-gray-300">{new Date(selectedDate).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</span>
+                  <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-1 rounded transition-colors ${viewMode === 'list' ? 'bg-[#D4AF37] text-black' : 'text-gray-400 hover:text-white'}`}
+                      title="Vista de lista"
+                    >
+                      <LayoutList className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-1 rounded transition-colors ${viewMode === 'grid' ? 'bg-[#D4AF37] text-black' : 'text-gray-400 hover:text-white'}`}
+                      title="Vista de grade"
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Status Filters - Integrated */}
+                {['all', 'confirmed', 'pending', 'completed'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status as any)}
+                    className={`
+                      px-3 py-1 rounded-full border text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5
+                      ${statusFilter === status
+                        ? 'bg-[#D4AF37]/10 border-[#D4AF37] text-[#D4AF37]'
+                        : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-300'}
+                    `}
+                  >
+                    {status === 'all' && 'Todos'}
+                    {status === 'confirmed' && 'Confirmado'}
+                    {status === 'pending' && 'Pendente'}
+                    {status === 'completed' && 'Concluído'}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${statusFilter === status ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/5 text-gray-500'}`}>
+                      {status === 'all' ? calendarFilteredAppointments.length : calendarFilteredAppointments.filter(a => a.status === status).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Header Row - Only for List View */}
             {viewMode === 'list' && (
-              <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-xs text-gray-400 font-medium uppercase tracking-wider">
+              <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-b border-white/5 text-xs text-gray-400 font-medium uppercase tracking-wider bg-[#0D121E]/30">
                 <div className="col-span-2">Hora</div>
                 <div className="col-span-4">Cliente</div>
                 <div className="col-span-2">Serviço</div>
@@ -289,12 +284,8 @@ const AgendaPage: React.FC = memo(() => {
                   {currentAppointments.map((app) => (
                     viewMode === 'list' ? (
                       // TABLE ROW (Desktop)
-                      <motion.div
+                      <div
                         key={app.id}
-                        layout
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
                         className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-center p-3 sm:p-4 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 group cursor-pointer"
                         onClick={() => handleAppointmentAction(app.id, 'view')}
                       >
@@ -333,13 +324,11 @@ const AgendaPage: React.FC = memo(() => {
                           <span className="text-sm text-gray-400">{app.service}</span>
                           {getStatusBadge(app.status)}
                         </div>
-                      </motion.div>
+                      </div>
                     ) : (
                       // CARD VIEW
-                      <motion.div
+                      <div
                         key={app.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
                       >
                         <AppointmentCardNew
                           appointment={app as any}
@@ -348,7 +337,7 @@ const AgendaPage: React.FC = memo(() => {
                           onView={() => handleAppointmentAction(app.id, 'view')}
                           className="bg-[#0D121E] border-white/5"
                         />
-                      </motion.div>
+                      </div>
                     )
                   ))}
                 </div>
@@ -426,29 +415,10 @@ const AgendaPage: React.FC = memo(() => {
               </div>
             </div>
 
-            <button className="w-full mt-6 py-3 bg-[#1A1F2E] border border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-xl font-bold transition-all">
-              + Novo agendamento
-            </button>
           </div>
 
-          {/* Ghost Card / Promo */}
-          <div className="bg-[#1A1F2E] rounded-2xl border border-white/5 p-6 relative overflow-hidden group">
-            {/* Illustrations would go here */}
-            <div className="relative z-10">
-              <div className="w-12 h-12 bg-[#D4AF37]/20 rounded-xl flex items-center justify-center mb-4">
-                <Clock className="w-6 h-6 text-[#D4AF37]" />
-              </div>
-              <h4 className="text-lg font-bold text-white mb-2">Horários Livres?</h4>
-              <p className="text-xs text-gray-400 mb-6 leading-relaxed">
-                Organize sua agenda e preencha os horários vagos com campanhas automáticas.
-              </p>
-              <button className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm hover:underline">
-                Criar campanha <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-gradient-to-br from-[#D4AF37]/10 to-transparent rounded-full blur-2xl group-hover:bg-[#D4AF37]/20 transition-all"></div>
-          </div>
         </div>
+
 
       </div>
 
