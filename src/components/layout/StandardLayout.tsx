@@ -498,9 +498,6 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           </div>
         </div>
       </main>
-
-      {/* User Feedback Modal */}
-      {/* Removido: UserFeedback component */}
     </div>
   );
 };

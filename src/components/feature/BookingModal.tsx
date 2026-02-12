@@ -55,10 +55,10 @@ interface BookingModalProps {
 
 const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialService = '', initialServices = [], preloadedAppointments = [] }) => {
   // Hooks multi-tenant
-  const { 
-    barbers, 
-    loadBarbers, 
-    error: barbersError 
+  const {
+    barbers,
+    loadBarbers,
+    error: barbersError
   } = useBarbers();
   const { createWithBackendData } = useAppointments();
   const { isValidTenant, barbershopId } = useTenant();
@@ -82,6 +82,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isLoadingBarbers, setIsLoadingBarbers] = useState(true);
   const [servicesError, setServicesError] = useState('');
+  const [filteredBarbers, setFilteredBarbers] = useState<typeof barbers>(null); // Barbers filtered by selected service
+
 
   // Estado para armazenar os dados do formulário (agora com suporte a múltiplos serviços)
   const [formData, setFormData] = useState({
@@ -256,6 +258,67 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       setIsLoadingBarbers(false);
     }
   }, [barbers]);
+
+  // Fetch barbers associated with selected service and auto-select for free plans
+  React.useEffect(() => {
+    const fetchServiceBarbers = async () => {
+      // Only run if we have services selected and barbers loaded
+      if (!formData.services || formData.services.length === 0 || !tenantServices || !barbers) {
+        setFilteredBarbers(null);
+        return;
+      }
+
+      try {
+        const { supabase } = await import('../../config/supabaseConfig');
+
+        // Get the first selected service
+        const selectedServiceName = formData.services[0];
+        const selectedService = tenantServices.find(s => s.name === selectedServiceName);
+
+        if (!selectedService?.id) {
+          logger.componentWarn('BookingModal: Service not found:', selectedServiceName);
+          setFilteredBarbers(null);
+          return;
+        }
+
+        // Fetch barbers associated with this service
+        const { data: associations, error } = await supabase
+          .from('service_barbers')
+          .select('barber_id')
+          .eq('service_id', selectedService.id);
+
+        if (error) {
+          logger.componentError('BookingModal: Error fetching service barbers:', error);
+          setFilteredBarbers(null);
+          return;
+        }
+
+        const serviceBarberIds = (associations || []).map(a => a.barber_id);
+        logger.componentDebug(`BookingModal: Service "${selectedServiceName}" has ${serviceBarberIds.length} associated barbers`);
+
+        // Filter barbers to only show those associated with the service
+        const availableBarbers = barbers.filter(b => serviceBarberIds.includes(b.id));
+        setFilteredBarbers(availableBarbers);
+
+        // Auto-select if only one barber (typical for free plans)
+        if (availableBarbers.length === 1 && !formData.barberId) {
+          const autoBarber = availableBarbers[0];
+          setFormData(prev => ({
+            ...prev,
+            barberId: autoBarber.id,
+            barber: autoBarber.name
+          }));
+          logger.componentDebug(`BookingModal: Auto-selected barber "${autoBarber.name}" for free plan`);
+        }
+      } catch (err) {
+        logger.componentError('BookingModal: Error in fetchServiceBarbers:', err);
+        setFilteredBarbers(null);
+      }
+    };
+
+    fetchServiceBarbers();
+  }, [formData.services, tenantServices, barbers, formData.barberId]);
+
 
   // Efeito para atualizar os horários pré-carregados quando as props mudarem
   useEffect(() => {
@@ -585,9 +648,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
       // Verificar se estamos em contexto público (sem autenticação)
       const isPublicContext = !localStorage.getItem('token') || !isValidTenant;
       const barbershopSlug = localStorage.getItem('barbershopSlug') || window.location.pathname.split('/')[1];
-      
+
       let result;
-      
+
       if (isPublicContext && barbershopSlug) {
         // Usar serviço público para agendamentos
         const publicAppointmentData = {
@@ -600,7 +663,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
           barberName: formData.barber,
           price: calculateTotalPrice()
         };
-        
+
         result = await PublicAppointmentService.createAppointment(barbershopSlug, publicAppointmentData);
       } else {
         // Usar o hook multi-tenant para criar agendamento (contexto autenticado)
@@ -615,7 +678,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
           price: calculateTotalPrice(),
           status: 'pending' as const
         };
-        
+
         result = await createWithBackendData(appointmentData);
       }
 
@@ -1170,8 +1233,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                         Tentar novamente
                       </button>
                     </div>
-                  ) : barbers && barbers.length > 0 ? (
-                    barbers.map((barber) => (
+                  ) : filteredBarbers && filteredBarbers.length > 0 ? (
+                    filteredBarbers.map((barber) => (
                       <button
                         key={barber.id}
                         type="button"
@@ -1345,7 +1408,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
                             <div className="bg-gray-50 p-4 rounded-xl">
                               <img
                                 // TODO: Implementar download de QR code com Supabase Storage
-                src="#" // src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}`}
+                                src="#" // src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${formData.barber.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}`}
                                 alt={`QR Code de ${formData.barber}`}
                                 className="w-48 h-48 mx-auto object-contain"
                                 onError={(e) => {

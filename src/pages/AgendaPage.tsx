@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import toast from 'react-hot-toast';
@@ -54,8 +54,13 @@ const AgendaPage: React.FC = memo(() => {
   const {
     appointments: baseAppointments,
     deleteAppointment,
-    updateAppointmentStatus
+    updateAppointmentStatus,
+    loadAppointments,
   } = useAppointments();
+
+  useEffect(() => {
+    loadAppointments();
+  }, [loadAppointments]);
 
   const appointments = useMemo(() => {
     if (!baseAppointments) return [];
@@ -415,6 +420,45 @@ const AgendaPage: React.FC = memo(() => {
               </div>
             </div>
 
+          </div>
+
+          {/* Próximos Agendamentos - Dashboard Style */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 px-1">
+              <Calendar className="w-4 h-4 text-green-400" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Próximos Agendamentos</h3>
+            </div>
+
+            <div className="space-y-3">
+              {appointments
+                .filter(app => {
+                  const appDate = new Date(app.date + 'T' + app.time);
+                  const now = new Date();
+                  return appDate >= now && app.status !== 'cancelled';
+                })
+                .sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime())
+                .slice(0, 5)
+                .map((app) => (
+                  <div key={app.id} className="flex items-center justify-between p-3 rounded-xl bg-[#1A1F2E] border border-white/5 hover:border-white/10 transition-colors">
+                    <div>
+                      <p className="font-bold text-white text-sm truncate max-w-[120px]">{app.clientName}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[120px]">{app.service}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white font-bold text-sm">{app.time}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(app.date + 'T' + app.time).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+              {appointments.filter(app => new Date(app.date + 'T' + app.time) >= new Date()).length === 0 && (
+                <div className="p-4 rounded-xl bg-[#1A1F2E] border border-white/5 text-center">
+                  <p className="text-gray-500 text-xs">Nenhum agendamento futuro</p>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>

@@ -216,6 +216,80 @@ export const useServices = () => {
 
         const newService = await tenantRepository.create(serviceData);
 
+        // Auto-associate to owner barber for free plans
+        try {
+          const { supabase } = await import('../config/supabaseConfig');
+          const planType = localStorage.getItem('planType') || 'free';
+          const barbershopId = localStorage.getItem('barbershopId');
+          
+          console.log('🔍 Auto-association check:', { planType, barbershopId, serviceId: newService.id });
+
+          // If free plan, auto-associate to owner barber
+          if (planType === 'free' && newService.id && barbershopId) {
+            // Find the owner barber (barber with userId = owner_id)
+            const { data: barbershop, error: barbershopError } = await supabase
+              .from('Barbershops')
+              .select('owner_id, name')
+              .eq('id', barbershopId)
+              .single();
+
+            console.log('🏪 Barbershop data:', barbershop, barbershopError);
+
+            if (barbershop?.owner_id) {
+              // Find barber with this userId
+              const { data: barber, error: barberError } = await supabase
+                .from('Barbers')
+                .select('id, name, userId')
+                .eq('userId', barbershop.owner_id)
+                .maybeSingle();
+
+              console.log('💈 Barber lookup:', { barber, barberError, searchedUserId: barbershop.owner_id });
+
+              if (barber?.id) {
+                // Barber exists, associate it
+                if ('associateBarbers' in baseRepository) {
+                  await (baseRepository as any).associateBarbers(newService.id, [barber.id]);
+                  console.log('✅ Auto-associated service to owner barber:', barber.name);
+                }
+              } else {
+                // Owner barber doesn't exist, create it
+                console.warn('⚠️ Owner barber not found, creating one...');
+                
+                const { data: { user } } = await supabase.auth.getUser();
+                const ownerName = user?.user_metadata?.name || barbershop.name + ' - Admin';
+                
+                const { data: newBarber, error: createBarberError } = await supabase
+                  .from('Barbers')
+                  .insert({
+                    name: ownerName,
+                    userId: barbershop.owner_id,
+                    barbershopId: barbershopId, // Use camelCase
+                    tenant_id: localStorage.getItem('tenantId'),
+                    is_active: true,
+                    whatsapp: '',
+                    pix: ''
+                  })
+                  .select()
+                  .single();
+
+                console.log('👤 Created owner barber:', newBarber, createBarberError);
+
+                if (newBarber?.id && 'associateBarbers' in baseRepository) {
+                  await (baseRepository as any).associateBarbers(newService.id, [newBarber.id]);
+                  console.log('✅ Auto-associated service to newly created owner barber');
+                }
+              }
+            } else {
+              console.warn('⚠️ No owner_id found in barbershop');
+            }
+          } else {
+            console.log('ℹ️ Skipping auto-association:', { planType, hasServiceId: !!newService.id, hasBarbershopId: !!barbershopId });
+          }
+        } catch (autoAssocError) {
+          console.error('❌ Failed to auto-associate service to barber:', autoAssocError);
+          // Don't throw - service was created successfully
+        }
+
         // Clear cache to force refresh
         tenantCache.clearTenantCache();
 
@@ -233,7 +307,7 @@ export const useServices = () => {
         setCreating(false);
       }
     },
-    [tenantRepository, tenantCache, services, loadServices, ensureTenant]
+    [tenantRepository, tenantCache, services, loadServices, ensureTenant, baseRepository]
   );
 
   /**

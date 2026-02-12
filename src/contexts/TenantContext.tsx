@@ -11,6 +11,7 @@ interface TenantContextType {
   slug: string | null;
   barbershopData: BarbershopData | null;
   settings: Record<string, unknown> | null;
+  planType: string | null; // 'free' or 'premium'
 
   // Loading states
   loading: boolean;
@@ -24,6 +25,7 @@ interface TenantContextType {
 
   // Utility
   isValidTenant: boolean;
+  isFreePlan: boolean;
 }
 
 interface TenantProviderProps {
@@ -46,6 +48,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
   const [slug, setSlug] = useState<string | null>(null);
   const [barbershopData, setBarbershopData] = useState<BarbershopData | null>(null);
   const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
+  const [planType, setPlanType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -80,6 +83,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
         setBarbershopId(cachedData.id);
         setTenantId(cachedData.tenantId || null);
         setBarbershopData(cachedData);
+        setPlanType(cachedData.planType || 'free'); // Set plan type from cache
 
         // Store barbershopId and barbershopSlug in localStorage for API requests
         localStorage.setItem('barbershopId', cachedData.id);
@@ -87,6 +91,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
           localStorage.setItem('tenantId', cachedData.tenantId);
         }
         localStorage.setItem('barbershopSlug', tenantSlug);
+        localStorage.setItem('planType', cachedData.planType || 'free'); // Save plan type
 
         // Update ServiceFactory with new tenant context
         ServiceFactory.updateTenantContext(cachedData.id);
@@ -125,6 +130,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
       setBarbershopId(data.id);
       setTenantId(data.tenantId || null);
       setBarbershopData(data);
+      setPlanType(data.planType || 'free'); // Set plan type
 
       // Store barbershopId and barbershopSlug in localStorage for API requests
       localStorage.setItem('barbershopId', data.id);
@@ -132,6 +138,7 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
         localStorage.setItem('tenantId', data.tenantId);
       }
       localStorage.setItem('barbershopSlug', tenantSlug);
+      localStorage.setItem('planType', data.planType || 'free'); // Save plan type
 
       // Update ServiceFactory with new tenant context
       ServiceFactory.updateTenantContext(data.id);
@@ -228,6 +235,24 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
   }, []);
 
   /**
+   * Force localStorage sync whenever barbershopId or tenantId changes
+   */
+  useEffect(() => {
+    if (barbershopId) {
+      console.log('🔄 TenantContext - Syncing localStorage with barbershopId:', barbershopId);
+      localStorage.setItem('barbershopId', barbershopId);
+    }
+    if (tenantId) {
+      console.log('🔄 TenantContext - Syncing localStorage with tenantId:', tenantId);
+      localStorage.setItem('tenantId', tenantId);
+    }
+    if (slug) {
+      console.log('🔄 TenantContext - Syncing localStorage with slug:', slug);
+      localStorage.setItem('barbershopSlug', slug);
+    }
+  }, [barbershopId, tenantId, slug]);
+
+  /**
    * Auto-load tenant when slug changes in URL
    */
   useEffect(() => {
@@ -322,7 +347,9 @@ export const TenantProvider = React.memo<TenantProviderProps>(({ children }) => 
     updateSettings,
 
     // Utility
-    isValidTenant
+    isValidTenant,
+    planType,
+    isFreePlan: planType === 'free'
   }), [
     barbershopId,
     tenantId,

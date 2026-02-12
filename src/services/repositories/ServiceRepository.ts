@@ -44,15 +44,10 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
 
       let query = supabase.from('Services').select('*');
       
-      // Priorizar filtro por tenant_id se disponível (padrão novo)
-      if (tenantId) {
-        console.log('ServiceRepository.findAll - Usando filtro tenant_id:', tenantId);
-        query = query.eq('tenant_id', tenantId);
-      } else if (barbershopId) {
-        console.log('ServiceRepository.findAll - Usando filtro barbershopId:', barbershopId);
-        // Fallback para filtro por barbershopId (padrão legado)
-        query = query.eq('barbershop_id', barbershopId);
-      }
+      // Use tenantId if available, otherwise use barbershopId as tenantId
+      const effectiveTenantId = tenantId || barbershopId;
+      console.log('ServiceRepository.findAll - Using tenant_id:', effectiveTenantId);
+      query = query.eq('tenant_id', effectiveTenantId);
       
       if (filters?.name) {
         query = query.ilike('name', `%${filters.name}%`);
@@ -75,7 +70,25 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
 
       console.log(`ServiceRepository.findAll - Encontrados ${data?.length || 0} serviços`);
       
-      return (data || []).map(this.adaptSupabaseServiceToFrontend);
+      // Fetch barber associations for all services
+      const services = (data || []).map(this.adaptSupabaseServiceToFrontend);
+      
+      // Get barber counts for all services
+      if (services.length > 0) {
+        const serviceIds = services.map(s => s.id);
+        const { data: associations } = await supabase
+          .from('service_barbers')
+          .select('service_id, barber_id')
+          .in('service_id', serviceIds);
+        
+        // Add barber count to each service
+        services.forEach(service => {
+          const barberCount = (associations || []).filter(a => a.service_id === service.id).length;
+          (service as any).barbers = Array(barberCount).fill(null); // Create array with correct length
+        });
+      }
+      
+      return services;
     } catch (error) {
       console.error('ServiceRepository: findAll failed:', error);
       return [];
@@ -116,13 +129,13 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       
       if (!barbershopId && !tenantId) return [];
 
-      let dbQuery = supabase.from('Services').select('*');
-      
-      if (tenantId) {
-        dbQuery = dbQuery.eq('tenant_id', tenantId);
-      } else if (barbershopId) {
-        dbQuery = dbQuery.eq('barbershop_id', barbershopId);
-      }
+      // Use tenantId if available, otherwise use barbershopId as tenantId
+      const effectiveTenantId = tenantId || barbershopId;
+
+      let dbQuery = supabase
+        .from('Services')
+        .select('*')
+        .eq('tenant_id', effectiveTenantId);
       
       const { data, error } = await dbQuery.ilike('name', `%${query}%`);
 
@@ -143,13 +156,24 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       const barbershopId = localStorage.getItem('barbershopId');
       const tenantId = localStorage.getItem('tenantId');
       
-      if (!barbershopId && !tenantId) throw new Error('Barbershop ID required');
+      console.log('ServiceRepository.create - IDs:', { barbershopId, tenantId });
+      
+      if (!barbershopId && !tenantId) {
+        console.error('ServiceRepository.create - Missing IDs in localStorage:', {
+          barbershopId,
+          tenantId,
+          allKeys: Object.keys(localStorage)
+        });
+        throw new Error('Barbershop ID required - please reload the page');
+      }
+
+      // Use tenantId if available, otherwise use barbershopId as tenantId
+      const effectiveTenantId = tenantId || barbershopId;
 
       const dbData = {
         name: serviceData.name,
         price: serviceData.price,
-        barbershop_id: barbershopId || undefined, 
-        tenant_id: tenantId, // Incluir tenant_id se disponível
+        tenant_id: effectiveTenantId, // Use tenant_id column (not barbershop_id)
         duration: serviceData.duration,
         description: serviceData.description,
         is_active: serviceData.isActive,
@@ -186,14 +210,37 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
        if (updates.description !== undefined) dbUpdates.description = updates.description;
        if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
        
+       // Get tenant_id for RLS
+       const barbershopId = localStorage.getItem('barbershopId');
+       const tenantId = localStorage.getItem('tenantId');
+       const effectiveTenantId = tenantId || barbershopId;
+       
+       console.log('ServiceRepository.update - Debug:', {
+         id,
+         barbershopId,
+         tenantId,
+         effectiveTenantId,
+         updates
+       });
+       
+       if (!effectiveTenantId) {
+         throw new Error('Tenant ID required for update');
+       }
+       
        const { data, error } = await supabase
          .from('Services')
          .update(dbUpdates)
          .eq('id', id)
+         .eq('tenant_id', effectiveTenantId) // Add tenant_id for RLS
          .select()
          .single();
          
-       if (error) throw error;
+       if (error) {
+         console.error('ServiceRepository.update - Error:', error);
+         throw error;
+       }
+       
+       console.log('ServiceRepository.update - Success:', data);
        
        return this.adaptSupabaseServiceToFrontend(data);
     } catch (error) {
@@ -206,8 +253,34 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    * Remove um serviço
    */
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('Services').delete().eq('id', id);
-    if (error) throw error;
+    // Get tenant_id for RLS
+    const barbershopId = localStorage.getItem('barbershopId');
+    const tenantId = localStorage.getItem('tenantId');
+    const effectiveTenantId = tenantId || barbershopId;
+    
+    console.log('ServiceRepository.delete - Debug:', {
+      id,
+      barbershopId,
+      tenantId,
+      effectiveTenantId
+    });
+    
+    if (!effectiveTenantId) {
+      throw new Error('Tenant ID required for delete');
+    }
+    
+    const { error } = await supabase
+      .from('Services')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', effectiveTenantId); // Add tenant_id for RLS
+      
+    if (error) {
+      console.error('ServiceRepository.delete - Error:', error);
+      throw error;
+    }
+    
+    console.log('ServiceRepository.delete - Success');
   }
 
   /**
@@ -278,5 +351,68 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
   async findByBarber(_barberId: string): Promise<ServiceType[]> {
     // MVP: Retorna todos (assumindo que barbeiros fazem tudo por enquanto)
     return this.findAll(); 
+  }
+
+  /**
+   * Associa barbeiros a um serviço
+   */
+  async associateBarbers(serviceId: string, barberIds: string[]): Promise<void> {
+    try {
+      let tenantId = localStorage.getItem('tenantId');
+      const barbershopId = localStorage.getItem('barbershopId');
+      
+      // Use barbershopId as fallback if tenantId is not available
+      if (!tenantId && barbershopId) {
+        tenantId = barbershopId;
+        console.log('⚠️ Using barbershopId as tenantId for association:', tenantId);
+      }
+      
+      if (!tenantId) throw new Error('Tenant ID required');
+
+      // Remove associações existentes
+      await supabase
+        .from('service_barbers')
+        .delete()
+        .eq('service_id', serviceId);
+
+      // Adiciona novas associações
+      if (barberIds.length > 0) {
+        const associations = barberIds.map(barberId => ({
+          service_id: serviceId,
+          barber_id: barberId,
+          tenant_id: null // Use null instead of invalid tenant_id
+        }));
+
+        const { error } = await supabase
+          .from('service_barbers')
+          .insert(associations);
+
+        if (error) throw error;
+        
+        console.log('✅ Successfully associated', barberIds.length, 'barber(s) to service');
+      }
+    } catch (error) {
+      console.error('Error associating barbers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtém barbeiros associados a um serviço
+   */
+  async getServiceBarbers(serviceId: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('service_barbers')
+        .select('barber_id')
+        .eq('service_id', serviceId);
+
+      if (error) throw error;
+
+      return (data || []).map(row => row.barber_id);
+    } catch (error) {
+      console.error('Error getting service barbers:', error);
+      return [];
+    }
   }
 }
