@@ -17,20 +17,42 @@ export class AppointmentRepository implements IAppointmentRepository {
    */
   async findById(id: string): Promise<Appointment | null> {
     try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
+      
+      console.log('AppointmentRepository.findById - Debug:', {
+        id,
+        barbershopId,
+        tenantId,
+        effectiveTenantId
+      });
+      
+      if (!effectiveTenantId) {
+        console.warn('AppointmentRepository.findById - No tenant ID available');
+        return null;
+      }
+
       const { data, error } = await supabase
-        .from('appointments')
+        .from('Appointments')
         .select('*')
         .eq('id', id)
+        .eq('tenant_id', effectiveTenantId)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // Not found code in PostgREST
+        if (error.code === 'PGRST116') {
+          console.log('AppointmentRepository.findById - Not found');
+          return null;
+        }
+        console.error('AppointmentRepository.findById - Error:', error);
         throw error;
       }
       
+      console.log('AppointmentRepository.findById - Success:', data);
       return AppointmentAdapter.fromBackend(data);
     } catch (error) {
-      console.error('AppointmentRepository: findById failed:', error);
+      console.error('AppointmentRepository.findById - Exception:', error);
       return null;
     }
   }
@@ -41,30 +63,42 @@ export class AppointmentRepository implements IAppointmentRepository {
   async findAll(filters?: Record<string, unknown>): Promise<Appointment[]> {
     try {
       const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
       
-      if (!barbershopId) {
-        console.warn('AppointmentRepository: No barbershopId found in localStorage');
+      console.log('AppointmentRepository.findAll - Debug:', {
+        barbershopId,
+        tenantId,
+        effectiveTenantId,
+        filters
+      });
+      
+      if (!effectiveTenantId) {
+        console.warn('AppointmentRepository.findAll - No tenant ID available');
         return [];
       }
 
-      let query = supabase.from('appointments').select('*').eq('barbershopId', barbershopId);
+      let query = supabase.from('Appointments').select('*').eq('tenant_id', effectiveTenantId);
       
       if (filters?.barberId) {
         query = query.eq('barberId', filters.barberId);
       }
       
-      // Implement other filters as needed
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
       
       const { data, error } = await query;
 
       if (error) {
-        console.error('AppointmentRepository: Error fetching appointments:', error);
+        console.error('AppointmentRepository.findAll - Error:', error);
         throw new Error(error.message);
       }
       
+      console.log(`AppointmentRepository.findAll - Found ${data?.length || 0} appointments`);
       return (data || []).map(appointment => AppointmentAdapter.fromBackend(appointment));
     } catch (error) {
-      console.error('AppointmentRepository: findAll failed:', error);
+      console.error('AppointmentRepository.findAll - Exception:', error);
       return [];
     }
   }
@@ -139,6 +173,20 @@ export class AppointmentRepository implements IAppointmentRepository {
    */
   async create(appointmentData: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> {
     try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
+      
+      console.log('AppointmentRepository.create - Debug:', {
+        barbershopId,
+        tenantId,
+        effectiveTenantId
+      });
+      
+      if (!effectiveTenantId) {
+        throw new Error('Tenant ID required - please reload the page');
+      }
+      
       // Map frontend data to backend/supabase format
       const supabaseData = {
         clientName: appointmentData._backendData?.clientName || appointmentData.clientId,
@@ -150,15 +198,20 @@ export class AppointmentRepository implements IAppointmentRepository {
         price: appointmentData._backendData?.price || 0,
         wppclient: appointmentData._backendData?.wppclient || '',
         status: appointmentData.status || 'pending',
-        barbershopId: localStorage.getItem('barbershopId') // Ensure tenant context
+        tenant_id: effectiveTenantId
       };
 
-      const { data, error } = await supabase.from('appointments').insert(supabaseData).select().single();
+      const { data, error } = await supabase.from('Appointments').insert(supabaseData).select().single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('AppointmentRepository.create - Error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('AppointmentRepository.create - Success:', data);
       return AppointmentAdapter.fromBackend(data);
     } catch (error) {
-      console.error('AppointmentRepository: create failed:', error);
+      console.error('AppointmentRepository.create - Exception:', error);
       throw error;
     }
   }
@@ -168,6 +221,22 @@ export class AppointmentRepository implements IAppointmentRepository {
    */
   async update(id: string, updates: Partial<Appointment>): Promise<Appointment> {
     try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
+      
+      console.log('AppointmentRepository.update - Debug:', {
+        id,
+        barbershopId,
+        tenantId,
+        effectiveTenantId,
+        updates
+      });
+      
+      if (!effectiveTenantId) {
+        throw new Error('Tenant ID required for update');
+      }
+      
       const supabaseUpdates: any = {};
       
       if (updates.clientId || updates._backendData?.clientName) {
@@ -189,13 +258,24 @@ export class AppointmentRepository implements IAppointmentRepository {
         supabaseUpdates.barberId = updates.barberId;
       }
 
-      const { data, error } = await supabase.from('appointments').update(supabaseUpdates).eq('id', id).select().single();
+      const { data, error } = await supabase
+        .from('Appointments')
+        .update(supabaseUpdates)
+        .eq('id', id)
+        .eq('tenant_id', effectiveTenantId)
+        .select()
+        .single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('AppointmentRepository.update - Error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('AppointmentRepository.update - Success:', data);
       return AppointmentAdapter.fromBackend(data);
     } catch (error) {
-       console.error('AppointmentRepository: update failed:', error);
-       throw error;
+      console.error('AppointmentRepository.update - Exception:', error);
+      throw error;
     }
   }
 
@@ -210,14 +290,40 @@ export class AppointmentRepository implements IAppointmentRepository {
    * Remove um agendamento
    */
   async delete(id: string): Promise<void> {
-    await supabase.from('appointments').delete().eq('id', id);
+    const barbershopId = localStorage.getItem('barbershopId');
+    const tenantId = localStorage.getItem('tenantId');
+    const effectiveTenantId = tenantId || barbershopId;
+    
+    console.log('AppointmentRepository.delete - Debug:', {
+      id,
+      barbershopId,
+      tenantId,
+      effectiveTenantId
+    });
+    
+    if (!effectiveTenantId) {
+      throw new Error('Tenant ID required for delete');
+    }
+    
+    const { error } = await supabase
+      .from('Appointments')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', effectiveTenantId);
+      
+    if (error) {
+      console.error('AppointmentRepository.delete - Error:', error);
+      throw error;
+    }
+    
+    console.log('AppointmentRepository.delete - Success');
   }
 
   /**
    * Verifica se um agendamento existe
    */
   async exists(id: string): Promise<boolean> {
-    const { count } = await supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('id', id);
+    const { count } = await supabase.from('Appointments').select('*', { count: 'exact', head: true }).eq('id', id);
     return (count || 0) > 0;
   }
 

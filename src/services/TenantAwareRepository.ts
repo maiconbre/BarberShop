@@ -47,18 +47,15 @@ export class TenantAwareRepository<T> implements IRepository<T> {
   }
 
   async findById(id: string): Promise<T | null> {
-    // For findById, we still need to ensure the record belongs to the tenant
+    // Ensure tenant context is available
     const tenantId = this.getTenantId();
     if (!tenantId) {
       throw new Error('Tenant context is required but not available');
     }
 
+    // The base repository (e.g., ServiceRepository) now filters by tenant_id directly
+    // So we can trust the result is already tenant-isolated
     const result = await this.baseRepository.findById(id);
-    
-    // Verify the result belongs to the current tenant
-    if (result && (result as unknown as { barbershopId?: string }).barbershopId !== tenantId) {
-      return null; // Hide records from other tenants
-    }
     
     return result;
   }

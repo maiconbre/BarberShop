@@ -233,8 +233,25 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   // Buscar barbeiros usando o hook multi-tenant
   React.useEffect(() => {
     const loadBarbersData = async () => {
+      // Verificar se o barbershopId está disponível no localStorage
+      const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+
+      console.log('BookingModal.loadBarbersData - Debug:', {
+        isValidTenant,
+        barbershopId,
+        tenantId,
+        effectiveTenantId: tenantId || barbershopId
+      });
+
       if (!isValidTenant) {
         logger.componentWarn('BookingModal: Tenant inválido, não carregando barbeiros');
+        return;
+      }
+
+      // Aguardar até que o barbershopId esteja disponível
+      if (!barbershopId && !tenantId) {
+        logger.componentWarn('BookingModal: Aguardando barbershopId/tenantId no localStorage');
         return;
       }
 
@@ -250,7 +267,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
     };
 
     loadBarbersData();
-  }, [loadBarbers, isValidTenant]);
+  }, [loadBarbers, isValidTenant, barbershopId]);
 
   // Atualizar loading state quando barbeiros mudarem
   React.useEffect(() => {
@@ -711,7 +728,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
           }
 
           // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
-          await tenantCache.forceCleanup();
+          tenantCache.clearTenantCache();
         } catch (err) {
           logger.componentError('Erro ao reverter cache:', err);
         }
@@ -765,7 +782,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
 
         // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
-        await tenantCache.forceCleanup();
+        tenantCache.clearTenantCache();
 
         // Forçar uma atualização dos dados de agendamentos para todos os componentes
         setTimeout(async () => {
@@ -829,7 +846,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
         }
 
         // Forçar limpeza do cache para garantir que todos os componentes vejam a mudança
-        await tenantCache.forceCleanup();
+        tenantCache.clearTenantCache();
       } catch (cacheErr) {
         logger.componentError('Erro ao reverter cache:', cacheErr);
       }
@@ -879,8 +896,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, initialSer
   const getSelectedBarberInfo = () => {
     const barber = barbers?.find(b => b.name === formData.barber);
     return {
-      whatsapp: barber?.phone || barber?._backendData?.whatsapp || '',
-      pix: barber?._backendData?.pix || ''
+      whatsapp: barber?.phone || barber?.whatsapp || '',
+      pix: barber?.pix || ''
     };
   };
 

@@ -14,15 +14,38 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
    */
   async findById(id: string): Promise<ServiceType | null> {
     try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
+      
+      console.log('ServiceRepository.findById - Debug:', {
+        id,
+        barbershopId,
+        tenantId,
+        effectiveTenantId
+      });
+      
+      if (!effectiveTenantId) {
+        console.warn('ServiceRepository.findById - No tenant ID available');
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('Services')
         .select('*')
         .eq('id', id)
+        .eq('tenant_id', effectiveTenantId) // Add tenant_id filter for multi-tenant isolation
         .single();
       
-      if (error) return null;
+      if (error) {
+        console.error('ServiceRepository.findById - Error:', error);
+        return null;
+      }
+      
+      console.log('ServiceRepository.findById - Success:', data);
       return this.adaptSupabaseServiceToFrontend(data);
     } catch (error) {
+      console.error('ServiceRepository.findById - Exception:', error);
       return null;
     }
   }

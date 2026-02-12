@@ -14,15 +14,38 @@ export class BarberRepository implements IRepository<Barber> {
    */
   async findById(id: string): Promise<Barber | null> {
     try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
+      
+      console.log('BarberRepository.findById - Debug:', {
+        id,
+        barbershopId,
+        tenantId,
+        effectiveTenantId
+      });
+      
+      if (!effectiveTenantId) {
+        console.warn('BarberRepository.findById - No tenant ID available');
+        return null;
+      }
+
       const { data, error } = await supabase
-        .from('barbers')
+        .from('Barbers')
         .select('*')
         .eq('id', id)
+        .eq('tenant_id', effectiveTenantId)
         .single();
 
-      if (error) return null;
+      if (error) {
+        console.error('BarberRepository.findById - Error:', error);
+        return null;
+      }
+      
+      console.log('BarberRepository.findById - Success:', data);
       return this.adaptSupabaseToBarber(data);
     } catch (error) {
+      console.error('BarberRepository.findById - Exception:', error);
       return null;
     }
   }
@@ -32,28 +55,51 @@ export class BarberRepository implements IRepository<Barber> {
    */
   async findAll(filters?: Record<string, unknown>): Promise<Barber[]> {
     try {
-      const barbershopId = localStorage.getItem('barbershopId');
+      // Priorizar barbershopId dos filtros (vem do TenantAwareRepository)
+      // Fallback para localStorage se não vier nos filtros
+      const filterBarbershopId = filters?.barbershopId as string | undefined;
+      const localBarbershopId = localStorage.getItem('barbershopId');
+      const localTenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = filterBarbershopId || localTenantId || localBarbershopId;
       
-      if (!barbershopId) return [];
+      console.log('BarberRepository.findAll - Debug:', {
+        filterBarbershopId,
+        localBarbershopId,
+        localTenantId,
+        effectiveTenantId,
+        filters
+      });
+      
+      if (!effectiveTenantId) {
+        console.warn('BarberRepository.findAll - No tenant ID available');
+        return [];
+      }
 
-      let query = supabase.from('barbers').select('*').eq('barbershopId', barbershopId);
+      // CRITICAL FIX: Search by tenant_id OR barbershopId (legacy data has only barbershopId)
+      let query = supabase
+        .from('Barbers')
+        .select('*')
+        .or(`tenant_id.eq.${effectiveTenantId},barbershopId.eq.${effectiveTenantId}`);
       
       if (filters?.name) {
         query = query.ilike('name', `%${filters.name}%`);
       }
       
       if (filters?.isActive !== undefined) {
-         // Ajuste se o banco não tiver coluna isActive, filtrar no JS depois
-         // Mas vamos assumir que o frontend lida com isso se falhar
+        query = query.eq('is_active', filters.isActive);
       }
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('BarberRepository.findAll - Error:', error);
+        throw error;
+      }
 
+      console.log(`BarberRepository.findAll - Found ${data?.length || 0} barbers`);
       return (data || []).map(b => this.adaptSupabaseToBarber(b));
     } catch (error) {
-      console.error('BarberRepository: findAll failed:', error);
+      console.error('BarberRepository.findAll - Exception:', error);
       return [];
     }
   }
@@ -68,7 +114,7 @@ export class BarberRepository implements IRepository<Barber> {
       email: '', // Campo de UI
       phone: data.whatsapp || '',
       specialties: [], 
-      isActive: true, // Assumindo ativo
+      isActive: data.is_active !== undefined ? data.is_active : true,
       workingHours: {
         monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: []
       },
@@ -89,26 +135,42 @@ export class BarberRepository implements IRepository<Barber> {
   async create(barberData: Omit<Barber, 'id' | 'createdAt' | 'updatedAt'>): Promise<Barber> {
     try {
       const barbershopId = localStorage.getItem('barbershopId');
-      if (!barbershopId) throw new Error('Barbershop ID required');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
+      
+      console.log('BarberRepository.create - Debug:', {
+        barbershopId,
+        tenantId,
+        effectiveTenantId
+      });
+      
+      if (!effectiveTenantId) {
+        throw new Error('Tenant ID required - please reload the page');
+      }
 
       const dbData = {
         name: barberData.name,
         whatsapp: barberData.phone,
-        barbershopId: barbershopId,
+        tenant_id: effectiveTenantId,
+        is_active: barberData.isActive !== undefined ? barberData.isActive : true,
         created_at: new Date().toISOString()
       };
 
       const { data, error } = await supabase
-        .from('barbers')
+        .from('Barbers')
         .insert(dbData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('BarberRepository.create - Error:', error);
+        throw error;
+      }
 
+      console.log('BarberRepository.create - Success:', data);
       return this.adaptSupabaseToBarber(data);
     } catch (error) {
-      console.error('Error creating barber:', error);
+      console.error('BarberRepository.create - Exception:', error);
       throw error;
     }
   }
@@ -118,26 +180,48 @@ export class BarberRepository implements IRepository<Barber> {
    */
   async update(id: string, updates: Partial<Barber>): Promise<Barber> {
     try {
+      const barbershopId = localStorage.getItem('barbershopId');
+      const tenantId = localStorage.getItem('tenantId');
+      const effectiveTenantId = tenantId || barbershopId;
+      
+      console.log('BarberRepository.update - Debug:', {
+        id,
+        barbershopId,
+        tenantId,
+        effectiveTenantId,
+        updates
+      });
+      
+      if (!effectiveTenantId) {
+        throw new Error('Tenant ID required for update');
+      }
+      
       const dbUpdates: any = {
         updated_at: new Date().toISOString()
       };
 
       if (updates.name) dbUpdates.name = updates.name;
       if (updates.phone) dbUpdates.whatsapp = updates.phone;
+      if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
       const { data, error } = await supabase
-        .from('barbers')
+        .from('Barbers')
         .update(dbUpdates)
         .eq('id', id)
+        .eq('tenant_id', effectiveTenantId)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('BarberRepository.update - Error:', error);
+        throw error;
+      }
 
+      console.log('BarberRepository.update - Success:', data);
       return this.adaptSupabaseToBarber(data);
     } catch (error) {
-     console.error('Error updating barber:', error);
-     throw error;
+      console.error('BarberRepository.update - Exception:', error);
+      throw error;
     }
   }
 
@@ -145,8 +229,33 @@ export class BarberRepository implements IRepository<Barber> {
    * Delete a barber
    */
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from('barbers').delete().eq('id', id);
-    if (error) throw error;
+    const barbershopId = localStorage.getItem('barbershopId');
+    const tenantId = localStorage.getItem('tenantId');
+    const effectiveTenantId = tenantId || barbershopId;
+    
+    console.log('BarberRepository.delete - Debug:', {
+      id,
+      barbershopId,
+      tenantId,
+      effectiveTenantId
+    });
+    
+    if (!effectiveTenantId) {
+      throw new Error('Tenant ID required for delete');
+    }
+    
+    const { error } = await supabase
+      .from('Barbers')
+      .delete()
+      .eq('id', id)
+      .eq('tenant_id', effectiveTenantId);
+      
+    if (error) {
+      console.error('BarberRepository.delete - Error:', error);
+      throw error;
+    }
+    
+    console.log('BarberRepository.delete - Success');
   }
 
   /**
