@@ -12,6 +12,7 @@ import {
   PlanError,
   PlanType 
 } from '../types/plan';
+import { barbershopService } from './supabaseBarbershop';
 
 // Helper removed, using ApiService directly
 
@@ -54,6 +55,29 @@ export const getUsageStats = async (slug?: string): Promise<PlanUsage> => {
     // Obter limites do plano atual (fallback para free)
     const currentLimits = limits[planType as keyof typeof limits] || limits.free;
 
+    // Obter barbeiros reais via Supabase
+    let realBarberCount = 1;
+    let realAppointmentCount = 0;
+    
+    try {
+        const { barbers } = await barbershopService.getTenantBarbers();
+        if (barbers) {
+            realBarberCount = barbers.length;
+        }
+        
+        // Se a RPC falhar ou retornar 404/406, capturamos aqui para não quebrar o dashboard
+        try {
+            const { appointments } = await barbershopService.getTenantAppointments();
+            if (appointments) {
+                realAppointmentCount = appointments.length;
+            }
+        } catch (innerError) {
+            console.warn('RPC de agendamentos indisponível ou erro de acesso:', innerError);
+        }
+    } catch (e) {
+        console.warn('Erro ao buscar dados reais para limites, usando fallbacks:', e);
+    }
+
     const fallbackData: PlanUsage = {
         planType: planType,
         limits: {
@@ -64,22 +88,22 @@ export const getUsageStats = async (slug?: string): Promise<PlanUsage> => {
         },
         usage: {
           barbers: {
-            current: 1,
+            current: realBarberCount,
             limit: currentLimits.barbers,
-            remaining: Math.max(0, currentLimits.barbers - 1),
-            percentage: getUsagePercentage(1, currentLimits.barbers),
-            nearLimit: 1 >= currentLimits.barbers
+            remaining: Math.max(0, currentLimits.barbers - realBarberCount),
+            percentage: getUsagePercentage(realBarberCount, currentLimits.barbers),
+            nearLimit: realBarberCount >= currentLimits.barbers
           },
           appointments: {
-            current: 12,
+            current: realAppointmentCount,
             limit: currentLimits.appointments,
-            remaining: Math.max(0, currentLimits.appointments - 12),
-            percentage: getUsagePercentage(12, currentLimits.appointments),
-            nearLimit: (12 / currentLimits.appointments) > 0.8
+            remaining: Math.max(0, currentLimits.appointments - realAppointmentCount),
+            percentage: getUsagePercentage(realAppointmentCount, currentLimits.appointments),
+            nearLimit: (realAppointmentCount / currentLimits.appointments) > 0.8
           }
         },
-        upgradeRecommended: (12 / currentLimits.appointments) > 0.8,
-        upgradeRequired: (12 >= currentLimits.appointments)
+        upgradeRecommended: (realAppointmentCount / currentLimits.appointments) > 0.8,
+        upgradeRequired: (realAppointmentCount >= currentLimits.appointments)
     };
       
     console.log('Estatísticas de uso (local):', fallbackData);

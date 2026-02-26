@@ -32,23 +32,61 @@ interface Appointment {
   isCancelled?: boolean;
 }
 
-// Atualizar array de horários disponíveis para sincronizar com o BookingModal
-const timeSlots = [
-  '09:00', '10:00', '11:00', '14:00', '15:00',
-  '16:00', '17:00', '18:00', '19:00', '20:00'
-].sort();
+// Helper para gerar slots de tempo baseados em horários de funcionamento
+const generateTimeSlots = (workingHours: any, date: Date | null) => {
+  if (!date || !workingHours) {
+    return ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+  }
+
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayName = days[date.getDay()];
+  const hours = workingHours[dayName];
+
+  if (!hours || hours.closed) return [];
+
+  const slots = [];
+  let current = hours.start || '09:00';
+  const end = hours.end || '18:00';
+
+  // Garantir formato HH:mm
+  while (current <= end) {
+    slots.push(current);
+    const [h, m] = current.split(':').map(Number);
+    const nextM = m + 30; // Intervalos de 30 minutos por padrão
+    const nextH = h + Math.floor(nextM / 60);
+    const nextMStr = (nextM % 60).toString().padStart(2, '0');
+    current = `${nextH.toString().padStart(2, '0')}:${nextMStr}`;
+
+    // Evitar loop infinito ou ultrapassar final do dia
+    if (current > '23:30' || current >= end) {
+      if (current === end) slots.push(current); // Inclui o último horário
+      break;
+    }
+  }
+
+  return [...new Set(slots)].sort();
+};
 
 const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   barbers,
   userRole,
   currentBarberId
 }) => {
+  const { isValidTenant, barbershopId, settings } = useTenant();
   const tenantCache = useTenantCache();
-  const { isValidTenant, barbershopId } = useTenant();
   const { appointments: tenantAppointments, loadAppointments: loadTenantAppointments } = useAppointments();
+
   const [selectedBarber, setSelectedBarber] = useState(currentBarberId || '');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(adjustToBrasilia(new Date()));
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  // Obter horários configurados do tenant
+  const workingHours = (settings as any)?.workingHours;
+
+  // Gerar slots dinâmicos para a data selecionada
+  const dynamicTimeSlots = React.useMemo(() => {
+    return generateTimeSlots(workingHours, selectedDate);
+  }, [workingHours, selectedDate]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
@@ -94,7 +132,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         apt.barberId === selectedBarber &&
         apt.date &&
         apt.time &&
-        timeSlots.includes(apt.time) &&
+        dynamicTimeSlots.includes(apt.time) &&
         !apt.isCancelled
       );
 
@@ -114,7 +152,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         setAppointments(Array.isArray(cachedData) ? cachedData : []);
       }
     }
-  }, [selectedBarber, timeSlots, isValidTenant, loadTenantAppointments, tenantAppointments]);
+  }, [selectedBarber, dynamicTimeSlots, isValidTenant, loadTenantAppointments, tenantAppointments]);
 
   useEffect(() => {
     if (selectedBarber) {
@@ -506,9 +544,9 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         appointment.time === time &&
         appointment.barberId === selectedBarber &&
         !appointment.isCancelled &&
-        timeSlots.includes(appointment.time)
+        dynamicTimeSlots.includes(appointment.time)
     ) || null;
-  }, [appointments, selectedBarber]);
+  }, [appointments, selectedBarber, dynamicTimeSlots]);
 
   const isTimeSlotAvailable = useCallback((date: string, time: string, barberId: string): boolean => {
     return !appointments.some(appointment =>
@@ -577,7 +615,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
                   {error}
                 </div>
               ) : (
-                timeSlots.map(time => {
+                dynamicTimeSlots.map(time => {
                   const appointment = selectedDate ? getAppointmentForTimeSlot(selectedDate, time) : null;
                   const isBooked = !!appointment;
                   const isBlocked = appointment?.isBlocked;

@@ -250,6 +250,27 @@ export const createBarbershop = async (data: { name: string; slug: string; whats
         updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
 
+    // 3. Criar o primeiro barbeiro (o próprio usuário) automaticamente
+    // Buscamos o nome do usuário do metadado se possível
+    const { data: { user } } = await supabase.auth.getUser();
+    const barberName = user?.user_metadata?.name || data.ownerEmail.split('@')[0];
+
+    const { error: barberError } = await supabase
+      .from('Barbers')
+      .insert({
+        name: barberName,
+        barbershop_id: barbershopData.id,
+        user_id: data.ownerId,
+        is_active: true,
+        description: 'Barbeiro proprietário'
+      });
+
+    if (barberError) {
+        console.error('Erro ao criar barbeiro automático:', barberError);
+        // Não lançamos erro aqui para não travar o fluxo principal, 
+        // mas logamos o erro para auditoria.
+    }
+
     return {
         success: true,
         message: 'Barbearia criada com sucesso',

@@ -13,6 +13,7 @@ interface NewBarberData {
     name: string;
     email: string;
     phone: string;
+    pix: string;
     isActive: boolean;
 }
 
@@ -41,6 +42,7 @@ const BarberManagementPage: React.FC = () => {
         name: '',
         email: '',
         phone: '',
+        pix: '',
         isActive: true
     });
 
@@ -55,6 +57,7 @@ const BarberManagementPage: React.FC = () => {
             name: '',
             email: '',
             phone: '',
+            pix: '',
             isActive: true
         });
         setCurrentBarber(null);
@@ -102,6 +105,7 @@ const BarberManagementPage: React.FC = () => {
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone,
+                pix: formData.pix,
                 isActive: formData.isActive
             });
             toast.success('Barbeiro atualizado com sucesso!');
@@ -115,6 +119,13 @@ const BarberManagementPage: React.FC = () => {
 
     const handleDelete = async () => {
         if (!currentBarber) return;
+
+        // Impedir exclusão se for o único barbeiro
+        if (barbers && barbers.length <= 1) {
+            toast.error('Não é possível remover o último profissional da barbearia.');
+            return;
+        }
+
         try {
             await deleteBarber(currentBarber.id);
             toast.success('Barbeiro removido com sucesso!');
@@ -131,7 +142,8 @@ const BarberManagementPage: React.FC = () => {
         setFormData({
             name: barber.name,
             email: barber.email || '',
-            phone: barber.phone || '',
+            phone: barber.phone || barber.whatsapp || '',
+            pix: barber.pix || '',
             isActive: barber.isActive
         });
         setIsEditModalOpen(true);
@@ -237,6 +249,19 @@ const BarberManagementPage: React.FC = () => {
                                     </div>
                                 </div>
 
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                                        <Crown className="w-3 h-3 text-[#F0B35B]" />
+                                        <span>Especialidades: {barber.specialties?.length || 0}</span>
+                                    </div>
+                                    {barber.pix && (
+                                        <div className="flex items-center gap-2 text-xs text-green-400/80">
+                                            <div className="w-3 h-3 rounded-full bg-green-400/20 flex items-center justify-center text-[8px] font-bold">$</div>
+                                            <span>PIX Configurado</span>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
                                     <button
                                         onClick={() => openEditModal(barber)}
@@ -247,8 +272,12 @@ const BarberManagementPage: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={() => openDeleteModal(barber)}
-                                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
-                                        title="Remover"
+                                        disabled={barbers.length <= 1}
+                                        className={`p-2 rounded-lg transition-colors ${barbers.length <= 1
+                                            ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                                            : 'bg-red-500/10 hover:bg-red-500/20 text-red-400'
+                                            }`}
+                                        title={barbers.length <= 1 ? "Não é possível remover o último profissional" : "Remover"}
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>
@@ -305,6 +334,16 @@ const BarberManagementPage: React.FC = () => {
                                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                 />
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Chave PIX <span className="text-gray-600">(Opcional)</span></label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
+                                    placeholder="CPF, Email ou Chave Aleatória"
+                                    value={formData.pix}
+                                    onChange={e => setFormData({ ...formData, pix: e.target.value })}
+                                />
+                            </div>
 
                             <div className="pt-4 flex gap-3">
                                 <button
@@ -358,6 +397,26 @@ const BarberManagementPage: React.FC = () => {
                                     className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">WhatsApp</label>
+                                <input
+                                    type="tel"
+                                    className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
+                                    placeholder="(00) 00000-0000"
+                                    value={formData.phone}
+                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Chave PIX</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
+                                    placeholder="CPF, Email, Celular ou Chave Aleatória"
+                                    value={formData.pix}
+                                    onChange={e => setFormData({ ...formData, pix: e.target.value })}
                                 />
                             </div>
 
