@@ -58,16 +58,24 @@ export const usePageConfig = (): PageConfig => {
   const location = useLocation();
   
   return useMemo(() => {
-    const config = PAGE_CONFIGS[location.pathname];
+    // Extrair o path base para suportar rotas tenant-aware
+    // Ex: /app/minha-barbearia/dashboard -> /dashboard
+    let pathToCheck = location.pathname;
+    const tenantMatch = location.pathname.match(/^\/app\/[^/]+(.*)$/);
+    if (tenantMatch) {
+      pathToCheck = tenantMatch[1] || '/';
+    }
+    
+    const config = PAGE_CONFIGS[pathToCheck];
     
     if (config) {
       return config;
     }
     
-    // Fallback para páginas não mapeadas
+    // Fallback para páginas não configuradas
     return {
       title: 'Página',
-      subtitle: 'Gerencie suas informações',
+      subtitle: '',
       icon: <LayoutDashboard className="w-6 h-6" />
     };
   }, [location.pathname]);

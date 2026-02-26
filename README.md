@@ -6,24 +6,33 @@
 
 ## 🎯 Visão Geral
 
-O **Barbershop** é um sistema moderno e completo de agendamento online voltado para barbearias. A plataforma permite que clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
+O **Barbershop** é uma plataforma SaaS moderna e completa de agendamento online voltada para barbearias. A plataforma permite que múltiplas barbearias operem de forma independente, onde clientes agendem serviços com facilidade, barbeiros organizem suas agendas de forma eficiente e administradores gerenciem toda a operação por meio de um painel intuitivo.
 
-Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sistema aplica os princípios SOLID, boas práticas de engenharia de software e tecnologias modernas do ecossistema React.
+Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sistema aplica os princípios SOLID, boas práticas de engenharia de software, arquitetura multi-tenant e tecnologias modernas do ecossistema React.
 
 ### 🎯 Objetivos do Projeto
 
+- **Multi-Tenant**: Arquitetura SaaS para múltiplas barbearias
 - **Escalabilidade**: Arquitetura preparada para crescimento
 - **Manutenibilidade**: Código limpo e bem estruturado
 - **Performance**: Otimizações avançadas e cache inteligente
 - **Usabilidade**: Interface intuitiva e responsiva
 - **Confiabilidade**: Sistema robusto com tratamento de erros
+- **Monetização**: Sistema de planos e billing integrado
 
 ---
 
 ## ⚙️ Funcionalidades
 
+### 🏢 Plataforma SaaS Multi-Tenant
+- Cadastro gratuito de barbearias com verificação de email
+- Sistema de planos (Free e Pro) com limites configuráveis
+- Isolamento completo de dados entre barbearias
+- URLs personalizadas por barbearia (/app/:barbershop-slug)
+- Sistema de upgrade e billing simplificado
+
 ### 👤 Área do Cliente
-- Visualização de serviços disponíveis
+- Visualização de serviços disponíveis por barbearia
 - Seleção de barbeiros por especialidade
 - Agendamento de horários com confirmação
 - Histórico de agendamentos
@@ -36,13 +45,16 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 - Confirmação ou cancelamento de agendamentos
 - Histórico de atendimentos realizados
 - Métricas individuais de desempenho
+- Dashboard de uso e limites do plano
 
 ### 🛠️ Painel Administrativo
-- Cadastro e gerenciamento de barbeiros
+- Cadastro e gerenciamento de barbeiros (limitado por plano)
 - Configuração de serviços e preços
 - Relatórios gerenciais e métricas por período
 - Moderação de avaliações/comentários
 - Definição de horários de funcionamento da unidade
+- Sistema de upgrade de planos
+- Configurações básicas da barbearia
 
 ---
 
@@ -79,6 +91,12 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 - **React Virtualized Auto Sizer 1.0.26** - Dimensionamento automático
 - **React Lazy Load Image 1.6.3** - Carregamento lazy de imagens
 
+### 🧪 Testes e Qualidade
+- **Vitest 3.2.4** - Framework de testes rápido
+- **Testing Library React** - Testes de componentes
+- **319 Testes** - Cobertura completa (unitários + integração)
+- **Multi-tenant Testing** - Validação de isolamento de dados
+
 ### 🛠️ Ferramentas de Desenvolvimento
 - **ESLint 9.9.1** - Linting de código
 - **TypeScript ESLint 8.3.0** - Regras específicas para TS
@@ -90,10 +108,18 @@ Desenvolvido com foco em escalabilidade, usabilidade e arquitetura limpa, o sist
 - **Vite Plugin Compression2 1.3.3** - Compressão Gzip
 - **Sharp 0.33.5** - Otimização de imagens
 
-### 🗄️ Banco de Dados
-- **Prisma 6.4.1** - ORM moderno
-- **SQLite3 5.1.7** - Banco local para desenvolvimento
-- **Sequelize 6.37.5** - ORM alternativo
+### 🗄️ Backend e Banco de Dados
+- **Supabase** - Backend completo (Auth + Database + Storage + Edge Functions)
+- **PostgreSQL** - Banco de dados com Row Level Security (RLS)
+- **Multi-tenant Architecture** - Isolamento de dados por tenant
+- **Edge Functions** - API serverless para integrações externas
+- **Real-time** - Subscriptions automáticas para atualizações
+
+### 🔧 Monitoramento e Produção
+- **Audit Logger** - Sistema de logs estruturados
+- **Production Monitor** - Métricas de performance e erros
+- **Backup Manager** - Sistema de backup automático
+- **Production Checker** - Validação de configurações
 
 ---
 
@@ -223,11 +249,30 @@ yarn install
 # 4. Configure o ambiente 
 cp .env.development .env
 
-# 5. Inicie o servidor de desenvolvimento
-npm run dev
-# ou
-yarn dev
+# 5. Configure o backend local (desenvolvimento coordenado)
+cd backend
+npm install
+cp .env.example .env
+# Configure as variáveis de ambiente do backend
+
+# 6. Inicie o desenvolvimento fullstack
+npm run dev:fullstack
+# ou inicie separadamente:
+# Terminal 1: npm run dev (frontend)
+# Terminal 2: cd backend && npm run dev (backend)
 ```
+
+### 🏢 Fluxo de Cadastro SaaS
+
+Para testar o fluxo completo multi-tenant:
+
+1. **Acesse a landing page** em `http://localhost:5173`
+2. **Clique em "Começar Grátis"** para iniciar o cadastro
+3. **Preencha os dados** da barbearia (nome, email, slug)
+4. **Verifique o email** com código de 6 dígitos (simulado)
+5. **Acesse sua barbearia** em `/app/seu-slug/dashboard`
+6. **Explore o plano gratuito** (1 barbeiro, 20 agendamentos/mês)
+7. **Teste o upgrade** para plano Pro (ilimitado)
 
 ## 📜 Scripts Disponíveis
 
@@ -275,6 +320,12 @@ npm run preview:prod
 ```bash
 # Executar linting
 npm run lint
+
+# Executar todos os testes
+npm test
+
+# Executar testes específicos
+npm test src/test/integration/multiTenantValidation.test.ts
 
 # Teste de conexão com Supabase
 npm run test:supabase
@@ -342,11 +393,19 @@ npm run start:dev
 
 ### 🔑 Credenciais de Teste
 
+#### Barbearia de Desenvolvimento (dev-barbershop)
 | Função       | Usuário     | Senha     |
 |--------------|-------------|-----------|
 | Admin        | `admin`     | `123123`  |
 | Barbeiro 1   | `gabrielle` | `123123`  |
 | Barbeiro 2   | `marcos`    | `123123`  |
+
+#### Cadastro de Nova Barbearia
+1. Acesse `/` (landing page)
+2. Clique em "Começar Grátis"
+3. Preencha: nome, email, slug único
+4. Use código de verificação: `123456` (simulado)
+5. Acesse `/app/seu-slug/dashboard`
 
 ---
 
@@ -367,17 +426,27 @@ Acesse a versão online:
 
 ## 🔄 Roadmap
 
+### ✅ Funcionalidades Implementadas
+
+- [x] **Suporte Multi-tenant** - Múltiplas barbearias com isolamento completo
+- [x] **Sistema de Planos** - Free e Pro com limites configuráveis
+- [x] **Cadastro SaaS** - Onboarding completo com verificação de email
+- [x] **Arquitetura SOLID** - Repositórios, Services e Dependency Injection
+- [x] **Sistema de Testes** - 319 testes (unitários + integração)
+- [x] **Monitoramento** - Logs, métricas e validação de produção
+- [x] **Cache Inteligente** - Sistema de cache com TTL configurável
+- [x] **Rate Limiting** - Proteção contra abuso de API
+
 ### 🎯 Próximas Funcionalidades
 
-
+- [ ] **Integração com Pagamentos Real** - Mercado Pago, Stripe, PIX
 - [ ] **PWA (Progressive Web App)** - Funcionalidades offline e instalação
 - [ ] **Notificações Push** - Alertas em tempo real para agendamentos
-- [ ] **Integração com Pagamentos** - Stripe, PayPal, PIX
 - [ ] **Sistema de Avaliações** - Reviews e ratings dos serviços
 - [ ] **Aplicativo Mobile** - React Native (iOS e Android)
-- [ ] **Suporte Multi-tenant** - Múltiplas barbearias
 - [ ] **IA para Recomendações** - Sugestões personalizadas
 - [ ] **Integração com Calendários** - Google Calendar, Outlook
+- [ ] **Analytics Avançado** - Dashboard com métricas detalhadas
 
 ### 🔧 Melhorias Técnicas
 

@@ -2,7 +2,7 @@
  * Custom hook for cache management
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { cacheService } from '@/services';
+import { createTenantAwareCache } from '../services/TenantAwareCache';
 import type { CacheOptions, FetchWithCacheOptions } from '@/types';
 
 interface UseCacheReturn<T> {
@@ -40,7 +40,9 @@ export const useCache = <T>(
     setError(null);
 
     try {
-      const result = await cacheService.getOrFetch(
+      const barbershopId = localStorage.getItem('barbershopId') || 'default';
+      const tenantCache = createTenantAwareCache(barbershopId);
+      const result = await tenantCache.getOrFetch(
         key,
         fetchFn
       );
@@ -60,23 +62,27 @@ export const useCache = <T>(
         setLoading(false);
       }
     }
-  }, [key, fetchFn, options]);
+  }, [key, fetchFn]);
 
   const refetch = useCallback(async () => {
     await fetchData();
   }, [fetchData]);
 
   const invalidate = useCallback(async () => {
-    cacheService.remove(key);
+    const barbershopId = localStorage.getItem('barbershopId') || 'default';
+    const tenantCache = createTenantAwareCache(barbershopId);
+    tenantCache.remove(key);
     setData(null);
     setLastUpdated(null);
     setIsStale(true);
   }, [key]);
 
   const updateCache = useCallback(async (updateFn: (prev: T | null) => T) => {
-    const currentData = cacheService.get<T>(key);
+    const barbershopId = localStorage.getItem('barbershopId') || 'default';
+    const tenantCache = createTenantAwareCache(barbershopId);
+    const currentData = tenantCache.get<T>(key);
     const updatedData = updateFn(currentData);
-    cacheService.set(key, updatedData);
+    tenantCache.set(key, updatedData);
     if (mountedRef.current) {
       setData(updatedData);
       setLastUpdated(Date.now());
@@ -136,7 +142,9 @@ export const useCacheManual = <T>(key: string) => {
     setError(null);
 
     try {
-      const result = await cacheService.get<T>(key);
+      const barbershopId = localStorage.getItem('barbershopId') || 'default';
+      const tenantCache = createTenantAwareCache(barbershopId);
+      const result = await tenantCache.get<T>(key);
       setData(result);
       return result;
     } catch (err) {
@@ -153,7 +161,9 @@ export const useCacheManual = <T>(key: string) => {
     setError(null);
 
     try {
-      await cacheService.set(key, value, options);
+      const barbershopId = localStorage.getItem('barbershopId') || 'default';
+      const tenantCache = createTenantAwareCache(barbershopId);
+      await tenantCache.set(key, value, options);
       setData(value);
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
@@ -169,7 +179,9 @@ export const useCacheManual = <T>(key: string) => {
     setError(null);
 
     try {
-      cacheService.remove(key);
+      const barbershopId = localStorage.getItem('barbershopId') || 'default';
+      const tenantCache = createTenantAwareCache(barbershopId);
+      tenantCache.remove(key);
       setData(null);
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
@@ -181,7 +193,9 @@ export const useCacheManual = <T>(key: string) => {
   }, [key]);
 
   const exists = useCallback(async () => {
-    return await cacheService.has(key);
+    const barbershopId = localStorage.getItem('barbershopId') || 'default';
+    const tenantCache = createTenantAwareCache(barbershopId);
+    return await tenantCache.has(key);
   }, [key]);
 
   return {
@@ -224,12 +238,16 @@ export const useCacheStats = () => {
   }, []);
 
   const clearCache = useCallback(async () => {
-    await cacheService.clear();
+    const barbershopId = localStorage.getItem('barbershopId') || 'default';
+    const tenantCache = createTenantAwareCache(barbershopId);
+    await tenantCache.clear();
     await refreshStats();
   }, [refreshStats]);
 
   const forceCleanup = useCallback(async () => {
-    await cacheService.forceCleanup();
+    const barbershopId = localStorage.getItem('barbershopId') || 'default';
+    const tenantCache = createTenantAwareCache(barbershopId);
+    await tenantCache.forceCleanup();
     await refreshStats();
   }, [refreshStats]);
 

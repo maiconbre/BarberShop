@@ -16,24 +16,52 @@ import {
   ArrowLeft,
   ArrowRight,
   User,
-  BarChart3
+  Crown
 } from 'lucide-react';
 import Notifications from '../ui/Notifications';
 import { usePageConfig } from '../../hooks/usePageConfig';
+import { useBarbershopNavigation } from '../../hooks/useBarbershopNavigation';
+import { usePlan } from '../../hooks/usePlan';
+import { EmailVerificationBanner } from '../ui/EmailVerificationBanner';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
   icon?: React.ReactNode;
+  hideMobileHeader?: boolean;
+  headerRight?: React.ReactNode;
 }
 
-const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon }) => {
-  const { getCurrentUser, logout } = useAuth();
-  const currentUser = getCurrentUser();
+const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtitle, icon, hideMobileHeader = false, headerRight }) => {
+  const { user, logout: authLogout } = useAuth();
+  const currentUser = user;
   const navigate = useNavigate();
+
+  // Wrapper for logout to match previous interface
+  const logout = async () => {
+    await authLogout();
+    navigate('/login');
+  };
   const pageConfig = usePageConfig();
-  
+  const { goToPage, currentSlug } = useBarbershopNavigation();
+  const { planInfo, usage } = usePlan();
+  const { barbershopData } = useTenant();
+
+  // Use props if provided, otherwise use dynamic page config
+  // ... imports and previous code ...
+
+  // Helper to safely get user name
+  const getUserName = () => {
+    if (!currentUser) return 'Usuário';
+    const userAny = currentUser as any;
+    return userAny.user_metadata?.name || userAny.name || 'Usuário';
+  };
+
+  const userName = getUserName();
+  const barbershopName = barbershopData?.name || 'BarberShop';
+
   // Use props if provided, otherwise use dynamic page config
   const pageTitle = title || pageConfig.title;
   const pageSubtitle = subtitle || pageConfig.subtitle;
@@ -66,13 +94,29 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    // Navigation is already handled in the logout wrapper
   };
 
   const navigateToPage = (path: string) => {
-    navigate(path);
+    if (currentSlug) {
+      goToPage(path);
+    } else {
+      navigate(path);
+    }
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const navigateToSite = () => {
+    if (currentSlug) {
+      // Navegar para a área pública da barbearia
+      navigate(`/${currentSlug}`);
+    } else {
+      navigate('/');
+    }
     if (isMobile) {
       setIsSidebarOpen(false);
     }
@@ -123,7 +167,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       </div>
 
       {/* Mobile Header */}
-      {isMobile && (
+      {isMobile && !hideMobileHeader && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-[#0D121E]/95 glass-effect border-b border-[#F0B35B]/20">
           <div className="flex items-center justify-between p-3">
             <div className="flex items-center gap-2">
@@ -132,7 +176,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   {React.cloneElement(pageIcon as React.ReactElement, { className: "w-3 h-3" })}
                 </div>
               )}
-              <h1 className="text-lg font-semibold text-white">Olá, {(currentUser as { name?: string })?.name || 'Usuário'}!</h1>
+              <h1 className="text-lg font-semibold text-white">Olá, {userName}!</h1>
             </div>
             <div className="flex items-center gap-2">
               <div className="p-1 rounded-full bg-[#1A1F2E] text-white hover:bg-[#252B3B] transition-colors duration-200 flex-shrink-0 border border-[#F0B35B]/30">
@@ -179,13 +223,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 x: isMobile ? 288 : 0
               }}
               transition={{ duration: 0.15, ease: "easeInOut" }}
-              className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${
-                isMobile
-                  ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
-                  : isSidebarCollapsed
-                    ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
-                    : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
-              } transition-all duration-150`}
+              className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${isMobile
+                ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
+                : isSidebarCollapsed
+                  ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
+                  : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
+                } transition-all duration-150`}
             >
               {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
@@ -197,7 +240,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                       </div>
                       <div>
                         <h2 className="text-white font-semibold text-base">Perfil</h2>
-                        <p className="text-gray-300 text-sm">{(currentUser as { name?: string })?.name || 'Usuário'}</p>
+                        <p className="text-gray-300 text-sm">{userName}</p>
                       </div>
                     </div>
                     <button
@@ -210,13 +253,13 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 ) : (
                   <div className="flex items-center justify-between">
                     {!isSidebarCollapsed && (
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-8 h-8 bg-[#F0B35B] rounded-lg flex items-center justify-center shadow-lg shrink-0">
                           <Scissors className="w-4 h-4 text-black" />
                         </div>
-                        <div>
-                          <h2 className="text-white font-semibold text-sm">BarberShop</h2>
-                          <p className="text-gray-400 text-xs">{(currentUser as { name?: string })?.name || 'Usuário'}</p>
+                        <div className="min-w-0">
+                          <h2 className="text-white font-semibold text-sm truncate" title={barbershopName}>{barbershopName}</h2>
+                          <p className="text-gray-400 text-xs truncate" title={userName}>{userName}</p>
                         </div>
                       </div>
                     )}
@@ -248,7 +291,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   )}
 
                   <button
-                    onClick={() => navigateToPage('/dashboard')}
+                    onClick={() => navigateToPage('dashboard')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Dashboard' : ''}
                   >
@@ -257,16 +300,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('/analytics')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
-                    title={isSidebarCollapsed ? 'Analytics' : ''}
-                  >
-                    <BarChart3 className="w-5 h-5 flex-shrink-0" />
-                    {!isSidebarCollapsed && <span className="text-sm font-medium">Analytics</span>}
-                  </button>
-
-                  <button
-                    onClick={() => navigateToPage('/agenda')}
+                    onClick={() => navigateToPage('agenda')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-100 text-white hover:bg-[#252B3B] hover:shadow-md`}
                     title={isSidebarCollapsed ? 'Agenda' : ''}
                   >
@@ -282,7 +316,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   )}
 
                   <button
-                    onClick={() => navigateToPage('/servicos')}
+                    onClick={() => navigateToPage('servicos')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Serviços' : ''}
                   >
@@ -290,19 +324,17 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     {!isSidebarCollapsed && <span className="text-sm">Serviços</span>}
                   </button>
 
-                  {(currentUser as { role?: string })?.role === 'admin' && (
-                    <button
-                      onClick={() => navigateToPage('/register')}
-                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
-                      title={isSidebarCollapsed ? 'Barbeiros' : ''}
-                    >
-                      <UserCog className="w-5 h-5 flex-shrink-0" />
-                      {!isSidebarCollapsed && <span className="text-sm">Barbeiros</span>}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigateToPage('equipe')}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
+                    title={isSidebarCollapsed ? 'Equipe' : ''}
+                  >
+                    <UserCog className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Equipe</span>}
+                  </button>
 
                   <button
-                    onClick={() => navigateToPage('/gerenciar-horarios')}
+                    onClick={() => navigateToPage('gerenciar-horarios')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Horários' : ''}
                   >
@@ -311,7 +343,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('/gerenciar-comentarios')}
+                    onClick={() => navigateToPage('gerenciar-comentarios')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Comentários' : ''}
                   >
@@ -326,8 +358,34 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Configurações</p>
                   )}
 
+                  {/* Upgrade Button - Show only for free plan */}
+                  {planInfo?.planType === 'free' && (usage?.upgradeRecommended || usage?.upgradeRequired) && (
+                    <button
+                      onClick={() => navigateToPage('upgrade')}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105 ${usage?.upgradeRequired
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg'
+                        : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg'
+                        }`}
+                      title={isSidebarCollapsed ? (usage?.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade para Pro') : ''}
+                    >
+                      <Crown className="w-5 h-5 flex-shrink-0" />
+                      {!isSidebarCollapsed && (
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-sm font-medium">
+                            {usage?.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade para Pro'}
+                          </span>
+                          {usage?.upgradeRequired && (
+                            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                              !
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  )}
+
                   <button
-                    onClick={() => navigateToPage('/trocar-senha')}
+                    onClick={() => navigateToPage('trocar-senha')}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Alterar Senha' : ''}
                   >
@@ -336,12 +394,22 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('/')}
+                    onClick={navigateToSite}
                     className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
                     title={isSidebarCollapsed ? 'Ir para Site' : ''}
                   >
                     <Home className="w-5 h-5 flex-shrink-0" />
                     {!isSidebarCollapsed && <span className="text-sm">Ir para Site</span>}
+                  </button>
+
+                  <button
+                    // Removido: onClick={() => setIsFeedbackOpen(true)}
+                    onClick={() => {/* TODO: Implementar feedback com Supabase */ }}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
+                    title={isSidebarCollapsed ? 'Enviar Feedback' : ''}
+                  >
+                    <MessageSquare className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarCollapsed && <span className="text-sm">Enviar Feedback</span>}
                   </button>
                 </div>
               </div>
@@ -354,9 +422,12 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                       <UserCog className="w-4 h-4 text-black" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
-                        {(currentUser as { name?: string })?.name || 'Usuário'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-white truncate max-w-[100px]" title={userName}>
+                          {userName}
+                        </p>
+                        <EmailVerificationBanner variant="sidebar" />
+                      </div>
                       <p className="text-xs text-gray-400">Barbeiro</p>
                     </div>
                   </div>
@@ -380,34 +451,48 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={`relative z-10 transition-all duration-300 ${
-        isMobile
-          ? 'pt-16'
-          : isSidebarCollapsed
-            ? 'ml-16'
-            : 'ml-64'
-      }`}>
-        <div className="w-full">
-          {/* Page Header */}
-          {(pageTitle || pageSubtitle) && (
-            <div className={`mb-8 ${isMobile ? 'mt-4' : 'mt-6'}`}>
-              <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 border border-[#F0B35B]/20">
+      <main className={`relative z-10 transition-all duration-300 ${isMobile
+        ? (hideMobileHeader ? '' : 'pt-16')
+        : isSidebarCollapsed
+          ? 'ml-16'
+          : 'ml-64'
+        }`}>
+
+        {/* Unified Page Header - Top Bar with Background */}
+        {(pageTitle || pageSubtitle || headerRight) && (
+          <div className="w-full px-4 md:px-8 py-3 md:py-4 bg-[#1A1F2E]/95 backdrop-blur-md border-b border-[#F0B35B]/10 sticky top-0 z-20">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left: Title & Icon */}
+              <div className="flex items-center gap-3 min-w-0">
                 {pageIcon && (
-                  <div className="bg-[#F0B35B]/20 p-2 rounded-full flex-shrink-0">
+                  <div className="bg-[#F0B35B]/10 p-2 rounded-lg flex-shrink-0">
                     {React.cloneElement(pageIcon as React.ReactElement, { className: "w-5 h-5 text-[#F0B35B]" })}
                   </div>
                 )}
-                <div>
-                  {pageSubtitle && (
-                    <p className="text-sm text-gray-400">{pageSubtitle}</p>
+                <div className="min-w-0">
+                  {pageTitle && (
+                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
+                      {pageTitle}
+                    </h1>
                   )}
-                  <p className="text-white font-medium text-lg">{pageTitle}</p>
+                  {pageSubtitle && (
+                    <p className="text-xs sm:text-sm text-gray-400 truncate">{pageSubtitle}</p>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Page Content */}
+              {/* Right: Custom Actions */}
+              {headerRight && (
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {headerRight}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Page Content */}
+        <div className="w-full p-4 md:px-8 md:pb-8">
           <div className="relative">
             {children}
           </div>

@@ -17,6 +17,7 @@ export interface Service {
   duration: number; // in minutes
   price: number;
   isActive: boolean;
+  barbers?: string[]; // Optional array of barber IDs or names associated with the service
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +32,16 @@ export interface Barber {
   workingHours: WorkingHours;
   createdAt: Date;
   updatedAt: Date;
+  // UI helper properties
+  profileImage?: string;
+  rating?: number;
+  experience?: string;
+  totalAppointments?: number;
+  bio?: string;
+  photo?: string;
+  avatar?: string;
+  whatsapp?: string;
+  pix?: string;
 }
 
 export interface WorkingHours {
@@ -60,15 +71,26 @@ export interface Appointment {
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
+  
+  // Additional properties for compatibility with existing components
+  time?: string; // Alias for startTime
+  barberName?: string; // Barber name for display
+  
+  // Optional backend-specific data for compatibility
+  _backendData?: {
+    clientName: string;
+    serviceName: string;
+    barberName: string;
+    price: number;
+    wppclient: string;
+  };
 }
 
 export type AppointmentStatus = 
-  | 'scheduled'
+  | 'pending'
   | 'confirmed'
-  | 'in_progress'
   | 'completed'
-  | 'cancelled'
-  | 'no_show';
+  | 'cancelled';
 
 export interface Comment {
   id: string;

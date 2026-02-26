@@ -6,7 +6,7 @@ interface Service {
   id: string;
   name: string;
   price: number;
-  barbers: string[];
+  barbers?: string[];
   selected?: boolean;
 }
 

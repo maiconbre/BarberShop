@@ -2,22 +2,29 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, Check, X, ChevronLeft, ChevronRight, Loader2, MessageCircle } from 'lucide-react';
 import ConfirmationModal from '../components/ui/ConfirmationModal';
-import { useComments, useCommentLoading, useCommentError, useCommentStore } from '@/stores';
+import { useComments } from '../hooks/useComments';
+import { useTenant } from '../contexts/TenantContext';
 import type { PublicComment } from '@/types';
 import StandardLayout from '../components/layout/StandardLayout';
 
 const CommentManagementPage: React.FC = () => {
   
-  // Store hooks
+  // Multi-tenant hooks
   const [activeTab, setActiveTab] = useState<'approved' | 'rejected' | 'pending'>('pending');
-  const comments = useComments(activeTab);
-  const isLoading = useCommentLoading();
-  const error = useCommentError();
-  // Get actions directly from store to prevent re-render issues
-  const fetchComments = useCommentStore.getState().fetchComments;
-  const updateCommentStatus = useCommentStore.getState().updateCommentStatus;
-  const deleteComment = useCommentStore.getState().deleteComment;
-  const clearError = useCommentStore.getState().clearError;
+  const { 
+    comments, 
+    loadComments, 
+    updateCommentStatus, 
+    deleteComment, 
+    loading: isLoading, 
+    error 
+  } = useComments();
+  const { isValidTenant } = useTenant();
+  
+  // Filter comments by active tab - memoized to prevent dependency issues
+  const filteredComments = useMemo(() => {
+    return comments?.filter(comment => comment.status === activeTab) || [];
+  }, [comments, activeTab]);
   
   // Local state
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,29 +39,28 @@ const CommentManagementPage: React.FC = () => {
 
   // Efeito para carregar comentários quando a tab mudar
   useEffect(() => {
-    const loadComments = async () => {
+    const loadCommentsData = async () => {
+      if (!isValidTenant) {
+        console.warn('CommentManagementPage: Tenant inválido, não carregando comentários');
+        return;
+      }
+      
       try {
-        await fetchComments(activeTab);
+        await loadComments();
       } catch (error) {
         console.error('Erro ao carregar comentários:', error);
       }
     };
     
-    loadComments();
+    loadCommentsData();
     setCurrentPage(1); // Reset para a primeira página ao mudar de tab
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]); // fetchComments é estável do Zustand store
+  }, [activeTab, isValidTenant, loadComments, setCurrentPage]);
 
   // Memoized total de páginas
   const totalPages = useMemo(() => {
-    if (!comments || !Array.isArray(comments)) return 0;
-    return Math.max(1, Math.ceil(comments.length / commentsPerPage));
-  }, [comments, commentsPerPage]);
-  // Efeito para limpar erro quando mudar de tab
-  useEffect(() => {
-    clearError();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]); // clearError é estável do Zustand store
+    if (!filteredComments || !Array.isArray(filteredComments)) return 0;
+    return Math.max(1, Math.ceil(filteredComments.length / commentsPerPage));
+  }, [filteredComments, commentsPerPage]);
 
   // Função para iniciar o processo de confirmação
   const initiateCommentAction = (commentId: string, action: 'approve' | 'reject' | 'delete') => {
@@ -78,8 +84,8 @@ const CommentManagementPage: React.FC = () => {
       }
 
       // Verificar se precisa ajustar a página atual
-      if (Array.isArray(comments) && comments.length > 0) {
-        const remainingComments = comments.filter(comment => comment.id !== commentId);
+      if (Array.isArray(filteredComments) && filteredComments.length > 0) {
+        const remainingComments = filteredComments.filter(comment => comment.id !== commentId);
         const displayedComments = remainingComments.slice(
           (currentPage - 1) * commentsPerPage,
           currentPage * commentsPerPage
@@ -102,12 +108,26 @@ const CommentManagementPage: React.FC = () => {
 
   // Comentários paginados memoizados
   const paginatedComments = useMemo(() => {
-    if (!Array.isArray(comments) || comments.length === 0) return [];
-    return comments.slice(
+    if (!Array.isArray(filteredComments) || filteredComments.length === 0) return [];
+    return filteredComments.slice(
       (currentPage - 1) * commentsPerPage,
       currentPage * commentsPerPage
     );
-  }, [comments, currentPage, commentsPerPage]);
+  }, [filteredComments, currentPage, commentsPerPage]);
+
+  if (!isValidTenant) {
+    return (
+      <StandardLayout 
+        title="Comentários" 
+        subtitle="Gerencie os comentários dos clientes que serão exibidos no seu site"
+        icon={<MessageCircle className="w-6 h-6" />}
+      >
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-400">Contexto de tenant inválido</p>
+        </div>
+      </StandardLayout>
+    );
+  }
 
   return (
     <StandardLayout 
@@ -165,9 +185,9 @@ const CommentManagementPage: React.FC = () => {
             </div>
           ) : error ? (
             <div className="p-6 bg-red-500/10 text-red-400 rounded-lg text-center">
-              <p>{error}</p>
+              <p>{error?.toString()}</p>
               <button 
-                onClick={() => fetchComments(activeTab, true)}
+                onClick={() => loadComments()}
                 className="mt-3 px-4 py-2 bg-[#F0B35B] text-black rounded-lg hover:bg-[#F0B35B]/80 transition-colors"
               >
                 Tentar novamente

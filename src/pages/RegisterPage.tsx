@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Trash2, Edit, UserCog, Upload, X, Camera, Image as ImageIcon, CheckCircle, AlertCircle, Users, Phone, CreditCard, UserPlus, Eye } from 'lucide-react';
+import { Loader2, Trash2, Edit, UserCog, Upload, X, Camera, Image as ImageIcon, CheckCircle, AlertCircle, Users, Phone, CreditCard, UserPlus, Eye, Crown } from 'lucide-react';
 import EditConfirmationModal from '../components/ui/EditConfirmationModal';
-import { useBarberList, useFetchBarbers, useCreateBarber, useUpdateBarber, useDeleteBarber, useClearBarberError, useBarberError, type Barber } from '../stores/barberStore';
-import { CURRENT_ENV } from '../config/environmentConfig';
+import { useBarbers } from '../hooks/useBarbers';
+import { useTenant } from '../contexts/TenantContext';
+import { usePlanLimits } from '../hooks/usePlanLimits';
+import { usePlan } from '../hooks/usePlan';
+import type { Barber } from '../types';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
 
@@ -20,7 +23,6 @@ interface QRCodeUploadResponse {
   filename: string;
 }
 
-
 interface QRCodeFile {
   name: string;
   path: string;
@@ -29,13 +31,6 @@ interface QRCodeFile {
 interface QRCodeListResponse {
   success: boolean;
   files: QRCodeFile[];
-}
-
-interface UpdateBarberData {
-  name: string;
-  whatsapp: string;
-  pix: string;
-  password: string;
 }
 
 interface DeleteConfirmationModalProps {
@@ -112,22 +107,11 @@ const PasswordConfirmationModal: React.FC<PasswordConfirmationModalProps> = ({ i
     setIsLoading(true);
     try {
       // Verificar a senha do administrador
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/auth/verify-admin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password })
-      });
-
-      if (!response.ok) {
-        throw new Error('Senha incorreta');
-      }
-
-      onConfirm(password);
+      // TODO: Implementar verificação de admin com Supabase
+      throw new Error('Verificação de admin deve ser implementada com Supabase');
     } catch (err) {
       setModalError(err instanceof Error ? err.message : 'Senha incorreta');
-      setIsLoading(false); // Importante: parar o loading em caso de erro
+      setIsLoading(false);
     }
   };
 
@@ -230,7 +214,6 @@ const RegisterPage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadSuccess, setImageUploadSuccess] = useState(false);
-  // Sempre usar a melhor qualidade possível
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -240,29 +223,38 @@ const RegisterPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<Barber | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
+  const [showForm, setShowForm] = useState(false);
 
-  // Use barber store
-  const barbers = useBarberList();
-  const fetchBarbers = useFetchBarbers();
-  const createBarber = useCreateBarber();
-  const updateBarber = useUpdateBarber();
-  const deleteBarber = useDeleteBarber();
-  const clearError = useClearBarberError();
-  const barberError = useBarberError();
+  // Use multi-tenant barber hooks
+  const {
+    barbers,
+    loadBarbers,
+    createBarber,
+    updateBarber,
+    deleteBarber,
+    error: barbersError,
+  } = useBarbers();
+  const { isValidTenant, barbershopData } = useTenant();
 
-  useEffect(() => {
-    fetchBarbers();
-  }, [fetchBarbers]); // Add fetchBarbers to dependency array
+  // Filtrar barbeiros - mostrar todos os barbeiros da barbearia
+  const filteredBarbers = barbers || [];
 
+  // Plan limits hooks
+  const { checkAndExecute, lastError: planError, clearError: clearPlanError } = usePlanLimits();
+  const { usage, canCreateBarber, refreshUsage } = usePlan();
+
+  // Load barbers and plan usage on component mount
   useEffect(() => {
-    return () => {
-      clearError();
-    };
-  }, [clearError]); // Add clearError to dependency array
-  // Mostrar erros do store como toast (simplificado)
+    if (isValidTenant) {
+      loadBarbers();
+      refreshUsage();
+    }
+  }, [loadBarbers, isValidTenant, refreshUsage]);
+
+  // Mostrar erros do hook como toast
   useEffect(() => {
-    if (barberError) {
-      toast.error(barberError, {
+    if (barbersError) {
+      toast.error(barbersError.message, {
         style: {
           fontSize: '12px',
           fontWeight: '500',
@@ -273,16 +265,10 @@ const RegisterPage: React.FC = () => {
           border: '1px solid #FECACA'
         }
       });
-      // Limpar erro após mostrar o toast
-      const timeoutId = setTimeout(() => {
-        clearError();
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
     }
-  }, [barberError]);
+  }, [barbersError]);
 
-  // Função para converter imagem para SVG com máxima qualidade otimizada para mobile
+  // Função para converter imagem para SVG
   const convertImageToSVG = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -290,35 +276,25 @@ const RegisterPage: React.FC = () => {
       const ctx = canvas.getContext('2d');
 
       img.onload = () => {
-        // Configuração otimizada para QR Code
-        const size = 250; // Tamanho otimizado para QR Code
-        const quality = 0.8; // Qualidade balanceada para carregamento rápido
-        const format = 'image/png'; // PNG para preservar qualidade
-        
+        const size = 250;
+        const quality = 0.8;
+        const format = 'image/png';
+
         canvas.width = size;
         canvas.height = size;
 
-        // Melhorar a qualidade do redimensionamento
         if (ctx) {
-          // Configurar suavização para melhor qualidade
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
-          
-          // Desenhar a imagem no canvas com melhor qualidade
           ctx.drawImage(img, 0, 0, size, size);
         }
 
-        // Converter para base64 com máxima qualidade
         const dataURL = canvas.toDataURL(format, quality);
-
-        // Adicionar timestamp único para evitar cache
         const timestamp = Date.now();
         const uniqueId = Math.random().toString(36).substr(2, 9);
-        
-        // Criar SVG com a imagem embutida, timestamp e ID único para evitar cache
+
         const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" data-timestamp="${timestamp}" data-id="${uniqueId}"><image href="${dataURL}" width="${size}" height="${size}"/></svg>`;
 
-        // Log do tamanho para debug
         const svgSize = new Blob([svgContent]).size;
         console.log(`SVG gerado - QR Code otimizado, Tamanho: ${size}px, Arquivo: ${(svgSize / 1024).toFixed(1)}KB, ID: ${uniqueId}`);
 
@@ -333,11 +309,10 @@ const RegisterPage: React.FC = () => {
   // Função para salvar a imagem como SVG
   const handleImageUpload = async (username: string) => {
     if (!selectedImage) return;
-    
-    // Se o nome de usuário estiver vazio, usamos um nome temporário
-    const uploadFilename = username && username.trim() 
+
+    const uploadFilename = username && username.trim()
       ? username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
-      : `temp_${Date.now()}`; // Nome temporário baseado no timestamp atual
+      : `temp_${Date.now()}`;
 
     setIsUploadingImage(true);
     setImageUploadSuccess(false);
@@ -345,31 +320,12 @@ const RegisterPage: React.FC = () => {
     try {
       const svgContent = await convertImageToSVG(selectedImage);
 
-      // Enviar SVG para o backend
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/qr-codes/upload`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: uploadFilename,
-          svgContent: svgContent
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json() as { message?: string };
-        throw new Error(errorData.message || 'Erro ao salvar QR Code');
-      }
-
-      await response.json() as QRCodeUploadResponse;
-      setImageUploadSuccess(true);
+      // TODO: Implementar upload de QR code com Supabase Storage
+      throw new Error('Upload deve ser implementado com Supabase Storage');
 
       // Se estamos em modo de edição, forçar atualização do preview no modal
       if (isEditMode && selectedUser) {
-        // Forçar re-render do modal QR code se estiver aberto
         if (isQRModalOpen) {
-          // Fechar e reabrir o modal para forçar atualização
           setIsQRModalOpen(false);
           setTimeout(() => {
             setIsQRModalOpen(true);
@@ -467,35 +423,31 @@ const RegisterPage: React.FC = () => {
       setSelectedImage(file);
       setImageUploadSuccess(false);
 
-      // Criar preview com timestamp único para evitar cache
+      // Criar preview
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        // Adicionar timestamp único ao preview para forçar atualização
         const timestamp = Date.now();
         const uniquePreview = `${result}#t=${timestamp}`;
         setImagePreview(uniquePreview);
       };
       reader.readAsDataURL(file);
 
-      // Limpar o input para permitir selecionar o mesmo arquivo novamente
+      // Limpar o input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      
+
       // Iniciar upload automático
-      // Pequeno delay para garantir que o preview seja exibido primeiro
       setTimeout(() => {
-        // Se estiver em modo de criação e o nome de usuário já foi preenchido
         if (!isEditMode && formData.username && formData.username.trim()) {
           handleImageUpload(formData.username.trim());
-        }
-        // Se estiver em modo de edição e temos um usuário selecionado com username
-        else if (isEditMode && selectedUser && selectedUser.username && selectedUser.username.trim()) {
-          handleImageUpload(selectedUser.username.trim());
-        }
-        // Se não tiver nome de usuário, mostrar mensagem para preencher o nome primeiro
-        else if (!isEditMode) {
+        } else if (isEditMode && selectedUser && selectedUser.email) {
+          const username = selectedUser.email;
+          if (username.trim()) {
+            handleImageUpload(username.trim());
+          }
+        } else if (!isEditMode) {
           toast('Preencha o nome de usuário para iniciar o upload da imagem', {
             style: {
               fontSize: '14px',
@@ -541,8 +493,7 @@ const RegisterPage: React.FC = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    
-    // Forçar limpeza completa de cache
+
     setTimeout(() => {
       setImagePreview(null);
       setSelectedImage(null);
@@ -552,130 +503,126 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Se estiver em modo de edição, abrir modal de confirmação de senha do admin
+    // Se estiver em modo de edição, abrir modal de confirmação
     if (isEditMode && selectedUser) {
       setIsPasswordModalOpen(true);
       return;
     }
 
-    // Caso contrário, continuar com o fluxo normal de criação
+    // Verificar se o contexto de tenant é válido
+    if (!isValidTenant) {
+      setError('Contexto de barbearia não encontrado. Por favor, recarregue a página.');
+      return;
+    }
+
+    // Validações básicas
+    if (!formData.name.trim()) {
+      setError('Nome é obrigatório');
+      return;
+    }
+
+    if (!formData.username.trim()) {
+      setError('Email (Usuário) é obrigatório');
+      return;
+    }
+
+    // Removida validação de senha pois o cadastro é via convite
+
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      // Validações
-      const whatsappRegex = /^\d{10,11}$/;
-      let cleanWhatsapp = formData.whatsapp.replace(/\D/g, '');
+      // Verificar limites do plano antes de criar
+      const canCreate = await checkAndExecute('barber', async () => {
+        const newBarber = await createBarber({
+          name: formData.name.trim(),
+          email: formData.username.trim(),
+          // password: formData.password, // Removido
+          whatsapp: formData.whatsapp.trim() || undefined,
+          pix: formData.pix.trim() || undefined,
+          specialties: [], // Default empty
+          isActive: true,  // Default true
+          workingHours: {  // Default working hours
+            monday: [{ start: '09:00', end: '18:00' }],
+            tuesday: [{ start: '09:00', end: '18:00' }],
+            wednesday: [{ start: '09:00', end: '18:00' }],
+            thursday: [{ start: '09:00', end: '18:00' }],
+            friday: [{ start: '09:00', end: '18:00' }],
+            saturday: [{ start: '09:00', end: '14:00' }],
+            sunday: []
+          }
+        });
 
-      // Remove o prefixo 55 se já existir
-      if (cleanWhatsapp.startsWith('55')) {
-        cleanWhatsapp = cleanWhatsapp.substring(2);
-      }
-
-      if (!whatsappRegex.test(cleanWhatsapp)) {
-        setError('O número do WhatsApp deve conter entre 10 e 11 dígitos (DDD + número)');
-        setIsLoading(false);
-        return;
-      }
-
-      // Adiciona o prefixo 55 ao WhatsApp
-      cleanWhatsapp = '55' + cleanWhatsapp;
-
-      if (formData.pix.trim().length < 3) {
-        setError('Por favor, insira uma chave PIX válida');
-        setIsLoading(false);
-        return;
-      }
-      
-      // Verificar se a imagem foi carregada com sucesso quando uma imagem foi selecionada
-      if (selectedImage && !imageUploadSuccess) {
-        setError('Aguarde o upload da imagem ser concluído antes de cadastrar');
-        setIsLoading(false);
-        return;
-      }
-
-      // Criar novo barbeiro usando o store
-      const newBarber = {
-        name: formData.name.trim(),
-        username: formData.username.trim(),
-        password: formData.password,
-        whatsapp: cleanWhatsapp,
-        pix: formData.pix.trim(),
-        role: 'barber'
-      };
-      await createBarber(newBarber);
-
-      // Mostrar mensagem de sucesso
-      toast.success('Barbeiro cadastrado com sucesso!', {
-        style: {
-          fontSize: '12px',
-          fontWeight: '500',
-          borderRadius: '12px',
-          padding: '16px',
-          backgroundColor: '#F0FDF4',
-          color: '#16A34A',
-          border: '1px solid #BBF7D0'
-        }
+        return newBarber;
       });
 
-      // Limpar o formulário
-      resetFormStates();
-    } catch (err: unknown) {
-      console.error('Error during operation:', err);
-      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
+      if (canCreate) {
+        setSuccess('Barbeiro cadastrado com sucesso!');
+        resetFormStates();
+        setShowForm(false);
+
+        // Recarregar dados
+        await loadBarbers();
+        await refreshUsage();
+
+        toast.success(
+          <div>
+            <b>Barbeiro cadastrado!</b>
+            <p className="text-sm mt-1">Peça para ele se cadastrar no sistema com o email: <u>{formData.username}</u> para acessar o painel.</p>
+          </div>,
+          {
+            duration: 6000,
+            style: {
+              fontSize: '14px',
+              borderRadius: '12px',
+              padding: '16px',
+              backgroundColor: '#F0FDF4',
+              color: '#16A34A',
+              border: '1px solid #BBF7D0'
+            }
+          }
+        );
+      }
+    } catch (err) {
+      console.error('Erro ao cadastrar barbeiro:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao cadastrar barbeiro';
+      setError(errorMessage);
+
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleConfirmUpdate = async (password: string) => {
+  // Função para confirmar edição com senha
+  const handleEditConfirmation = async (password: string) => {
+    if (!selectedUser) return;
+
     setIsLoading(true);
-
     try {
-      // Validações
-      const whatsappRegex = /^\d{10,11}$/;
-      let cleanWhatsapp = formData.whatsapp.replace(/\D/g, '');
-
-      // Remove o prefixo 55 se já existir
-      if (cleanWhatsapp.startsWith('55')) {
-        cleanWhatsapp = cleanWhatsapp.substring(2);
-      }
-
-      if (!whatsappRegex.test(cleanWhatsapp)) {
-        setError('O número do WhatsApp deve conter entre 10 e 11 dígitos (DDD + número)');
-        return;
-      }
-
-      // Adiciona o prefixo 55 ao WhatsApp
-      cleanWhatsapp = '55' + cleanWhatsapp;
-
-      if (formData.pix.trim().length < 3) {
-        setError('Por favor, insira uma chave PIX válida');
-        return;
-      }
-
-      // Atualizar barbeiro existente usando o store
-      const updateData: UpdateBarberData = {
+      await updateBarber(selectedUser.id, {
         name: formData.name.trim(),
-        whatsapp: cleanWhatsapp,
-        pix: formData.pix.trim(),
-        password: password // Usar a senha fornecida no modal
-      };
+        email: formData.username.trim(),
+        whatsapp: formData.whatsapp.trim() || undefined,
+        pix: formData.pix.trim() || undefined,
+        ...(formData.password.trim() && { password: formData.password })
+      });
 
-      if (!selectedUser?.id) {
-        throw new Error('Usuário não selecionado');
-      }
-      await updateBarber(selectedUser.id, updateData);
+      setEditSuccess('Barbeiro atualizado com sucesso!');
+      setIsPasswordModalOpen(false);
+      resetFormStates();
+      setIsEditMode(false);
+      setSelectedUser(null);
+      setShowForm(false);
 
-      // Processar e salvar a imagem se fornecida durante a edição
-      if (selectedImage && selectedUser.username) {
-        await handleImageUpload(selectedUser.username);
-      }
+      // Recarregar dados
+      await loadBarbers();
 
       toast.success('Barbeiro atualizado com sucesso!', {
         style: {
-          fontSize: '12px',
-          fontWeight: '500',
+          fontSize: '14px',
+          fontWeight: '600',
           borderRadius: '12px',
           padding: '16px',
           backgroundColor: '#F0FDF4',
@@ -683,773 +630,571 @@ const RegisterPage: React.FC = () => {
           border: '1px solid #BBF7D0'
         }
       });
+    } catch (err) {
+      console.error('Erro ao atualizar barbeiro:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao atualizar barbeiro';
+      setError(errorMessage);
 
-      // Reset todos os estados
-      setIsEditMode(false);
-      setIsPasswordModalOpen(false);
-      setSelectedUser(null);
-      resetFormStates();
-
-      // A lista será atualizada automaticamente pelo store
-
-    } catch (err: unknown) {
-      console.error('Error during operation:', err);
-      setError(err instanceof Error ? err.message : 'Erro inesperado. Por favor, tente novamente.');
+      toast.error(errorMessage, {
+        style: {
+          fontSize: '14px',
+          fontWeight: '600',
+          borderRadius: '12px',
+          padding: '16px',
+          backgroundColor: '#FEF2F2',
+          color: '#DC2626',
+          border: '1px solid #FECACA'
+        }
+      });
     } finally {
-      setIsLoading(false); // Garantir que o loading seja desativado em qualquer cenário
+      setIsLoading(false);
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    setSelectedUser({ id: userId, name: userName } as Barber);
-    setIsDeleteModalOpen(true);
+  // Função para deletar barbeiro
+  const handleDelete = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await deleteBarber(selectedUser.id);
+
+      setIsDeleteModalOpen(false);
+      setSelectedUser(null);
+
+      // Recarregar dados
+      await loadBarbers();
+      await refreshUsage();
+
+      toast.success('Barbeiro excluído com sucesso!', {
+        style: {
+          fontSize: '14px',
+          fontWeight: '600',
+          borderRadius: '12px',
+          padding: '16px',
+          backgroundColor: '#F0FDF4',
+          color: '#16A34A',
+          border: '1px solid #BBF7D0'
+        }
+      });
+    } catch (err) {
+      console.error('Erro ao excluir barbeiro:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao excluir barbeiro';
+
+      toast.error(errorMessage, {
+        style: {
+          fontSize: '14px',
+          fontWeight: '600',
+          borderRadius: '12px',
+          padding: '16px',
+          backgroundColor: '#FEF2F2',
+          color: '#DC2626',
+          border: '1px solid #FECACA'
+        }
+      });
+    }
   };
 
-  const handleEditUser = async (user: Barber) => {
-
-    // Definir o usuário selecionado para uso no modal
-    setSelectedUser(user);
-
-    // Abrir o modal de confirmação primeiro
-    setIsEditConfirmModalOpen(true);
-
-    // Limpar mensagens anteriores
-    setSuccess('');
+  // Função para editar barbeiro
+  const handleEdit = (barber: Barber) => {
+    setSelectedUser(barber);
+    setFormData({
+      name: barber.name || '',
+      username: barber.email || '',
+      password: '',
+      whatsapp: barber.whatsapp || '',
+      pix: barber.pix || ''
+    });
+    setIsEditMode(true);
+    setShowForm(true);
     setError('');
+    setSuccess('');
     setEditSuccess('');
   };
 
-  const prepareEditForm = async (user: Barber) => {
-
-    // Formatar o número de WhatsApp para exibição (remover o prefixo 55)
-    let displayWhatsapp: string = user.whatsapp || '';
-    if (displayWhatsapp.startsWith('55')) {
-      displayWhatsapp = displayWhatsapp.substring(2);
-    }
-
-    // Preencher o formulário com os dados do usuário
-    setFormData({
-      name: user.name,
-      username: user.username || 'string',
-      password: '', // Não preencher a senha por segurança
-      whatsapp: displayWhatsapp,
-      pix: user.pix || 'string'
-    });
-
-    // Limpar estados de imagem com força para evitar cache
-    setSelectedImage(null);
-    setImagePreview(null);
-    setImageUploadSuccess(false);
-    setIsUploadingImage(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    
-    // Forçar limpeza de cache do preview
-    setTimeout(() => {
-      setImagePreview(null);
-    }, 50);
-
-    // Verificar se existe QR code existente para este barbeiro
-    try {
-      // Primeiro tentar obter do Supabase Storage
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/qr-codes/list`);
-      if (response.ok) {
-        const data: QRCodeListResponse = await response.json();
-        if (data.success) {
-          // Procurar o QR code do barbeiro na lista
-          const userQrCode = data.files.find(
-            (file: QRCodeFile) => file.name.toLowerCase() === user?.username?.toLowerCase()
-          );
-          
-          if (userQrCode) {
-            // Se encontrou, usar a URL pública do Supabase
-            setImagePreview(userQrCode.path);
-            setImageUploadSuccess(true);
-          }
-        }
-      }
-    } catch {
-      // Se não existe ou houve erro, não fazer nada (preview permanece null)
-      console.log('QR code não encontrado para o barbeiro:', user.username);
-    }
-
-    // Definir o modo de edição
-    setIsEditMode(true);
-
-    // Fechar o modal de confirmação
-    setIsEditConfirmModalOpen(false);
+  // Função para cancelar edição
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    setSelectedUser(null);
+    resetFormStates();
+    setShowForm(false);
   };
 
-
+  if (!isValidTenant) {
+    return (
+      <StandardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-400">Contexto de tenant inválido</p>
+        </div>
+      </StandardLayout>
+    );
+  }
 
   return (
-    <StandardLayout
-      title="Barbeiros"
-      subtitle="Cadastre e gerencie os barbeiros da sua barbearia"
-      icon={<UserCog className="w-6 h-6" />}
-    >
-      {/* Cabeçalho moderno - Escondido em mobile e tablet */}
-        <div className="hidden lg:block text-center mb-8 animate-fadeIn">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="p-3 bg-[#F0B35B]/20 rounded-full">
-              <Users className="w-8 h-8 text-[#F0B35B]" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Gerenciar Barbeiros</h1>
+    <StandardLayout>
+      <div className="relative z-10 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div className="relative">
+            <div className="absolute -left-4 top-0 w-1 h-full bg-primary rounded-full"></div>
+            <h1 className="text-3xl font-bold text-white mb-2 ml-2">Gerenciar Barbeiros</h1>
+            <p className="text-gray-400 ml-2">Cadastre e gerencie a equipe da sua barbearia</p>
           </div>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Cadastre e gerencie os barbeiros da barbearia com facilidade
-          </p>
-          <div className="mt-4 flex items-center justify-center space-x-6 text-sm text-gray-500">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span>Upload de QR Code</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span>Interface Responsiva</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-4 h-4 text-green-400" />
-              <span>Gestão Completa</span>
-            </div>
-          </div>
+
+          {!showForm && (
+            <button
+              onClick={() => {
+                if (canCreateBarber) {
+                  setShowForm(true);
+                  clearPlanError();
+                } else {
+                  toast.error('Limite de barbeiros atingido para seu plano atual', {
+                    style: {
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      backgroundColor: '#FEF2F2',
+                      color: '#DC2626',
+                      border: '1px solid #FECACA'
+                    }
+                  });
+                }
+              }}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-primary/20 ${canCreateBarber
+                ? 'bg-primary text-black hover:bg-primary/90 hover:scale-105 active:scale-95'
+                : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                }`}
+              disabled={!canCreateBarber}
+            >
+              <UserPlus className="w-5 h-5" />
+              <span>Novo Barbeiro</span>
+            </button>
+          )}
         </div>
-      <DeleteConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={async () => {
-          if (!selectedUser?.id) return;
 
-          try {
-            await deleteBarber(selectedUser.id);
-            toast.success('Barbeiro excluído com sucesso!', {
-              style: {
-                fontSize: '14px',
-                fontWeight: '600',
-                borderRadius: '12px',
-                padding: '16px',
-                backgroundColor: '#F0FDF4',
-                color: '#16A34A',
-                border: '1px solid #BBF7D0'
-              }
-            });
-          } catch {
-            toast.error('Erro ao excluir barbeiro', {
-              style: {
-                fontSize: '14px',
-                fontWeight: '600',
-                borderRadius: '12px',
-                padding: '16px',
-                backgroundColor: '#FEF2F2',
-                color: '#DC2626',
-                border: '1px solid #FECACA'
-              }
-            });
-          } finally {
-            setSelectedUser(null);
-            setIsDeleteModalOpen(false);
-          }
-        }}
-        barberName={selectedUser?.name || ''}
-      />
+        {/* Plan Usage Info */}
+        {usage && (
+          <div className="bg-surface/50 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/10 transition-colors duration-500"></div>
 
-      <EditConfirmationModal
-        isOpen={isEditConfirmModalOpen}
-        onClose={() => setIsEditConfirmModalOpen(false)}
-        onConfirm={async () => {
-          if (selectedUser) {
-            await prepareEditForm(selectedUser);
-          }
-          setIsEditConfirmModalOpen(false);
-        }}
-        barberName={selectedUser?.name || ''}
-      />
-
-      <PasswordConfirmationModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => setIsPasswordModalOpen(false)}
-        onConfirm={handleConfirmUpdate}
-      />
-
-      <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto">
-        <div className="w-full md:flex-1 animate-slideIn">
-          <div className="w-full space-y-6 bg-gradient-to-br from-[#1A1F2E] to-[#252A3A] p-6 sm:p-8 shadow-xl h-fit mx-auto border border-gray-700 card-hover">
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-3 mb-4">
-                <div className="p-2 bg-[#F0B35B]/20 rounded-lg">
-                  {isEditMode ? (
-                    <Edit className="w-6 h-6 text-[#F0B35B]" />
-                  ) : (
-                    <UserPlus className="w-6 h-6 text-[#F0B35B]" />
-                  )}
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Users className="w-6 h-6 text-primary" />
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-                  {isEditMode ? 'Editar Barbeiro' : 'Cadastro'}
-                </h2>
+                <div>
+                  <span className="text-white font-bold text-lg block">Capacidade da Equipe</span>
+                  <span className="text-gray-400 text-sm">Barbeiros ativos: {usage.barbers.current} de {usage.barbers.limit}</span>
+                </div>
               </div>
-              <p className="text-sm text-gray-400">
-                {isEditMode ? 'Edite os dados do barbeiro' : 'Cadastre um novo Barbeiro'}
-              </p>
+              <div className="text-sm font-medium bg-background-paper/50 px-3 py-1 rounded-lg border border-white/5 text-primary">
+                {usage.barbers.limit - usage.barbers.current} vagas restantes
+              </div>
+            </div>
+            <div className="mt-4 w-full bg-background-paper rounded-full h-3 overflow-hidden border border-white/5">
+              <div
+                className="bg-primary h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(212,175,55,0.5)]"
+                style={{ width: `${(usage.barbers.current / usage.barbers.limit) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        {/* Form */}
+        {showForm && (
+          <div className="bg-surface/50 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-white/5 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  {isEditMode ? <Edit className="w-6 h-6 text-primary" /> : <UserPlus className="w-6 h-6 text-primary" />}
+                </div>
+                {isEditMode ? 'Editar Barbeiro' : 'Cadastrar Novo Barbeiro'}
+              </h2>
+              <button
+                onClick={isEditMode ? handleCancelEdit : () => {
+                  resetFormStates();
+                  setShowForm(false);
+                }}
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
 
-            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Error/Success Messages */}
               {error && (
-                <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
-                  {error}
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg flex items-center space-x-3">
+                  <AlertCircle className="w-5 h-5" />
+                  <span>{error}</span>
                 </div>
               )}
 
               {success && (
-                <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
-                  {success}
+                <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>{success}</span>
                 </div>
               )}
 
               {editSuccess && (
-                <div className="bg-green-500/10 text-green-500 p-3 rounded-md text-sm">
-                  {editSuccess}
+                <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-lg flex items-center space-x-3">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>{editSuccess}</span>
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="flex flex-col">
-                  <label htmlFor="name" className="text-sm font-medium text-gray-300 mb-1">Nome</label>
+              {/* Form Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                    Nome Completo *
+                  </label>
                   <input
                     id="name"
                     name="name"
                     type="text"
                     required
-                    className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors text-base sm:text-sm"
-                    placeholder="Digite o nome"
+                    className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-all duration-200"
+                    placeholder="Digite o nome completo"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
-                {!isEditMode && (
-                  <>
-                    <div className="flex flex-col">
-                <label htmlFor="username" className="text-sm font-medium text-gray-300 mb-1">Usuário</label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
-                  placeholder="Digite o usuário"
-                  value={formData.username}
-                  onChange={(e) => {
-                    const newUsername = e.target.value;
-                    setFormData({ ...formData, username: newUsername });
-                    
-                    // Se já tiver uma imagem selecionada mas ainda não fez upload, iniciar upload quando o usuário digitar o nome
-                    if (selectedImage && !imageUploadSuccess && newUsername.trim()) {
-                      handleImageUpload(newUsername.trim());
-                    }
-                  }}
-                />
-                    </div>
-                    <div className="flex flex-col">
-                      <label htmlFor="password" className="text-sm font-medium text-gray-300 mb-1">Senha</label>
-                      <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        required
-                        className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
-                        placeholder="Digite a senha"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      />
-                    </div>
-                  </>
-                )}
-                <div className="flex flex-col">
-                  <label htmlFor="whatsapp" className="text-sm font-medium text-gray-300 mb-1">WhatsApp</label>
+
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                    Email/Username *
+                  </label>
+                  <input
+                    id="username"
+                    name="username"
+                    type="email"
+                    required
+                    className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-all duration-200"
+                    placeholder="Digite o email"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                    Senha {isEditMode ? '(deixe em branco para manter)' : '*'}
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required={!isEditMode}
+                    className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-all duration-200"
+                    placeholder={isEditMode ? "Nova senha (opcional)" : "Digite a senha"}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-300 mb-2">
+                    WhatsApp
+                  </label>
                   <input
                     id="whatsapp"
                     name="whatsapp"
-                    type="text"
-                    required
-                    className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
-                    placeholder="Digite o WhatsApp"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                    type="tel"
+                    onChange={(e) => {
+                      const value = e.target.value.toLowerCase().replace(/\s/g, '');
+                      setFormData({ ...formData, username: value });
+                    }}
+                    className="w-full p-3.5 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
+                    placeholder="email@exemplo.com"
                   />
                 </div>
-                <div className="flex flex-col">
-                  <label htmlFor="pix" className="text-sm font-medium text-gray-300 mb-1">PIX</label>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300 ml-1">WhatsApp</label>
                   <input
-                    id="pix"
-                    name="pix"
                     type="text"
-                    required
-                    className="block w-full px-4 py-2 border border-gray-600 rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F0B35B] focus:border-[#F0B35B] transition-shadow transition-colors sm:text-sm"
-                    placeholder="Digite a chave PIX"
+                    value={formData.whatsapp}
+                    onChange={(e) => {
+                      // Simple mask for Brazil phone
+                      let value = e.target.value.replace(/\D/g, '');
+                      if (value.length > 11) value = value.slice(0, 11);
+                      if (value.length > 2) value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                      if (value.length > 9) value = `${value.slice(0, 9)}-${value.slice(9)}`;
+                      setFormData({ ...formData, whatsapp: value });
+                    }}
+                    className="w-full p-3.5 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300 ml-1">Chave PIX <span className="text-xs text-gray-500">(Opcional)</span></label>
+                  <input
+                    type="text"
                     value={formData.pix}
                     onChange={(e) => setFormData({ ...formData, pix: e.target.value })}
-                  />
-                </div>
-
-                {/* Campo de upload de imagem - Nova UI */}
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-gray-300">
-                      QR Code PIX
-                      {isEditMode && (
-                        <span className="text-xs text-blue-400 ml-2">
-                          {imagePreview && !selectedImage ? '(Existente)' : '(Novo)'}
-                        </span>
-                      )}
-                    </label>
-                    {isEditMode && imagePreview && !selectedImage && (
-                      <span className="text-xs text-green-400 flex items-center">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        QR Code ativo
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Área de upload moderna */}
-                  <div className="relative">
-                    {!imagePreview ? (
-                      <div className="border-2 border-dashed border-gray-600 rounded-xl p-6 text-center bg-gradient-to-br from-[#0D121E] to-[#1A1F2E] hover:border-[#F0B35B] transition-all duration-300">
-                        <div className="flex flex-col items-center space-y-3">
-                          <div className="p-3 bg-[#F0B35B]/10 rounded-full">
-                            <Camera className="w-8 h-8 text-[#F0B35B]" />
-                          </div>
-                          <div>
-                            <h4 className="text-white font-medium mb-1">
-                              {isEditMode ? 'Alterar QR Code' : 'Adicionar QR Code'}
-                            </h4>
-                            <p className="text-sm text-gray-400 mb-3">
-                              Imagem do QR Code PIX do barbeiro
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={openFileSelector}
-                            disabled={isUploadingImage}
-                            className="flex items-center space-x-1 px-3 py-1.5 bg-gray-100/10 text-gray-300 text-xs font-medium rounded-md hover:bg-gray-100/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed btn-transition border border-gray-700/50"
-                          >
-                            {isUploadingImage ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                                <span>Processando...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-3 h-3" />
-                                <span>Selecionar QR</span>
-                              </>
-                            )}
-                          </button>
-                          <p className="text-xs text-gray-500">
-                            JPG, PNG • Máximo 5MB
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-gradient-to-br from-[#0D121E] to-[#1A1F2E] rounded-xl p-4 border border-gray-600">
-                        <div className="flex items-start space-x-4">
-                          <div className="relative">
-                            <img
-                              key={`form-preview-${Date.now()}`}
-                              src={imagePreview}
-                              alt="QR Code Preview"
-                              className="w-20 h-20 object-cover rounded-lg border-2 border-gray-600"
-                            />
-                            {imageUploadSuccess && (
-                              <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1">
-                                <CheckCircle className="w-4 h-4 text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-white font-medium truncate">
-                                {selectedImage ? selectedImage.name : 'QR Code Atual'}
-                              </h4>
-                              <button
-                                type="button"
-                                onClick={removeSelectedImage}
-                                className="text-red-400 hover:text-red-300 transition-colors p-1"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <div className="space-y-1">
-                              {selectedImage ? (
-                                <>
-                                  <p className="text-xs text-gray-400">
-                                    {(selectedImage.size / 1024).toFixed(1)} KB • Nova imagem
-                                  </p>
-                                  {imageUploadSuccess && (
-                                    <p className="text-xs text-green-400 flex items-center">
-                                      <CheckCircle className="w-3 h-3 mr-1" />
-                                      Salvo com sucesso - Pronto para cadastrar
-                                    </p>
-                                  )}
-                                  {selectedImage && !imageUploadSuccess && (
-                                    <div className="space-y-2">
-                                      <p className="text-xs text-amber-400 flex items-center">
-                                        <AlertCircle className="w-3 h-3 mr-1" />
-                                        Aguardando upload para liberar cadastro
-                                      </p>
-                                      
-                                      {/* Informação sobre qualidade automática */}
-                                       <div className="space-y-1">
-                                         <p className="text-xs text-green-400 flex items-center">
-                                           <CheckCircle className="w-3 h-3 mr-1" />
-                                           Máxima qualidade (400px, PNG) - Otimizado para mobile
-                                         </p>
-                                       </div>
-                                      
-                                      {formData.username && (
-                                        <button 
-                                          type="button" 
-                                          onClick={() => handleImageUpload(formData.username.trim())}
-                                          disabled={isUploadingImage || !formData.username.trim()}
-                                          className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors disabled:opacity-50 flex items-center space-x-1"
-                                        >
-                                          <Upload className="w-3 h-3" />
-                                          <span>Iniciar upload manualmente</span>
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </>
-                              ) : (
-                                <p className="text-xs text-gray-400">
-                                  Imagem existente do barbeiro
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex space-x-2 mt-3">
-                              <button
-                                type="button"
-                                onClick={openFileSelector}
-                                disabled={isUploadingImage}
-                                className="flex items-center space-x-1 px-3 py-1.5 bg-[#F0B35B]/20 text-[#F0B35B] text-xs font-medium rounded-md hover:bg-[#F0B35B]/30 transition-colors disabled:opacity-50"
-                              >
-                                {isUploadingImage ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <ImageIcon className="w-3 h-3" />
-                                )}
-                                <span>{isUploadingImage ? 'Processando...' : 'Alterar'}</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Input oculto */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png"
-                    className="hidden"
-                    onChange={handleImageSelect}
+                    className="w-full p-3.5 bg-background-paper rounded-xl focus:ring-1 focus:ring-primary outline-none transition-all duration-300 border border-white/5 hover:border-primary/30 text-white placeholder-gray-500"
+                    placeholder="CPF, Email, Telefone..."
                   />
                 </div>
               </div>
-              <div className="flex justify-center space-x-3 mt-8">
-                {isEditMode && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditMode(false);
-                      setSelectedUser(null);
-                      resetFormStates();
-                    }}
-                    className="px-5 py-2.5 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-all duration-200 flex items-center justify-center space-x-2 shadow-md"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Cancelar Edição</span>
-                  </button>
-                )}
+
+              {isEditMode && (
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-3">
+                  <div className="flex items-center gap-2 text-yellow-500 font-medium">
+                    <AlertCircle className="w-5 h-5" />
+                    <h3>Alterar Senha</h3>
+                  </div>
+                  <p className="text-xs text-yellow-500/80">Preencha apenas se desejar alterar a senha do barbeiro.</p>
+
+                  <input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full p-3.5 bg-background-paper/50 rounded-xl focus:ring-1 focus:ring-yellow-500 outline-none transition-all duration-300 border border-white/5 hover:border-yellow-500/30 text-white placeholder-gray-500"
+                    placeholder="Nova senha (mínimo 6 caracteres)"
+                  />
+                </div>
+              )}
+
+              {/* QR Code Upload */}
+              <div className="border-t border-gray-600 pt-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+                  <Upload className="w-5 h-5 text-[#F0B35B]" />
+                  <span>QR Code PIX (Opcional)</span>
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={openFileSelector}
+                      className="w-full p-4 border-2 border-dashed border-gray-600 rounded-lg hover:border-[#F0B35B] transition-all duration-200 flex flex-col items-center space-y-3 text-gray-400 hover:text-white"
+                    >
+                      <div className="p-3 bg-[#F0B35B]/20 rounded-full">
+                        <Camera className="w-6 h-6 text-[#F0B35B]" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium">Selecionar Imagem</p>
+                        <p className="text-sm">JPG ou PNG até 5MB</p>
+                      </div>
+                    </button>
+                  </div>
+
+                  {imagePreview && (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview do QR Code"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeSelectedImage}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+
+                      {isUploadingImage && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                          <div className="text-center text-white">
+                            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                            <p className="text-sm">Processando...</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {imageUploadSuccess && (
+                        <div className="absolute top-2 left-2 p-1 bg-green-500 text-white rounded-full">
+                          <CheckCircle className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-4 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={isEditMode ? handleCancelEdit : () => {
+                    resetFormStates();
+                    setShowForm(false);
+                  }}
+                  className="px-6 py-3 rounded-xl font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+                >
+                  Cancelar
+                </button>
+
                 <button
                   type="submit"
-                  disabled={isLoading || (selectedImage !== null && !imageUploadSuccess)}
-                  className="px-5 py-2.5 bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/90 text-black font-medium rounded-lg hover:from-[#F0B35B]/90 hover:to-[#F0B35B]/80 transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 min-w-[180px] btn-transition"
+                  disabled={isLoading}
+                  className="flex items-center justify-center px-8 py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-primary/20 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Processando...</span>
-                    </>
-                  ) : isEditMode ? (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Atualizar Barbeiro</span>
+                      <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                      <span>{isEditMode ? 'Salvando...' : 'Cadastrando...'}</span>
                     </>
                   ) : (
                     <>
-                      <UserPlus className="w-4 h-4" />
-                      <span>Cadastrar Barbeiro</span>
+                      {isEditMode ? (
+                        <>
+                          <Edit className="w-5 h-5 mr-2" />
+                          <span>Atualizar Dados</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="w-5 h-5 mr-2" />
+                          <span>Cadastrar Profissional</span>
+                        </>
+                      )}
                     </>
                   )}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-        <div className="w-full md:flex-1 order-first animate-slideIn">
-          <div className="w-full space-y-6 bg-gradient-to-br from-[#1A1F2E] to-[#252A3A] p-6 sm:p-8 shadow-xl h-fit mx-auto border border-gray-700 card-hover">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white flex items-center">
-                <Users className="w-6 h-6 mr-2 text-[#F0B35B]" />
-                Barbeiros Cadastrados
-                <span className="ml-2 px-2 py-1 bg-[#F0B35B]/20 text-[#F0B35B] text-sm rounded-full">
-                  {barbers.length}
-                </span>
-              </h2>
+        )}
+
+        {/* Barbers Grid */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+              <div className="w-1.5 h-8 bg-primary rounded-full"></div>
+              <span>Equipe Cadastrada</span>
+            </h2>
+            <div className="flex items-center gap-3">
+              <span className="bg-surface border border-white/10 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                {filteredBarbers.length} Profissionais
+              </span>
             </div>
-
-
-
-            {barbers.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="p-4 bg-gray-700/50 rounded-full">
-                    <Users className="w-12 h-12 text-gray-400" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-lg mb-2">Nenhum barbeiro cadastrado</p>
-                    <p className="text-gray-500 text-sm">Comece adicionando seu primeiro barbeiro acima</p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Desktop Table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-sm text-left text-gray-300">
-                    <thead className="text-xs text-gray-400 uppercase bg-[#0D121E] rounded-lg">
-                      <tr>
-                        <th scope="col" className="px-6 py-4 rounded-l-lg">Barbeiro</th>
-                        <th scope="col" className="px-6 py-4">Contato</th>
-                        <th scope="col" className="px-6 py-4">PIX</th>
-                        <th scope="col" className="px-6 py-4">QR Code</th>
-                        <th scope="col" className="px-6 py-4 rounded-r-lg text-center">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="space-y-2">
-                      {barbers.map((user: Barber) => (
-                        <tr key={user.id} className="bg-[#1A1F2E] border border-gray-700 hover:bg-[#252A3A] transition-all duration-200 rounded-lg">
-                          <td className="px-6 py-4 rounded-l-lg">
-                            <div>
-                              <p className="font-medium text-white">{user.name}</p>
-                              <p className="text-xs text-gray-400">@{user.username}</p>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-gray-300">{user.whatsapp}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-gray-300 font-mono text-xs">{user.pix}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              QR Code Ativo
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 rounded-r-lg">
-                            <div className="flex justify-center space-x-2">
-                              <button
-                                onClick={() => {
-                                  // Abrindo modal de QR code para o usuário
-                                  setSelectedUser(user);
-                                  setIsQRModalOpen(true);
-                                  // Estado atualizado: modal aberto e usuário selecionado
-                                }}
-                                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-lg transition-all duration-200"
-                                title="Ver QR Code"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleEditUser(user)}
-                                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-lg transition-all duration-200"
-                                title="Editar barbeiro"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteUser(user.id, user.name)}
-                                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-all duration-200"
-                                title="Excluir barbeiro"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Cards */}
-                <div className="md:hidden space-y-4">
-                  {barbers.map((user: Barber) => (
-                    <div key={user.id} className="bg-[#1A1F2E] border border-gray-700 rounded-xl p-4 hover:bg-[#252A3A] transition-all duration-200">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-white text-lg">{user.name}</h3>
-                          <p className="text-sm text-gray-400">@{user.username}</p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setIsQRModalOpen(true);
-                            }}
-                            className="p-2 text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded-lg transition-all duration-200"
-                            title="Ver QR Code"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEditUser(user)}
-                            className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-lg transition-all duration-200"
-                            title="Editar barbeiro"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.name)}
-                            className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-all duration-200"
-                            title="Excluir barbeiro"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm">
-                          <Phone className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-gray-300">{user.whatsapp}</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <CreditCard className="w-4 h-4 text-gray-400 mr-2" />
-                          <span className="text-gray-300 font-mono text-xs">{user.pix}</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                          <span className="text-green-400">QR Code Ativo</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+
+          {filteredBarbers.length === 0 ? (
+            <div className="bg-surface/30 rounded-2xl border border-white/5 p-12 text-center">
+              <div className="w-20 h-20 bg-background-paper rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <Users className="w-10 h-10 text-gray-600" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Sua equipe está vazia</h3>
+              <p className="text-gray-400 mb-8 max-w-md mx-auto">Comece cadastrando o primeiro talento da sua barbearia para iniciar os agendamentos.</p>
+              {canCreateBarber && (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="inline-flex items-center space-x-2 px-8 py-4 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-primary/20 hover:-translate-y-1"
+                >
+                  <UserPlus className="w-5 h-5" />
+                  <span>Cadastrar Primeiro Barbeiro</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredBarbers.map((barber) => (
+                <div key={barber.id} className="bg-surface/50 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-primary/30 transition-all duration-300 group hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-background-paper to-surface rounded-2xl flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                      <Users className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleEdit(barber)}
+                        className="p-2 text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-all duration-300"
+                        title="Editar"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedUser(barber);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-300"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 mb-6">
+                    <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors truncate">{barber.name}</h3>
+                    <p className="text-sm text-gray-400 truncate flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/50"></span>
+                      {barber.email}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-white/5">
+                    {barber.whatsapp && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500 flex items-center gap-2">
+                          <Phone className="w-4 h-4" /> WhatsApp
+                        </span>
+                        <span className="text-gray-300 font-medium">{barber.whatsapp}</span>
+                      </div>
+                    )}
+                    {barber.pix && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500 flex items-center gap-2">
+                          <CreditCard className="w-4 h-4" /> Chave PIX
+                        </span>
+                        <span className="text-gray-300 font-medium truncate max-w-[120px]" title={barber.pix}>{barber.pix}</span>
+                      </div>
+                    )}
+                    {!barber.whatsapp && !barber.pix && (
+                      <p className="text-xs text-center text-gray-600 italic py-1">Sem informações adicionais</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* QR Code Modal */}
-      {/* Modal de QR Code */}
-      {isQRModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 relative animate-in fade-in zoom-in duration-300">
-            <button
-              onClick={() => setIsQRModalOpen(false)}
-              className="absolute top-3 right-3 p-1 text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <X size={20} />
-            </button>
-            
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">QR Code PIX</h3>
-              
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-xl">
-                  {/* Carregando QR code para o usuário */}
-                  {selectedUser.username ? (
-                    <div className="flex items-center justify-center h-48">
-                      {/* Se estamos em modo de edição e temos um preview, mostrar o preview primeiro */}
-                       {isEditMode && imagePreview ? (
-                         <img
-                           key={`preview-${Date.now()}`}
-                           src={imagePreview}
-                           alt="QR Code Preview"
-                           className="w-48 h-48 mx-auto object-contain"
-                         />
-                       ) : (
-                         <img
-                           key={`qr-${selectedUser.username}-${Date.now()}`}
-                           src={`${CURRENT_ENV.apiUrl}/api/qr-codes/download/${selectedUser.username.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}?t=${Date.now()}`}
-                           alt={`QR Code de ${selectedUser.name}`}
-                           className="w-48 h-48 mx-auto object-contain"
-                           onError={(e) => {
-                             // Tentar caminho local como fallback
-                             const imgElement = e.currentTarget;
-imgElement.src = `/qr-codes/${selectedUser?.username?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || 'default'}.svg?t=${Date.now()}`;
-                             
-                             // Adicionar outro handler de erro para o fallback
-                             imgElement.onerror = () => {
-                               // Se temos uma imagem selecionada, mostrar o preview
-                               if (imagePreview) {
-                                 imgElement.src = imagePreview;
-                                 imgElement.style.display = 'block';
-                               } else {
-                                 imgElement.style.display = 'none';
-                                 const errorDiv = document.createElement('div');
-                                 errorDiv.className = 'text-red-500 text-sm py-4';
-                                 errorDiv.innerHTML = 'QR Code não disponível';
-                                 imgElement.parentNode?.appendChild(errorDiv);
-                               }
-                             };
-                           }}
-                         />
-                       )}
-                    </div>
-                   ) : (
-                     <div className="flex items-center justify-center h-48">
-                       {imagePreview ? (
-                         <img
-                           key={`modal-preview-${Date.now()}`}
-                           src={imagePreview}
-                           alt="QR Code Preview"
-                           className="w-48 h-48 mx-auto object-contain"
-                         />
-                       ) : (
-                         <div className="text-gray-500 text-sm py-4 bg-gray-100 rounded-lg p-4 w-full">
-                           Nenhuma imagem disponível
-                         </div>
-                       )}
-                     </div>
-                   )}
-                </div>
-                
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">Barbeiro: <span className="font-medium">{selectedUser.name}</span></p>
-                  <p className="text-xs text-gray-500">Escaneie o código ou use a chave PIX</p>
-                  <p className="text-sm font-mono text-gray-600">{selectedUser.pix || 'Chave PIX não disponível'}</p>
-                  
+      {/* Modals */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onConfirm={handleDelete}
+        barberName={selectedUser?.name || ''}
+      />
 
-                  
-                  <button
-                    onClick={() => setIsQRModalOpen(false)}
-                    className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Fechar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PasswordConfirmationModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => {
+          setIsPasswordModalOpen(false);
+          setIsLoading(false);
+        }}
+        onConfirm={handleEditConfirmation}
+      />
+
+      <EditConfirmationModal
+        isOpen={isEditConfirmModalOpen}
+        onClose={() => setIsEditConfirmModalOpen(false)}
+        onConfirm={() => {
+          setIsEditConfirmModalOpen(false);
+          // Lógica de confirmação aqui
+        }}
+        barberName={selectedUser?.name || ''}
+      />
     </StandardLayout>
   );
 };

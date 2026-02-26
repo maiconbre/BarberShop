@@ -127,6 +127,12 @@ export const ServiceFormDataSchema = z.object({
   isActive: z.boolean(),
 });
 
+// Schema específico para o backend (apenas campos suportados)
+export const BackendServiceFormDataSchema = z.object({
+  name: z.string().min(2, 'Nome do serviço deve ter pelo menos 2 caracteres'),
+  price: z.number().min(0, 'Preço deve ser positivo'),
+});
+
 // API response schemas
 export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   z.object({
@@ -180,5 +186,6 @@ export type LoginCredentialsInput = z.infer<typeof LoginCredentialsSchema>;
 export type RegisterDataInput = z.infer<typeof RegisterDataSchema>;
 export type BookingFormDataInput = z.infer<typeof BookingFormDataSchema>;
 export type ServiceFormDataInput = z.infer<typeof ServiceFormDataSchema>;
+export type BackendServiceFormDataInput = z.infer<typeof BackendServiceFormDataSchema>;
 export type AppointmentFiltersInput = z.infer<typeof AppointmentFiltersSchema>;
 export type SearchParamsInput = z.infer<typeof SearchParamsSchema>;

@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useBarbershopNavigation } from '../hooks/useBarbershopNavigation';
 import toast from 'react-hot-toast';
 import StandardLayout from '../components/layout/StandardLayout';
-import { CURRENT_ENV } from '../config/environmentConfig';
 
 const TrocaSenha: React.FC = () => {
-  const { getCurrentUser } = useAuth();
+  const { user, updatePassword } = useAuth();
+  const { goToDashboard } = useBarbershopNavigation();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     senhaAtual: '',
@@ -81,39 +82,16 @@ const TrocaSenha: React.FC = () => {
         return;
       }
 
-      const currentUser = getCurrentUser();
+      const currentUser = user;
       if (!currentUser || typeof currentUser !== 'object' || !('id' in currentUser)) {
         throw new Error('Usuário não encontrado');
       }
 
-      const response = await fetch(`${CURRENT_ENV.apiUrl}/api/users/change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          currentPassword: formData.senhaAtual,
-          newPassword: formData.novaSenha
-        })
-      });
+      const result = await updatePassword(formData.novaSenha);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Erro ao alterar senha');
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao alterar senha');
       }
-
-      // Atualizar o token de autenticação
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-
-      // Atualizar informações do usuário no storage
-      const updatedUser = { ...currentUser };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      sessionStorage.setItem('user', JSON.stringify(updatedUser));
 
       // Notificação visual elaborada para sucesso
       toast.success('Senha alterada com sucesso!', {
@@ -132,7 +110,7 @@ const TrocaSenha: React.FC = () => {
           secondary: '#1A1F2E'
         }
       });
-      
+
       // Limpar formulário
       setFormData({
         senhaAtual: '',
@@ -142,11 +120,11 @@ const TrocaSenha: React.FC = () => {
 
       // Redirecionar para o dashboard após 2 segundos
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        goToDashboard();
       }, 2000);
     } catch (err: unknown) {
       console.error('Erro ao alterar senha:', err);
-      
+
       // Notificação visual de erro
       toast.error(err instanceof Error ? err.message : 'Erro ao alterar senha. Por favor, tente novamente.', {
         duration: 4000,

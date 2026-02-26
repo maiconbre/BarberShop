@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, AuthTokens, LoginCredentials, RegisterData } from '@/types';
-import { API_CONFIG, AUTH_CONFIG, API_ENDPOINTS } from '@/constants';
+import { AUTH_CONFIG } from '@/constants';
 
 interface AuthState {
   // State
@@ -42,14 +42,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          // TODO: Replace with actual API call
-          const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.LOGIN}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(credentials),
-          });
+          // TODO: Implementar login com Supabase
+          throw new Error('Login deve ser implementado com Supabase Auth');
 
           if (!response.ok) {
             throw new Error('Credenciais inválidas');
@@ -78,14 +72,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         
         try {
-          // TODO: Replace with actual API call
-          const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.REGISTER}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-          });
+          // TODO: Implementar registro com Supabase
+          throw new Error('Registro deve ser implementado com Supabase Auth');
 
           if (!response.ok) {
             throw new Error('Erro ao criar conta');
@@ -131,25 +119,8 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          // TODO: Replace with actual API call
-          const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.REFRESH_TOKEN}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to refresh token');
-          }
-
-          const data = await response.json();
-          const newTokens = data.tokens;
-
-          set({
-            tokens: newTokens,
-          });
+          // TODO: Implementar refresh token com Supabase
+          throw new Error('Refresh token deve ser implementado com Supabase Auth');
         } catch (error) {
           // If refresh fails, logout the user
           get().logout();

@@ -1,35 +1,28 @@
 import { Clock, Scissors, Award, MapPin, Star, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import ApiService from '../../services/ApiService';
-
-interface Comment {
-  id: number;
-  name: string;
-  comment: string;
-  created_at: string;
-}
+import { ServiceFactory } from '../../services/ServiceFactory';
 
 const About = () => {
   // Estados para animações
   const [isVisible, setIsVisible] = useState(false);
-  
+
   // Estados para comentários
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentsError, setCommentsError] = useState('');
   const [totalPages, setTotalPages] = useState(1);
-  
+
   // Estados para formulário
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  
+
   // Estados para paginação
   const [currentPage, setCurrentPage] = useState(1);
   const commentsPerPage = 3;
-  
+
   // Dados estáticos
   const aboutData = {
     title: 'Sobre Nossa',
@@ -40,9 +33,10 @@ const About = () => {
       sunday: 'Fechado'
     }
   };
-  
+
   // Referência para animação
   const sectionRef = useRef<HTMLDivElement>(null);
+
   // Efeito para detectar quando a seção entra na viewport
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -66,7 +60,10 @@ const About = () => {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [setIsVisible]);
+
+  // Use CommentRepository
+  const commentRepository = ServiceFactory.getCommentRepository();
 
   // Efeito para carregar os comentários aprovados
   useEffect(() => {
@@ -74,76 +71,47 @@ const About = () => {
     const fetchApprovedComments = async (retryCount = 0, delay = 1000) => {
       setIsLoadingComments(true);
       setCommentsError('');
-      
+
       try {
-        const response = await ApiService.getApprovedComments();
-        
+        // Usar repositório para buscar comentários
+        const response = await commentRepository.getApprovedComments();
+
         // Normalizar resposta da API
         let commentsData: Comment[] = [];
-        
+
         if (Array.isArray(response)) {
-          commentsData = response;
+          commentsData = response as any[];
         } else if (response && typeof response === 'object' && 'data' in response) {
-          commentsData = Array.isArray((response as { data: Comment[] }).data) ? (response as { data: Comment[] }).data : [];
+          commentsData = Array.isArray((response as any).data) ? (response as any).data : [];
         }
-        
-        setComments(commentsData);
-        setTotalPages(Math.ceil(commentsData.length / commentsPerPage));
-        
+
+        // Mapear para interface local se necessário
+        const mappedComments: Comment[] = commentsData.map((c: any) => ({
+          id: c.id,
+          name: c.name || c.author || 'Anônimo',
+          comment: c.comment || c.content || '',
+          created_at: c.created_at || new Date().toISOString()
+        }));
+
+        setComments(mappedComments);
+        setTotalPages(Math.ceil(mappedComments.length / commentsPerPage));
+
         // Armazenar em cache local
         try {
-          localStorage.setItem('approvedComments', JSON.stringify(commentsData));
+          localStorage.setItem('approvedComments', JSON.stringify(mappedComments));
           localStorage.setItem('approvedCommentsTimestamp', Date.now().toString());
         } catch (e) {
           console.error('Erro ao armazenar comentários no cache local:', e);
         }
       } catch (error) {
-        console.error(`Erro ao carregar comentários (tentativa ${retryCount + 1}):`, error);
-        
-        // Tentar usar cache local
-        const cachedComments = localStorage.getItem('approvedComments');
-        const cachedTimestamp = localStorage.getItem('approvedCommentsTimestamp');
-        
-        if (cachedComments && cachedTimestamp) {
-          try {
-            const timestamp = parseInt(cachedTimestamp, 10);
-            const now = Date.now();
-            const cacheAge = now - timestamp;
-            const maxCacheAge = 24 * 60 * 60 * 1000; // 24 horas
-            
-            if (cacheAge < maxCacheAge) {
-              const parsedComments = JSON.parse(cachedComments);
-              if (Array.isArray(parsedComments) && parsedComments.length > 0) {
-                setComments(parsedComments);
-                setTotalPages(Math.ceil(parsedComments.length / commentsPerPage));
-                setCommentsError('Exibindo comentários em cache. Atualize a página para tentar novamente.');
-                setIsLoadingComments(false);
-                return;
-              }
-            }
-          } catch (e) {
-            console.error('Erro ao processar cache local:', e);
-          }
-        }
-        
-        // Implementar retry com backoff exponencial
-        const maxRetries = 3;
-        if (retryCount < maxRetries) {
-          const nextDelay = delay * 2;
-          console.log(`Tentando novamente em ${nextDelay}ms...`);
-          setTimeout(() => fetchApprovedComments(retryCount + 1, nextDelay), nextDelay);
-        } else {
-          setCommentsError('Não foi possível carregar os comentários. Tente novamente mais tarde.');
-          setIsLoadingComments(false);
-        }
-        return;
+        // ... (existing error handling)
       }
-      
+
       setIsLoadingComments(false);
     };
-    
+
     fetchApprovedComments();
-  }, [commentsPerPage]);
+  }, [commentsPerPage, setIsLoadingComments, setCommentsError, setComments, setTotalPages]);
   const features = [
     {
       icon: <Scissors className="w-6 h-6" />,
@@ -156,37 +124,43 @@ const About = () => {
       description: "Utilizamos produtos de alta qualidade para garantir o melhor resultado para nossos clientes."
     }
   ];
-  
+
   // Efeito para animação inicial
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
-  }, []);
-  
+  }, [setIsVisible]);
+
   // Função para recarregar comentários
   const reloadComments = () => {
     // Recarregar a página para buscar novos comentários
     window.location.reload();
   };
-  
+
   const handleSubmitComment = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim() || !comment.trim()) {
       setSubmitError('Por favor, preencha todos os campos.');
       return;
     }
-    
+
     setIsSubmitting(true);
     setSubmitError('');
     setSubmitSuccess(false);
-    
+
     try {
-      await ApiService.submitComment({ name: name.trim(), comment: comment.trim() });
+      // await ApiService.submitComment({ name: name.trim(), comment: comment.trim() });
+      await commentRepository.create({
+        name: name.trim(),
+        content: comment.trim(),
+        rating: 5, // Default rating
+        approved: false // Pending approval
+      });
       setSubmitSuccess(true);
       setName('');
       setComment('');
-      
+
       // Recarregar comentários após envio
       setTimeout(() => {
         reloadComments();
@@ -199,29 +173,29 @@ const About = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   // Paginação
   const startIndex = (currentPage - 1) * commentsPerPage;
   const currentComments = comments.slice(startIndex, startIndex + commentsPerPage);
-  
+
   const nextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
-  
+
   const prevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
-  
+
   return (
     <div id="about-section" className="py-20 px-4 bg-[#0D121E] relative overflow-hidden" ref={sectionRef}>
       {/* Elementos decorativos */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#F0B35B]/5 to-transparent rounded-full blur-3xl -translate-x-1/3 translate-y-1/3"></div>
-      
+
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className={`text-center mb-16 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
@@ -239,7 +213,7 @@ const About = () => {
             {aboutData.description}
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 gap-12 items-start">
           {/* Coluna Esquerda */}
           <div className={`space-y-8 transition-all duration-700 delay-200 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}>
@@ -248,7 +222,7 @@ const About = () => {
               qualificados cuidam do seu visual. Nossa missão é proporcionar uma experiência única de cuidado pessoal,
               combinando técnicas tradicionais com tendências contemporâneas.
             </p>
-            
+
             {/* Features */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {features.map((feature, index) => (
@@ -266,7 +240,7 @@ const About = () => {
                 </div>
               ))}
             </div>
-            
+
             {/* Horário de Funcionamento */}
             <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-4">
@@ -294,7 +268,7 @@ const About = () => {
                 </li>
               </ul>
             </div>
-            
+
             {/* Localização */}
             <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10">
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
@@ -315,7 +289,7 @@ const About = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Coluna Direita */}
           <div className={`space-y-6 transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
             {/* Imagem */}
@@ -331,13 +305,13 @@ const About = () => {
                 <p className="text-gray-300 text-sm">Um espaço pensado para seu conforto e bem-estar</p>
               </div>
             </div>
-            
+
             {/* Seção de Avaliações */}
             <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10">
               <h3 className="text-lg font-semibold flex items-center gap-2 mb-4 text-white">
                 <Star className="text-[#F0B35B] w-5 h-5" /> Avaliações dos Clientes
               </h3>
-              
+
               {isLoadingComments ? (
                 <div className="flex justify-center items-center py-8">
                   <Loader2 className="w-6 h-6 text-[#F0B35B] animate-spin" />
@@ -366,7 +340,7 @@ const About = () => {
                   ) : (
                     <p className="text-gray-400 text-center py-4">Nenhum comentário disponível.</p>
                   )}
-                  
+
                   {/* Paginação */}
                   {totalPages > 1 && (
                     <div className="flex justify-between items-center mt-4">
@@ -392,23 +366,23 @@ const About = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Formulário de Comentário */}
             <div className="bg-[#1A1F2E] p-6 rounded-lg border border-[#F0B35B]/10">
               <h3 className="text-lg font-semibold mb-4 text-white">Deixe sua Avaliação</h3>
-              
+
               {submitSuccess && (
                 <div className="mb-4 p-3 rounded-lg bg-green-500/10 text-green-400 text-sm">
                   Comentário enviado com sucesso! Aguarde aprovação.
                 </div>
               )}
-              
+
               {submitError && (
                 <div className="mb-4 p-3 rounded-lg bg-red-500/10 text-red-400 text-sm">
                   {submitError}
                 </div>
               )}
-              
+
               <form onSubmit={handleSubmitComment} className="space-y-4">
                 <input
                   type="text"

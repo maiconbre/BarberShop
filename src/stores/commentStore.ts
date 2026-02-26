@@ -1,43 +1,44 @@
 /**
- * Comment store using Zustand with cache management
+ * Comment store using Zustand with multi-tenant support
+ * @deprecated Use useComments hook from hooks/useComments.ts instead
+ * This store is kept for backward compatibility but should not be used in new code
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { PublicComment, ApiResponse } from '@/types';
-import ApiService from '../services/ApiService';
+import type { PublicComment } from '@/types';
 
-interface CommentCacheItem {
-  data: PublicComment[];
-  timestamp: number;
-  ttl: number;
-}
-
-interface CommentCache {
-  [key: string]: CommentCacheItem;
-}
 
 interface CommentState {
   // State
   comments: Record<string, PublicComment[]>; // Keyed by status
   isLoading: boolean;
   error: string | null;
-  cache: CommentCache;
-  lastFetch: Record<string, number>; // Timestamp of last fetch by status
+  
+  // Multi-tenant state
+  barbershopId: string | null;
+  tenantRepository: unknown | null;
+  tenantCache: unknown | null;
 
   // Actions
+  initializeTenant: (barbershopId: string) => void;
   fetchComments: (status: 'pending' | 'approved' | 'rejected', forceRefresh?: boolean) => Promise<void>;
+  fetchAllCommentsForAdmin: () => Promise<void>;
+  createComment: (commentData: Omit<PublicComment, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<PublicComment>;
   updateCommentStatus: (commentId: string, newStatus: 'approved' | 'rejected') => Promise<void>;
+  approveComment: (commentId: string) => Promise<void>;
+  rejectComment: (commentId: string) => Promise<void>;
+  resetCommentToPending: (commentId: string) => Promise<void>;
   deleteComment: (commentId: string) => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
-  invalidateCache: (status?: string) => void;
+  clearTenantCache: () => void;
 }
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const MIN_FETCH_INTERVAL = 30 * 1000; // 30 seconds minimum between fetches
-
 /**
- * Comment management store with intelligent caching
+ * @deprecated Use useComments hook from hooks/useComments.ts instead
+ * This store is kept for backward compatibility but should not be used in new code
+ * 
+ * Multi-tenant comment management store with repository pattern
  */
 export const useCommentStore = create<CommentState>()(
   persist(
@@ -50,95 +51,64 @@ export const useCommentStore = create<CommentState>()(
       },
       isLoading: false,
       error: null,
-      cache: {},
-      lastFetch: {},
+      
+      // Multi-tenant state
+      barbershopId: null,
+      tenantRepository: null,
+      tenantCache: null,
 
       // Actions
+      initializeTenant: (barbershopId: string) => {
+        // Note: This should be called from a component that has access to the repository
+        // The repository should be passed as a parameter instead of using hooks here
+        set({
+          barbershopId,
+          tenantRepository: null, // Will be set by component
+          tenantCache: null, // Will be set by component
+        });
+      },
+
       fetchComments: async (status: 'pending' | 'approved' | 'rejected', forceRefresh = false) => {
-        const state = get();
-        const now = Date.now();
-        const lastFetchTime = state.lastFetch[status] || 0;
-        const cacheKey = `comments_${status}`;
-        const cachedData = state.cache[cacheKey];
-
-        // Check if we should skip the fetch due to rate limiting
-        if (!forceRefresh && (now - lastFetchTime) < MIN_FETCH_INTERVAL) {
-          console.log(`Skipping fetch for ${status} - too soon since last fetch`);
-          return;
-        }
-
-        // Check cache validity
-        if (!forceRefresh && cachedData && (now - cachedData.timestamp) < cachedData.ttl) {
-          console.log(`Using cached data for ${status}`);
-          set({
-            comments: {
-              ...state.comments,
-              [status]: cachedData.data
-            }
-          });
+        const { tenantRepository, tenantCache, barbershopId } = get();
+        
+        if (!barbershopId || !tenantRepository) {
+          set({ error: 'Tenant not initialized. Call initializeTenant first.' });
           return;
         }
 
         set({ isLoading: true, error: null });
         
         try {
-          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          };
+          const cacheKey = `comments:status:${status}`;
           
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-          
-          const response = await fetch(
-            `${(import.meta).env.VITE_API_URL}/api/comments?status=${status}`,
-            {
-              method: 'GET',
-              headers,
-              mode: 'cors'
+          // Check cache first (unless forced)
+          if (!forceRefresh) {
+            const cached = tenantCache?.get(cacheKey);
+            if (cached) {
+              set(state => ({
+                comments: {
+                  ...state.comments,
+                  [status]: cached
+                },
+                isLoading: false
+              }));
+              return;
             }
-          );
-
-          if (!response.ok) {
-            if (response.status === 429) {
-              throw new Error('Muitas requisições. Aguarde um momento antes de tentar novamente.');
-            }
-            throw new Error(`Erro ao buscar comentários: ${response.status}`);
           }
-
-          const result: ApiResponse<PublicComment[]> = await response.json();
           
-          if (result.success) {
-            const commentsData = result.data || [];
-            
-            // Update cache
-            const newCache = {
-              ...state.cache,
-              [cacheKey]: {
-                data: commentsData,
-                timestamp: now,
-                ttl: CACHE_TTL
-              }
-            };
+          const commentsData = await tenantRepository.findByStatus(status);
+          
+          // Cache the result
+          tenantCache?.set(cacheKey, commentsData, { ttl: 2 * 60 * 1000 }); // 2 minutes
 
-            set({
-              comments: {
-                ...state.comments,
-                [status]: commentsData
-              },
-              cache: newCache,
-              lastFetch: {
-                ...state.lastFetch,
-                [status]: now
-              },
-              isLoading: false,
-              error: null
-            });
-          } else {
-            throw new Error(result.message || 'Erro ao buscar comentários');
-          }
+          set(state => ({
+            comments: {
+              ...state.comments,
+              [status]: commentsData
+            },
+            isLoading: false,
+            error: null
+          }));
         } catch (error) {
           console.error('Erro ao buscar comentários:', error);
           set({
@@ -149,15 +119,116 @@ export const useCommentStore = create<CommentState>()(
         }
       },
 
+      fetchAllCommentsForAdmin: async () => {
+        const { tenantRepository, tenantCache, barbershopId } = get();
+        
+        if (!barbershopId || !tenantRepository) {
+          set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+          return;
+        }
+
+        set({ isLoading: true, error: null });
+        
+        try {
+          const cacheKey = 'comments:admin:all';
+          
+          // Try cache first
+          const cached = tenantCache?.get(cacheKey);
+          if (cached) {
+            // Organize by status
+            const organized = {
+              pending: cached.filter((c: PublicComment) => c.status === 'pending'),
+              approved: cached.filter((c: PublicComment) => c.status === 'approved'),
+              rejected: cached.filter((c: PublicComment) => c.status === 'rejected'),
+            };
+            
+            set({
+              comments: organized,
+              isLoading: false
+            });
+            return;
+          }
+          
+          const allComments = await tenantRepository.findAllForAdmin();
+          
+          // Organize by status
+          const organized = {
+            pending: allComments.filter(c => c.status === 'pending'),
+            approved: allComments.filter(c => c.status === 'approved'),
+            rejected: allComments.filter(c => c.status === 'rejected'),
+          };
+          
+          // Cache the result
+          tenantCache?.set(cacheKey, allComments, { ttl: 2 * 60 * 1000 });
+
+          set({
+            comments: organized,
+            isLoading: false,
+            error: null
+          });
+        } catch (error) {
+          console.error('Erro ao buscar todos os comentários:', error);
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Erro ao buscar comentários'
+          });
+          throw error;
+        }
+      },
+
+      createComment: async (commentData: Omit<PublicComment, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
+        const { tenantRepository, tenantCache, barbershopId } = get();
+        
+        if (!barbershopId || !tenantRepository) {
+          set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+          throw new Error('Tenant not initialized');
+        }
+
+        set({ isLoading: true, error: null });
+        
+        try {
+          const newComment = await tenantRepository.create(commentData);
+          
+          // Clear cache to force refresh
+          tenantCache?.clearTenantCache();
+          
+          // Add to pending comments
+          set(state => ({
+            comments: {
+              ...state.comments,
+              pending: [...state.comments.pending, newComment]
+            },
+            isLoading: false,
+            error: null
+          }));
+          
+          return newComment;
+        } catch (error) {
+          console.error('Erro ao criar comentário:', error);
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Erro ao criar comentário'
+          });
+          throw error;
+        }
+      },
+
       updateCommentStatus: async (commentId: string, newStatus: 'approved' | 'rejected') => {
+        const { tenantRepository, tenantCache, barbershopId } = get();
+        
+        if (!barbershopId || !tenantRepository) {
+          set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+          return;
+        }
+
         const state = get();
         set({ isLoading: true, error: null });
 
         try {
-          // Usar o ApiService para requisições PATCH com retry e cache
-          await ApiService.patch(`/api/comments/${commentId}`, { status: newStatus });
+          const updatedComment = await tenantRepository.updateStatus(commentId, newStatus);
           
-          // Se chegou aqui, a requisição foi bem-sucedida
+          // Clear cache to force refresh
+          tenantCache?.clearTenantCache();
 
           // Update local state by removing comment from all status arrays
           // and adding to the new status array
@@ -168,7 +239,7 @@ export const useCommentStore = create<CommentState>()(
           Object.keys(updatedComments).forEach(status => {
             const commentIndex = updatedComments[status].findIndex(c => c.id === commentId);
             if (commentIndex !== -1) {
-              movedComment = { ...updatedComments[status][commentIndex], status: newStatus };
+              movedComment = updatedComment;
               updatedComments[status] = updatedComments[status].filter(c => c.id !== commentId);
             }
           });
@@ -178,17 +249,8 @@ export const useCommentStore = create<CommentState>()(
             updatedComments[newStatus] = [...updatedComments[newStatus], movedComment];
           }
 
-          // Invalidate cache for affected statuses
-          const newCache = { ...state.cache };
-          Object.keys(newCache).forEach(key => {
-            if (key.startsWith('comments_')) {
-              delete newCache[key];
-            }
-          });
-
           set({
             comments: updatedComments,
-            cache: newCache,
             isLoading: false,
             error: null
           });
@@ -202,33 +264,81 @@ export const useCommentStore = create<CommentState>()(
         }
       },
 
-      deleteComment: async (commentId: string) => {
+      approveComment: async (commentId: string) => {
+        await get().updateCommentStatus(commentId, 'approved');
+      },
+
+      rejectComment: async (commentId: string) => {
+        await get().updateCommentStatus(commentId, 'rejected');
+      },
+
+      resetCommentToPending: async (commentId: string) => {
+        const { tenantRepository, tenantCache, barbershopId } = get();
+        
+        if (!barbershopId || !tenantRepository) {
+          set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+          return;
+        }
+
         const state = get();
         set({ isLoading: true, error: null });
 
         try {
-          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          };
+          const updatedComment = await tenantRepository.updateStatus(commentId, 'pending');
           
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
+          // Clear cache to force refresh
+          tenantCache?.clearTenantCache();
 
-          const response = await fetch(
-            `${(import.meta).env.VITE_API_URL}/api/comments/${commentId}`,
-            {
-              method: 'DELETE',
-              headers,
-              mode: 'cors'
+          // Update local state by removing comment from all status arrays
+          // and adding to pending
+          const updatedComments = { ...state.comments };
+          let movedComment: PublicComment | null = null;
+
+          // Find and remove comment from current status
+          Object.keys(updatedComments).forEach(status => {
+            const commentIndex = updatedComments[status].findIndex(c => c.id === commentId);
+            if (commentIndex !== -1) {
+              movedComment = updatedComment;
+              updatedComments[status] = updatedComments[status].filter(c => c.id !== commentId);
             }
-          );
+          });
 
-          if (!response.ok) {
-            throw new Error(`Erro ao excluir comentário: ${response.status}`);
+          // Add to pending if comment was found
+          if (movedComment) {
+            updatedComments.pending = [...updatedComments.pending, movedComment];
           }
+
+          set({
+            comments: updatedComments,
+            isLoading: false,
+            error: null
+          });
+        } catch (error) {
+          console.error('Erro ao resetar comentário:', error);
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Erro ao resetar comentário'
+          });
+          throw error;
+        }
+      },
+
+      deleteComment: async (commentId: string) => {
+        const { tenantRepository, tenantCache, barbershopId } = get();
+        
+        if (!barbershopId || !tenantRepository) {
+          set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+          return;
+        }
+
+        const state = get();
+        set({ isLoading: true, error: null });
+
+        try {
+          await tenantRepository.delete(commentId);
+          
+          // Clear cache to force refresh
+          tenantCache?.clearTenantCache();
 
           // Remove comment from local state
           const updatedComments = { ...state.comments };
@@ -236,17 +346,8 @@ export const useCommentStore = create<CommentState>()(
             updatedComments[status] = updatedComments[status].filter(c => c.id !== commentId);
           });
 
-          // Invalidate cache
-          const newCache = { ...state.cache };
-          Object.keys(newCache).forEach(key => {
-            if (key.startsWith('comments_')) {
-              delete newCache[key];
-            }
-          });
-
           set({
             comments: updatedComments,
-            cache: newCache,
             isLoading: false,
             error: null
           });
@@ -268,35 +369,22 @@ export const useCommentStore = create<CommentState>()(
         set({ isLoading: loading });
       },
 
-      invalidateCache: (status?: string) => {
-        const state = get();
-        const newCache = { ...state.cache };
-        
-        if (status) {
-          delete newCache[`comments_${status}`];
-        } else {
-          // Clear all comment cache
-          Object.keys(newCache).forEach(key => {
-            if (key.startsWith('comments_')) {
-              delete newCache[key];
-            }
-          });
-        }
-        
-        set({ cache: newCache });
+      clearTenantCache: () => {
+        const { tenantCache } = get();
+        tenantCache?.clearTenantCache();
       }
     }),
     {
       name: 'comment-store',
       partialize: (state) => ({
-        cache: state.cache,
-        lastFetch: state.lastFetch
+        // Only persist non-tenant specific data
+        comments: state.comments
       })
     }
   )
 );
 
-// Selectors for better performance with proper memoization
+// Selectors for backward compatibility
 export const useComments = (status: 'pending' | 'approved' | 'rejected') => {
   return useCommentStore(state => state.comments[status] || []);
 };
@@ -309,13 +397,25 @@ export const useCommentError = () => {
   return useCommentStore(state => state.error);
 };
 
-// Export actions directly from store to prevent re-render issues
+// Multi-tenant selectors
+export const useCommentTenant = () => useCommentStore((state) => ({
+  barbershopId: state.barbershopId,
+  isInitialized: Boolean(state.barbershopId && state.tenantRepository)
+}));
+
+// Actions for backward compatibility
 export const useCommentActions = () => {
   return {
+    initializeTenant: useCommentStore.getState().initializeTenant,
     fetchComments: useCommentStore.getState().fetchComments,
+    fetchAllCommentsForAdmin: useCommentStore.getState().fetchAllCommentsForAdmin,
+    createComment: useCommentStore.getState().createComment,
     updateCommentStatus: useCommentStore.getState().updateCommentStatus,
+    approveComment: useCommentStore.getState().approveComment,
+    rejectComment: useCommentStore.getState().rejectComment,
+    resetCommentToPending: useCommentStore.getState().resetCommentToPending,
     deleteComment: useCommentStore.getState().deleteComment,
     clearError: useCommentStore.getState().clearError,
-    invalidateCache: useCommentStore.getState().invalidateCache
+    clearTenantCache: useCommentStore.getState().clearTenantCache
   };
 };

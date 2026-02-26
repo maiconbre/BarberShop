@@ -7,52 +7,33 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  redirectTo = '/login' 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  redirectTo = '/login'
 }) => {
-  const { isAuthenticated, getCurrentUser } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
     const checkAuth = () => {
-      // Verificar se há dados de autenticação válidos
-      const token = localStorage.getItem('token');
-      const user = getCurrentUser();
-      const sessionExpiry = localStorage.getItem('sessionExpiry');
-      
-      if (!token || !user || !sessionExpiry) {
-        setShouldRedirect(true);
-        setIsLoading(false);
-        return;
-      }
-      
-      // Verificar se o token não expirou
-      const currentTime = new Date().getTime();
-      const isTokenValid = currentTime < parseInt(sessionExpiry);
-      
-      if (!isTokenValid) {
-        // Token expirado - limpar dados
-        const items = ['token', 'authToken', 'currentBarberId', 'user', 'sessionExpiry', 'rememberMe'];
-        items.forEach(item => {
-          localStorage.removeItem(item);
-          sessionStorage.removeItem(item);
-        });
-        sessionStorage.removeItem('sessionStart');
+      // Usar a nova estrutura de autenticação com Supabase
+      // const user = user; // already available
+
+      if (!user) {
         setShouldRedirect(true);
       } else {
         setShouldRedirect(false);
       }
-      
+
       setIsLoading(false);
     };
 
     // Pequeno delay para permitir que o AuthContext inicialize
     const timer = setTimeout(checkAuth, 100);
-    
+
     return () => clearTimeout(timer);
-  }, [getCurrentUser]);
+  }, [user]);
 
   if (isLoading) {
     return (

@@ -2,33 +2,36 @@ import React, { useState, useEffect } from 'react';
 import ScheduleManager from '../components/feature/ScheduleManager';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2, Calendar } from 'lucide-react';
-import { useBarberList, useFetchBarbers } from '../stores';
+import { useBarbers } from '../hooks/useBarbers';
+import { useTenant } from '../contexts/TenantContext';
 import StandardLayout from '../components/layout/StandardLayout';
 
 const ScheduleManagementPage: React.FC = () => {
-  const { getCurrentUser } = useAuth();
-  const currentUser = getCurrentUser();
-  const [barbers, setBarbers] = useState<Array<{ id: string; name: string }>>([]);
+  const { user } = useAuth();
+  const currentUser = user;
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Hooks do barberStore
-  const barberList = useBarberList();
-  const fetchBarbers = useFetchBarbers();
 
-  // Função para buscar barbeiros usando o store
+  // Hooks multi-tenant
+  const { barbers: tenantBarbers, loadBarbers } = useBarbers();
+  const { isValidTenant } = useTenant();
+
+  // Local state for barbers (transformed for component use)
+  const [barbers, setBarbers] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Função para buscar barbeiros usando o hook multi-tenant
   useEffect(() => {
-    const loadBarbers = async () => {
-      if (!currentUser) return;
+    const loadBarbersData = async () => {
+      if (!currentUser || !isValidTenant) return;
 
       try {
         if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'admin') {
-          await fetchBarbers();
-          // Não usar barberList aqui para evitar loop - será atualizado no próximo useEffect
+          await loadBarbers();
+          // Os dados serão atualizados no próximo useEffect
         } else {
           // Se for barbeiro, usar os dados do usuário atual
           setBarbers([{
-            id: currentUser && typeof currentUser === 'object' && 'id' in currentUser && typeof currentUser.id === 'number' ? currentUser.id.toString() : '', // Ensure ID is string
-            name: currentUser && typeof currentUser === 'object' && 'name' in currentUser && typeof currentUser.name === 'string' ? currentUser.name : ''
+            id: currentUser?.id || '',
+            name: currentUser?.user_metadata?.name || currentUser?.email || 'Barbeiro'
           }]);
           setIsLoading(false);
         }
@@ -38,24 +41,34 @@ const ScheduleManagementPage: React.FC = () => {
       }
     };
 
-    loadBarbers();
-  }, [currentUser]); // Removido fetchBarbers das dependências
-  
-  // Atualizar barbeiros quando o store mudar
+    loadBarbersData();
+  }, [currentUser, isValidTenant, loadBarbers]);
+
+  // Atualizar barbeiros quando os dados do hook mudarem
   const currentUserRole = currentUser && typeof currentUser === 'object' && 'role' in currentUser ? currentUser.role : undefined;
-  
+
   useEffect(() => {
-    if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'admin' && barberList.length > 0) {
-      const formattedBarbers = barberList.map((barber: { id: string; name: string }) => ({
+    if (currentUser && typeof currentUser === 'object' && 'role' in currentUser && currentUser.role === 'admin' && tenantBarbers && tenantBarbers.length > 0) {
+      const formattedBarbers = tenantBarbers.map((barber: { id: string; name: string }) => ({
         id: barber.id.toString(),
         name: barber.name
       }));
       setBarbers(formattedBarbers);
       setIsLoading(false); // Finalizar loading quando os dados chegarem
     }
-  }, [barberList, currentUserRole]);
+  }, [tenantBarbers, currentUserRole, currentUser, setBarbers, setIsLoading]);
 
   if (!currentUser) return null;
+
+  if (!isValidTenant) {
+    return (
+      <StandardLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-400">Contexto de tenant inválido</p>
+        </div>
+      </StandardLayout>
+    );
+  }
 
   return (
     <StandardLayout>
@@ -83,7 +96,7 @@ const ScheduleManagementPage: React.FC = () => {
           <ScheduleManager
             barbers={barbers}
             userRole={typeof currentUser === 'object' && 'role' in currentUser && (currentUser.role === 'admin' || currentUser.role === 'barber') ? currentUser.role : 'barber'}
-            currentBarberId={currentUser && typeof currentUser === 'object' && 'id' in currentUser && typeof currentUser.id === 'number' ? currentUser.id.toString() : undefined}
+            currentBarberId={currentUser?.id}
           />
         )}
       </div>

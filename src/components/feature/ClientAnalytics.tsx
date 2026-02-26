@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, X, BarChart2, Users, DollarSign, TrendingUp, Calendar, User } from 'lucide-react';
+import { Search, X, BarChart2, Users, DollarSign, TrendingUp, Calendar, User, Ghost } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBarberStore } from '../../stores/barberStore';
+import { useBarbers } from '../../hooks/useBarbers';
+import { useTenant } from '../../contexts/TenantContext';
 import { formatPhoneNumber } from '../../utils/formatters';
 import { logger } from '../../utils/logger';
+import { safeNumber, safeFixed } from '../../utils/numberUtils';
 
 interface Appointment {
     id: string;
@@ -25,81 +27,86 @@ interface Appointment {
 interface ClientAnalyticsProps {
     appointments: Appointment[];
     onRefreshData?: () => Promise<void>;
+    simpleMode?: boolean;
 }
 
 interface ClientData {
-  id: string;
-  name: string;
-  whatsapp?: string;
-  visits: number;
-  totalSpent: number;
-  lastVisit: string;
-  services: Record<string, number>;
-  appointmentDates: string[];
-  barberName?: string;
-  barberId?: string;
+    id: string;
+    name: string;
+    whatsapp?: string;
+    visits: number;
+    totalSpent: number;
+    lastVisit: string;
+    services: Record<string, number>;
+    appointmentDates: string[];
+    barberName?: string;
+    barberId?: string;
 }
 
 interface User {
-  id: string;
-  role?: string;
-  userRole?: string;
-  type?: string | number;
-  userId?: string;
-  uid?: string;
+    id: string;
+    role?: string;
+    userRole?: string;
+    type?: string | number;
+    userId?: string;
+    uid?: string;
 }
 
 interface BarberStats {
-  id: string;
-  name: string;
-  appointments: number;
-  revenue: number;
-  clients: Set<string>;
+    id: string;
+    name: string;
+    appointments: number;
+    revenue: number;
+    clients: Set<string>;
 }
 
 // Função auxiliar para determinar se é admin de forma segura
 const checkIsAdmin = (user: unknown): boolean => {
-  // Verificar se temos um usuário válido
-  if (user && typeof user === 'object' && 'id' in user && user.id !== 'fallback-user') {
-    const userObj = user as User;
-    const role = userObj.role || userObj.userRole || userObj.type || '';
-    return role.toString().toLowerCase() === 'admin' || role.toString().toLowerCase() === 'administrator' || role === 1 || role === 'ADMIN';
-  }
-  
-  // Verificar se temos uma flag de debug no localStorage apenas para desenvolvimento
-  const debugModeActive = localStorage.getItem('debug_admin_mode') === 'true';
-  const env = import.meta.env.VITE_ENVIRONMENT;
-  if (debugModeActive && (env === 'development' || env === 'local')) {
-    console.warn('ClientAnalytics - Debug mode ativado em desenvolvimento, tratando como admin');
-    return true;
-  }
-  
-  return false;
+    // Verificar se temos um usuário válido
+    if (user && typeof user === 'object' && 'id' in user && user.id !== 'fallback-user') {
+        const userObj = user as User;
+        const role = userObj.role || userObj.userRole || userObj.type || '';
+        return role.toString().toLowerCase() === 'admin' || role.toString().toLowerCase() === 'administrator' || role === 1 || role === 'ADMIN';
+    }
+
+    // Verificar se temos uma flag de debug no localStorage apenas para desenvolvimento
+    const debugModeActive = localStorage.getItem('debug_admin_mode') === 'true';
+    const env = import.meta.env.VITE_ENVIRONMENT;
+    if (debugModeActive && (env === 'development' || env === 'local')) {
+        console.warn('ClientAnalytics - Debug mode ativado em desenvolvimento, tratando como admin');
+        return true;
+    }
+
+    return false;
 };
 
 // Função auxiliar para obter ID do usuário de forma segura
 const getUserId = (user: unknown): string | null => {
-  if (!user || (typeof user === 'object' && 'id' in user && user.id === 'fallback-user')) return null;
-  const userObj = user as User;
-  return userObj.id || userObj.userId || userObj.uid || null;
+    if (!user || (typeof user === 'object' && 'id' in user && user.id === 'fallback-user')) return null;
+    const userObj = user as User;
+    return userObj.id || userObj.userId || userObj.uid || null;
 };
 
-const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
-    const { getCurrentUser } = useAuth();
-  const { barbers, fetchBarbers } = useBarberStore();
-  const currentUser = getCurrentUser();
-  
-  // Estados
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'barbers'>('overview');
-  const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [clientViewMode, setClientViewMode] = useState<'grid' | 'list'>('grid');
-  const [showAllAppointments, setShowAllAppointments] = useState(false);
+const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleMode }) => {
+    const { user } = useAuth();
+    // const currentUser = user; // Simplification if needed, or just use user directly
 
-  // Get admin status and user ID using helper functions
-  const isAdmin = useMemo(() => checkIsAdmin(currentUser), [currentUser]);
-  const userId = useMemo(() => getUserId(currentUser), [currentUser]);
+    // NOTE: If the code uses currentUser variable later, we define it:
+    const currentUser = user;
+    const { barbers, loadBarbers } = useBarbers();
+    const { isValidTenant } = useTenant();
+
+    // Estados
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<'overview' | 'clients' | 'barbers'>('overview');
+    const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+    const [clientViewMode, setClientViewMode] = useState<'grid' | 'list'>('grid');
+    const [showAllAppointments, setShowAllAppointments] = useState(false);
+
+    // Get admin status and user ID using helper functions
+    const isAdmin = useMemo(() => checkIsAdmin(currentUser), [currentUser]);
+    const userId = useMemo(() => getUserId(currentUser), [currentUser]);
 
     const COLORS = ['#F0B35B', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -112,7 +119,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
         console.log('ClientAnalytics - É admin (calculado):', isAdmin);
         console.log('ClientAnalytics - User ID:', userId);
         console.log('ClientAnalytics - Agendamentos filtrados:', filteredAppointments?.length || 0);
-        
+
         // Alerta se não houver usuário logado
         if (!currentUser) {
             console.warn('ClientAnalytics - ATENÇÃO: currentUser está null! Usuário não autenticado.');
@@ -121,12 +128,12 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     // Carregar barbeiros ao montar o componente
     useEffect(() => {
-        if (isAdmin && barbers.length === 0) {
-            fetchBarbers().catch(err => {
+        if (isAdmin && isValidTenant && (!barbers || barbers.length === 0)) {
+            loadBarbers().catch(err => {
                 logger.componentError('Erro ao carregar barbeiros:', err);
             });
         }
-    }, [isAdmin, barbers.length, fetchBarbers]);
+    }, [isAdmin, isValidTenant, barbers, loadBarbers]);
 
     // Filtrar agendamentos baseado no usuário
     const filteredAppointments = useMemo(() => {
@@ -316,184 +323,148 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
 
     const renderOverviewTab = () => (
         <div className="space-y-6">
-            {/* Cards de Métricas */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Receita Total</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">R$ {metrics.totalRevenue.toFixed(2)}</p>
-                        </div>
-                        <DollarSign className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
-                    </div>
-                </div>
+            {/* Header "Análise de Desempenho" is handled by parent or here? The parent DashboardPageNew puts "Análise de Desempenho" before calling this component.
+                But wait, ClientAnalytics renders the cards.
+                The design shows:
+                Análise de Desempenho
+                [Receita] [Ticket]
+                [Clientes] [Retorno]
+            */}
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Clientes</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">{metrics.uniqueClients}</p>
-                        </div>
-                        <Users className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+            {!simpleMode && (
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Receita</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">R$ {safeFixed(metrics.totalRevenue, 2)}</p>
                     </div>
-                </div>
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Ticket Médio</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">R$ {metrics.avgTicket.toFixed(2)}</p>
-                        </div>
-                        <TrendingUp className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Ticket Médio</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">R$ {safeFixed(metrics.avgTicket, 2)}</p>
                     </div>
-                </div>
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Agendamentos</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">{metrics.totalAppointments}</p>
-                        </div>
-                        <Calendar className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Clientes</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">{metrics.uniqueClients}</p>
                     </div>
-                </div>
 
-                <div className="bg-[#1A1F2E] p-2 sm:p-4 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-400 text-xs sm:text-sm">Taxa Retorno</p>
-                            <p className="text-white text-sm sm:text-xl font-bold">{metrics.returnRate.toFixed(1)}%</p>
-                        </div>
-                        <TrendingUp className="text-[#F0B35B] w-5 h-5 sm:w-8 sm:h-8" />
+                    <div className="bg-[#1A1F2E] p-4 rounded-2xl border border-white/5 hover:border-primary/20 transition-all group">
+                        <p className="text-gray-400 text-xs mb-1">Retorno</p>
+                        <p className="text-white text-xl font-bold group-hover:text-[#D4AF37] transition-colors">{safeFixed(metrics.returnRate, 0)}%</p>
                     </div>
                 </div>
-            </div>
+            )}
 
 
 
             {/* Gráficos */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+            <div className="grid grid-cols-1 gap-6">
                 {/* Receita Mensal */}
-                <div className="bg-[#1A1F2E] p-3 sm:p-6 rounded-xl border border-white/5">
-                    <h3 className="text-white text-sm sm:text-lg font-semibold mb-2 sm:mb-4">Receita Mensal</h3>
-                    <div style={{ width: '100%', height: '256px', minHeight: '256px' }}>
+                <div className="bg-[#1A1F2E] p-4 sm:p-5 rounded-2xl border border-white/5">
+                    <h3 className="text-white text-sm font-bold mb-4 flex items-center gap-2">
+                        <BarChart2 className="w-4 h-4 text-[#E6A555]" />
+                        Receita Mensal
+                    </h3>
+                    <div style={{ width: '100%', minHeight: '180px' }} className="h-[180px] sm:h-[220px]">
                         {chartData.monthlyRevenue.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={256}>
+                            <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chartData.monthlyRevenue}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                    <XAxis dataKey="month" tick={{ fill: '#fff', fontSize: 10 }} />
-                                    <YAxis tick={{ fill: '#fff', fontSize: 10 }} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis
+                                        dataKey="month"
+                                        tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        interval="preserveStartEnd"
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tickFormatter={(value) => `R$${value}`}
+                                        width={40}
+                                    />
                                     <Tooltip
                                         contentStyle={{
-                                            backgroundColor: 'rgba(26,31,46,0.95)',
-                                            border: '1px solid rgba(240,179,91,0.5)',
-                                            borderRadius: '8px'
+                                            backgroundColor: '#0D121E',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '8px',
+                                            color: '#fff',
+                                            fontSize: '12px'
                                         }}
+                                        itemStyle={{ color: '#E6A555' }}
+                                        cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
                                     />
                                     <Line
                                         type="monotone"
                                         dataKey="receita"
-                                        stroke="#F0B35B"
+                                        stroke="#E6A555"
                                         strokeWidth={2}
-                                        dot={{ fill: '#F0B35B', r: 3 }}
+                                        dot={{ fill: '#1A1F2E', stroke: '#E6A555', strokeWidth: 2, r: 4 }}
+                                        activeDot={{ r: 6, fill: '#E6A555' }}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex items-center justify-center h-full text-gray-400">
-                                <p>Nenhum dado disponível</p>
+                            <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2 opacity-50">
+                                <BarChart2 className="w-8 h-8" />
+                                <p className="text-xs">Sem dados suficientes</p>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Serviços Populares */}
-                <div className="bg-[#1A1F2E] p-3 sm:p-6 rounded-xl border border-white/5">
-                    <h3 className="text-white text-sm sm:text-lg font-semibold mb-2 sm:mb-4">Serviços Populares</h3>
-                    <div className="space-y-3" style={{ minHeight: '200px' }}>
-                        {/* Gráfico de barras horizontal para mobile */}
-                        <div className="block sm:hidden">
-                            {chartData.topServices.slice(0, 3).map((service, index) => {
-                                const percentage = (service.value / chartData.topServices.reduce((sum, s) => sum + s.value, 0)) * 100;
-                                return (
-                                    <div key={service.name} className="mb-3">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-white text-xs font-medium truncate">{service.name}</span>
-                                            <span className="text-[#F0B35B] text-xs font-bold">{service.value}</span>
-                                        </div>
-                                        <div className="w-full bg-gray-700 rounded-full h-2">
-                                            <div
-                                                className="h-2 rounded-full transition-all duration-300"
-                                                style={{
-                                                    width: `${percentage}%`,
-                                                    backgroundColor: COLORS[index % COLORS.length]
-                                                }}
-                                            />
-                                        </div>
-                                        <span className="text-gray-400 text-xs">{percentage.toFixed(1)}%</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Gráfico de pizza para desktop */}
-                        <div className="hidden sm:block" style={{ width: '100%', height: '256px', minHeight: '256px' }}>
-                            {chartData.topServices.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={256}>
-                                    <PieChart>
-                                        <Pie
-                                            data={chartData.topServices}
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={60}
-                                            dataKey="value"
-                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                        >
-                                            {chartData.topServices.map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: 'rgba(26,31,46,0.95)',
-                                                border: '1px solid rgba(240,179,91,0.5)',
-                                                borderRadius: '8px'
-                                            }}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="flex items-center justify-center h-full text-gray-400">
-                                    <p>Nenhum dado disponível</p>
+                <div className="bg-[#1A1F2E] p-4 sm:p-5 rounded-2xl border border-white/5">
+                    <h3 className="text-white text-sm font-bold mb-4 flex items-center gap-2">
+                        <User className="w-4 h-4 text-[#E6A555]" />
+                        Serviços Populares
+                    </h3>
+                    <div style={{ minHeight: '180px' }}>
+                        {/* Empty State with Ghost */}
+                        {chartData.topServices.length === 0 && (
+                            <div className="flex flex-col items-start justify-center h-[180px] w-full relative overflow-hidden bg-gradient-to-br from-[#1A1F2E] to-[#151926] rounded-xl p-4">
+                                <div className="z-10">
+                                    <h4 className="text-white font-semibold text-sm mb-1">Ainda sem dados</h4>
+                                    <p className="text-gray-400 text-xs mb-4 max-w-[200px]">Cadastre serviços para acompanhar o desempenho.</p>
+                                    <button className="flex items-center gap-2 bg-[#252B3B] hover:bg-[#2E354A] text-[#E6A555] px-4 py-2 rounded-lg text-xs font-medium transition-colors border border-white/5">
+                                        <span className="text-lg leading-none">+</span>
+                                        Cadastrar serviço
+                                    </button>
                                 </div>
-                            )}
-                        </div>
+                                {/* Ghost Illustration Placeholder using pure CSS/SVG if possible or simplistic shapes */}
+                                <div className="absolute right-[-10px] bottom-[-20px] opacity-80 pointer-events-none">
+                                    <Ghost className="w-24 h-24 text-gray-700/30 rotate-12" />
+                                </div>
+                            </div>
+                        )}
 
-                        {/* Lista de serviços com estatísticas */}
-                        <div className="mt-4 space-y-2">
-                            <h4 className="text-white text-sm font-medium">Estatísticas Detalhadas</h4>
-                            {chartData.topServices.map((service, index) => {
-                                const avgRevenue = filteredAppointments
-                                    .filter(app => app.service?.includes(service.name))
-                                    .reduce((sum, app) => sum + app.price, 0) / service.value;
-
-                                return (
-                                    <div key={service.name} className="flex items-center justify-between p-2 bg-[#0F1419] rounded-lg">
-                                        <div className="flex items-center space-x-2">
-                                            <div
-                                                className="w-3 h-3 rounded-full"
-                                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                                            />
-                                            <span className="text-white text-xs sm:text-sm font-medium">{service.name}</span>
+                        {chartData.topServices.length > 0 && (
+                            /* Gráfico de barras horizontal para mobile */
+                            <div className="space-y-3">
+                                {chartData.topServices.slice(0, 5).map((service, index) => {
+                                    const percentage = (service.value / chartData.topServices.reduce((sum, s) => sum + s.value, 0)) * 100;
+                                    return (
+                                        <div key={service.name}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-gray-300 text-xs font-medium truncate">{service.name}</span>
+                                                <span className="text-white text-xs font-bold">{service.value}</span>
+                                            </div>
+                                            <div className="w-full bg-white/5 rounded-full h-1.5">
+                                                <div
+                                                    className="h-1.5 rounded-full transition-all duration-300"
+                                                    style={{
+                                                        width: `${percentage}%`,
+                                                        backgroundColor: COLORS[index % COLORS.length]
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-[#F0B35B] text-xs sm:text-sm font-bold">{service.value} agendamentos</div>
-                                            <div className="text-gray-400 text-xs">R$ {avgRevenue.toFixed(2)} média</div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -550,11 +521,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                     </div>
                                     <div className="bg-[#0F1419] p-3 rounded-lg text-center">
                                         <p className="text-gray-400 text-xs">Total Gasto</p>
-                                        <p className="text-[#F0B35B] text-xl font-bold">R$ {selectedClient.totalSpent.toFixed(2)}</p>
+                                        <p className="text-[#F0B35B] text-xl font-bold">R$ {safeFixed(selectedClient.totalSpent, 2)}</p>
                                     </div>
                                     <div className="bg-[#0F1419] p-3 rounded-lg text-center">
                                         <p className="text-gray-400 text-xs">Ticket Médio</p>
-                                        <p className="text-white text-xl font-bold">R$ {(selectedClient.totalSpent / selectedClient.visits).toFixed(2)}</p>
+                                        <p className="text-white text-xl font-bold">R$ {safeFixed(safeNumber(selectedClient.totalSpent) / safeNumber(selectedClient.visits, 1), 2)}</p>
                                     </div>
                                     <div className="bg-[#0F1419] p-3 rounded-lg text-center">
                                         <p className="text-gray-400 text-xs">Última Visita</p>
@@ -617,10 +588,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                                 </p>
                                                             </div>
                                                             <div className="text-right">
-                                                                <p className="text-[#F0B35B] font-bold text-sm">R$ {appointment.price.toFixed(2)}</p>
+                                                                <p className="text-[#F0B35B] font-bold text-sm">R$ {safeFixed(appointment.price, 2)}</p>
                                                                 <span className={`text-xs px-2 py-1 rounded-full ${appointment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                                                                        appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
-                                                                            'bg-yellow-500/20 text-yellow-400'
+                                                                    appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
+                                                                        'bg-yellow-500/20 text-yellow-400'
                                                                     }`}>
                                                                     {appointment.status === 'completed' ? 'Concluído' :
                                                                         appointment.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
@@ -704,7 +675,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                 </div>
                                 <div className="bg-[#0F1419] p-2 rounded-lg">
                                     <p className="text-gray-400">Total</p>
-                                    <p className="text-[#F0B35B] font-bold">R$ {client.totalSpent.toFixed(2)}</p>
+                                    <p className="text-[#F0B35B] font-bold">R$ {safeFixed(client.totalSpent, 2)}</p>
                                 </div>
                             </div>
 
@@ -761,7 +732,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                             <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">{client.barberName || '-'}</td>
                                         )}
                                         <td className="p-2 sm:p-4 text-white font-medium text-xs sm:text-base">{client.visits}</td>
-                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {client.totalSpent.toFixed(2)}</td>
+                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {safeFixed(client.totalSpent, 2)}</td>
                                         <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">
                                             {new Date(client.lastVisit).toLocaleDateString('pt-BR')}
                                         </td>
@@ -774,6 +745,11 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
             )}
         </div>
     );
+
+    // Simplified render for embedded mode
+    if (simpleMode) {
+        return renderOverviewTab();
+    }
 
     const renderBarbersTab = () => {
         if (!isAdmin) return null;
@@ -805,8 +781,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                         </td>
                                         <td className="p-2 sm:p-4 text-white font-medium text-xs sm:text-base">{barber.appointments}</td>
                                         <td className="p-2 sm:p-4 text-white font-medium text-xs sm:text-base">{barber.clients}</td>
-                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {barber.revenue.toFixed(2)}</td>
-                                        <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">R$ {barber.avgTicket.toFixed(2)}</td>
+                                        <td className="p-2 sm:p-4 text-[#F0B35B] font-medium text-xs sm:text-base">R$ {safeFixed(barber.revenue, 2)}</td>
+                                        <td className="p-2 sm:p-4 text-gray-300 text-xs sm:text-base">R$ {safeFixed(barber.avgTicket, 2)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -841,8 +817,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         <button
                             onClick={() => setActiveTab('overview')}
                             className={`flex-1 py-2 px-2 sm:py-3 sm:px-4 rounded-lg font-medium transition-colors text-xs sm:text-sm ${activeTab === 'overview'
-                                    ? 'bg-[#F0B35B] text-black'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-[#F0B35B] text-black'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
@@ -852,8 +828,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                         <button
                             onClick={() => setActiveTab('clients')}
                             className={`flex-1 py-2 px-2 sm:py-3 sm:px-4 rounded-lg font-medium transition-colors text-xs sm:text-sm ${activeTab === 'clients'
-                                    ? 'bg-[#F0B35B] text-black'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-[#F0B35B] text-black'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             <Users className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
@@ -863,8 +839,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                             <button
                                 onClick={() => setActiveTab('barbers')}
                                 className={`flex-1 py-2 px-2 sm:py-3 sm:px-4 rounded-lg font-medium transition-colors text-xs sm:text-sm ${activeTab === 'barbers'
-                                        ? 'bg-[#F0B35B] text-black'
-                                        : 'text-gray-400 hover:text-white'
+                                    ? 'bg-[#F0B35B] text-black'
+                                    : 'text-gray-400 hover:text-white'
                                     }`}
                             >
                                 <User className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
@@ -932,7 +908,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                     </div>
                                     <div className="bg-[#0F1419] p-4 rounded-lg">
                                         <h3 className="text-gray-400 text-sm mb-1">Total Gasto</h3>
-                                        <p className="text-[#F0B35B] font-medium">R$ {selectedClient.totalSpent.toFixed(2)}</p>
+                                        <p className="text-[#F0B35B] font-medium">R$ {safeFixed(selectedClient.totalSpent, 2)}</p>
                                     </div>
                                 </div>
 
@@ -953,10 +929,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments }) => {
                                                         )}
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-[#F0B35B] font-medium">R$ {appointment.price.toFixed(2)}</p>
+                                                        <p className="text-[#F0B35B] font-medium">R$ {safeFixed(appointment.price, 2)}</p>
                                                         <span className={`text-xs px-2 py-1 rounded-full ${appointment.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                                                                appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
-                                                                    'bg-yellow-500/20 text-yellow-400'
+                                                            appointment.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
+                                                                'bg-yellow-500/20 text-yellow-400'
                                                             }`}>
                                                             {appointment.status === 'completed' ? 'Concluído' :
                                                                 appointment.status === 'confirmed' ? 'Confirmado' : 'Pendente'}

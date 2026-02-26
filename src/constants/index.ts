@@ -1,27 +1,20 @@
-// API Configuration
-export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://barber-backend-spm8.onrender.com/api',
-  TIMEOUT: 10000, // 10 seconds
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000, // 1 second
-} as const;
+// Constantes para o frontend com Supabase
 
-// Cache Configuration
+// Configuração de Cache
 export const CACHE_CONFIG = {
   DEFAULT_TTL: 5 * 60 * 1000, // 5 minutes
   MAX_CACHE_SIZE: 100,
-  STORAGE_KEY_PREFIX: 'barber_gr_',
+  STORAGE_KEY_PREFIX: 'barber_supabase_',
 } as const;
 
-// Authentication
+// Autenticação
 export const AUTH_CONFIG = {
-  TOKEN_STORAGE_KEY: 'auth_token',
-  REFRESH_TOKEN_STORAGE_KEY: 'refresh_token',
+  TOKEN_STORAGE_KEY: 'supabase_auth_token',
   USER_STORAGE_KEY: 'current_user',
   SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours
 } as const;
 
-// Appointment Status
+// Status de Agendamentos
 export const APPOINTMENT_STATUS = {
   SCHEDULED: 'scheduled',
   CONFIRMED: 'confirmed',
@@ -31,14 +24,17 @@ export const APPOINTMENT_STATUS = {
   NO_SHOW: 'no_show',
 } as const;
 
-// User Roles
+// Roles de Usuário
 export const USER_ROLES = {
   CLIENT: 'client',
   BARBER: 'barber',
   ADMIN: 'admin',
+  OWNER: 'owner',
+  MANAGER: 'manager',
+  EMPLOYEE: 'employee',
 } as const;
 
-// Time Configuration
+// Configurações de Tempo
 export const TIME_CONFIG = {
   TIMEZONE: 'America/Sao_Paulo',
   BUSINESS_HOURS: {
@@ -49,7 +45,7 @@ export const TIME_CONFIG = {
   BREAK_DURATION: 15, // minutes
 } as const;
 
-// Validation Rules
+// Regras de Validação
 export const VALIDATION_RULES = {
   PASSWORD_MIN_LENGTH: 6,
   NAME_MIN_LENGTH: 2,
@@ -61,37 +57,37 @@ export const VALIDATION_RULES = {
   RATING_MAX: 5,
 } as const;
 
-// Error Messages
+// Mensagens de Erro
 export const ERROR_MESSAGES = {
-  // Network errors
+  // Gerais
   NETWORK_ERROR: 'Erro de conexão. Verifique sua internet.',
   TIMEOUT_ERROR: 'Tempo limite excedido. Tente novamente.',
   SERVER_ERROR: 'Erro interno do servidor. Tente novamente mais tarde.',
   
-  // Authentication errors
+  // Autenticação
   INVALID_CREDENTIALS: 'Email ou senha incorretos.',
   SESSION_EXPIRED: 'Sessão expirada. Faça login novamente.',
   UNAUTHORIZED: 'Acesso não autorizado.',
   
-  // Validation errors
+  // Validação
   REQUIRED_FIELD: 'Este campo é obrigatório.',
   INVALID_EMAIL: 'Email inválido.',
   INVALID_PHONE: 'Telefone inválido.',
   PASSWORD_TOO_SHORT: `Senha deve ter pelo menos ${VALIDATION_RULES.PASSWORD_MIN_LENGTH} caracteres.`,
   
-  // Business logic errors
+  // Agendamentos
   APPOINTMENT_CONFLICT: 'Horário não disponível.',
   INVALID_TIME_SLOT: 'Horário inválido.',
   PAST_DATE_ERROR: 'Não é possível agendar para datas passadas.',
   BARBER_NOT_AVAILABLE: 'Barbeiro não disponível neste horário.',
   SERVICE_NOT_FOUND: 'Serviço não encontrado.',
   
-  // Generic errors
+  // Outros
   UNKNOWN_ERROR: 'Erro desconhecido. Tente novamente.',
   OPERATION_FAILED: 'Operação falhou. Tente novamente.',
 } as const;
 
-// Success Messages
+// Mensagens de Sucesso
 export const SUCCESS_MESSAGES = {
   LOGIN_SUCCESS: 'Login realizado com sucesso!',
   LOGOUT_SUCCESS: 'Logout realizado com sucesso!',
@@ -106,50 +102,16 @@ export const SUCCESS_MESSAGES = {
   COMMENT_SUBMITTED: 'Avaliação enviada com sucesso!',
 } as const;
 
-// Routes
+// Rotas
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
-  REGISTER: '/register',
+  REGISTER_BARBERSHOP: '/register-barbershop',
   DASHBOARD: '/dashboard',
-  SERVICES: '/services',
-  APPOINTMENTS: '/appointments',
-  PROFILE: '/profile',
-  ADMIN: '/admin',
-  BARBER_MANAGEMENT: '/admin/barbers',
-  SERVICE_MANAGEMENT: '/admin/services',
+  TENANT_BASE: '/app',
 } as const;
 
-// API Endpoints
-export const API_ENDPOINTS = {
-  // Authentication
-  LOGIN: '/auth/login',
-  REGISTER: '/auth/register',
-  REFRESH_TOKEN: '/auth/refresh',
-  LOGOUT: '/auth/logout',
-  
-  // Users
-  USERS: '/users',
-  USER_PROFILE: '/users/profile',
-  
-  // Services
-  SERVICES: '/services',
-  
-  // Barbers
-  BARBERS: '/barbers',
-  BARBER_AVAILABILITY: '/barbers/:id/availability',
-  
-  // Appointments
-  APPOINTMENTS: '/appointments',
-  USER_APPOINTMENTS: '/appointments/user',
-  BARBER_APPOINTMENTS: '/appointments/barber',
-  
-  // Comments
-  COMMENTS: '/comments',
-  APPOINTMENT_COMMENTS: '/comments/appointment/:id',
-} as const;
-
-// Date Formats
+// Formatos de Data
 export const DATE_FORMATS = {
   ISO_DATE: 'YYYY-MM-DD',
   ISO_DATETIME: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
@@ -160,21 +122,21 @@ export const DATE_FORMATS = {
   FRIENDLY_DATETIME: 'dddd, DD [de] MMMM [de] YYYY [às] HH:mm',
 } as const;
 
-// Pagination
+// Paginação
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 10,
   MAX_LIMIT: 100,
 } as const;
 
-// File Upload
+// Upload de Arquivos
 export const FILE_UPLOAD = {
   MAX_SIZE: 5 * 1024 * 1024, // 5MB
   ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/webp'],
   ALLOWED_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.webp'],
 } as const;
 
-// Theme
+// Tema
 export const THEME = {
   COLORS: {
     PRIMARY: '#3B82F6',
@@ -193,10 +155,9 @@ export const THEME = {
   },
 } as const;
 
-// Local Storage Keys
+// Chaves de Armazenamento
 export const STORAGE_KEYS = {
   AUTH_TOKEN: AUTH_CONFIG.TOKEN_STORAGE_KEY,
-  REFRESH_TOKEN: AUTH_CONFIG.REFRESH_TOKEN_STORAGE_KEY,
   CURRENT_USER: AUTH_CONFIG.USER_STORAGE_KEY,
   CACHE_PREFIX: CACHE_CONFIG.STORAGE_KEY_PREFIX,
   THEME_PREFERENCE: 'theme_preference',

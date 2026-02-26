@@ -1,9 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+
 import { logger } from '../utils/logger';
-import { cacheService } from '../services/CacheService';
-import { CURRENT_ENV } from '../config/environmentConfig';
-import ApiService from '../services/ApiService';
 
 // Types
 export interface Barber {
@@ -29,29 +27,36 @@ export interface BarberState {
   isLoading: boolean;
   error: string | null;
   filters: BarberFilters;
-  lastFetch: number;
   
-  // Rate limiting
-  requestCount: number;
-  lastRequestTime: number;
+  // Multi-tenant state
+  barbershopId: string | null;
+  tenantRepository: unknown | null;
+  tenantCache: unknown | null;
   
   // Actions
+  initializeTenant: (barbershopId: string) => void;
   fetchBarbers: (force?: boolean) => Promise<void>;
   getBarberById: (id: string) => Barber | null;
   createBarber: (barberData: Partial<Barber>) => Promise<Barber>;
   updateBarber: (id: string, barberData: Partial<Barber>) => Promise<Barber>;
   deleteBarber: (id: string) => Promise<void>;
+  
+  // Multi-tenant filtering actions
+  fetchActiveBarbers: () => Promise<void>;
+  fetchBarbersByService: (serviceId: string) => Promise<void>;
+  fetchBarbersByName: (name: string) => Promise<void>;
+  fetchBarbersBySpecialty: (specialty: string) => Promise<void>;
+  
+  // Backend-specific operations
+  updateContact: (id: string, whatsapp: string) => Promise<Barber>;
+  updatePaymentInfo: (id: string, pix: string) => Promise<Barber>;
+  toggleActive: (id: string, isActive: boolean) => Promise<Barber>;
+  
   setFilters: (filters: Partial<BarberFilters>) => void;
   clearError: () => void;
+  clearTenantCache: () => void;
   reset: () => void;
 }
-
-// Constants
-const CACHE_KEY = 'barbers';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minuto
-const MAX_REQUESTS_PER_WINDOW = 10; // Máximo 10 requisições por minuto
-const MIN_REQUEST_INTERVAL = 2000; // Mínimo 2 segundos entre requisições
 
 const initialFilters: BarberFilters = {
   search: undefined,
@@ -59,120 +64,76 @@ const initialFilters: BarberFilters = {
 };
 
 /**
- * Barber store with caching and rate limiting
+ * @deprecated Use useBarbers hook from hooks/useBarbers.ts instead
+ * This store is kept for backward compatibility but should not be used in new code
+ * 
+ * Multi-tenant barber store with repository pattern
  */
 export const useBarberStore = create<BarberState>()(
-  subscribeWithSelector(
-    (set, get): BarberState => {
-  // Rate limiting helper
-  const canMakeRequest = (): boolean => {
-    const now = Date.now();
-    const { requestCount, lastRequestTime } = get();
-    
-    // Reset counter if window has passed
-    if (now - lastRequestTime > RATE_LIMIT_WINDOW) {
-      set({ requestCount: 0, lastRequestTime: now });
-      return true;
-    }
-    
-    // Check if we've exceeded the rate limit
-    if (requestCount >= MAX_REQUESTS_PER_WINDOW) {
-      const timeUntilReset = RATE_LIMIT_WINDOW - (now - lastRequestTime);
-      set({ 
-        error: `Muitas requisições. Tente novamente em ${Math.ceil(timeUntilReset / 1000)} segundos.` 
-      });
-      return false;
-    }
-    
-    // Check minimum interval between requests
-    if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
-      const timeUntilNext = MIN_REQUEST_INTERVAL - (now - lastRequestTime);
-      set({ 
-        error: `Aguarde ${Math.ceil(timeUntilNext / 1000)} segundos antes da próxima requisição.` 
-      });
-      return false;
-    }
-    
-    return true;
-  };
-
-  return {
+  subscribeWithSelector((set, get) => ({
     // Initial state
     barbers: [],
     currentBarber: null,
     isLoading: false,
     error: null,
     filters: initialFilters,
-    lastFetch: 0,
-    requestCount: 0,
-    lastRequestTime: 0,
+    
+    // Multi-tenant state
+    barbershopId: null,
+    tenantRepository: null,
+    tenantCache: null,
 
     // Actions
+    initializeTenant: (barbershopId: string) => {
+      // Note: This should be called from a component that has access to the repository
+      // The repository should be passed as a parameter instead of using hooks here
+      set({
+        barbershopId,
+        tenantRepository: null, // Will be set by component
+        tenantCache: null, // Will be set by component
+      });
+    },
+
     fetchBarbers: async (force = false) => {
-      const state = get();
-      const now = Date.now();
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
       
       // Evitar múltiplas requisições simultâneas
-      if (state.isLoading) {
+      if (get().isLoading) {
         return;
       }
       
-      // Check cache first (unless forced)
-      if (!force && now - state.lastFetch < CACHE_TTL && state.barbers.length > 0) {
-        logger.componentDebug('Barbeiros já carregados recentemente');
-        return;
-      }
-      
-      // Rate limiting check
-      if (!canMakeRequest()) {
-        return;
-      }
-      
-      // Atualizar estado de loading apenas uma vez
-      set({ 
-        isLoading: true, 
-        error: null,
-        requestCount: state.requestCount + 1,
-        lastRequestTime: now
-      });
+      set({ isLoading: true, error: null });
       
       try {
-        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        const cacheKey = 'barbers:all';
+        
+        // Check cache first (unless forced)
+        if (!force) {
+          const cached = tenantCache?.get(cacheKey);
+          if (cached) {
+            set({ barbers: cached, isLoading: false });
+            logger.componentDebug('Barbeiros carregados do cache');
+            return;
           }
+        }
+        
+        const barbers = await tenantRepository.findAll();
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, barbers, { ttl: 5 * 60 * 1000 }); // 5 minutes
+        
+        set({ 
+          barbers, 
+          isLoading: false,
+          error: null 
         });
         
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
-          }
-          throw new Error(`Erro ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success && Array.isArray(data.data)) {
-          const barbers = data.data;
-          
-          // Atualizar estado apenas uma vez com todos os dados
-          set({ 
-            barbers, 
-            lastFetch: now,
-            isLoading: false,
-            error: null 
-          });
-          
-          // Update cache em background sem afetar o estado
-          try {
-            cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
-            logger.componentDebug(`${barbers.length} barbeiros carregados e salvos no cache`);
-          } catch (cacheError) {
-            logger.componentError('Erro ao salvar cache de barbeiros:', cacheError);
-          }
-        } else {
-          throw new Error('Formato de resposta inválido');
-        }
+        logger.componentDebug(`${barbers.length} barbeiros carregados com sucesso`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar barbeiros';
         set({ error: errorMessage, isLoading: false });
@@ -186,41 +147,20 @@ export const useBarberStore = create<BarberState>()(
     },
 
     createBarber: async (barberData: Partial<Barber>) => {
-      // Rate limiting check
-      if (!canMakeRequest()) {
-        throw new Error(get().error || 'Rate limit exceeded');
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        throw new Error('Tenant not initialized');
       }
       
       set({ isLoading: true, error: null });
       
       try {
-        // Update request tracking
-        const { requestCount } = get();
-        const now = Date.now();
-        set({ 
-          requestCount: requestCount + 1, 
-          lastRequestTime: now 
-        });
+        const newBarber = await tenantRepository.create(barberData);
         
-        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(barberData)
-        });
-        
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
-          }
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Erro ao criar barbeiro');
-        }
-        
-        const data = await response.json();
-        const newBarber = data.data;
+        // Clear cache to force refresh
+        tenantCache?.clearTenantCache();
         
         // Update state
         set(state => ({ 
@@ -228,100 +168,65 @@ export const useBarberStore = create<BarberState>()(
           isLoading: false 
         }));
         
-        // Update cache
-        try {
-          const { barbers } = get();
-          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
-          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
-        } catch (cacheError) {
-          logger.componentError('Erro ao atualizar cache após criação:', cacheError);
-        }
-        
+        logger.componentDebug('Barbeiro criado com sucesso:', newBarber.id);
         return newBarber;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro ao criar barbeiro';
         set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao criar barbeiro:', error);
         throw error;
       }
     },
 
     updateBarber: async (id: string, barberData: Partial<Barber>): Promise<Barber> => {
-      // Rate limiting check
-      if (!canMakeRequest()) {
-        throw new Error(get().error || 'Rate limit exceeded');
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        throw new Error('Tenant not initialized');
       }
       
       set({ isLoading: true, error: null });
       
       try {
-        // Update request tracking
-        const { requestCount } = get();
-        const now = Date.now();
-        set({ 
-          requestCount: requestCount + 1, 
-          lastRequestTime: now 
-        });
+        const updatedBarber = await tenantRepository.update(id, barberData);
         
-        // Usar o ApiService para requisições PATCH com retry e cache
-        const data = await ApiService.patch(`/api/barbers/${id}`, barberData);
-        const updatedBarber = (data as Record<string, unknown>).data || data;
+        // Clear cache to force refresh
+        tenantCache?.clearTenantCache();
         
         // Update state
         set(state => ({ 
           barbers: state.barbers.map(barber => 
-            barber.id === id ? { ...barber, ...updatedBarber as Barber } : barber
+            barber.id === id ? updatedBarber : barber
           ),
           isLoading: false 
         }));
         
-        // Update cache
-        try {
-          const { barbers } = get();
-          // Using the imported cacheService instance instead of creating new one
-          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
-        } catch (cacheError) {
-          logger.componentError('Erro ao atualizar cache após atualização:', cacheError);
-        }
-        
-        return updatedBarber as Barber;
+        logger.componentDebug('Barbeiro atualizado com sucesso:', id);
+        return updatedBarber;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro ao atualizar barbeiro';
         set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao atualizar barbeiro:', error);
         throw error;
       }
     },
 
     deleteBarber: async (id: string) => {
-      // Rate limiting check
-      if (!canMakeRequest()) {
-        throw new Error(get().error || 'Rate limit exceeded');
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
       }
       
       set({ isLoading: true, error: null });
       
       try {
-        // Update request tracking
-        const { requestCount } = get();
-        const now = Date.now();
-        set({ 
-          requestCount: requestCount + 1, 
-          lastRequestTime: now 
-        });
+        await tenantRepository.delete(id);
         
-        const response = await fetch(`${CURRENT_ENV.apiUrl}/api/barbers/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error('Muitas requisições. Tente novamente em alguns segundos.');
-          }
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Erro ao excluir barbeiro');
-        }
+        // Clear cache to force refresh
+        tenantCache?.clearTenantCache();
         
         // Update state
         set(state => ({ 
@@ -329,19 +234,169 @@ export const useBarberStore = create<BarberState>()(
           isLoading: false 
         }));
         
-        // Update cache
-        try {
-          const { barbers } = get();
-          // Using the imported cacheService instance instead of creating new one
-          await cacheService.set(CACHE_KEY, barbers, { ttl: CACHE_TTL });
-        } catch (cacheError) {
-          logger.componentError('Erro ao atualizar cache após exclusão:', cacheError);
-        }
+        logger.componentDebug('Barbeiro excluído com sucesso:', id);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erro ao excluir barbeiro';
         set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao excluir barbeiro:', error);
         throw error;
       }
+    },
+
+    // Multi-tenant filtering actions
+    fetchActiveBarbers: async () => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const cacheKey = 'barbers:active';
+        
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ barbers: cached, isLoading: false });
+          return;
+        }
+        
+        const barbers = await tenantRepository.findActive();
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, barbers, { ttl: 5 * 60 * 1000 });
+        
+        set({
+          barbers,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar barbeiros ativos';
+        set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao buscar barbeiros ativos:', error);
+      }
+    },
+
+    fetchBarbersByService: async (serviceId: string) => {
+      const { tenantRepository, tenantCache, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const cacheKey = `barbers:service:${serviceId}`;
+        
+        // Try cache first
+        const cached = tenantCache?.get(cacheKey);
+        if (cached) {
+          set({ barbers: cached, isLoading: false });
+          return;
+        }
+        
+        const barbers = await tenantRepository.findByService(serviceId);
+        
+        // Cache the result
+        tenantCache?.set(cacheKey, barbers, { ttl: 5 * 60 * 1000 });
+        
+        set({
+          barbers,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar barbeiros por serviço';
+        set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao buscar barbeiros por serviço:', error);
+      }
+    },
+
+    fetchBarbersByName: async (name: string) => {
+      const { tenantRepository, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const barbers = await tenantRepository.findByName(name);
+        
+        set({
+          barbers,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar barbeiros por nome';
+        set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao buscar barbeiros por nome:', error);
+      }
+    },
+
+    fetchBarbersBySpecialty: async (specialty: string) => {
+      const { tenantRepository, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        set({ error: 'Tenant not initialized. Call initializeTenant first.' });
+        return;
+      }
+      
+      set({ isLoading: true, error: null });
+      
+      try {
+        const barbers = await tenantRepository.findBySpecialty(specialty);
+        
+        set({
+          barbers,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar barbeiros por especialidade';
+        set({ error: errorMessage, isLoading: false });
+        logger.componentError('Erro ao buscar barbeiros por especialidade:', error);
+      }
+    },
+
+    // Backend-specific operations
+    updateContact: async (id: string, whatsapp: string) => {
+      const { tenantRepository, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        throw new Error('Tenant not initialized');
+      }
+      
+      return tenantRepository.updateContact(id, whatsapp);
+    },
+
+    updatePaymentInfo: async (id: string, pix: string) => {
+      const { tenantRepository, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        throw new Error('Tenant not initialized');
+      }
+      
+      return tenantRepository.updatePaymentInfo(id, pix);
+    },
+
+    toggleActive: async (id: string, isActive: boolean) => {
+      const { tenantRepository, barbershopId } = get();
+      
+      if (!barbershopId || !tenantRepository) {
+        throw new Error('Tenant not initialized');
+      }
+      
+      return tenantRepository.toggleActive(id, isActive);
     },
 
     setFilters: (filters: Partial<BarberFilters>) => {
@@ -354,6 +409,11 @@ export const useBarberStore = create<BarberState>()(
       set({ error: null });
     },
 
+    clearTenantCache: () => {
+      const { tenantCache } = get();
+      tenantCache?.clearTenantCache();
+    },
+
     reset: () => {
       set({
         barbers: [],
@@ -361,24 +421,39 @@ export const useBarberStore = create<BarberState>()(
         isLoading: false,
         error: null,
         filters: initialFilters,
-        lastFetch: 0,
-        requestCount: 0,
-        lastRequestTime: 0,
+        barbershopId: null,
+        tenantRepository: null,
+        tenantCache: null,
       });
     },
-  };
-}));
+  })));
 
-// Selectors - removido useBarbers para evitar re-renders desnecessários
-
-// Specific selectors
+// Selectors for backward compatibility
 export const useBarberList = () => useBarberStore((state) => state.barbers);
 export const useCurrentBarber = () => useBarberStore((state) => state.currentBarber);
 export const useBarberLoading = () => useBarberStore((state) => state.isLoading);
 export const useBarberError = () => useBarberStore((state) => state.error);
 export const useBarberFilters = () => useBarberStore((state) => state.filters);
 
-// Actions - usando seletores individuais para evitar re-renders
+// Multi-tenant selectors
+export const useBarberTenant = () => useBarberStore((state) => ({
+  barbershopId: state.barbershopId,
+  isInitialized: Boolean(state.barbershopId && state.tenantRepository)
+}));
+
+// Actions for backward compatibility
+export const useBarberActions = () => ({
+  initializeTenant: useBarberStore.getState().initializeTenant,
+  fetchBarbers: useBarberStore.getState().fetchBarbers,
+  createBarber: useBarberStore.getState().createBarber,
+  updateBarber: useBarberStore.getState().updateBarber,
+  deleteBarber: useBarberStore.getState().deleteBarber,
+  clearError: useBarberStore.getState().clearError,
+  clearTenantCache: useBarberStore.getState().clearTenantCache,
+  reset: useBarberStore.getState().reset
+});
+
+// Legacy exports for backward compatibility
 export const useFetchBarbers = () => useBarberStore((state) => state.fetchBarbers);
 export const useGetBarberById = () => useBarberStore((state) => state.getBarberById);
 export const useCreateBarber = () => useBarberStore((state) => state.createBarber);
