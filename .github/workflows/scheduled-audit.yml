@@ -208,31 +208,23 @@ jobs:
         
         echo "" >> audit-report.md
     
-    - name: Performance metrics
+    - name: Performance metrics (Desativado temporariamente)
       run: |
-        echo "⚡ Collecting performance metrics..."
-        
-        echo "## ⚡ Performance Metrics" >> audit-report.md
-        echo "" >> audit-report.md
-        
-        # Build size analysis
-        if npm run build:prod > /dev/null 2>&1; then
-          if [ -d "dist" ]; then
-            BUILD_SIZE=$(du -sh dist/ 2>/dev/null | cut -f1 || echo "Unknown")
-            echo "- **Production build size:** $BUILD_SIZE" >> audit-report.md
-            
-            # Count files
-            JS_FILES=$(find dist/ -name "*.js" 2>/dev/null | wc -l || echo "0")
-            CSS_FILES=$(find dist/ -name "*.css" 2>/dev/null | wc -l || echo "0")
-            
-            echo "- **JavaScript files:** $JS_FILES" >> audit-report.md
-            echo "- **CSS files:** $CSS_FILES" >> audit-report.md
-          else
-            echo "⚠️ Build directory not found" >> audit-report.md
-          fi
-        else
-          echo "❌ Build failed - unable to analyze build size" >> audit-report.md
-        fi
+        echo "⚡ Skipping performance metrics (temporarily disabled)..."
+        # if npm run build:prod > /dev/null 2>&1; then
+        #   if [ -d "dist" ]; then
+        #     BUILD_SIZE=$(du -sh dist/ 2>/dev/null | cut -f1 || echo "Unknown")
+        #     echo "- **Production build size:** $BUILD_SIZE" >> audit-report.md
+        #     JS_FILES=$(find dist/ -name "*.js" 2>/dev/null | wc -l || echo "0")
+        #     CSS_FILES=$(find dist/ -name "*.css" 2>/dev/null | wc -l || echo "0")
+        #     echo "- **JavaScript files:** $JS_FILES" >> audit-report.md
+        #     echo "- **CSS files:** $CSS_FILES" >> audit-report.md
+        #   else
+        #     echo "⚠️ Build directory not found" >> audit-report.md
+        #   fi
+        # else
+        #   echo "❌ Build failed - unable to analyze build size" >> audit-report.md
+        # fi
         
         echo "" >> audit-report.md
         

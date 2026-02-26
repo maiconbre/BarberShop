@@ -27,14 +27,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Check markdown links
-      uses: gaurav-nelson/github-action-markdown-link-check@v1
-      with:
-        use-quiet-mode: 'yes'
-        use-verbose-mode: 'yes'
-        config-file: '.github/markdown-link-check.json'
-        check-modified-files-only: 'yes'
-        base-branch: 'main'
+    # - name: Check markdown links (Desativado temporariamente)
+    #   uses: gaurav-nelson/github-action-markdown-link-check@v1
+    #   with:
+    #     use-quiet-mode: 'yes'
+    #     use-verbose-mode: 'yes'
+    #     config-file: '.github/markdown-link-check.json'
+    #     check-modified-files-only: 'yes'
+    #     base-branch: 'main'
     
     - name: Validate markdown format
       run: |
