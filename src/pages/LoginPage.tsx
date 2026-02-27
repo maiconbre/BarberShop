@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import { getCurrentBarbershop } from '../services/BarbershopService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User, Lock, ArrowRight } from 'lucide-react';
 import { logger } from '../utils/logger';
 
 const LoginPage: React.FC = () => {
@@ -85,143 +85,143 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0D121E] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Elementos decorativos */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3 animate-pulse-slow delay-1000"></div>
+    <div className="relative min-h-screen overflow-x-hidden bg-[#0f0f0f] text-white">
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245,166,35,0.08) 0%, transparent 60%), url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"
+        }}
+        aria-hidden="true"
+      />
 
-      {/* Padrão de linhas decorativas */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="h-full w-full" style={{
-          backgroundImage: 'linear-gradient(90deg, #F0B35B 1px, transparent 1px), linear-gradient(180deg, #F0B35B 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }}></div>
-      </div>
-
-      {/* Logo clicável */}
-      <div onClick={() => navigate('/')} className="absolute top-8 left-1/2 -translate-x-1/2 cursor-pointer z-20">
-        <div className="transform hover:scale-110 transition-transform duration-300">
-          <div className="inline-block relative">
-            <div className="text-[#F0B35B] text-xl font-medium tracking-wider border border-[#F0B35B]/70 px-3 py-1.5 rounded">
-              BARBER<span className="text-white/90">SHOP</span>
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-full h-full border border-white/10 rounded"></div>
-          </div>
+      <div className="relative z-10 px-6 py-12">
+        <div onClick={() => navigate('/')} className="mx-auto mb-8 flex max-w-6xl justify-center cursor-pointer">
+          <button className="flex items-center gap-3 text-left">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5A623] text-lg">
+              ✂️
+            </span>
+            <span className="text-sm font-semibold tracking-[0.25em] text-white">BARBERSHOP</span>
+          </button>
         </div>
-      </div>
 
-      <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 shadow-xl relative z-10">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
-            BarberShop
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-            Faça login para acessar o painel
-          </p>
+        <div className="mx-auto max-w-md rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6 shadow-xl">
+          <div className="text-center">
+            <div className="mb-4 inline-flex rounded-full border border-[#a86f12] bg-[#3a2a0f] px-4 py-1 text-[11px] uppercase tracking-[0.25em] text-[#F5A623]">
+              ◈ Área do Cliente
+            </div>
+            <h2 className="text-3xl font-semibold text-white">Bem-vindo de volta</h2>
+            <p className="mt-2 text-sm text-gray-400">Faça login para acessar o painel</p>
 
-          {/* Mensagem exclusiva para barbeiros */}
-          <div className="mt-4 p-3 bg-[#F0B35B]/10 border border-[#F0B35B]/30 rounded-lg">
-            <p className="text-center text-sm text-[#F0B35B] font-medium">
+            {/* Mensagem exclusiva para barbeiros */}
+            <div className="mt-4 p-3 bg-[#F0B35B]/10 border border-[#F0B35B]/20 rounded-lg text-xs text-[#F0B35B]">
               🔒 Acesso exclusivo para barbeiros
-            </p>
-            <p className="text-center text-xs text-gray-400 mt-1">
-              Esta área é restrita aos profissionais cadastrados
-            </p>
-          </div>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-500/10 text-red-500 p-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="username" className="sr-only">
-                username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="username"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] rounded-t-md focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="username"
-                value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Senha
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-700 placeholder-gray-500 text-white bg-[#0D121E] rounded-b-md focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] focus:z-10 sm:text-sm"
-                placeholder="Senha"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-              />
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-[#F0B35B] focus:ring-[#F0B35B] border-gray-700 rounded bg-[#0D121E]"
-                checked={formData.rememberMe}
-                onChange={(e) =>
-                  setFormData({ ...formData, rememberMe: e.target.checked })
-                }
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
-                Manter conectado
-              </label>
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="rounded-xl border border-red-700/40 bg-red-900/20 p-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-300">Usuário ou Email</label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="username"
+                    name="username"
+                    type="username"
+                    required
+                    className="block w-full rounded-lg border border-[#2a2a2a] bg-[#141414] pl-10 pr-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5A623] focus:border-[#F5A623] sm:text-sm"
+                    placeholder="Seu usuário"
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-300">Senha</label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    className="block w-full rounded-lg border border-[#2a2a2a] bg-[#141414] pl-10 pr-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5A623] focus:border-[#F5A623] sm:text-sm"
+                    placeholder="Sua senha"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <Loader2 className="animate-spin h-5 w-5" />
-              ) : (
-                'Entrar'
-              )}
-            </button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-600 bg-[#141414] text-[#F5A623] focus:ring-[#F5A623] focus:ring-offset-[#141414]"
+                  checked={formData.rememberMe}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rememberMe: e.target.checked })
+                  }
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-400">
+                  Manter conectado
+                </label>
+              </div>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => navigate('/verify-email')}
-              className="group relative w-full flex justify-center py-2 px-4 border border-[#F0B35B] text-sm font-medium rounded-md text-[#F0B35B] bg-transparent hover:bg-[#F0B35B]/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] transition-all duration-200"
-            >
-              Começar Grátis
-            </button>
+            <div className="space-y-3">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3 text-sm font-semibold text-black hover:bg-[#d4891a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isLoading ? (
+                  <Loader2 className="animate-spin h-5 w-5" />
+                ) : (
+                  <>
+                    Entrar <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
 
-            <div className="text-center">
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#2a2a2a]"></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-[#141414] px-2 text-xs text-gray-500">OU</span>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={() => navigate('/verify-email')}
-                className="text-[#F0B35B] hover:text-[#F0B35B]/80 text-sm font-medium transition-colors"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#2a2a2a] bg-transparent px-6 py-3 text-sm font-semibold text-gray-300 hover:border-[#3a3a3a] hover:text-white transition-colors"
               >
-                Não tem uma barbearia? Crie sua conta
+                Criar Nova Conta
               </button>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

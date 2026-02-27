@@ -19,6 +19,74 @@ const UpgradePage: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'pix' | 'processing' | 'success'>('selection');
   const [pixCode] = useState('00020101021226870014br.gov.bcb.pix0125barbershop.payments.pro0203PRO520400005303986540549.905802BR5915BARBERSHOP PREMIUM6009SAO PAULO62070503PRO6304ABCD');
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
+
+  // Pricing data from LandingPage (simplified for UpgradePage context)
+  const pricing = [
+    {
+      id: 'starter',
+      name: 'Starter',
+      price: '29',
+      tagline: 'Para o barbeiro autônomo que quer profissionalizar.',
+      features: [
+        { label: '1 barbeiro', included: true },
+        { label: 'Agendamentos ilimitados', included: true },
+        { label: 'Dashboard completo', included: true },
+        { label: 'Analytics básico', included: true },
+        { label: 'Página personalizável', included: true }
+      ],
+      color: 'text-white',
+      borderColor: 'border-white/5',
+      bgGradient: 'bg-[#1A1F2E]/40',
+      cta: 'Quero ser Starter'
+    },
+    {
+      id: 'pro',
+      name: 'Premium Pro',
+      price: '49,90',
+      tagline: 'Para barbearias com equipe. Tudo que você precisa crescer.',
+      features: [
+        { label: 'Barbeiros Ilimitados', included: true },
+        { label: 'Agenda Completa 2026', included: true },
+        { label: 'Relatórios Avançados', included: true },
+        { label: 'Multi-filiais (Em breve)', included: true }
+      ],
+      color: 'text-white',
+      borderColor: 'border-[#F0B35B]/30',
+      bgGradient: 'bg-[#1A1F2E]',
+      cta: 'Quero ser Pro',
+      featured: true
+    },
+    {
+      id: 'business',
+      name: 'Business',
+      price: '149',
+      tagline: 'Para redes e barbearias de alto volume. Suporte dedicado.',
+      features: [
+        { label: 'Até 10 barbeiros', included: true },
+        { label: 'Tudo do plano Pro', included: true },
+        { label: 'Multi-unidades', included: true },
+        { label: 'API e integrações', included: true },
+        { label: 'Gerente de conta dedicado', included: true }
+      ],
+      color: 'text-white',
+      borderColor: 'border-white/5',
+      bgGradient: 'bg-[#1A1F2E]/40',
+      cta: 'Falar com Consultor'
+    }
+  ];
+
+  const visiblePlans = pricing.slice(currentPlanIndex, currentPlanIndex + 2);
+  const hasMoreRight = currentPlanIndex + 2 < pricing.length;
+  const hasMoreLeft = currentPlanIndex > 0;
+
+  const nextPlan = () => {
+    if (hasMoreRight) setCurrentPlanIndex(prev => prev + 1);
+  };
+
+  const prevPlan = () => {
+    if (hasMoreLeft) setCurrentPlanIndex(prev => prev - 1);
+  };
 
   // Redirect if already on Pro plan
   useEffect(() => {
@@ -92,93 +160,79 @@ const UpgradePage: React.FC = () => {
               </div>
 
               {/* Pricing Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {/* Free Plan */}
-                <div className="bg-[#1A1F2E]/40 rounded-[2.5rem] border border-white/5 p-8 flex flex-col items-center text-center opacity-60">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-6">Plano Atual</span>
-                  <h3 className="text-2xl font-black italic uppercase text-white mb-2">Gratuito</h3>
-                  <div className="flex items-baseline gap-1 mb-8">
-                    <span className="text-4xl font-black text-white">R$ 0</span>
-                    <span className="text-gray-500 font-bold uppercase text-[10px]">/mês</span>
-                  </div>
-                  <ul className="space-y-4 w-full mb-8">
-                    <li className="flex items-center gap-3 text-xs text-gray-400 font-medium">
-                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3 h-3 text-gray-500" />
-                      </div>
-                      Apenas 1 Barbeiro
-                    </li>
-                    <li className="flex items-center gap-3 text-xs text-gray-400 font-medium">
-                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3 h-3 text-gray-500" />
-                      </div>
-                      Agenda Limitada
-                    </li>
-                  </ul>
-                  <div className="mt-auto w-full py-4 rounded-2xl border border-white/5 font-black text-gray-500 text-xs uppercase tracking-widest">
-                    Plano Ativo
-                  </div>
-                </div>
-
-                {/* Pro Plan */}
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-[#F0B35B] to-orange-600 rounded-[2.6rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                  <div className="relative bg-[#1A1F2E] rounded-[2.5rem] border border-[#F0B35B]/30 p-8 flex flex-col items-center text-center shadow-2xl">
-                    <div className="absolute top-0 right-10 -translate-y-1/2 bg-gradient-to-r from-[#F0B35B] to-orange-500 px-4 py-1.5 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg">
-                      MAIS POPULAR
-                    </div>
-
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#F0B35B] mb-6">Acesso Total</span>
-                    <h3 className="text-2xl font-black italic uppercase text-white mb-2 italic">Premium Pro</h3>
-                    <div className="flex items-baseline gap-1 mb-8">
-                      <span className="text-4xl font-black text-white italic">R$ 49,90</span>
-                      <span className="text-gray-500 font-bold uppercase text-[10px]">/mês</span>
-                    </div>
-
-                    <ul className="space-y-4 w-full mb-10 text-left">
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Barbeiros Ilimitados</span>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Agenda Completa 2026</span>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Relatórios Avançados</span>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Multi-filiais (Em breve)</span>
-                      </li>
-                    </ul>
-
-                    <button
-                      onClick={handleUpgradeSelection}
-                      disabled={isProcessingPayment}
-                      className="group/btn relative w-full h-16 bg-gradient-to-r from-[#F0B35B] to-orange-500 rounded-2xl font-black text-black text-lg uppercase tracking-widest transition-all duration-300 hover:shadow-[0_0_30px_rgba(240,179,91,0.4)] overflow-hidden scale-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-3">
-                        {isProcessingPayment ? 'Validando...' : (
-                          <>
-                            Quero ser Pro
-                            <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                          </>
+              <div className="relative">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {visiblePlans.map((plan) => (
+                    <div key={plan.id} className="relative group">
+                      {plan.featured && (
+                        <div className="absolute -inset-1 bg-gradient-to-r from-[#F0B35B] to-orange-600 rounded-[2.6rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                      )}
+                      <div className={`relative ${plan.bgGradient} rounded-[2.5rem] border ${plan.borderColor} p-8 flex flex-col items-center text-center ${plan.featured ? 'shadow-2xl' : 'opacity-80 hover:opacity-100 transition-opacity'}`}>
+                        {plan.featured && (
+                          <div className="absolute top-0 right-10 -translate-y-1/2 bg-gradient-to-r from-[#F0B35B] to-orange-500 px-4 py-1.5 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg">
+                            MAIS POPULAR
+                          </div>
                         )}
-                      </span>
-                      <div className="absolute inset-0 bg-white/20 translate-y-20 group-hover/btn:translate-y-0 transition-transform duration-500"></div>
-                    </button>
-                  </div>
+
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${plan.featured ? 'text-[#F0B35B]' : 'text-gray-500'}`}>{plan.tagline.split('.')[0]}</span>
+                        <h3 className={`text-2xl font-black italic uppercase mb-2 italic ${plan.color}`}>{plan.name}</h3>
+                        <div className="flex items-baseline gap-1 mb-8">
+                          <span className={`text-4xl font-black italic ${plan.color}`}>R$ {plan.price}</span>
+                          <span className="text-gray-500 font-bold uppercase text-[10px]">/mês</span>
+                        </div>
+
+                        <ul className="space-y-4 w-full mb-10 text-left">
+                          {plan.features.map((feature, idx) => (
+                            <li key={idx} className="flex items-center gap-3">
+                              <div className={`w-6 h-6 rounded-xl ${plan.featured ? 'bg-[#F0B35B]/10' : 'bg-white/5'} flex items-center justify-center flex-shrink-0`}>
+                                <Check className={`w-4 h-4 ${plan.featured ? 'text-[#F0B35B]' : 'text-gray-500'}`} />
+                              </div>
+                              <span className={`text-sm italic uppercase tracking-wider text-xs ${plan.featured ? 'bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent' : 'text-gray-400'}`}>{feature.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <button
+                          onClick={handleUpgradeSelection}
+                          disabled={isProcessingPayment}
+                          className={`group/btn relative w-full h-16 rounded-2xl font-black text-lg uppercase tracking-widest transition-all duration-300 overflow-hidden scale-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            plan.featured
+                              ? 'bg-gradient-to-r from-[#F0B35B] to-orange-500 text-black hover:shadow-[0_0_30px_rgba(240,179,91,0.4)]'
+                              : 'border border-white/10 text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="relative z-10 flex items-center justify-center gap-3">
+                            {isProcessingPayment ? 'Validando...' : (
+                              <>
+                                {plan.cta}
+                                <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                              </>
+                            )}
+                          </span>
+                          {plan.featured && <div className="absolute inset-0 bg-white/20 translate-y-20 group-hover/btn:translate-y-0 transition-transform duration-500"></div>}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Navigation Arrows */}
+                {hasMoreLeft && (
+                  <button
+                    onClick={prevPlan}
+                    className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/10 bg-[#1A1F2E] p-3 text-white hover:border-[#F0B35B] hover:text-[#F0B35B] shadow-xl md:-left-16 transition-all"
+                  >
+                    <ArrowRight className="h-6 w-6 rotate-180" />
+                  </button>
+                )}
+                {hasMoreRight && (
+                  <button
+                    onClick={nextPlan}
+                    className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/10 bg-[#1A1F2E] p-3 text-white hover:border-[#F0B35B] hover:text-[#F0B35B] shadow-xl md:-right-16 transition-all"
+                  >
+                    <ArrowRight className="h-6 w-6" />
+                  </button>
+                )}
               </div>
 
               {/* Trust badges */}
