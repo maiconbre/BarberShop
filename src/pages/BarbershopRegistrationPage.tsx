@@ -149,112 +149,133 @@ const BarbershopRegistrationPage: React.FC = () => {
     if (!user) return null; // Será redirecionado pelo useEffect
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#0D121E] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            {/* Elementos decorativos (Mantidos) */}
-            <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#F0B35B]/20 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 animate-pulse-slow"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-[#F0B35B]/10 to-transparent rounded-full blur-3xl translate-x-1/3 translate-y-1/3 animate-pulse-slow delay-1000"></div>
+        <div className="relative min-h-screen overflow-x-hidden bg-[#0f0f0f] text-white">
+            <div
+                className="pointer-events-none fixed inset-0 z-0"
+                style={{
+                    backgroundImage:
+                        "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245,166,35,0.08) 0%, transparent 60%), url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")"
+                }}
+                aria-hidden="true"
+            />
 
-            <div className="max-w-md w-full space-y-8 bg-[#1A1F2E] p-8 shadow-xl relative z-10 rounded-lg">
-                <div className="text-center">
-                    <h2 className="text-3xl font-extrabold text-white">Configurar Barbearia</h2>
-                    <p className="mt-2 text-sm text-gray-400">Passo 2 de 2: Detalhes do negócio</p>
-                    <div className="mt-4 p-3 bg-[#F0B35B]/10 border border-[#F0B35B]/20 rounded-lg text-sm text-[#F0B35B]">
-                        Logado como: <span className="font-semibold text-white">{user.email}</span>
-                    </div>
+            <div className="relative z-10 px-6 py-12">
+                <div onClick={() => navigate('/')} className="mx-auto mb-8 flex max-w-6xl justify-center cursor-pointer">
+                    <button className="flex items-center gap-3 text-left">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5A623] text-lg">
+                            ✂️
+                        </span>
+                        <span className="text-sm font-semibold tracking-[0.25em] text-white">BARBERSHOP</span>
+                    </button>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    {error && (
-                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-md text-sm">
-                            {error}
+                <div className="mx-auto max-w-md rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6 shadow-xl">
+                    <div className="text-center">
+                        <div className="mb-4 inline-flex rounded-full border border-[#a86f12] bg-[#3a2a0f] px-4 py-1 text-[11px] uppercase tracking-[0.25em] text-[#F5A623]">
+                            ◈ Configuração
                         </div>
-                    )}
-
-                    {success && (
-                        <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-3 rounded-md text-sm">
-                            {success}
-                        </div>
-                    )}
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Nome da Barbearia</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Store className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <input
-                                    name="name"
-                                    type="text"
-                                    required
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-md leading-5 bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
-                                    value={formData.name}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">URL Personalizada (Slug)</label>
-                            <div className="relative">
-                                <input
-                                    name="slug"
-                                    type="text"
-                                    required
-                                    className={`block w-full px-4 py-2 pr-10 border rounded-md bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none sm:text-sm transition-colors ${slugStatus === 'available' ? 'border-green-500 focus:border-green-500' :
-                                            slugStatus === 'unavailable' ? 'border-red-500 focus:border-red-500' :
-                                                'border-gray-600 focus:border-[#F0B35B]'
-                                        }`}
-                                    value={formData.slug}
-                                    onChange={handleInputChange}
-                                />
-                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                    {slugStatus === 'checking' && <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />}
-                                    {slugStatus === 'available' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                    {slugStatus === 'unavailable' && <AlertCircle className="h-4 w-4 text-red-500" />}
-                                </div>
-                            </div>
-                            {slugMessage && (
-                                <p className={`mt-1 text-xs ${slugStatus === 'available' ? 'text-green-500' : 'text-red-400'}`}>
-                                    {slugMessage}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">WhatsApp da Barbearia</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <MessageCircle className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <input
-                                    name="whatsapp"
-                                    type="tel"
-                                    required
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-md leading-5 bg-[#0D121E] text-white placeholder-gray-500 focus:outline-none focus:ring-[#F0B35B] focus:border-[#F0B35B] sm:text-sm"
-                                    placeholder="(11) 99999-9999"
-                                    value={formData.whatsapp}
-                                    onChange={handleInputChange}
-                                />
-                            </div>
-                            <p className="mt-1 text-xs text-gray-500">Será usado para notificações e contato dos clientes.</p>
+                        <h2 className="text-3xl font-semibold text-white">Sua Barbearia</h2>
+                        <p className="mt-2 text-sm text-gray-400">Passo 2 de 2: Detalhes do negócio</p>
+                        <div className="mt-4 p-3 bg-[#F0B35B]/10 border border-[#F0B35B]/20 rounded-lg text-xs text-[#F0B35B]">
+                            Logado como: <span className="font-semibold text-white">{user.email}</span>
                         </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={isLoading || slugStatus !== 'available'}
-                        className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-black bg-[#F0B35B] hover:bg-[#F0B35B]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F0B35B] disabled:opacity-50 transition-all"
-                    >
-                        {isLoading ? (
-                            <Loader2 className="animate-spin h-5 w-5" />
-                        ) : (
-                            <span className="flex items-center">
-                                Finalizar Cadastro <ArrowRight className="ml-2 h-4 w-4" />
-                            </span>
+                    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                        {error && (
+                            <div className="rounded-xl border border-red-700/40 bg-red-900/20 p-3 text-sm text-red-300">
+                                {error}
+                            </div>
                         )}
-                    </button>
-                </form>
+
+                        {success && (
+                            <div className="rounded-xl border border-green-700/40 bg-green-900/20 p-3 text-sm text-green-300">
+                                {success}
+                            </div>
+                        )}
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-300">Nome da Barbearia</label>
+                                <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <Store className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        name="name"
+                                        type="text"
+                                        required
+                                        className="block w-full rounded-lg border border-[#2a2a2a] bg-[#141414] pl-10 pr-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5A623] focus:border-[#F5A623] sm:text-sm"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        placeholder="Ex: Barbearia do Silva"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-300">URL Personalizada (Slug)</label>
+                                <div className="relative">
+                                    <input
+                                        name="slug"
+                                        type="text"
+                                        required
+                                        className={`block w-full rounded-lg border bg-[#141414] px-4 py-2 pr-10 text-white placeholder-gray-500 focus:outline-none sm:text-sm transition-colors ${slugStatus === 'available' ? 'border-green-500 focus:border-green-500' :
+                                                slugStatus === 'unavailable' ? 'border-red-500 focus:border-red-500' :
+                                                    'border-[#2a2a2a] focus:ring-2 focus:ring-[#F5A623] focus:border-[#F5A623]'
+                                            }`}
+                                        value={formData.slug}
+                                        onChange={handleInputChange}
+                                        placeholder="nome-da-barbearia"
+                                    />
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        {slugStatus === 'checking' && <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />}
+                                        {slugStatus === 'available' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                        {slugStatus === 'unavailable' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                                    </div>
+                                </div>
+                                {slugMessage && (
+                                    <p className={`mt-1 text-xs ${slugStatus === 'available' ? 'text-green-500' : 'text-red-400'}`}>
+                                        {slugMessage}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-sm font-medium text-gray-300">WhatsApp da Barbearia</label>
+                                <div className="relative">
+                                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <MessageCircle className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <input
+                                        name="whatsapp"
+                                        type="tel"
+                                        required
+                                        className="block w-full rounded-lg border border-[#2a2a2a] bg-[#141414] pl-10 pr-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5A623] focus:border-[#F5A623] sm:text-sm"
+                                        placeholder="(11) 99999-9999"
+                                        value={formData.whatsapp}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500">Será usado para notificações e contato dos clientes.</p>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading || slugStatus !== 'available'}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3 text-sm font-semibold text-black hover:bg-[#d4891a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="animate-spin h-5 w-5" />
+                            ) : (
+                                <>
+                                    Finalizar Cadastro <ArrowRight className="h-4 w-4" />
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     );

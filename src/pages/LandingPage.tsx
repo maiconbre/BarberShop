@@ -1,34 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Scissors, 
-  Calendar, 
-  Users, 
-  BarChart3, 
-  CheckCircle, 
-  Star,
-  ArrowRight,
+import {
+  Scissors,
+  Calendar,
+  Users,
+  BarChart3,
   Smartphone,
-  Play,
   Shield,
   Zap,
-  Trophy,
-  ChevronDown,
-  ChevronUp,
-  Quote,
+  Star,
+  ArrowRight,
+  Check,
   Menu,
   X
 } from 'lucide-react';
 
 const LandingPage = () => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [expandedFaq, setExpandedFaq] = useState(null);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
 
   const handleCreateBarbershop = () => {
     navigate('/verify-email');
@@ -38,735 +30,760 @@ const LandingPage = () => {
     navigate('/login');
   };
 
+  const scrollToId = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    setIsMobileMenuOpen(false);
+  };
+
+  const backgroundImage =
+    "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245,166,35,0.08) 0%, transparent 60%), url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")";
+
+  const stats = [
+    { value: '8.000+', label: 'Barbearias', icon: <Scissors className="h-5 w-5" /> },
+    { value: '500k+', label: 'Agendamentos', icon: <Calendar className="h-5 w-5" /> },
+    { value: '98%', label: 'Satisfação', icon: <Star className="h-5 w-5" /> },
+    { value: '2min', label: 'Setup médio', icon: <Zap className="h-5 w-5" /> }
+  ];
+
   const features = [
     {
-      icon: <Calendar className="w-10 h-10" />,
       title: 'Agendamentos 24/7',
-      description: 'Seus clientes agendam online a qualquer hora, sem ligações ou WhatsApp. Sistema inteligente que evita conflitos.',
-      benefit: '+300% mais agendamentos'
+      description: 'Seus clientes agendam a qualquer hora, sem ligações. Sistema inteligente que evita conflitos.',
+      tag: '↑ 300% mais agendamentos',
+      icon: <Calendar className="h-5 w-5" />,
+      accent: 'bg-blue-900 text-blue-200 border-blue-700'
     },
     {
-      icon: <Users className="w-10 h-10" />,
       title: 'Gestão Completa',
-      description: 'Organize barbeiros, horários e serviços em uma plataforma única. Controle total do seu time.',
-      benefit: 'Economia de 5h/semana'
+      description: 'Organize barbearia, horários e serviços em uma plataforma unificada.',
+      tag: 'Controle em tempo real',
+      icon: <Users className="h-5 w-5" />,
+      accent: 'bg-amber-900 text-amber-200 border-amber-700'
     },
     {
-      icon: <BarChart3 className="w-10 h-10" />,
       title: 'Relatórios Inteligentes',
-      description: 'Dados em tempo real sobre faturamento, agendamentos e performance. Tome decisões baseadas em dados.',
-      benefit: 'Aumente receita em 40%'
+      description: 'Dados em tempo real sobre faturamento e performance para decisões rápidas.',
+      tag: 'Analytics avançado',
+      icon: <BarChart3 className="h-5 w-5" />,
+      accent: 'bg-emerald-900 text-emerald-200 border-emerald-700'
     },
     {
-      icon: <Smartphone className="w-10 h-10" />,
       title: 'Página Profissional',
-      description: 'Sua barbearia online com URL personalizada. Design responsivo que impressiona clientes.',
-      benefit: 'Presença digital profissional'
+      description: 'Sua barbearia online com URL própria. Design responsivo que converte clientes.',
+      tag: 'Página própria grátis',
+      icon: <Smartphone className="h-5 w-5" />,
+      accent: 'bg-violet-900 text-violet-200 border-violet-700'
     }
   ];
 
-  const plans = [
+  const steps = [
     {
-      name: 'Gratuito',
-      price: 'R$ 0',
-      period: '/mês',
-      description: 'Ideal para começar',
-      originalPrice: null,
-      savings: null,
-      features: [
-        '1 barbeiro incluído',
-        '20 agendamentos/mês',
-        'Página personalizada profissional',
-        'Sistema completo de gestão',
-        'Suporte via email',
-        'Dashboard em tempo real'
-        
-      ],
-      cta: 'Começar Grátis',
-      popular: false,
-      highlight: '🎉 Sem cartão de crédito',
-      highlightColor: 'green'
+      step: '01',
+      title: 'Cadastre-se Grátis',
+      description: 'Crie sua conta em segundos. Sem cartão de crédito.',
+      time: '30 segundos'
     },
     {
-      name: 'Pro',
-      price: 'R$ 39',
-      period: '/mês',
-      description: 'Para barbearias em crescimento',
-      originalPrice: 'R$ 59',
-      savings: 'Economize R$ 240/ano',
-      features: [
-        'Barbeiros ilimitados',
-        'Agendamentos ilimitados',
-        'Relatórios avançados e analytics',
-        'Suporte prioritário via WhatsApp',
-        'Notificações por WhatsApp',
-        'Lembretes automáticos SMS',
-        'Dashboard em tempo real',
-        'Backup automático dos dados'
-      ],
-      cta: 'Testar 14 Dias Grátis',
-      popular: true,
-      highlight: '🚀 Teste grátis 14 dias',
-      highlightColor: 'blue'
+      step: '02',
+      title: 'Configuração Automática',
+      description: 'Serviços, horários e página prontos automaticamente.',
+      time: '1 minuto'
+    },
+    {
+      step: '03',
+      title: 'Receba Agendamentos',
+      description: 'Compartilhe sua página e receba agendamentos no WhatsApp.',
+      time: 'Imediato'
     }
   ];
+
+  const pricing = [
+    {
+      id: 'free',
+      name: 'Gratuito',
+      priceMonthly: '0',
+      priceAnnual: '0',
+      originalAnnual: null,
+      tagline: 'Ideal para começar — sem cartão de crédito.',
+      limitLabel: 'Agendamentos',
+      limitValue: '45 / mês',
+      limitFill: 20,
+      featured: false,
+      cta: 'Começar Grátis',
+      features: [
+        { label: '1 barbeiro incluído', included: true },
+        { label: '45 agendamentos/mês', included: true },
+        { label: 'Dashboard básico', included: true },
+        { label: 'Página personalizável', included: false },
+        { label: 'Analytics e relatórios', included: false },
+        { label: 'Lembretes WhatsApp', included: false },
+        { label: 'Múltiplos barbeiros', included: false }
+      ]
+    },
+    {
+      id: 'starter',
+      name: 'Starter',
+      priceMonthly: '29',
+      priceAnnual: '24',
+      originalAnnual: '29',
+      tagline: 'Para o barbeiro autônomo que quer profissionalizar.',
+      limitLabel: 'Agendamentos',
+      limitValue: 'Ilimitados',
+      limitFill: 50,
+      featured: false,
+      cta: 'Assinar Starter',
+      features: [
+        { label: '1 barbeiro', included: true },
+        { label: 'Agendamentos ilimitados', included: true },
+        { label: 'Dashboard completo', included: true },
+        { label: 'Analytics básico', included: true },
+        { label: 'Página personalizável', included: true },
+        { label: 'Lembretes WhatsApp', included: false },
+        { label: 'Múltiplos barbeiros', included: false }
+      ]
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      priceMonthly: '69',
+      priceAnnual: '55',
+      originalAnnual: '69',
+      tagline: 'Para barbearias com equipe. Tudo que você precisa crescer.',
+      limitLabel: 'Barbeiros',
+      limitValue: 'até 3',
+      limitFill: 75,
+      featured: true,
+      cta: 'Testar 14 Dias Grátis →',
+      features: [
+        { label: 'Até 3 barbeiros', included: true },
+        { label: 'Agendamentos ilimitados', included: true },
+        { label: 'Analytics avançado', included: true },
+        { label: 'Lembretes WhatsApp', included: true },
+        { label: 'Multiplos barbeiros', included: true },
+        { label: 'Relatórios de faturamento', included: true },
+        { label: 'Suporte prioritário', included: true }
+      ]
+    },
+    {
+      id: 'business',
+      name: 'Business',
+      priceMonthly: '149',
+      priceAnnual: '119',
+      originalAnnual: '149',
+      tagline: 'Para redes e barbearias de alto volume. Suporte dedicado.',
+      limitLabel: 'Barbeiros',
+      limitValue: 'até 10',
+      limitFill: 100,
+      featured: false,
+      cta: 'Assinar Business',
+      features: [
+        { label: 'Até 10 barbeiros', included: true },
+        { label: 'Tudo do plano Pro', included: true },
+        { label: 'Multi-unidades', included: true },
+        { label: 'API e integrações', included: true },
+        { label: 'Backup diário', included: true },
+        { label: 'Gerente de conta dedicado', included: true },
+        { label: 'Suporte 24h via WhatsApp', included: true }
+      ]
+    }
+  ];
+
+  const visiblePlans = pricing.slice(currentPlanIndex, currentPlanIndex + 3);
+  const hasMoreRight = currentPlanIndex + 3 < pricing.length;
+  const hasMoreLeft = currentPlanIndex > 0;
+
+  const nextPlan = () => {
+    if (hasMoreRight) setCurrentPlanIndex(prev => prev + 1);
+  };
+
+  const prevPlan = () => {
+    if (hasMoreLeft) setCurrentPlanIndex(prev => prev - 1);
+  };
 
   const testimonials = [
     {
       name: 'João Silva',
-      business: 'Barbearia do João',
-      location: 'São Paulo, SP',
-      text: 'Em 2 meses triplicamos os agendamentos. O sistema é muito fácil e os clientes adoram a praticidade de agendar online.',
-      rating: 5,
-      image: '👨‍💼',
-      metrics: '+300% agendamentos'
+      role: 'Barbearia do João · Rio',
+      text: 'Em 2 meses atingi 30 agendamentos/dia. Os clientes adoram a facilidade de agendar pelo celular.',
+      metric: '↑ 300% agendamentos',
+      badge: 'bg-amber-500 text-black'
     },
     {
-      name: 'Carlos Santos',
-      business: 'Santos Barber Shop',
-      location: 'Rio de Janeiro, RJ',
-      text: 'Finalmente consigo ter controle total da agenda. Antes era uma bagunça, agora tudo organizado automaticamente.',
-      rating: 5,
-      image: '👨‍🦲',
-      metrics: '5h/semana economizadas'
+      name: 'Carlos Nunes',
+      role: 'Carlos Barber · SP',
+      text: 'Mudou como eu gerencio tudo. Cada cliente sabe exatamente seu horário e tenho controle total.',
+      metric: '↑ 5x clientes recorrentes',
+      badge: 'bg-blue-500 text-black'
     },
     {
       name: 'Pedro Costa',
-      business: 'Costa Premium Hair',
-      location: 'Belo Horizonte, MG',
-      text: 'Os relatórios me mostraram onde estava perdendo dinheiro. Hoje faturamos 40% mais com a mesma estrutura.',
-      rating: 5,
-      image: '👨‍🎨',
-      metrics: '+40% faturamento'
+      role: 'CutStyle · BH',
+      text: 'Os relatórios mostraram onde eu perdia dinheiro. Aumentei o faturamento 40% em 3 meses.',
+      metric: '↑ 40% faturamento',
+      badge: 'bg-emerald-500 text-black'
     }
   ];
 
   const faqData = [
     {
       question: 'Como funciona o período gratuito?',
-      answer: 'O plano gratuito inclui 1 barbeiro e 20 agendamentos por mês para sempre. Não é um teste - é realmente grátis! Se precisar de mais, pode fazer upgrade a qualquer momento.'
+      answer: 'O plano gratuito é permanente. Você tem acesso às funcionalidades essenciais sem limite de tempo.'
     },
     {
       question: 'Preciso de conhecimento técnico?',
-      answer: 'Não! O sistema é super intuitivo. Em 2 minutos você já está recebendo agendamentos. Nosso suporte te ajuda com tudo que precisar.'
+      answer: 'Não. A configuração é automática e intuitiva. Em menos de 3 minutos sua barbearia está online.'
     },
     {
       question: 'Como os clientes vão agendar?',
-      answer: 'Você ganha uma página personalizada (exemplo: suabarbearia.com) que pode compartilhar nas redes sociais, WhatsApp ou imprimir em cartões. Os clientes agendam direto lá.'
+      answer: 'Você recebe uma URL personalizada para compartilhar no WhatsApp, Instagram ou onde quiser.'
     },
     {
       question: 'E se eu não gostar do sistema?',
-      answer: 'Sem problemas! O plano gratuito não tem compromisso e o Pro tem 14 dias de teste grátis. Você pode cancelar a qualquer momento com 1 clique.'
+      answer: 'No plano Pro você pode cancelar a qualquer momento sem taxas. Garantia total nos primeiros 14 dias.'
     },
     {
       question: 'O sistema funciona no celular?',
-      answer: 'Sim! Funciona perfeitamente no celular, tablet e computador. Tanto para você gerenciar quanto para os clientes agendarem.'
+      answer: 'Sim, totalmente responsivo. Painel de gestão e página dos clientes funcionam em qualquer dispositivo.'
     }
   ];
 
-  const stats = [
-    { number: '5.000+', label: 'Agendamentos/mês', icon: <Calendar className="w-6 h-6" /> },
-    { number: '500+', label: 'Barbearias ativas', icon: <Scissors className="w-6 h-6" /> },
-    { number: '98%', label: 'Satisfação', icon: <Star className="w-6 h-6" /> },
-    { number: '2min', label: 'Setup médio', icon: <Zap className="w-6 h-6" /> }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0D121E] via-[#1A1F2E] to-[#0D121E] text-white">
-      {/* Floating CTA */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button 
-          onClick={handleCreateBarbershop}
-          className="bg-[#F0B35B] text-black px-4 sm:px-6 py-3 rounded-full font-bold shadow-2xl hover:shadow-[#F0B35B]/30 hover:scale-105 transition-all duration-300 flex items-center gap-2 animate-pulse text-sm sm:text-base"
-        >
-          <Scissors className="w-4 sm:w-5 h-4 sm:h-5" />
-          Grátis Agora
-        </button>
-      </div>
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0D121E]/95 backdrop-blur-xl border-b border-white/10 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <div 
-                className="text-[#F0B35B] text-xl font-bold tracking-wider border-2 border-[#F0B35B] px-4 py-2 rounded-lg bg-gradient-to-r from-[#F0B35B]/10 to-transparent cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              >
-                BARBER<span className="text-white">SHOP</span>
-              </div>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
-              <button 
+    <div className="relative min-h-screen overflow-x-hidden bg-[#0f0f0f] text-white">
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{ backgroundImage }}
+        aria-hidden="true"
+      />
+      <div className="relative z-10">
+        <header className="sticky top-0 z-50 border-b border-[#2a2a2a] bg-[#0f0f0f] backdrop-blur-xl">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+            <button
+              onClick={() => scrollToId('top')}
+              className="flex items-center gap-3 text-left"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5A623] text-lg">
+                ✂️
+              </span>
+              <span className="text-sm font-semibold tracking-[0.25em] text-white">NA RÉGUA</span>
+            </button>
+            <nav className="hidden items-center gap-6 text-sm text-gray-300 md:flex">
+              <button onClick={() => scrollToId('features')} className="hover:text-white transition-colors">
+                Recursos
+              </button>
+              <button onClick={() => scrollToId('how')} className="hover:text-white transition-colors">
+                Como funciona
+              </button>
+              <button onClick={() => scrollToId('pricing')} className="hover:text-white transition-colors">
+                Preços
+              </button>
+              <button onClick={() => scrollToId('faq')} className="hover:text-white transition-colors">
+                FAQ
+              </button>
+            </nav>
+            <div className="hidden items-center gap-3 md:flex">
+              <button
                 onClick={handleLogin}
-                className="text-gray-300 hover:text-[#F0B35B] transition-colors font-medium"
+                className="rounded-full border border-[#2a2a2a] px-4 py-2 text-sm text-gray-300 hover:border-[#3a3a3a] hover:text-white transition-colors"
               >
                 Entrar
               </button>
-              <button 
-                onClick={handleCreateBarbershop}
-                className="bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80 text-black px-6 py-2.5 rounded-lg font-bold hover:shadow-lg hover:shadow-[#F0B35B]/30 transition-all duration-300 hover:scale-105"
-              >
-                Começar Grátis
-              </button>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <div className="md:hidden">
               <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-gray-300 hover:text-[#F0B35B] transition-colors"
+                onClick={handleCreateBarbershop}
+                className="rounded-full bg-[#F5A623] px-5 py-2 text-sm font-semibold text-black hover:bg-[#d4891a] transition-colors"
               >
-                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                Começar Grátis →
               </button>
             </div>
+            <button
+              onClick={() => setIsMobileMenuOpen(prev => !prev)}
+              className="rounded-lg border border-[#2a2a2a] p-2 text-gray-300 md:hidden"
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
-
-          {/* Mobile Menu */}
           {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-white/10 py-4">
-              <div className="flex flex-col space-y-4">
-                <button 
-                  onClick={() => {
-                    handleLogin();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-gray-300 hover:text-[#F0B35B] transition-colors font-medium text-left"
+            <div className="border-t border-[#2a2a2a] bg-[#0f0f0f] px-6 py-4 md:hidden">
+              <div className="flex flex-col gap-3 text-sm text-gray-300">
+                <button onClick={() => scrollToId('features')} className="text-left hover:text-white">
+                  Recursos
+                </button>
+                <button onClick={() => scrollToId('how')} className="text-left hover:text-white">
+                  Como funciona
+                </button>
+                <button onClick={() => scrollToId('pricing')} className="text-left hover:text-white">
+                  Preços
+                </button>
+                <button onClick={() => scrollToId('faq')} className="text-left hover:text-white">
+                  FAQ
+                </button>
+                <button
+                  onClick={handleLogin}
+                  className="rounded-full border border-[#2a2a2a] px-4 py-2 text-left text-gray-300 hover:border-[#3a3a3a] hover:text-white"
                 >
                   Entrar
                 </button>
-                <button 
-                  onClick={() => {
-                    handleCreateBarbershop();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="bg-gradient-to-r from-[#F0B35B] to-[#F0B35B]/80 text-black px-4 py-2 rounded-lg font-bold hover:shadow-lg hover:shadow-[#F0B35B]/30 transition-all duration-300 text-left"
+                <button
+                  onClick={handleCreateBarbershop}
+                  className="rounded-full bg-[#F5A623] px-4 py-2 text-left text-sm font-semibold text-black"
                 >
-                  Começar Grátis
+                  Começar Grátis →
                 </button>
               </div>
             </div>
           )}
-        </div>
-      </header>
+        </header>
 
-      {/* Hero Section */}
-      <section className="relative py-16 lg:py-24 overflow-hidden">
-        {/* Enhanced background decorations */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-[#F0B35B]/30 to-purple-500/20 rounded-full blur-3xl -translate-x-1/3 -translate-y-1/3 animate-pulse"></div>
-        <div className="absolute top-1/2 right-0 w-64 h-64 bg-gradient-to-tl from-blue-500/20 to-transparent rounded-full blur-3xl translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-1/3 w-48 h-48 bg-gradient-to-tr from-purple-500/20 to-transparent rounded-full blur-2xl"></div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-            
-            {/* Trust badge */}
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 px-4 py-2 rounded-full mb-6">
-              <Shield className="w-4 h-4 text-green-400" />
-              <span className="text-green-400 font-semibold text-sm">
-                ✓ Confiado por 500+ barbearias • Sistema 100% seguro
-              </span>
+        <section id="top" className="relative overflow-hidden px-6 pb-16 pt-20">
+          <div className="mx-auto max-w-6xl text-center">
+            <div className="mx-auto mb-6 flex w-fit items-center gap-2 rounded-full border border-emerald-700 bg-emerald-900 px-4 py-2 text-xs text-emerald-200">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Sistema ativo · Mais de 8.000 barbearias online
             </div>
-            
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-              <span className="block text-white/95 mb-2">Transforme sua barbearia</span>
-              <span className="bg-gradient-to-r from-[#F0B35B] via-yellow-400 to-[#F0B35B] bg-clip-text text-transparent font-black">
-                em negócio digital
-              </span>
+            <h1 className="text-4xl font-semibold tracking-tight text-white md:text-6xl">
+              Transforme sua barbearia em
+              <span className="block text-[#F5A623]">negócio digital</span>
             </h1>
-            
-            <div className="flex flex-wrap justify-center gap-4 mb-6">
-              <div className="bg-gradient-to-r from-[#F0B35B]/20 to-yellow-500/20 border border-[#F0B35B]/30 px-4 py-2 rounded-full">
-                <span className="text-[#F0B35B] font-bold">🚀 Sistema Agendamento Completo</span>
-              </div>
-              <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 px-4 py-2 rounded-full">
-                <span className="text-purple-400 font-bold">⚡ Setup em 2 minutos</span>
-              </div>
-            </div>
-            
-            <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-4xl mx-auto leading-relaxed">
-              Agendamentos online 24/7, página profissional personalizada e gestão completa.
+            <p className="mx-auto mt-4 max-w-2xl text-base text-gray-300 md:text-lg">
+              Agendamentos online 24/7, página profissional personalizada e gestão completa — tudo em um só lugar.
             </p>
-            <p className="text-lg text-[#F0B35B] font-semibold mb-8 max-w-3xl mx-auto">
-              <strong>Comece 100% GRÁTIS</strong> e aumente seus agendamentos em até 300% no primeiro mês!
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8">
-              <button 
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <button
                 onClick={handleCreateBarbershop}
-                className="group bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-black hover:shadow-2xl hover:shadow-[#F0B35B]/40 transition-all duration-300 hover:scale-105 flex items-center gap-2 sm:gap-3 min-w-[240px] sm:min-w-[280px] justify-center"
+                className="flex items-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3 text-sm font-semibold text-black hover:bg-[#d4891a]"
               >
-                <Scissors className="w-5 sm:w-6 h-5 sm:h-6 group-hover:rotate-12 transition-transform" />
+                <Scissors className="h-4 w-4" />
                 Criar Barbearia GRÁTIS
-                <ArrowRight className="w-5 sm:w-6 h-5 sm:h-6 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="h-4 w-4" />
               </button>
-              
-              <button 
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                className="group border-2 border-[#F0B35B] text-[#F0B35B] px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold hover:bg-[#F0B35B] hover:text-black transition-all duration-300 flex items-center gap-2"
+              <button
+                onClick={() => scrollToId('how')}
+                className="rounded-xl border border-[#2a2a2a] px-6 py-3 text-sm text-gray-200 hover:border-[#3a3a3a]"
               >
-                <Play className="w-4 sm:w-5 h-4 sm:h-5" />
                 Ver Como Funciona
               </button>
             </div>
-
-            {/* Social proof enhanced */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto mb-8">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-[#F0B35B] mb-1">{stat.icon}</div>
-                  <div className="text-2xl font-bold text-white mb-1">{stat.number}</div>
-                  <div className="text-sm text-gray-400">{stat.label}</div>
+            <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
+              {stats.map(stat => (
+                <div key={stat.label} className="rounded-2xl border border-[#2a2a2a] bg-[#141414] px-4 py-5">
+                  <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#3a2a0f] text-[#F5A623]">
+                    {stat.icon}
+                  </div>
+                  <div className="text-lg font-semibold text-white">{stat.value}</div>
+                  <div className="text-xs uppercase tracking-wide text-gray-400">{stat.label}</div>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Trust indicators */}
-            <div className="flex flex-wrap justify-center items-center gap-6 text-gray-400 text-sm">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Sem compromisso</span>
+          <div className="mx-auto mt-14 max-w-5xl overflow-hidden rounded-3xl border border-[#2a2a2a] bg-[#141414]">
+            <div className="flex items-center gap-2 border-b border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs text-gray-400">
+              <span className="h-2 w-2 rounded-full bg-red-400" />
+              <span className="h-2 w-2 rounded-full bg-yellow-400" />
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="ml-4 font-mono text-[10px]">barber.com/app/pedrobarbershop/dashboard</span>
+            </div>
+            <div className="grid gap-6 p-6 md:grid-cols-[180px_1fr]">
+              <div className="hidden rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a] p-4 text-xs text-gray-400 md:block">
+                <div className="mb-4 flex items-center gap-2 text-sm text-white">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5A623] text-black">✂️</span>
+                  Pedro
+                </div>
+                <div className="mb-2 uppercase tracking-[0.2em] text-[10px]">Dashboard</div>
+                <div className="rounded-lg bg-[#3a2a0f] px-3 py-2 text-[#F5A623]">📊 Dashboard</div>
+                <div className="mt-2 px-3 py-2">📅 Agenda</div>
+                <div className="mt-4 uppercase tracking-[0.2em] text-[10px]">Gerenciamento</div>
+                <div className="mt-2 px-3 py-2">⚙️ Serviços</div>
+                <div className="mt-2 px-3 py-2">👥 Equipe</div>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Sem cartão de crédito</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Página personalizada</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Suporte incluído</span>
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Dashboard</h3>
+                  <p className="text-xs text-gray-400">Welcome back, Pedro</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    { label: 'TOTAL', value: '24', color: 'bg-blue-900 text-blue-200' },
+                    { label: 'RECEITA', value: 'R$ 1.2k', color: 'bg-amber-900 text-amber-200' },
+                    { label: 'CONCLUÍDOS', value: '18', color: 'bg-emerald-900 text-emerald-200' },
+                    { label: 'PENDENTES', value: '6', color: 'bg-orange-900 text-orange-200' }
+                  ].map(item => (
+                    <div key={item.label} className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-4">
+                      <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg ${item.color}`}>
+                        {item.label.slice(0, 1)}
+                      </div>
+                      <div className="text-[10px] uppercase tracking-wide text-gray-400">{item.label}</div>
+                      <div className="text-lg font-semibold text-white">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex h-24 items-end gap-2 rounded-2xl border border-[#2a2a2a] bg-[#141414] p-4">
+                  {[28, 48, 42, 78, 58, 88, 72].map((height, index) => (
+                    <div
+                      key={index}
+                      className="flex-1 rounded-t-md bg-[#F5A623]"
+                      style={{ height: `${height}%`, opacity: 1 }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Section Enhanced */}
-      <section id="features" className="py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-[#F0B35B]/20 to-transparent border border-[#F0B35B]/30 px-4 py-2 rounded-full mb-4">
-              <span className="text-[#F0B35B] font-bold">⚡ Recursos Profissionais</span>
+        <section id="features" className="px-6 py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-12">
+              <div className="mb-4 inline-flex rounded-full border border-[#a86f12] bg-[#3a2a0f] px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#F5A623]">
+                ✦ Recursos Profissionais
+              </div>
+              <h2 className="text-3xl font-semibold text-white md:text-4xl">Tudo que sua barbearia precisa</h2>
+              <p className="mt-3 max-w-2xl text-sm text-gray-300">
+                Sistema completo que transforma qualquer barbearia em um negócio digital moderno.
+              </p>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Tudo que sua barbearia precisa
-            </h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Sistema completo que transforma qualquer barbearia em um negócio digital moderno
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className={`group bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] p-8 rounded-2xl border border-gray-700 hover:border-[#F0B35B]/50 transition-all duration-500 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-[#F0B35B]/20 ${
-                  index % 2 === 0 ? 'md:translate-y-4' : ''
-                }`}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="text-[#F0B35B] group-hover:scale-110 transition-transform duration-300">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {features.map(feature => (
+                <div key={feature.title} className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6 transition hover:-translate-y-1 hover:border-[#a86f12]">
+                  <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl border ${feature.accent}`}>
                     {feature.icon}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold text-white">{feature.title}</h3>
-                      <span className="bg-gradient-to-r from-green-500/20 to-blue-500/20 text-green-400 text-xs px-2 py-1 rounded-full font-medium border border-green-500/30">
-                        {feature.benefit}
-                      </span>
-                    </div>
-                    <p className="text-gray-300 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-base font-semibold text-white">{feature.title}</h3>
+                  <p className="mt-2 text-sm text-gray-300">{feature.description}</p>
+                  <div className="mt-4 inline-flex rounded-full border border-emerald-700 bg-emerald-900 px-3 py-1 text-xs text-emerald-200">
+                    {feature.tag}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works - Enhanced */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Como funciona?
-            </h2>
-            <p className="text-xl text-gray-300 mb-2">
-              Em 3 passos simples, sua barbearia estará online
-            </p>
-            <p className="text-[#F0B35B] font-semibold">
-              ⏱️ Processo completo em menos de 2 minutos
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {[
-              {
-                step: '1',
-                title: 'Cadastre-se Grátis',
-                description: 'Crie sua conta em 30 segundos. Só precisamos do seu email - sem cartão de crédito!',
-                time: '30 segundos'
-              },
-              {
-                step: '2', 
-                title: 'Configuração Automática',
-                description: 'Criamos automaticamente seus serviços básicos, horários e sua página profissional.',
-                time: '1 minuto'
-              },
-              {
-                step: '3',
-                title: 'Receba Agendamentos',
-                description: 'Compartilhe sua página personalizada e comece a receber agendamentos online!',
-                time: 'Imediato'
-              }
-            ].map((item, index) => (
-              <div key={index} className="text-center group">
-                <div className="bg-gradient-to-br from-[#F0B35B] to-yellow-400 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-all duration-300 shadow-lg shadow-[#F0B35B]/30">
-                  <span className="text-3xl font-black text-black">{item.step}</span>
-                </div>
-                <h3 className="text-2xl font-bold mb-3">{item.title}</h3>
-                <p className="text-gray-300 mb-3 leading-relaxed">{item.description}</p>
-                <div className="inline-block bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium border border-green-500/30">
-                  ⚡ {item.time}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Arrow indicators for larger screens */}
-          <div className="hidden lg:flex justify-center items-center mt-8">
-            <ArrowRight className="text-[#F0B35B] w-8 h-8 mx-8" />
-            <ArrowRight className="text-[#F0B35B] w-8 h-8 mx-8" />
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section - Enhanced */}
-      <section className="py-20 bg-gradient-to-br from-[#1A1F2E] via-[#0D121E] to-[#1A1F2E]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 px-4 py-2 rounded-full mb-4">
-              <span className="text-green-400 font-bold">💰 Preços Honestos</span>
+              ))}
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Planos que cabem no seu bolso
-            </h2>
-            <p className="text-xl text-gray-300 mb-2">
-              Comece <strong className="text-[#F0B35B]">100% grátis</strong> e cresça conforme sua necessidade
-            </p>
-            <p className="text-green-400 font-semibold">
-              🎯 Mais de 80% escolhem começar no plano gratuito
-            </p>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {plans.map((plan, index) => (
-              <div
-                key={index}
-                className={`relative bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] p-8 rounded-2xl border-2 transition-all duration-300 hover:transform hover:scale-105 ${
-                  plan.popular 
-                    ? 'border-[#F0B35B] shadow-2xl shadow-[#F0B35B]/30 ring-2 ring-[#F0B35B]/20' 
-                    : 'border-gray-700 hover:border-[#F0B35B]/30'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black px-6 py-2 rounded-full text-sm font-black flex items-center gap-2">
-                      <Trophy className="w-4 h-4" />
-                      MAIS ESCOLHIDO
-                    </div>
+        <section id="how" className="px-6 py-20">
+          <div className="mx-auto max-w-6xl text-center">
+            <div className="mb-12">
+              <div className="mb-4 inline-flex rounded-full border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#F5A623]">
+                ○ Como funciona?
+              </div>
+              <h2 className="text-3xl font-semibold text-white md:text-4xl">3 passos simples, sua barbearia online</h2>
+              <p className="mt-3 text-sm text-gray-300">
+                Processo completo em menos de 3 minutos — sem cartão de crédito.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {steps.map(step => (
+                <div key={step.step} className="relative rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6 text-left">
+                  <span className="absolute right-6 top-4 text-4xl font-semibold text-[#262626]">{step.step}</span>
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-[#F5A623] text-sm font-semibold text-black">
+                    {step.step[1]}
                   </div>
-                )}
-
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold mb-3">{plan.name}</h3>
-                  <div className="mb-4">
-                    <div className="flex items-center justify-center gap-2">
-                      {plan.originalPrice && (
-                        <span className="text-gray-400 line-through text-lg">{plan.originalPrice}</span>
-                      )}
-                      <span className="text-5xl font-black text-white">{plan.price}</span>
-                      <span className="text-gray-400 text-lg">{plan.period}</span>
-                    </div>
-                    {plan.savings && (
-                      <div className="text-green-400 font-semibold text-sm mt-1">
-                        💰 {plan.savings}
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-gray-300 mb-3">{plan.description}</p>
-                  <div className={`inline-block px-4 py-2 rounded-full text-sm font-bold border ${
-                    plan.highlightColor === 'green' 
-                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                      : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                  }`}>
-                    {plan.highlight}
+                  <h3 className="text-base font-semibold text-white">{step.title}</h3>
+                  <p className="mt-2 text-sm text-gray-300">{step.description}</p>
+                  <div className="mt-4 inline-flex items-center gap-2 text-xs text-[#F5A623]">
+                    <span>⏱</span>
+                    {step.time}
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-                <ul className="space-y-4 mb-8">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-[#F0B35B] flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-300">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
+        <section id="pricing" className="px-6 py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="text-center">
+              <div className="mb-4 inline-flex rounded-full border border-[#a86f12] bg-[#3a2a0f] px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#F5A623]">
+                ◈ Planos Acessíveis
+              </div>
+              <h2 className="text-3xl font-semibold text-white md:text-4xl">Planos que cabem no seu bolso</h2>
+              <p className="mt-3 text-sm text-gray-300">
+                Comece 100% grátis e cresça conforme sua necessidade. Mais de 80% iniciam no gratuito.
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-3 text-xs text-gray-400">
+                <span>Mensal</span>
                 <button
-                  onClick={handleCreateBarbershop}
-                  className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black hover:shadow-lg hover:shadow-[#F0B35B]/30 hover:scale-105'
-                      : 'border-2 border-[#F0B35B] text-[#F0B35B] hover:bg-[#F0B35B] hover:text-black'
+                  onClick={() => setIsAnnual(prev => !prev)}
+                  className={`relative h-7 w-12 rounded-full border border-[#2a2a2a] transition-colors ${
+                    isAnnual ? 'bg-[#F5A623]' : 'bg-[#1a1a1a]'
                   }`}
                 >
-                  {plan.cta}
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      isAnnual ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
                 </button>
+                <span>Anual</span>
+                <span className="rounded-full bg-[#3a2a0f] px-2 py-1 text-[10px] text-[#F5A623]">
+                  2 meses grátis
+                </span>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* Money back guarantee */}
-          <div className="text-center mt-12">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/20 to-transparent border border-green-500/30 px-6 py-3 rounded-full">
-              <Shield className="w-5 h-5 text-green-400" />
-              <span className="text-green-400 font-semibold">
-                💯 Garantia: Cancele quando quiser, sem pegadinhas
+            <div className="relative mt-10">
+              <div className="grid gap-4 lg:grid-cols-3">
+                {visiblePlans.map(plan => {
+                  const price = isAnnual ? plan.priceAnnual : plan.priceMonthly;
+                  const suffix = plan.id === 'free' ? '/ mês' : isAnnual ? ',90 / mês*' : ',90 / mês';
+                  const original = plan.id === 'free' ? null : isAnnual ? plan.originalAnnual : null;
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`relative rounded-3xl border p-6 ${
+                        plan.featured
+                          ? 'border-[#F5A623] bg-gradient-to-b from-[#1f1a0e] to-[#141414] shadow-[0_0_40px_rgba(245,166,35,0.15)]'
+                          : 'border-[#2a2a2a] bg-[#141414]'
+                      }`}
+                    >
+                      {plan.featured && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#F5A623] px-4 py-1 text-[10px] font-semibold text-black">
+                          ★ MAIS ESCOLHIDO
+                        </span>
+                      )}
+                      <div className="text-xs uppercase tracking-[0.2em] text-gray-400">{plan.name}</div>
+                      <div className="mt-3 text-[11px] text-gray-500">{original ? `R$${original},90/mês no mensal` : ''}</div>
+                      <div className="mt-1 flex items-end gap-1">
+                        <span className="text-sm text-gray-400">R$</span>
+                        <span className="text-4xl font-semibold text-white">{price}</span>
+                        <span className="pb-1 text-xs text-gray-400">{suffix}</span>
+                      </div>
+                      <p className="mt-3 text-xs text-gray-400">{plan.tagline}</p>
+                      <div className="mt-5">
+                        <div className="flex items-center justify-between text-[11px] text-gray-400">
+                          <span>{plan.limitLabel}</span>
+                          <span>{plan.limitValue}</span>
+                        </div>
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-[#2a2a2a]">
+                          <div
+                            className="h-1.5 rounded-full bg-[#F5A623]"
+                            style={{ width: `${plan.limitFill}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-5 space-y-2 text-xs text-gray-300">
+                        {plan.features.map(feature => (
+                          <div
+                            key={feature.label}
+                            className={`flex items-start gap-2 ${feature.included ? '' : 'text-gray-500 line-through'}`}
+                          >
+                            <span className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full ${feature.included ? 'bg-emerald-900 text-emerald-200' : 'bg-gray-700 text-gray-400'}`}>
+                          {feature.included ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        </span>
+                            {feature.label}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={handleCreateBarbershop}
+                        className={`mt-6 w-full rounded-xl px-4 py-2 text-xs font-semibold ${
+                          plan.featured
+                            ? 'bg-[#F5A623] text-black hover:bg-[#d4891a]'
+                            : 'border border-[#2a2a2a] text-gray-200 hover:border-[#3a3a3a]'
+                        }`}
+                      >
+                        {plan.cta}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Navigation Arrows */}
+              {hasMoreLeft && (
+                <button
+                  onClick={prevPlan}
+                  className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-[#2a2a2a] bg-[#141414] p-2 text-white hover:border-[#F5A623] hover:text-[#F5A623] md:-left-12"
+                >
+                  <ArrowRight className="h-5 w-5 rotate-180" />
+                </button>
+              )}
+              {hasMoreRight && (
+                <button
+                  onClick={nextPlan}
+                  className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-[#2a2a2a] bg-[#141414] p-2 text-white hover:border-[#F5A623] hover:text-[#F5A623] md:-right-12"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+            <p className="mt-6 text-center text-xs text-gray-500">✓ Garantia · Cancele quando quiser, sem perguntas</p>
+          </div>
+        </section>
+
+        <section id="testimonials" className="px-6 py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-12">
+              <div className="mb-4 inline-flex rounded-full border border-[#a86f12] bg-[#3a2a0f] px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#F5A623]">
+                ★ Cases de Sucesso
+              </div>
+              <h2 className="text-3xl font-semibold text-white md:text-4xl">
+                Barbearias que transformaram seus resultados
+              </h2>
+              <p className="mt-3 text-sm text-gray-300">Veja como nossos clientes triplicaram seus agendamentos.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {testimonials.map(testimonial => (
+                <div key={testimonial.name} className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold ${testimonial.badge}`}>
+                      {testimonial.name[0]}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-white">{testimonial.name}</div>
+                      <div className="text-xs text-gray-400">{testimonial.role}</div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300">"{testimonial.text}"</p>
+                  <div className="mt-4 inline-flex rounded-full border border-emerald-700 bg-emerald-900 px-3 py-1 text-[11px] text-emerald-200">
+                    {testimonial.metric}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="faq" className="px-6 py-20">
+          <div className="mx-auto max-w-3xl">
+            <div className="text-center">
+              <div className="mb-4 inline-flex rounded-full border border-[#a86f12] bg-[#3a2a0f] px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#F5A623]">
+                ? Dúvidas Frequentes
+              </div>
+              <h2 className="text-3xl font-semibold text-white md:text-4xl">Tire suas dúvidas</h2>
+              <p className="mt-3 text-sm text-gray-300">Respostas para as perguntas mais comuns sobre nossa plataforma.</p>
+            </div>
+            <div className="mt-8 space-y-3">
+              {faqData.map((faq, index) => {
+                const isOpen = expandedFaq === index;
+                return (
+                  <div key={faq.question} className="overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#141414]">
+                    <button
+                      onClick={() => setExpandedFaq(isOpen ? null : index)}
+                      className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-semibold text-white"
+                    >
+                      {faq.question}
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1a1a1a] text-[#F5A623]">
+                        {isOpen ? '-' : '+'}
+                      </span>
+                    </button>
+                    {isOpen && <div className="px-5 pb-4 text-sm text-gray-300">{faq.answer}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-6 py-20">
+          <div className="mx-auto max-w-5xl rounded-3xl border border-[#2a2a2a] bg-[#141414] px-6 py-12 text-center">
+            <div className="mb-4 inline-flex rounded-full border border-[#a86f12] bg-[#3a2a0f] px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#F5A623]">
+              ◈ Último Chamado
+            </div>
+            <h2 className="text-3xl font-semibold text-white md:text-4xl">
+              Pronto para <span className="text-[#F5A623]">triplicar</span> seus agendamentos?
+            </h2>
+            <p className="mt-3 text-sm text-gray-300">
+              Junte-se a mais de 8.000 barbearias que transformam seus negócios. Comece 100% grátis agora mesmo!
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <button
+                onClick={handleCreateBarbershop}
+                className="flex items-center gap-2 rounded-xl bg-[#F5A623] px-6 py-3 text-sm font-semibold text-black hover:bg-[#d4891a]"
+              >
+                <Scissors className="h-4 w-4" />
+                Começar Grátis Agora →
+              </button>
+              <button
+                onClick={() => scrollToId('features')}
+                className="rounded-xl border border-[#2a2a2a] px-6 py-3 text-sm text-gray-200 hover:border-[#3a3a3a]"
+              >
+                Ver Demo
+              </button>
+            </div>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400">
+              <span className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Segurança garantida
+              </span>
+              <span className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Sem cartão de crédito
+              </span>
+              <span className="flex items-center gap-2">
+                <Check className="h-4 w-4" />
+                Cancele quando quiser
               </span>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Testimonials Section - Enhanced */}
-      <section id="testimonials" className="py-20" data-testimonials>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 px-4 py-2 rounded-full mb-4">
-              <span className="text-yellow-400 font-bold">⭐ Casos de Sucesso</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
-              Barbearias que transformaram seus resultados
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-300">
-              Veja como nossos clientes <strong className="text-[#F0B35B]">triplicaram seus agendamentos</strong>
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] p-8 rounded-2xl border border-gray-700 hover:border-[#F0B35B]/30 transition-all duration-300 hover:transform hover:scale-105 relative overflow-hidden"
-              >
-                {/* Quote decoration */}
-                <div className="absolute top-4 right-4 opacity-20">
-                  <Quote className="w-8 h-8 text-[#F0B35B]" />
-                </div>
-
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#F0B35B] to-yellow-400 rounded-full flex items-center justify-center text-2xl">
-                    {testimonial.image}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">{testimonial.name}</h4>
-                    <p className="text-[#F0B35B] text-sm font-medium">{testimonial.business}</p>
-                    <p className="text-gray-400 text-xs">{testimonial.location}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-
-                <p className="text-gray-300 mb-4 italic leading-relaxed">"{testimonial.text}"</p>
-
-                <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/30 px-4 py-2 rounded-full inline-block">
-                  <span className="text-green-400 font-bold text-sm">{testimonial.metrics}</span>
-                </div>
+        <footer className="border-t border-[#2a2a2a] bg-[#141414] px-6 py-12">
+          <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[2fr_1fr_1fr_1fr]">
+            <div>
+              <div className="flex items-center gap-3 text-sm font-semibold text-white">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5A623] text-lg">
+                  ✂️
+                </span>
+                BARBERSHOP
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section id="faq" className="py-20 bg-gradient-to-b from-[#1A1F2E] to-[#0D121E]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="inline-block bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 px-4 py-2 rounded-full mb-4">
-              <span className="text-purple-400 font-bold">❓ Dúvidas Frequentes</span>
+              <p className="mt-4 max-w-xs text-xs text-white">
+                Transformando barbearias em negócios digitais modernos desde 2022.
+              </p>
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
-              Tire suas dúvidas
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-300">
-              Respostas para as perguntas mais comuns sobre nossa plataforma
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {faqData.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-[#1A1F2E] to-[#0D121E] border border-gray-700 rounded-xl overflow-hidden hover:border-[#F0B35B]/30 transition-all duration-300"
-              >
-                <button
-                  className="w-full px-6 py-6 text-left flex items-center justify-between hover:bg-[#F0B35B]/5 transition-colors"
-                  onClick={() => setExpandedFaq(expandedFaq === index ? null : index as unknown as null)}
-                >
-                  <span className="font-semibold text-white text-lg">{faq.question}</span>
-                  {expandedFaq === index ? (
-                    <ChevronUp className="w-5 h-5 text-[#F0B35B]" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-[#F0B35B]" />
-                  )}
-                </button>
-                {expandedFaq === index && (
-                  <div className="px-6 pb-6">
-                    <p className="text-gray-300 leading-relaxed">{faq.answer}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F0B35B]/20 via-purple-500/10 to-blue-500/20"></div>
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-[#F0B35B]/30 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-purple-500/30 to-transparent rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-        
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-gradient-to-br from-[#1A1F2E]/80 to-[#0D121E]/80 backdrop-blur-xl p-12 rounded-3xl border border-[#F0B35B]/30 shadow-2xl">
-            <div className="inline-block bg-gradient-to-r from-[#F0B35B]/20 to-yellow-500/20 border border-[#F0B35B]/30 px-4 py-2 rounded-full mb-6">
-              <span className="text-[#F0B35B] font-bold">🚀 Última Chance</span>
-            </div>
-            
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Pronto para <span className="text-[#F0B35B]">triplicar</span> seus agendamentos?
-            </h2>
-            
-            <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-              Junte-se a mais de <strong className="text-[#F0B35B]">500 barbearias</strong> que já transformaram seus negócios.
-              <br />
-              <span className="text-green-400 font-semibold">Comece 100% grátis agora mesmo!</span>
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <button 
-                onClick={handleCreateBarbershop}
-                className="group bg-gradient-to-r from-[#F0B35B] to-yellow-400 text-black px-8 sm:px-10 py-4 sm:py-5 rounded-xl text-lg sm:text-xl font-black hover:shadow-2xl hover:shadow-[#F0B35B]/50 transition-all duration-300 hover:scale-105 flex items-center gap-2 sm:gap-3 min-w-[280px] sm:min-w-[320px] justify-center"
-              >
-                <Scissors className="w-6 sm:w-7 h-6 sm:h-7 group-hover:rotate-12 transition-transform" />
-                Começar Grátis Agora
-                <ArrowRight className="w-6 sm:w-7 h-6 sm:h-7 group-hover:translate-x-1 transition-transform" />
+            <div className="text-xs text-white">
+              <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-white">Produto</div>
+              <button onClick={() => scrollToId('features')} className="block py-1 hover:text-[#F5A623]">
+                Recursos
+              </button>
+              <button onClick={() => scrollToId('pricing')} className="block py-1 hover:text-[#F5A623]">
+                Preços
+              </button>
+              <button onClick={() => scrollToId('testimonials')} className="block py-1 hover:text-[#F5A623]">
+                Cases
+              </button>
+              <button onClick={() => scrollToId('faq')} className="block py-1 hover:text-[#F5A623]">
+                FAQ
               </button>
             </div>
-
-            <div className="flex flex-wrap justify-center items-center gap-6 text-gray-400 text-sm">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Setup em 2 minutos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Sem cartão de crédito</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Suporte incluído</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span>Cancele quando quiser</span>
-              </div>
+            <div className="text-xs text-white">
+              <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-white">Suporte</div>
+              <a href="mailto:suporte@barbershop.com" className="block py-1 hover:text-[#F5A623]">
+                Central de Ajuda
+              </a>
+              <a href="mailto:suporte@barbershop.com" className="block py-1 hover:text-[#F5A623]">
+                Contato
+              </a>
+              <a href="https://wa.me/5511999999999" className="block py-1 hover:text-[#F5A623]">
+                WhatsApp
+              </a>
+              <a href="#" className="block py-1 hover:text-[#F5A623]">
+                Status
+              </a>
             </div>
-
-            <div className="mt-8 p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-xl">
-              <p className="text-green-400 font-semibold text-sm">
-                ⚡ <strong>Oferta Limitada:</strong> Primeiros 100 cadastros ganham 30 dias do plano Pro grátis!
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-[#0D121E] border-t border-gray-800 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center mb-4">
-                <div className="text-[#F0B35B] text-xl font-bold tracking-wider border-2 border-[#F0B35B] px-4 py-2 rounded-lg bg-gradient-to-r from-[#F0B35B]/10 to-transparent">
-                  BARBER<span className="text-white">SHOP</span>
-                </div>
-              </div>
-              <p className="text-gray-400 mb-4 max-w-md">
-                A plataforma completa para transformar sua barbearia em um negócio digital moderno e eficiente.
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-green-400">
-                  <Shield className="w-4 h-4" />
-                  <span className="text-sm font-medium">100% Seguro</span>
-                </div>
-                <div className="flex items-center gap-2 text-blue-400">
-                  <Zap className="w-4 h-4" />
-                  <span className="text-sm font-medium">Setup Rápido</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-white font-semibold mb-4">Produto</h3>
-              <ul className="space-y-3">
-                  <li><a href="#features" onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">Recursos</a></li>
-                  <li><a href="#pricing" onClick={(e) => { e.preventDefault(); document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">Preços</a></li>
-                  <li><a href="#testimonials" onClick={(e) => { e.preventDefault(); document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">Casos de Sucesso</a></li>
-                  <li><a href="#faq" onClick={(e) => { e.preventDefault(); document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' }); }} className="hover:text-[#F0B35B] transition-colors cursor-pointer">FAQ</a></li>
-                </ul>
-            </div>
-
-            <div>
-              <h3 className="text-white font-semibold mb-4">Suporte</h3>
-              <ul className="space-y-3">
-                  <li><a href="/help" className="hover:text-[#F0B35B] transition-colors">Central de Ajuda</a></li>
-                  <li><a href="mailto:suporte@barbershop.com" className="hover:text-[#F0B35B] transition-colors">Contato</a></li>
-                  <li><a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer" className="hover:text-[#F0B35B] transition-colors">WhatsApp</a></li>
-                  <li><a href="/status" className="hover:text-[#F0B35B] transition-colors">Status do Sistema</a></li>
-                </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
-              © 2024 BarberShop SaaS. Todos os direitos reservados.
-            </p>
-            <div className="flex items-center gap-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-[#F0B35B] transition-colors text-sm">
+            <div className="text-xs text-white">
+              <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-white">Legal</div>
+              <a href="#" className="block py-1 hover:text-[#F5A623]">
                 Termos de Uso
               </a>
-              <a href="#" className="text-gray-400 hover:text-[#F0B35B] transition-colors text-sm">
-                Política de Privacidade
+              <a href="#" className="block py-1 hover:text-[#F5A623]">
+                Privacidade
               </a>
-              <a href="#" className="text-gray-400 hover:text-[#F0B35B] transition-colors text-sm">
-                LGPD
+              <a href="#" className="block py-1 hover:text-[#F5A623]">
+                Cookies
               </a>
             </div>
           </div>
-        </div>
-      </footer>
+          <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-between gap-3 text-xs text-white">
+            <span>© 2025 BarberShop · Todos os direitos reservados</span>
+            <button
+              onClick={handleCreateBarbershop}
+              className="rounded-full bg-[#F5A623] px-4 py-2 text-xs font-semibold text-black"
+            >
+              Grátis Agora
+            </button>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 };

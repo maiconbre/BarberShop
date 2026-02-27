@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../contexts/TenantContext';
 import { usePlan } from '../hooks/usePlan';
 import toast from 'react-hot-toast';
-import { Crown, Check, ArrowRight, Star, Zap, Shield, Users, Calendar, BarChart3, Copy, QrCode, CreditCard } from 'lucide-react';
+import { Crown, Check, ArrowRight, Zap, Shield, Users, Calendar, BarChart3, Copy, QrCode, CreditCard } from 'lucide-react';
 import StandardLayout from '../components/layout/StandardLayout';
 
 const UpgradePage: React.FC = () => {
@@ -12,13 +12,84 @@ const UpgradePage: React.FC = () => {
   const { slug: barbershopSlug } = useTenant();
   const {
     planInfo,
-    loading: planLoading,
     upgradePlan
   } = usePlan();
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'selection' | 'pix' | 'processing' | 'success'>('selection');
   const [pixCode] = useState('00020101021226870014br.gov.bcb.pix0125barbershop.payments.pro0203PRO520400005303986540549.905802BR5915BARBERSHOP PREMIUM6009SAO PAULO62070503PRO6304ABCD');
+  const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
+
+  // Pricing data from LandingPage (matched exactly)
+  const pricing = [
+    {
+      id: 'starter',
+      name: 'Starter',
+      price: '29',
+      tagline: 'Para o barbeiro autônomo que quer profissionalizar.',
+      features: [
+        { label: '1 barbeiro', included: true },
+        { label: 'Agendamentos ilimitados', included: true },
+        { label: 'Dashboard completo', included: true },
+        { label: 'Analytics básico', included: true },
+        { label: 'Página personalizável', included: true }
+      ],
+      color: 'text-white',
+      borderColor: 'border-white/5',
+      bgGradient: 'bg-[#1A1F2E]/40',
+      cta: 'Quero ser Starter'
+    },
+    {
+      id: 'pro',
+      name: 'Pro',
+      price: '69',
+      tagline: 'Para barbearias com equipe. Tudo que você precisa crescer.',
+      features: [
+        { label: 'Até 3 barbeiros', included: true },
+        { label: 'Agendamentos ilimitados', included: true },
+        { label: 'Analytics avançado', included: true },
+        { label: 'Lembretes WhatsApp', included: true },
+        { label: 'Relatórios de faturamento', included: true },
+        { label: 'Suporte prioritário', included: true }
+      ],
+      color: 'text-white',
+      borderColor: 'border-[#F0B35B]/30',
+      bgGradient: 'bg-[#1A1F2E]',
+      cta: 'Quero ser Pro',
+      featured: true
+    },
+    {
+      id: 'business',
+      name: 'Business',
+      price: '149',
+      tagline: 'Para redes e barbearias de alto volume. Suporte dedicado.',
+      features: [
+        { label: 'Até 10 barbeiros', included: true },
+        { label: 'Tudo do plano Pro', included: true },
+        { label: 'Multi-unidades', included: true },
+        { label: 'API e integrações', included: true },
+        { label: 'Backup diário', included: true },
+        { label: 'Gerente de conta dedicado', included: true },
+        { label: 'Suporte 24h via WhatsApp', included: true }
+      ],
+      color: 'text-white',
+      borderColor: 'border-white/5',
+      bgGradient: 'bg-[#1A1F2E]/40',
+      cta: 'Falar com Consultor'
+    }
+  ];
+
+  const visiblePlans = pricing.slice(currentPlanIndex, currentPlanIndex + 2);
+  const hasMoreRight = currentPlanIndex + 2 < pricing.length;
+  const hasMoreLeft = currentPlanIndex > 0;
+
+  const nextPlan = () => {
+    if (hasMoreRight) setCurrentPlanIndex(prev => prev + 1);
+  };
+
+  const prevPlan = () => {
+    if (hasMoreLeft) setCurrentPlanIndex(prev => prev - 1);
+  };
 
   // Redirect if already on Pro plan
   useEffect(() => {
@@ -53,6 +124,7 @@ const UpgradePage: React.FC = () => {
       }, 3000);
 
     } catch (error) {
+      console.error(error);
       toast.error('Ocorreu um erro ao processar seu upgrade.');
       setPaymentStep('pix');
     } finally {
@@ -92,113 +164,79 @@ const UpgradePage: React.FC = () => {
               </div>
 
               {/* Pricing Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {/* Free Plan */}
-                <div className="bg-[#1A1F2E]/40 rounded-[2.5rem] border border-white/5 p-8 flex flex-col items-center text-center opacity-60">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-6">Plano Atual</span>
-                  <h3 className="text-2xl font-black italic uppercase text-white mb-2">Gratuito</h3>
-                  <div className="flex items-baseline gap-1 mb-8">
-                    <span className="text-4xl font-black text-white">R$ 0</span>
-                    <span className="text-gray-500 font-bold uppercase text-[10px]">/mês</span>
-                  </div>
-                  <ul className="space-y-4 w-full mb-8">
-                    <li className="flex items-center gap-3 text-xs text-gray-400 font-medium">
-                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3 h-3 text-gray-500" />
-                      </div>
-                      Apenas 1 Barbeiro
-                    </li>
-                    <li className="flex items-center gap-3 text-xs text-gray-400 font-medium">
-                      <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3 h-3 text-gray-500" />
-                      </div>
-                      Agenda Limitada
-                    </li>
-                  </ul>
-                  <div className="mt-auto w-full py-4 rounded-2xl border border-white/5 font-black text-gray-500 text-xs uppercase tracking-widest">
-                    Plano Ativo
-                  </div>
-                </div>
-
-                {/* Pro Plan */}
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-[#F0B35B] to-orange-600 rounded-[2.6rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                  <div className="relative bg-[#1A1F2E] rounded-[2.5rem] border border-[#F0B35B]/30 p-8 flex flex-col items-center text-center shadow-2xl">
-                    <div className="absolute top-0 right-10 -translate-y-1/2 bg-gradient-to-r from-[#F0B35B] to-orange-500 px-4 py-1.5 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg">
-                      MAIS POPULAR
-                    </div>
-
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#F0B35B] mb-6">Acesso Total</span>
-                    <h3 className="text-2xl font-black italic uppercase text-white mb-2 italic">Premium Pro</h3>
-                    <div className="flex items-baseline gap-1 mb-8">
-                      <span className="text-4xl font-black text-white italic">R$ 49,90</span>
-                      <span className="text-gray-500 font-bold uppercase text-[10px]">/mês</span>
-                    </div>
-
-                    <ul className="space-y-4 w-full mb-10 text-left">
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Barbeiros Ilimitados</span>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Agenda Completa 2026</span>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Relatórios Avançados</span>
-                      </li>
-                      <li className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-xl bg-[#F0B35B]/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-4 h-4 text-[#F0B35B]" />
-                        </div>
-                        <span className="text-sm italic uppercase tracking-wider text-xs bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent italic">Multi-filiais (Em breve)</span>
-                      </li>
-                    </ul>
-
-                    <button
-                      onClick={handleUpgradeSelection}
-                      disabled={isProcessingPayment}
-                      className="group/btn relative w-full h-16 bg-gradient-to-r from-[#F0B35B] to-orange-500 rounded-2xl font-black text-black text-lg uppercase tracking-widest transition-all duration-300 hover:shadow-[0_0_30px_rgba(240,179,91,0.4)] overflow-hidden scale-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-3">
-                        {isProcessingPayment ? 'Validando...' : (
-                          <>
-                            Quero ser Pro
-                            <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                          </>
+              <div className="relative">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {visiblePlans.map((plan) => (
+                    <div key={plan.id} className="relative group">
+                      {plan.featured && (
+                        <div className="absolute -inset-1 bg-gradient-to-r from-[#F0B35B] to-orange-600 rounded-[2.6rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                      )}
+                      <div className={`relative ${plan.bgGradient} rounded-[2.5rem] border ${plan.borderColor} p-8 flex flex-col items-center text-center ${plan.featured ? 'shadow-2xl' : 'opacity-80 hover:opacity-100 transition-opacity'}`}>
+                        {plan.featured && (
+                          <div className="absolute top-0 right-10 -translate-y-1/2 bg-gradient-to-r from-[#F0B35B] to-orange-500 px-4 py-1.5 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg">
+                            MAIS POPULAR
+                          </div>
                         )}
-                      </span>
-                      <div className="absolute inset-0 bg-white/20 translate-y-20 group-hover/btn:translate-y-0 transition-transform duration-500"></div>
-                    </button>
-                  </div>
-                </div>
-              </div>
 
-              {/* Trust badges */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 opacity-60">
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Shield className="w-8 h-8 text-[#F0B35B] group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Seguro</span>
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${plan.featured ? 'text-[#F0B35B]' : 'text-gray-500'}`}>{plan.tagline.split('.')[0]}</span>
+                        <h3 className={`text-2xl font-black italic uppercase mb-2 italic ${plan.color}`}>{plan.name}</h3>
+                        <div className="flex items-baseline gap-1 mb-8">
+                          <span className={`text-4xl font-black italic ${plan.color}`}>R$ {plan.price}</span>
+                          <span className="text-gray-500 font-bold uppercase text-[10px]">/mês</span>
+                        </div>
+
+                        <ul className="space-y-4 w-full mb-10 text-left">
+                          {plan.features.map((feature, idx) => (
+                            <li key={idx} className="flex items-center gap-3">
+                              <div className={`w-6 h-6 rounded-xl ${plan.featured ? 'bg-[#F0B35B]/10' : 'bg-white/5'} flex items-center justify-center flex-shrink-0`}>
+                                <Check className={`w-4 h-4 ${plan.featured ? 'text-[#F0B35B]' : 'text-gray-500'}`} />
+                              </div>
+                              <span className={`text-sm italic uppercase tracking-wider text-xs ${plan.featured ? 'bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent' : 'text-gray-400'}`}>{feature.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <button
+                          onClick={handleUpgradeSelection}
+                          disabled={isProcessingPayment}
+                          className={`group/btn relative w-full h-16 rounded-2xl font-black text-lg uppercase tracking-widest transition-all duration-300 overflow-hidden scale-100 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            plan.featured
+                              ? 'bg-gradient-to-r from-[#F0B35B] to-orange-500 text-black hover:shadow-[0_0_30px_rgba(240,179,91,0.4)]'
+                              : 'border border-white/10 text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="relative z-10 flex items-center justify-center gap-3">
+                            {isProcessingPayment ? 'Validando...' : (
+                              <>
+                                {plan.cta}
+                                <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                              </>
+                            )}
+                          </span>
+                          {plan.featured && <div className="absolute inset-0 bg-white/20 translate-y-20 group-hover/btn:translate-y-0 transition-transform duration-500"></div>}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Zap className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Imediato</span>
-                </div>
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Star className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Premium</span>
-                </div>
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Users className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Ilimitado</span>
-                </div>
+
+                {/* Navigation Arrows */}
+                {hasMoreLeft && (
+                  <button
+                    onClick={prevPlan}
+                    className="absolute -left-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/10 bg-[#1A1F2E] p-3 text-white hover:border-[#F0B35B] hover:text-[#F0B35B] shadow-xl md:-left-16 transition-all"
+                  >
+                    <ArrowRight className="h-6 w-6 rotate-180" />
+                  </button>
+                )}
+                {hasMoreRight && (
+                  <button
+                    onClick={nextPlan}
+                    className="absolute -right-4 top-1/2 z-10 -translate-y-1/2 rounded-full border border-white/10 bg-[#1A1F2E] p-3 text-white hover:border-[#F0B35B] hover:text-[#F0B35B] shadow-xl md:-right-16 transition-all"
+                  >
+                    <ArrowRight className="h-6 w-6" />
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
@@ -220,7 +258,7 @@ const UpgradePage: React.FC = () => {
               <div className="p-8 space-y-8 flex flex-col items-center">
                 <div className="text-center space-y-1">
                   <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">Valor total</p>
-                  <p className="text-3xl font-black text-white italic">R$ 49,90</p>
+                  <p className="text-3xl font-black text-white italic">R$ 69,00</p>
                 </div>
 
                 <div className="relative group">
@@ -353,10 +391,66 @@ const UpgradePage: React.FC = () => {
         </AnimatePresence>
 
         {/* Footer Info */}
-        <footer className="mt-12 text-center border-t border-white/5 pt-8">
-          <p className="text-gray-500 text-[10px] font-medium max-w-lg mx-auto leading-relaxed">
-            PAGAMENTO PROCESSADO DE FORMA SEGURA VIA MERCADO PAGO. VOCÊ PODE GERENCIAR SUA ASSINATURA A QUALQUER MOMENTO NO PAINEL DE CONFIGURAÇÕES DA SUA BARBEARIA.
-          </p>
+        <footer className="mt-20 border-t border-white/5 pt-12 pb-8">
+          <div className="max-w-5xl mx-auto px-4">
+            <div className="grid md:grid-cols-3 gap-8 items-center mb-12">
+              {/* Security */}
+              <div className="flex flex-col items-center gap-3 text-center group">
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20 mb-1 group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="w-6 h-6 text-green-500" />
+                </div>
+                <div>
+                  <h4 className="text-white font-bold uppercase tracking-wider text-xs mb-1">Ambiente 100% Seguro</h4>
+                  <p className="text-gray-500 text-[10px]">Dados criptografados de ponta a ponta (SSL)</p>
+                </div>
+              </div>
+
+              {/* Processor */}
+              <div className="flex flex-col items-center gap-3 text-center border-x border-white/5 px-8">
+                <div className="h-10 flex items-center gap-2">
+                  <div className="bg-[#009EE3]/10 p-2 rounded-lg">
+                    <CreditCard className="w-6 h-6 text-[#009EE3]" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-[10px] text-gray-500 uppercase tracking-wider font-bold">Processado por</span>
+                    <span className="block text-[#009EE3] font-black italic text-lg leading-none tracking-tight">mercadopago</span>
+                  </div>
+                </div>
+                <p className="text-gray-500 text-[10px]">Pagamento processado com segurança bancária</p>
+              </div>
+
+              {/* Methods */}
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex gap-2 flex-wrap justify-center opacity-70">
+                  {/* Pix */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Pix">
+                    <QrCode className="w-4 h-4 text-emerald-400" />
+                    <span className="ml-1 text-[10px] font-bold text-gray-300">Pix</span>
+                  </div>
+                  {/* Visa */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Visa">
+                    <span className="text-[10px] font-black text-blue-400 italic">VISA</span>
+                  </div>
+                  {/* Master */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Mastercard">
+                    <div className="flex -space-x-1">
+                      <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                    </div>
+                  </div>
+                  {/* Amex */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Amex">
+                    <span className="text-[9px] font-black text-blue-300">AMEX</span>
+                  </div>
+                  {/* Elo */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Elo">
+                    <span className="text-[9px] font-black text-gray-300">elo</span>
+                  </div>
+                </div>
+                <p className="text-gray-500 text-[10px]">Aceitamos Pix e principais cartões</p>
+              </div>
+            </div>
+          </div>
         </footer>
       </div>
     </StandardLayout>
