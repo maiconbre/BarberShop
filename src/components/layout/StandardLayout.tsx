@@ -223,13 +223,13 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 opacity: 0,
                 x: isMobile ? 288 : 0
               }}
-              transition={{ duration: 0.15, ease: "easeInOut" }}
+              transition={{ duration: 0.1, ease: "easeOut" }}
               className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${isMobile
                 ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
                 : isSidebarCollapsed
                   ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
                   : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
-                } transition-all duration-150`}
+                } transition-all duration-100`}
             >
               {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
@@ -458,11 +458,11 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={`relative z-10 transition-all duration-300 ${isMobile
-        ? (hideMobileHeader ? '' : 'pt-16')
+      <main className={`relative z-10 transition-all duration-100 ${isMobile
+        ? (hideMobileHeader ? "" : "pt-16")
         : isSidebarCollapsed
-          ? 'ml-16'
-          : 'ml-64'
+          ? "ml-16"
+          : "ml-64"
         }`}>
 
         {/* Banner Global de Upgrade para Plano Free */}
@@ -508,7 +508,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           </div>
         </div>
       </main>
-    </div>
+    </div >
   );
 };
 

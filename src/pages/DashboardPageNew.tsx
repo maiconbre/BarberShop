@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { TrendingUp, Clock, DollarSign, BarChart3, Calendar, Bell, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, Calendar, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import StandardLayout from '../components/layout/StandardLayout';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
 import OnboardingModal from '../components/onboarding/OnboardingModal';
@@ -90,23 +91,33 @@ const Stats: React.FC<StatsProps> = ({ appointments }) => {
   return (
     <div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8 mb-10">
         {stats.map((stat, index) => {
           const IconComponent = stat.icon;
           return (
-            <div key={index} className="bg-[#1A1F2E] p-3 sm:p-4 rounded-2xl border border-white/5 relative overflow-hidden group">
-              <div className="flex flex-col h-full justify-between gap-3">
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+              className="bg-[#1A1F2E]/40 p-5 sm:p-7 rounded-[2.5rem] border border-white/5 relative overflow-hidden group shadow-2xl"
+            >
+              {/* Background Glow */}
+              <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-[40px] opacity-10 group-hover:opacity-20 transition-opacity ${stat.bgColor.replace('/10', '')}`}></div>
+
+              <div className="relative z-10 flex flex-col h-full justify-between gap-4">
                 <div className="flex items-start justify-between">
-                  <div className={`p-2 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                    <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
+                  <div className={`p-4 rounded-2xl ${stat.bgColor} flex items-center justify-center border border-white/5 shadow-lg group-hover:shadow-[stat.color]/20 transition-all`}>
+                    <IconComponent className={`w-6 h-6 ${stat.color} stroke-[2.5px]`} />
                   </div>
                 </div>
                 <div>
-                  <span className="text-gray-400 text-xs sm:text-sm font-medium block mb-0.5">{stat.title}</span>
-                  <p className="text-xl sm:text-2xl font-bold text-white tracking-wide">{stat.value}</p>
+                  <span className="text-gray-500 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] block mb-1">{stat.title}</span>
+                  <p className="text-2xl sm:text-3xl font-black text-white tracking-tighter italic italic uppercase">{stat.value}</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -180,8 +191,7 @@ const DashboardPageNew: React.FC = () => {
     );
   }
 
-  // Current Date formatted "Dom, 25 Jan"
-  const formattedDate = new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
+  // Current Date (cleaned up unused formattedDate)
 
   // Get user name safely
   const getUserName = () => {
@@ -194,26 +204,11 @@ const DashboardPageNew: React.FC = () => {
   return (
     <StandardLayout
       hideMobileHeader={true}
-      title="Visão Geral"
-      icon={<TrendingUp />}
-      headerRight={
-        <>
-          <div className="hidden sm:flex flex-col items-end">
-            <h2 className="text-sm font-medium text-white capitalize leading-tight">
-              Olá, {userName.split(' ')[0]}
-            </h2>
-            <p className="text-gray-400 text-[10px] sm:text-xs leading-tight">
-              {formattedDate}
-            </p>
-          </div>
-          <div className="p-2 rounded-full border border-white/10 text-white relative hover:bg-white/5 transition-colors cursor-pointer">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-2 w-2 h-2 bg-[#E6A555] rounded-full border border-[#0D121E]"></span>
-          </div>
-        </>
-      }
+      title="Dashboard"
+      subtitle={`Welcome back, ${userName.split(' ')[0]}`}
+      icon={<TrendingUp className="w-5 h-5 text-[#F0B35B]" />}
     >
-      <div className="space-y-6 pb-20 px-2 sm:px-0"> {/* Adjusted padding */}
+      <div className="space-y-10 pb-20 px-2 sm:px-0">
 
         {/* Stats Cards */}
         <Stats
@@ -221,49 +216,61 @@ const DashboardPageNew: React.FC = () => {
         />
 
         {/* Main Dashboard Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 xl:gap-12">
           {/* Analytics Section */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-1.5 bg-[#D4AF37]/10 rounded-md">
-                <BarChart3 className="w-4 h-4 text-[#D4AF37]" />
-              </div>
-              <h3 className="text-lg font-bold text-white">Análise de Desempenho</h3>
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center gap-3 px-2">
+              <div className="w-1.5 h-6 bg-[#F0B35B] rounded-full shadow-[0_0_10px_rgba(240,179,91,0.5)]"></div>
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-500">Performance Metrics</h3>
             </div>
             {/* ClientAnalytics with simpleMode to hide internal stats */}
-            <ClientAnalytics appointments={filteredForAnalytics} simpleMode={true} />
+            <div className="bg-[#1A1F2E]/30 rounded-[2.8rem] border border-white/5 p-2 overflow-hidden shadow-xl">
+              <ClientAnalytics appointments={filteredForAnalytics} simpleMode={true} />
+            </div>
           </div>
 
           {/* Upcoming Section */}
           <div className="space-y-6">
             {/* Upcoming Appointments Component */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Calendar className="w-5 h-5 text-green-400" />
-                <h3 className="text-lg font-bold text-white">Próximos Agendamentos</h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-1.5 h-6 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-500">Live Timeline</h3>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {appointments
                   .filter(app => new Date(app.date + 'T' + app.time) >= new Date() && app.status !== 'cancelled')
                   .sort((a, b) => new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime())
                   .slice(0, 5)
                   .map((app, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-[#1A1F2E] border border-white/5">
-                      <div>
-                        <p className="font-bold text-white text-sm">{app.clientName || 'Cliente'}</p>
-                        <p className="text-xs text-gray-400">{app.serviceName}</p>
+                    <motion.div
+                      key={idx}
+                      whileHover={{ x: 5 }}
+                      className="flex items-center justify-between p-5 rounded-[2rem] bg-[#1A1F2E]/40 border border-white/5 hover:border-[#F0B35B]/20 transition-all group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-black to-[#1A1F2E] border border-white/5 flex items-center justify-center text-[#F0B35B] font-black italic uppercase text-lg shrink-0 group-hover:border-[#F0B35B]/30 transition-all shadow-lg">
+                          {app.clientName?.[0] || 'C'}
+                        </div>
+                        <div>
+                          <p className="font-black italic text-white text-sm uppercase tracking-tight truncate max-w-[130px]">{app.clientName || 'Cliente'}</p>
+                          <p className="text-[9px] font-bold text-gray-600 uppercase tracking-[0.1em] truncate max-w-[130px]">{app.serviceName}</p>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-white font-bold text-sm">{app.time}</p>
-                        <p className="text-xs text-gray-500">{new Date(app.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
+                        <p className="text-[#F0B35B] font-black italic text-base tracking-tighter">{app.time}</p>
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest font-mono">
+                          {new Date(app.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '').toUpperCase()}
+                        </p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
 
                 {appointments.filter(app => new Date(app.date + 'T' + app.time) >= new Date()).length === 0 && (
-                  <div className="p-6 rounded-2xl bg-[#1A1F2E] border border-white/5 text-center">
-                    <p className="text-gray-500 text-sm">Nenhum agendamento hoje</p>
+                  <div className="p-10 rounded-[2.5rem] bg-[#1A1F2E]/20 border border-dashed border-white/10 text-center flex flex-col items-center gap-3">
+                    <Calendar className="w-8 h-8 text-gray-700" />
+                    <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Aguardando novos clientes...</p>
                   </div>
                 )}
               </div>

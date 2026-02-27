@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ScheduleManager from '../components/feature/ScheduleManager';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Calendar } from 'lucide-react';
+import { Calendar, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useBarbers } from '../hooks/useBarbers';
 import { useTenant } from '../contexts/TenantContext';
 import StandardLayout from '../components/layout/StandardLayout';
@@ -71,35 +72,43 @@ const ScheduleManagementPage: React.FC = () => {
   }
 
   return (
-    <StandardLayout>
-      <div className="max-w-4xl mx-auto">
-        {/* Info Card */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 bg-[#1A1F2E] p-4 border border-[#F0B35B]/20">
-            <div className="bg-[#F0B35B]/20 p-2 rounded-full">
-              <Calendar className="w-5 h-5 text-[#F0B35B]" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Gerencie sua agenda</p>
-              <p className="text-white font-medium">Horários e Agendamentos</p>
-            </div>
+    <StandardLayout
+      hideMobileHeader={true}
+      title="Horários"
+      subtitle="Gerencie sua agenda de alta performance"
+      icon={<Calendar className="w-5 h-5 text-[#F0B35B]" />}
+    >
+      <main className="max-w-5xl mx-auto space-y-8">
+        {/* Info Card Premium */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#1A1F2E]/40 p-6 rounded-[2.3rem] border border-white/5 shadow-xl flex flex-col sm:flex-row items-center gap-6"
+        >
+          <div className="w-16 h-16 bg-gradient-to-br from-[#F0B35B] to-orange-500 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(240,179,91,0.3)] shrink-0">
+            <Calendar className="w-8 h-8 text-black stroke-[2.5px]" />
           </div>
-        </div>
+          <div className="text-center sm:text-left">
+            <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">Agenda Master</h2>
+            <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Sincronize sua produtividade com eficiência</p>
+          </div>
+        </motion.div>
+
         {isLoading ? (
-          <div className="flex justify-center items-center h-64 bg-[#1A1F2E] border border-[#F0B35B]/20">
-            <div className="flex flex-col items-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-[#F0B35B]" />
-              <p className="text-gray-400">Carregando informações...</p>
-            </div>
+          <div className="bg-[#1A1F2E]/40 rounded-[2.3rem] border border-white/5 p-20 flex flex-col items-center gap-4">
+            <RefreshCw className="w-10 h-10 animate-spin text-[#F0B35B]" />
+            <span className="text-xs font-black uppercase tracking-widest text-gray-500">Sincronizando...</span>
           </div>
         ) : (
-          <ScheduleManager
-            barbers={barbers}
-            userRole={typeof currentUser === 'object' && 'role' in currentUser && (currentUser.role === 'admin' || currentUser.role === 'barber') ? currentUser.role : 'barber'}
-            currentBarberId={currentUser?.id}
-          />
+          <div className="relative">
+            <ScheduleManager
+              barbers={barbers}
+              userRole={typeof currentUser === 'object' && 'role' in currentUser && (currentUser.role === 'admin' || currentUser.role === 'barber') ? currentUser.role : 'barber'}
+              currentBarberId={currentUser?.id}
+            />
+          </div>
         )}
-      </div>
+      </main>
     </StandardLayout>
   );
 };
