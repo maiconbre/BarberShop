@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../contexts/TenantContext';
 import { usePlan } from '../hooks/usePlan';
 import toast from 'react-hot-toast';
-import { Crown, Check, ArrowRight, Star, Zap, Shield, Users, Calendar, BarChart3, Copy, QrCode, CreditCard } from 'lucide-react';
+import { Crown, Check, ArrowRight, Zap, Shield, Users, Calendar, BarChart3, Copy, QrCode, CreditCard } from 'lucide-react';
 import StandardLayout from '../components/layout/StandardLayout';
 
 const UpgradePage: React.FC = () => {
@@ -12,7 +12,6 @@ const UpgradePage: React.FC = () => {
   const { slug: barbershopSlug } = useTenant();
   const {
     planInfo,
-    loading: planLoading,
     upgradePlan
   } = usePlan();
 
@@ -21,7 +20,7 @@ const UpgradePage: React.FC = () => {
   const [pixCode] = useState('00020101021226870014br.gov.bcb.pix0125barbershop.payments.pro0203PRO520400005303986540549.905802BR5915BARBERSHOP PREMIUM6009SAO PAULO62070503PRO6304ABCD');
   const [currentPlanIndex, setCurrentPlanIndex] = useState(0);
 
-  // Pricing data from LandingPage (simplified for UpgradePage context)
+  // Pricing data from LandingPage (matched exactly)
   const pricing = [
     {
       id: 'starter',
@@ -42,14 +41,16 @@ const UpgradePage: React.FC = () => {
     },
     {
       id: 'pro',
-      name: 'Premium Pro',
-      price: '49,90',
+      name: 'Pro',
+      price: '69',
       tagline: 'Para barbearias com equipe. Tudo que você precisa crescer.',
       features: [
-        { label: 'Barbeiros Ilimitados', included: true },
-        { label: 'Agenda Completa 2026', included: true },
-        { label: 'Relatórios Avançados', included: true },
-        { label: 'Multi-filiais (Em breve)', included: true }
+        { label: 'Até 3 barbeiros', included: true },
+        { label: 'Agendamentos ilimitados', included: true },
+        { label: 'Analytics avançado', included: true },
+        { label: 'Lembretes WhatsApp', included: true },
+        { label: 'Relatórios de faturamento', included: true },
+        { label: 'Suporte prioritário', included: true }
       ],
       color: 'text-white',
       borderColor: 'border-[#F0B35B]/30',
@@ -67,7 +68,9 @@ const UpgradePage: React.FC = () => {
         { label: 'Tudo do plano Pro', included: true },
         { label: 'Multi-unidades', included: true },
         { label: 'API e integrações', included: true },
-        { label: 'Gerente de conta dedicado', included: true }
+        { label: 'Backup diário', included: true },
+        { label: 'Gerente de conta dedicado', included: true },
+        { label: 'Suporte 24h via WhatsApp', included: true }
       ],
       color: 'text-white',
       borderColor: 'border-white/5',
@@ -121,6 +124,7 @@ const UpgradePage: React.FC = () => {
       }, 3000);
 
     } catch (error) {
+      console.error(error);
       toast.error('Ocorreu um erro ao processar seu upgrade.');
       setPaymentStep('pix');
     } finally {
@@ -234,26 +238,6 @@ const UpgradePage: React.FC = () => {
                   </button>
                 )}
               </div>
-
-              {/* Trust badges */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 opacity-60">
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Shield className="w-8 h-8 text-[#F0B35B] group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Seguro</span>
-                </div>
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Zap className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Imediato</span>
-                </div>
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Star className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Premium</span>
-                </div>
-                <div className="flex flex-col items-center gap-2 group cursor-default">
-                  <Users className="w-8 h-8 text-purple-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-white">Ilimitado</span>
-                </div>
-              </div>
             </motion.div>
           )}
 
@@ -274,7 +258,7 @@ const UpgradePage: React.FC = () => {
               <div className="p-8 space-y-8 flex flex-col items-center">
                 <div className="text-center space-y-1">
                   <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">Valor total</p>
-                  <p className="text-3xl font-black text-white italic">R$ 49,90</p>
+                  <p className="text-3xl font-black text-white italic">R$ 69,00</p>
                 </div>
 
                 <div className="relative group">
@@ -407,10 +391,66 @@ const UpgradePage: React.FC = () => {
         </AnimatePresence>
 
         {/* Footer Info */}
-        <footer className="mt-12 text-center border-t border-white/5 pt-8">
-          <p className="text-gray-500 text-[10px] font-medium max-w-lg mx-auto leading-relaxed">
-            PAGAMENTO PROCESSADO DE FORMA SEGURA VIA MERCADO PAGO. VOCÊ PODE GERENCIAR SUA ASSINATURA A QUALQUER MOMENTO NO PAINEL DE CONFIGURAÇÕES DA SUA BARBEARIA.
-          </p>
+        <footer className="mt-20 border-t border-white/5 pt-12 pb-8">
+          <div className="max-w-5xl mx-auto px-4">
+            <div className="grid md:grid-cols-3 gap-8 items-center mb-12">
+              {/* Security */}
+              <div className="flex flex-col items-center gap-3 text-center group">
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20 mb-1 group-hover:scale-110 transition-transform duration-300">
+                  <Shield className="w-6 h-6 text-green-500" />
+                </div>
+                <div>
+                  <h4 className="text-white font-bold uppercase tracking-wider text-xs mb-1">Ambiente 100% Seguro</h4>
+                  <p className="text-gray-500 text-[10px]">Dados criptografados de ponta a ponta (SSL)</p>
+                </div>
+              </div>
+
+              {/* Processor */}
+              <div className="flex flex-col items-center gap-3 text-center border-x border-white/5 px-8">
+                <div className="h-10 flex items-center gap-2">
+                  <div className="bg-[#009EE3]/10 p-2 rounded-lg">
+                    <CreditCard className="w-6 h-6 text-[#009EE3]" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-[10px] text-gray-500 uppercase tracking-wider font-bold">Processado por</span>
+                    <span className="block text-[#009EE3] font-black italic text-lg leading-none tracking-tight">mercadopago</span>
+                  </div>
+                </div>
+                <p className="text-gray-500 text-[10px]">Pagamento processado com segurança bancária</p>
+              </div>
+
+              {/* Methods */}
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="flex gap-2 flex-wrap justify-center opacity-70">
+                  {/* Pix */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Pix">
+                    <QrCode className="w-4 h-4 text-emerald-400" />
+                    <span className="ml-1 text-[10px] font-bold text-gray-300">Pix</span>
+                  </div>
+                  {/* Visa */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Visa">
+                    <span className="text-[10px] font-black text-blue-400 italic">VISA</span>
+                  </div>
+                  {/* Master */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Mastercard">
+                    <div className="flex -space-x-1">
+                      <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                    </div>
+                  </div>
+                  {/* Amex */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Amex">
+                    <span className="text-[9px] font-black text-blue-300">AMEX</span>
+                  </div>
+                  {/* Elo */}
+                  <div className="h-7 px-2 bg-white/5 rounded border border-white/10 flex items-center justify-center" title="Elo">
+                    <span className="text-[9px] font-black text-gray-300">elo</span>
+                  </div>
+                </div>
+                <p className="text-gray-500 text-[10px]">Aceitamos Pix e principais cartões</p>
+              </div>
+            </div>
+          </div>
         </footer>
       </div>
     </StandardLayout>
