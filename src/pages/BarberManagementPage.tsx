@@ -13,6 +13,7 @@ interface NewBarberData {
     name: string;
     email: string;
     phone: string;
+    pix: string;
     isActive: boolean;
 }
 
@@ -41,6 +42,7 @@ const BarberManagementPage: React.FC = () => {
         name: '',
         email: '',
         phone: '',
+        pix: '',
         isActive: true
     });
 
@@ -55,6 +57,7 @@ const BarberManagementPage: React.FC = () => {
             name: '',
             email: '',
             phone: '',
+            pix: '',
             isActive: true
         });
         setCurrentBarber(null);
@@ -102,6 +105,7 @@ const BarberManagementPage: React.FC = () => {
                 name: formData.name,
                 email: formData.email,
                 phone: formData.phone,
+                pix: formData.pix,
                 isActive: formData.isActive
             });
             toast.success('Barbeiro atualizado com sucesso!');
@@ -115,6 +119,13 @@ const BarberManagementPage: React.FC = () => {
 
     const handleDelete = async () => {
         if (!currentBarber) return;
+
+        // Impedir exclusão se for o único barbeiro
+        if (barbers && barbers.length <= 1) {
+            toast.error('Não é possível remover o último profissional da barbearia.');
+            return;
+        }
+
         try {
             await deleteBarber(currentBarber.id);
             toast.success('Barbeiro removido com sucesso!');
@@ -131,7 +142,8 @@ const BarberManagementPage: React.FC = () => {
         setFormData({
             name: barber.name,
             email: barber.email || '',
-            phone: barber.phone || '',
+            phone: barber.phone || barber.whatsapp || '',
+            pix: barber.pix || '',
             isActive: barber.isActive
         });
         setIsEditModalOpen(true);
@@ -144,8 +156,9 @@ const BarberManagementPage: React.FC = () => {
 
     return (
         <StandardLayout
-            title="Gerenciar Equipe"
-            subtitle="Adicione e gerencie os profissionais da sua barbearia"
+            hideMobileHeader={true}
+            title="Equipe"
+            subtitle="Gerencie os profissionais da sua barbearia"
             icon={<UserCog className="w-5 h-5 text-[#F0B35B]" />}
         >
             <div className="space-y-6">
@@ -155,46 +168,48 @@ const BarberManagementPage: React.FC = () => {
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-center justify-between"
+                        className="bg-gradient-to-r from-[#F0B35B]/10 to-orange-500/10 border border-[#F0B35B]/20 rounded-[2rem] p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-yellow-500/20 rounded-lg">
-                                <Crown className="w-5 h-5 text-yellow-500" />
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-gradient-to-br from-[#F0B35B] to-orange-500 rounded-2xl shadow-[0_0_15px_rgba(240,179,91,0.3)]">
+                                <Crown className="w-6 h-6 text-black" />
                             </div>
                             <div>
-                                <h3 className="text-white font-medium">Limite de Equipe Atingido</h3>
-                                <p className="text-sm text-gray-400">{getBarberLimitMessage()}</p>
+                                <h3 className="text-white font-black italic tracking-tight uppercase text-sm">Limite de Equipe Atingido</h3>
+                                <p className="text-xs text-gray-400 font-medium">{getBarberLimitMessage()}</p>
                             </div>
                         </div>
-                        <button className="px-4 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition-colors text-sm">
+                        <button className="w-full sm:w-auto px-6 py-3 bg-white/5 border border-white/10 text-[#F0B35B] font-black uppercase tracking-widest text-[10px] rounded-xl hover:bg-[#F0B35B] hover:text-black transition-all shadow-lg">
                             Fazer Upgrade
                         </button>
                     </motion.div>
                 )}
 
                 {/* Header e Ações */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                            <UserCog className="w-6 h-6 text-[#F0B35B]" />
-                            Profissionais ({barbers?.length || 0})
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-[#1A1F2E]/40 p-6 rounded-[2.3rem] border border-white/5 shadow-xl">
+                    <div className="space-y-1">
+                        <h2 className="text-2xl font-black text-white flex items-center gap-3 italic tracking-tight">
+                            {barbers?.length || 0} Especialistas
                         </h2>
-                        <p className="text-gray-400 text-sm mt-1">
-                            Plano atual: <span className="text-[#F0B35B] uppercase font-bold">{planType}</span>
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Plano:</span>
+                            <span className="text-[10px] text-[#F0B35B] font-black uppercase tracking-widest bg-[#F0B35B]/10 px-2 py-0.5 rounded-full border border-[#F0B35B]/20">{planType}</span>
+                        </div>
                     </div>
 
-                    <button
+                    <motion.button
                         onClick={() => setIsCreateModalOpen(true)}
                         disabled={!canAddBarber}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all duration-300 ${canAddBarber
-                            ? 'bg-[#F0B35B] text-black hover:bg-[#E6A555] hover:shadow-lg hover:shadow-[#F0B35B]/20 transform hover:-translate-y-0.5'
-                            : 'bg-gray-700 text-gray-400 cursor-not-allowed opacity-60'
+                        whileHover={canAddBarber ? { scale: 1.02 } : {}}
+                        whileTap={canAddBarber ? { scale: 0.98 } : {}}
+                        className={`w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all duration-300 ${canAddBarber
+                            ? 'bg-gradient-to-r from-[#F0B35B] to-orange-500 text-black shadow-[0_0_20px_rgba(240,179,91,0.2)]'
+                            : 'bg-white/5 text-gray-500 cursor-not-allowed border border-white/5'
                             }`}
                     >
-                        <Plus className="w-5 h-5" />
-                        Adicionar Barbeiro
-                    </button>
+                        <Plus className="w-5 h-5 stroke-[3px]" />
+                        Novo Pro
+                    </motion.button>
                 </div>
 
                 {/* Lista de Barbeiros (Grid) */}
@@ -209,49 +224,73 @@ const BarberManagementPage: React.FC = () => {
                         <p className="text-gray-500 mt-2">Adicione o primeiro barbeiro para começar.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {barbers.map((barber) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                        {barbers.map((barber, index) => (
                             <motion.div
                                 key={barber.id}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                whileHover={{ y: -4 }}
-                                className="bg-surface/50 backdrop-blur-sm border border-white/5 rounded-2xl p-5 hover:border-[#F0B35B]/30 transition-all duration-300 shadow-lg group relative overflow-hidden"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                                whileHover={{ y: -8 }}
+                                className="bg-[#1A1F2E]/40 border border-white/5 rounded-[2.5rem] p-6 hover:border-[#F0B35B]/30 transition-all duration-500 shadow-2xl group relative overflow-hidden flex flex-col items-center text-center"
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1A1F2E] to-[#252B3B] border border-white/10 flex items-center justify-center">
+                                {/* Removed shine effect */}
+
+                                <div className="relative mb-6">
+                                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#1A1F2E] to-black p-1 shadow-2xl relative">
+                                        <div className="w-full h-full rounded-full overflow-hidden border-2 border-white/5 flex items-center justify-center bg-black/40">
                                             {barber.profileImage ? (
-                                                <img src={barber.profileImage} alt={barber.name} className="w-full h-full rounded-full object-cover" />
+                                                <img src={barber.profileImage} alt={barber.name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="text-xl font-bold text-[#F0B35B]">{barber.name.charAt(0)}</span>
+                                                <span className="text-3xl font-black text-[#F0B35B] italic">{barber.name.charAt(0)}</span>
                                             )}
                                         </div>
-                                        <div>
-                                            <h3 className="text-white font-bold text-lg leading-tight">{barber.name}</h3>
-                                            <p className="text-gray-400 text-xs">{barber.email || 'Sem email'}</p>
-                                        </div>
-                                    </div>
-                                    <div className={`px-2 py-1 rounded-full text-xs font-bold ${barber.isActive ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                                        {barber.isActive ? 'Ativo' : 'Inativo'}
+                                        <div className={`absolute bottom-0 right-0 w-6 h-6 rounded-full border-4 border-[#121621] ${barber.isActive ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></div>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
-                                    <button
+                                <div className="space-y-1 mb-6">
+                                    <h3 className="text-xl font-black text-white italic tracking-tighter group-hover:text-[#F0B35B] transition-colors line-clamp-1 uppercase">
+                                        {barber.name}
+                                    </h3>
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest line-clamp-1 px-4">{barber.email || 'Sem email'}</p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2 w-full mb-6">
+                                    <div className="bg-black/20 p-3 rounded-2xl border border-white/5 flex flex-col items-center">
+                                        <Crown className="w-3 h-3 text-[#F0B35B] mb-1 opacity-60" />
+                                        <span className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">Specs</span>
+                                        <span className="text-sm font-black text-white italic">{barber.specialties?.length || 0}</span>
+                                    </div>
+                                    <div className="bg-black/20 p-3 rounded-2xl border border-white/5 flex flex-col items-center">
+                                        <div className={`w-3 h-3 rounded-full mb-1 ${barber.pix ? 'bg-green-500/40 text-green-400' : 'bg-red-500/40 text-red-400'} flex items-center justify-center text-[8px] font-black`}>$</div>
+                                        <span className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">Finance</span>
+                                        <span className={`text-[9px] font-black italic uppercase ${barber.pix ? 'text-green-400' : 'text-red-400'}`}>{barber.pix ? 'Ativo' : 'Pendente'}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 w-full mt-auto">
+                                    <motion.button
                                         onClick={() => openEditModal(barber)}
-                                        className="flex-1 py-2 bg-[#1A1F2E] hover:bg-[#252B3B] text-gray-300 hover:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex-1 py-3 bg-white/5 hover:bg-[#F0B35B]/10 text-gray-400 hover:text-[#F0B35B] rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-white/5 hover:border-[#F0B35B]/20"
                                     >
-                                        <Edit className="w-4 h-4" />
+                                        <Edit className="w-3 h-3 stroke-[3px]" />
                                         Editar
-                                    </button>
-                                    <button
+                                    </motion.button>
+                                    <motion.button
                                         onClick={() => openDeleteModal(barber)}
-                                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
-                                        title="Remover"
+                                        disabled={barbers.length <= 1}
+                                        whileHover={barbers.length > 1 ? { scale: 1.1, rotate: -5 } : {}}
+                                        whileTap={barbers.length > 1 ? { scale: 0.9 } : {}}
+                                        className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all border ${barbers.length <= 1
+                                            ? 'bg-transparent border-white/5 text-gray-700 cursor-not-allowed'
+                                            : 'bg-white/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 border-white/5 hover:border-red-500/20 shadow-lg'
+                                            }`}
                                     >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                        <Trash2 className="w-4 h-4 stroke-[2.5px]" />
+                                    </motion.button>
                                 </div>
                             </motion.div>
                         ))}
@@ -303,6 +342,16 @@ const BarberManagementPage: React.FC = () => {
                                     placeholder="(00) 00000-0000"
                                     value={formData.phone}
                                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Chave PIX <span className="text-gray-600">(Opcional)</span></label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
+                                    placeholder="CPF, Email ou Chave Aleatória"
+                                    value={formData.pix}
+                                    onChange={e => setFormData({ ...formData, pix: e.target.value })}
                                 />
                             </div>
 
@@ -358,6 +407,26 @@ const BarberManagementPage: React.FC = () => {
                                     className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">WhatsApp</label>
+                                <input
+                                    type="tel"
+                                    className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
+                                    placeholder="(00) 00000-0000"
+                                    value={formData.phone}
+                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Chave PIX</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-[#0D121E] border border-white/10 rounded-lg p-3 text-white focus:border-[#F0B35B] outline-none transition-colors"
+                                    placeholder="CPF, Email, Celular ou Chave Aleatória"
+                                    value={formData.pix}
+                                    onChange={e => setFormData({ ...formData, pix: e.target.value })}
                                 />
                             </div>
 

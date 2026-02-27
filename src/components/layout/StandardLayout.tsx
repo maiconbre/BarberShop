@@ -24,6 +24,7 @@ import { useBarbershopNavigation } from '../../hooks/useBarbershopNavigation';
 import { usePlan } from '../../hooks/usePlan';
 import { EmailVerificationBanner } from '../ui/EmailVerificationBanner';
 import { useTenant } from '../../contexts/TenantContext';
+import UpgradeBanner from '../ui/UpgradeBanner';
 
 interface StandardLayoutProps {
   children: React.ReactNode;
@@ -222,13 +223,13 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                 opacity: 0,
                 x: isMobile ? 288 : 0
               }}
-              transition={{ duration: 0.15, ease: "easeInOut" }}
+              transition={{ duration: 0.1, ease: "easeOut" }}
               className={`fixed top-0 h-screen max-h-screen z-50 glass-effect flex flex-col ${isMobile
                 ? 'right-0 w-72 bg-[#0A0E16]/95 border-l border-[#F0B35B]/15 rounded-l-2xl shadow-2xl backdrop-blur-md'
                 : isSidebarCollapsed
                   ? 'left-0 w-16 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
                   : 'left-0 w-64 bg-gradient-to-b from-[#1A1F2E] to-[#252B3B] border-r border-[#F0B35B]/20'
-                } transition-all duration-150`}
+                } transition-all duration-100`}
             >
               {/* Sidebar Header */}
               <div className="p-4 border-b border-[#F0B35B]/20">
@@ -325,12 +326,23 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                   </button>
 
                   <button
-                    onClick={() => navigateToPage('equipe')}
-                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100`}
-                    title={isSidebarCollapsed ? 'Equipe' : ''}
+                    onClick={() => {
+                      if (planInfo?.planType === 'free') {
+                        navigateToPage('upgrade');
+                      } else {
+                        navigateToPage('equipe');
+                      }
+                    }}
+                    className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-white hover:bg-[#252B3B] hover:shadow-md transition-all duration-100 ${planInfo?.planType === 'free' ? 'opacity-70' : ''}`}
+                    title={isSidebarCollapsed ? (planInfo?.planType === 'free' ? 'Upgrade Necessário' : 'Equipe') : ''}
                   >
                     <UserCog className="w-5 h-5 flex-shrink-0" />
-                    {!isSidebarCollapsed && <span className="text-sm">Equipe</span>}
+                    {!isSidebarCollapsed && (
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-sm">Equipe</span>
+                        {planInfo?.planType === 'free' && <Lock className="w-3 h-3 text-gray-500" />}
+                      </div>
+                    )}
                   </button>
 
                   <button
@@ -358,27 +370,22 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Configurações</p>
                   )}
 
-                  {/* Upgrade Button - Show only for free plan */}
-                  {planInfo?.planType === 'free' && (usage?.upgradeRecommended || usage?.upgradeRequired) && (
+                  {/* Upgrade Button - Show always for free plan */}
+                  {planInfo?.planType === 'free' && (
                     <button
                       onClick={() => navigateToPage('upgrade')}
-                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105 ${usage?.upgradeRequired
-                        ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg'
-                        : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg'
-                        }`}
-                      title={isSidebarCollapsed ? (usage?.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade para Pro') : ''}
+                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-all duration-200 transform hover:scale-105 bg-gradient-to-r from-[#F0B35B] to-orange-600 text-black font-bold shadow-lg shadow-[#F0B35B]/20`}
+                      title={isSidebarCollapsed ? 'Upgrade para Pro' : ''}
                     >
                       <Crown className="w-5 h-5 flex-shrink-0" />
                       {!isSidebarCollapsed && (
                         <div className="flex items-center justify-between w-full">
-                          <span className="text-sm font-medium">
-                            {usage?.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade para Pro'}
+                          <span className="text-sm">
+                            Upgrade para PRO
                           </span>
-                          {usage?.upgradeRequired && (
-                            <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-                              !
-                            </span>
-                          )}
+                          <span className="text-[10px] bg-black/20 px-1.5 py-0.5 rounded-full">
+                            NEW
+                          </span>
                         </div>
                       )}
                     </button>
@@ -451,12 +458,15 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className={`relative z-10 transition-all duration-300 ${isMobile
-        ? (hideMobileHeader ? '' : 'pt-16')
+      <main className={`relative z-10 transition-all duration-100 ${isMobile
+        ? (hideMobileHeader ? "" : "pt-16")
         : isSidebarCollapsed
-          ? 'ml-16'
-          : 'ml-64'
+          ? "ml-16"
+          : "ml-64"
         }`}>
+
+        {/* Banner Global de Upgrade para Plano Free */}
+        {planInfo?.planType === 'free' && <UpgradeBanner />}
 
         {/* Unified Page Header - Top Bar with Background */}
         {(pageTitle || pageSubtitle || headerRight) && (
@@ -498,7 +508,7 @@ const StandardLayout: React.FC<StandardLayoutProps> = ({ children, title, subtit
           </div>
         </div>
       </main>
-    </div>
+    </div >
   );
 };
 

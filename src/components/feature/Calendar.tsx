@@ -28,10 +28,41 @@ interface CalendarAppointment {
 
 
 
-const timeSlots = [
+// Helper para gerar slots de tempo baseados em horários de funcionamento (mantido para compatibilidade, mas o componente usará dynamicTimeSlots)
+const defaultTimeSlots = [
   '09:00', '10:00', '11:00', '14:00', '15:00',
   '16:00', '17:00', '18:00', '19:00', '20:00'
 ];
+
+const generateTimeSlots = (workingHours: any, date: Date | null) => {
+  if (!date || !workingHours) return defaultTimeSlots;
+
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayName = days[date.getDay()];
+  const hours = workingHours[dayName];
+
+  if (!hours || hours.closed) return [];
+
+  const slots = [];
+  let current = hours.start || '09:00';
+  const end = hours.end || '18:00';
+
+  while (current <= end) {
+    slots.push(current);
+    const [h, m] = current.split(':').map(Number);
+    const nextM = m + 30;
+    const nextH = h + Math.floor(nextM / 60);
+    const nextMStr = (nextM % 60).toString().padStart(2, '0');
+    current = `${nextH.toString().padStart(2, '0')}:${nextMStr}`;
+
+    if (current > '23:30' || current >= end) {
+      if (current === end) slots.push(current);
+      break;
+    }
+  }
+
+  return [...new Set(slots)].sort();
+};
 
 const Calendar: React.FC<CalendarProps> = ({
   selectedBarber,
@@ -46,7 +77,15 @@ const Calendar: React.FC<CalendarProps> = ({
 
   // Multi-tenant hooks
   const { loadAppointments: loadTenantAppointments } = useAppointments();
-  const { isValidTenant, barbershopId } = useTenant();
+  const { isValidTenant, barbershopId, settings } = useTenant();
+
+  // Obter horários configurados do tenant
+  const workingHours = (settings as any)?.workingHours;
+
+  // Gerar slots dinâmicos para a data selecionada
+  const dynamicTimeSlots = useMemo(() => {
+    return generateTimeSlots(workingHours, selectedDate || adjustToBrasilia(new Date()));
+  }, [workingHours, selectedDate]);
 
   // Gerar datas disponíveis (próximos 15 dias)
   const availableDates = useMemo(() => {
@@ -356,7 +395,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 </button>
               </div>
             ) : (
-              timeSlots.map(time => {
+              dynamicTimeSlots.map(time => {
                 // Verificar disponibilidade com base no cache local para feedback imediato
                 const isLocallyAvailable = selectedDate ? !appointments.some(appointment =>
                   appointment.date === format(adjustToBrasilia(selectedDate), 'yyyy-MM-dd') &&

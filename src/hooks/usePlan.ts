@@ -5,9 +5,11 @@ import {
   PlanInfo, 
   UpgradeRequest, 
   UpgradeResponse, 
-  PlanHistoryResponse
+  PlanHistoryResponse,
+  PlanType
 } from '../types/plan';
 import * as PlanService from '../services/PlanService';
+import { useTenant } from '../contexts/TenantContext';
 
 interface UsePlanReturn {
   // Estado
@@ -38,16 +40,20 @@ export const usePlan = (): UsePlanReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Get barbershop slug from URL params
-  const { barbershopSlug } = useParams<{ barbershopSlug: string }>();
+  // Get tenant context
+  const { barbershopId, slug: contextSlug } = useTenant();
+  
+  // Get barbershop slug from URL params or context
+  const { barbershopSlug: urlSlug } = useParams<{ barbershopSlug: string }>();
+  const activeSlug = urlSlug || contextSlug || '';
 
   // Carregar estatísticas de uso
   const refreshUsage = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await PlanService.getUsageStats(barbershopSlug);
-      setUsage(data);
+      const data = await PlanService.getUsageStats(activeSlug || barbershopId || undefined);
+      setUsage(data as any);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar estatísticas de uso';
       setError(errorMessage);
@@ -55,14 +61,14 @@ export const usePlan = (): UsePlanReturn => {
     } finally {
       setLoading(false);
     }
-  }, [barbershopSlug]);
+  }, [activeSlug, barbershopId]);
 
   // Carregar informações do plano
   const refreshPlanInfo = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await PlanService.getCurrentPlan(barbershopSlug);
+      const data = await PlanService.getCurrentPlan(activeSlug || barbershopId || undefined);
       setPlanInfo(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar informações do plano';
@@ -71,14 +77,14 @@ export const usePlan = (): UsePlanReturn => {
     } finally {
       setLoading(false);
     }
-  }, [barbershopSlug]);
+  }, [activeSlug, barbershopId]);
 
   // Carregar histórico
   const refreshHistory = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await PlanService.getPlanHistory();
+      const data = await PlanService.getPlanHistory(activeSlug || barbershopId || undefined);
       setHistory(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar histórico';
@@ -87,21 +93,26 @@ export const usePlan = (): UsePlanReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeSlug, barbershopId]);
 
   // Fazer upgrade do plano
   const upgradePlan = useCallback(async (request: UpgradeRequest): Promise<UpgradeResponse> => {
     try {
       setLoading(true);
       setError(null);
-      const response = await PlanService.upgradePlan(request);
+      
+      // Inject barbershopId if missing
+      const enrichedRequest = {
+        ...request,
+        barbershopId: request.barbershopId || barbershopId || undefined
+      };
+      
+      const response = await PlanService.upgradePlan(enrichedRequest);
       
       // Atualizar dados após upgrade
-      await Promise.all([
-        refreshUsage(),
-        refreshPlanInfo(),
-        refreshHistory()
-      ]);
+      await refreshPlanInfo();
+      await refreshUsage();
+      await refreshHistory();
       
       return response;
     } catch (err) {
@@ -111,7 +122,7 @@ export const usePlan = (): UsePlanReturn => {
     } finally {
       setLoading(false);
     }
-  }, [refreshUsage, refreshPlanInfo, refreshHistory]);
+  }, [refreshUsage, refreshPlanInfo, refreshHistory, barbershopId]);
 
   // Verificar limites
   const checkLimits = useCallback(async (feature: 'barbers' | 'appointments'): Promise<boolean> => {
@@ -123,7 +134,7 @@ export const usePlan = (): UsePlanReturn => {
     }
   }, []);
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais quando slug ou ID muda
   useEffect(() => {
     const loadInitialData = async () => {
       await Promise.all([

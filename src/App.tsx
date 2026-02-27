@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import { TenantProvider } from './contexts/TenantContext';
 import Navbar from './components/ui/Navbar';
 import LandingPage from './pages/LandingPage';
@@ -37,13 +36,6 @@ import { ProtectedAdminRoute } from './components/ProtectedAdminRoute';
 const AppContent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const location = useLocation();
-
-  const pageTransition = {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 },
-    transition: { duration: 0.15, ease: "easeInOut" }
-  };
   const isPublicRoute = location.pathname === '/' ||
     location.pathname === '/showcase' ||
     location.pathname === '/about' ||
@@ -70,52 +62,41 @@ const AppContent = () => {
       {/* Monitor de debounce para desenvolvimento */}
       <RequestDebounceMonitor />
 
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={location.pathname}
-          className="w-full"
-          initial={pageTransition.initial}
-          animate={pageTransition.animate}
-          exit={pageTransition.exit}
-          transition={pageTransition.transition}
-        >
-          <Routes location={location}>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/showcase" element={<Home />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/services" element={<ServicesPage />} />
-            <Route path="/contacts" element={<ContactPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/verify-email" element={<EmailVerificationPage />} />
-            <Route path="/register" element={<MagicLinkPage />} />
-            <Route path="/register-barbershop" element={<BarbershopRegistrationPage />} />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/showcase" element={<Home />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/contacts" element={<ContactPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
+        <Route path="/register" element={<MagicLinkPage />} />
+        <Route path="/register-barbershop" element={<BarbershopRegistrationPage />} />
 
-            {/* Admin routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<ProtectedAdminRoute />}>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="barbershops" element={<AdminBarbershopList />} />
-            </Route>
+        {/* Admin routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<ProtectedAdminRoute />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="barbershops" element={<AdminBarbershopList />} />
+        </Route>
 
-            {/* Barbershop isolated home pages - deve vir antes das rotas multi-tenant */}
-            <Route path="/:barbershopSlug" element={<BarbershopHomePage />} />
+        {/* Barbershop isolated home pages - deve vir antes das rotas multi-tenant */}
+        <Route path="/:barbershopSlug" element={<BarbershopHomePage />} />
 
-            {/* Multi-tenant routes */}
-            <Route path="/app/:barbershopSlug" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/dashboard" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/trocar-senha" element={<ProtectedRoute><TrocaSenha /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/register" element={<ProtectedRoute><RegisterPage /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/gerenciar-comentarios" element={<ProtectedRoute><CommentManagementPage /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/servicos" element={<ProtectedRoute><ServiceManagementPage /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/equipe" element={<ProtectedRoute><BarberManagementPage /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/gerenciar-horarios" element={<ProtectedRoute><ScheduleManagementPage /></ProtectedRoute>} />
-            <Route path="/app/:barbershopSlug/upgrade" element={<ProtectedRoute><UpgradePage /></ProtectedRoute>} />
-          </Routes>
-        </motion.div>
-      </AnimatePresence>
+        {/* Multi-tenant routes */}
+        <Route path="/app/:barbershopSlug" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/dashboard" element={<ProtectedRoute><DashboardPageNew /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/agenda" element={<ProtectedRoute><AgendaPage /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/trocar-senha" element={<ProtectedRoute><TrocaSenha /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/register" element={<ProtectedRoute><RegisterPage /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/gerenciar-comentarios" element={<ProtectedRoute><CommentManagementPage /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/servicos" element={<ProtectedRoute><ServiceManagementPage /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/equipe" element={<ProtectedRoute><BarberManagementPage /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/gerenciar-horarios" element={<ProtectedRoute><ScheduleManagementPage /></ProtectedRoute>} />
+        <Route path="/app/:barbershopSlug/upgrade" element={<ProtectedRoute><UpgradePage /></ProtectedRoute>} />
+      </Routes>
     </div>
   );
 };

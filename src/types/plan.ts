@@ -39,6 +39,7 @@ export interface PlanInfo {
 
 export interface UpgradeRequest {
   planType: PlanType;
+  barbershopId?: string;
 }
 
 export interface UpgradeResponse {

@@ -2,7 +2,24 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { format, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, Calendar as CalendarIcon, X, AlertCircle, Trash2, Loader2, Users, UserPlus } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Plus,
+  X,
+  Check,
+  AlertCircle,
+  MoreVertical,
+  Trash2,
+  Lock,
+  Unlock,
+  User,
+  Phone,
+  MessageSquare,
+  RefreshCw
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adjustToBrasilia, formatToISODate } from '../../utils/DateTimeUtils';
 import { useTenantCache } from '../../hooks/useTenantCache';
@@ -32,23 +49,61 @@ interface Appointment {
   isCancelled?: boolean;
 }
 
-// Atualizar array de horários disponíveis para sincronizar com o BookingModal
-const timeSlots = [
-  '09:00', '10:00', '11:00', '14:00', '15:00',
-  '16:00', '17:00', '18:00', '19:00', '20:00'
-].sort();
+// Helper para gerar slots de tempo baseados em horários de funcionamento
+const generateTimeSlots = (workingHours: any, date: Date | null) => {
+  if (!date || !workingHours) {
+    return ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+  }
+
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayName = days[date.getDay()];
+  const hours = workingHours[dayName];
+
+  if (!hours || hours.closed) return [];
+
+  const slots = [];
+  let current = hours.start || '09:00';
+  const end = hours.end || '18:00';
+
+  // Garantir formato HH:mm
+  while (current <= end) {
+    slots.push(current);
+    const [h, m] = current.split(':').map(Number);
+    const nextM = m + 30; // Intervalos de 30 minutos por padrão
+    const nextH = h + Math.floor(nextM / 60);
+    const nextMStr = (nextM % 60).toString().padStart(2, '0');
+    current = `${nextH.toString().padStart(2, '0')}:${nextMStr}`;
+
+    // Evitar loop infinito ou ultrapassar final do dia
+    if (current > '23:30' || current >= end) {
+      if (current === end) slots.push(current); // Inclui o último horário
+      break;
+    }
+  }
+
+  return [...new Set(slots)].sort();
+};
 
 const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   barbers,
   userRole,
   currentBarberId
 }) => {
+  const { isValidTenant, barbershopId, settings } = useTenant();
   const tenantCache = useTenantCache();
-  const { isValidTenant, barbershopId } = useTenant();
   const { appointments: tenantAppointments, loadAppointments: loadTenantAppointments } = useAppointments();
+
   const [selectedBarber, setSelectedBarber] = useState(currentBarberId || '');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(adjustToBrasilia(new Date()));
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  // Obter horários configurados do tenant
+  const workingHours = (settings as any)?.workingHours;
+
+  // Gerar slots dinâmicos para a data selecionada
+  const dynamicTimeSlots = React.useMemo(() => {
+    return generateTimeSlots(workingHours, selectedDate);
+  }, [workingHours, selectedDate]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
@@ -94,7 +149,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         apt.barberId === selectedBarber &&
         apt.date &&
         apt.time &&
-        timeSlots.includes(apt.time) &&
+        dynamicTimeSlots.includes(apt.time) &&
         !apt.isCancelled
       );
 
@@ -114,7 +169,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         setAppointments(Array.isArray(cachedData) ? cachedData : []);
       }
     }
-  }, [selectedBarber, timeSlots, isValidTenant, loadTenantAppointments, tenantAppointments]);
+  }, [selectedBarber, dynamicTimeSlots, isValidTenant, loadTenantAppointments, tenantAppointments]);
 
   useEffect(() => {
     if (selectedBarber) {
@@ -506,9 +561,9 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
         appointment.time === time &&
         appointment.barberId === selectedBarber &&
         !appointment.isCancelled &&
-        timeSlots.includes(appointment.time)
+        dynamicTimeSlots.includes(appointment.time)
     ) || null;
-  }, [appointments, selectedBarber]);
+  }, [appointments, selectedBarber, dynamicTimeSlots]);
 
   const isTimeSlotAvailable = useCallback((date: string, time: string, barberId: string): boolean => {
     return !appointments.some(appointment =>
@@ -522,101 +577,106 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({
   const renderCalendarView = () => {
     return (
       <div className="space-y-6">
-        <div className="bg-surface/30 backdrop-blur-sm rounded-xl p-4 border border-white/5 shadow-inner overflow-hidden">
-          <div className="flex overflow-x-auto pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-            <div className="flex space-x-3">
-              {availableDates.map(date => {
+        <div className="bg-gradient-to-br from-[#1A1F2E]/60 to-black/40 backdrop-blur-lg rounded-[2.5rem] p-6 border border-white/5 shadow-2xl">
+          <div className="flex overflow-x-auto pb-4 hide-scrollbar -mx-2 px-2">
+            <div className="flex space-x-4">
+              {availableDates.map((date, index) => {
                 const isSelected = selectedDate && isSameDay(date, selectedDate);
                 return (
-                  <button
+                  <motion.button
                     type="button"
                     key={date.toISOString()}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
                     onClick={() => handleDateClick(date)}
                     className={`
-                      flex flex-col items-center justify-center p-4 rounded-xl min-w-[90px]
-                      transition-all duration-300 transform relative overflow-hidden group
+                      flex flex-col items-center justify-center p-5 rounded-[2rem] min-w-[100px]
+                      transition-all duration-500 transform relative overflow-hidden group border
                       ${isSelected
-                        ? 'bg-primary text-black shadow-lg shadow-primary/20 scale-105'
-                        : 'bg-background-paper text-white hover:bg-surface border border-white/5 hover:border-primary/30'}
+                        ? 'bg-gradient-to-br from-[#F0B35B] to-orange-500 text-black border-[#F0B35B] shadow-[0_0_20px_rgba(240,179,91,0.3)] scale-105'
+                        : 'bg-black/20 text-white hover:bg-white/5 border-white/5 hover:border-[#F0B35B]/20'}
                     `}
                   >
-                    <span className={`text-xs uppercase tracking-wider mb-1 font-medium ${isSelected ? 'text-black/70' : 'text-gray-400'}`}>
+                    <span className={`text-[10px] uppercase font-black tracking-widest mb-1 ${isSelected ? 'text-black/60' : 'text-gray-500'}`}>
                       {format(date, 'EEE', { locale: ptBR })}
                     </span>
-                    <span className="text-2xl font-bold">
+                    <span className="text-3xl font-black italic tracking-tighter">
                       {format(date, 'd')}
                     </span>
                     {isSelected && (
                       <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent"></div>
                     )}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
           </div>
         </div>
 
-        <div className="flex justify-center">
-          <div className="w-full max-w-4xl">
-            <div className="flex items-center gap-2 mb-4 text-gray-400 text-sm">
-              <Clock className="w-4 h-4 text-primary" />
-              <span>Horários Disponíveis</span>
+        <div className="flex flex-col items-center">
+          <div className="w-full">
+            <div className="flex items-center gap-3 mb-6 px-4">
+              <div className="w-2 h-2 rounded-full bg-[#F0B35B] shadow-[0_0_10px_rgba(240,179,91,0.5)]"></div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-[#F0B35B]">Slots Disponíveis</h3>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
               {isLoading ? (
-                <div className="col-span-full flex justify-center py-12">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <p className="text-gray-500">Carregando horários...</p>
-                  </div>
+                <div className="col-span-full flex flex-col items-center justify-center py-20 bg-[#1A1F2E]/20 rounded-[2rem] border border-white/5">
+                  <RefreshCw className="w-10 h-10 animate-spin text-[#F0B35B] mb-4" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-600">Buscando horários...</p>
                 </div>
               ) : error ? (
-                <div className="col-span-full text-center p-6 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
-                  <AlertCircle className="w-6 h-6 mx-auto mb-2" />
-                  {error}
+                <div className="col-span-full text-center p-8 bg-red-500/5 border border-red-500/20 rounded-[2rem] text-red-400 flex flex-col items-center gap-2">
+                  <AlertCircle className="w-8 h-8 opacity-60" />
+                  <p className="text-xs font-bold uppercase tracking-widest">{error}</p>
                 </div>
               ) : (
-                timeSlots.map(time => {
+                dynamicTimeSlots.map(time => {
                   const appointment = selectedDate ? getAppointmentForTimeSlot(selectedDate, time) : null;
                   const isBooked = !!appointment;
                   const isBlocked = appointment?.isBlocked;
                   const isSelected = time === selectedTime;
 
                   return (
-                    <button
-                      type="button"
+                    <motion.button
                       key={time}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => handleTimeClick(time, appointment)}
                       className={`
-                          py-4 px-2 rounded-xl text-sm font-bold transition-all duration-300 relative overflow-hidden group border
+                          py-5 px-3 rounded-[1.8rem] text-sm font-black italic tracking-tight transition-all duration-300 relative overflow-hidden group border
                           ${isBlocked
-                          ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20'
+                          ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
                           : isBooked
-                            ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                            ? 'bg-red-500/10 text-red-500 border-red-500/30'
                             : isSelected
-                              ? 'bg-primary text-black border-primary scale-105 shadow-glow'
-                              : 'bg-surface text-white border-white/5 hover:border-primary/50 hover:bg-surface/80 hover:scale-105 hover:shadow-lg'}
+                              ? 'bg-gradient-to-br from-[#F0B35B] to-orange-500 text-black border-[#F0B35B] shadow-[0_0_15px_rgba(240,179,91,0.2)]'
+                              : 'bg-[#1A1F2E]/40 text-white border-white/5 hover:border-[#F0B35B]/30 hover:bg-[#1A1F2E]'}
                         `}
                     >
-                      <div className="flex flex-col items-center justify-center text-center gap-1.5 relative z-10">
-                        <span className="text-base">{time}</span>
-                        {isBlocked && (
-                          <span className="text-[10px] uppercase tracking-wider bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full w-full font-bold">Bloqueado</span>
-                        )}
-                        {isBooked && !isBlocked && (
-                          <span className="text-[10px] uppercase tracking-wider bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full w-full font-bold">Ocupado</span>
-                        )}
-                        {!isBooked && !isBlocked && !isSelected && (
-                          <span className="text-[10px] text-green-400 font-medium">Livre</span>
-                        )}
+                      <div className="flex flex-col items-center justify-center text-center gap-1 relative z-10">
+                        <span className="text-lg">{time}</span>
+                        <div className="flex items-center gap-1.5 h-4">
+                          {isBlocked ? (
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.6)]"></div>
+                          ) : isBooked ? (
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                          ) : (
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                          )}
+                          <span className={`text-[8px] uppercase font-black tracking-widest ${isBlocked ? 'text-orange-400' : isBooked ? 'text-red-400' : isSelected ? 'text-black/60' : 'text-gray-500'}`}>
+                            {isBlocked ? 'Lock' : isBooked ? 'Busy' : 'Open'}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Hover effect */}
-                      {!isSelected && !isBooked && !isBlocked && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                      {/* Ripple effect on hover */}
+                      {!isBooked && !isBlocked && !isSelected && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                       )}
-                    </button>
+                    </motion.button>
                   );
                 })
               )}

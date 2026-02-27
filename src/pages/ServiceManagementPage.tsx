@@ -243,14 +243,17 @@ const ServiceManagementPage: React.FC = () => {
   return (
     <StandardLayout
       hideMobileHeader={true}
-      title="Serviços"
-      icon={<Package />}
+      title="Serviços & Menu"
+      subtitle="Gerencie seu catálogo de serviços premium"
+      icon={<Package className="w-5 h-5 text-[#F0B35B]" />}
       headerRight={
-        <div className="flex items-center gap-3">
-          {loading && <RefreshCw className="animate-spin h-5 w-5 text-[#D4AF37]" />}
-          <span className="hidden sm:inline-block bg-[#1A1F2E] border border-white/10 text-white text-xs font-bold px-3 py-1.5 rounded-full">
-            {services?.length || 0} Serviços
-          </span>
+        <div className="flex items-center gap-4">
+          {loading && <RefreshCw className="animate-spin h-4 w-4 text-[#F0B35B]" />}
+          <div className="bg-[#F0B35B]/10 border border-[#F0B35B]/20 px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(240,179,91,0.1)]">
+            <span className="text-[#F0B35B] text-xs font-black uppercase tracking-widest">
+              {services?.length || 0} Itens
+            </span>
+          </div>
         </div>
       }
     >
@@ -274,7 +277,7 @@ const ServiceManagementPage: React.FC = () => {
         {/* Quick Add Bar - Desktop Only */}
         <motion.form
           onSubmit={handleQuickAdd}
-          className="hidden md:flex items-center gap-3 bg-[#1A1F2E] p-4 rounded-2xl border border-white/5"
+          className="hidden md:flex items-center gap-4 bg-[#1A1F2E]/40 p-5 rounded-[2rem] border border-white/5 shadow-xl"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -283,8 +286,8 @@ const ServiceManagementPage: React.FC = () => {
               type="text"
               value={quickAddName}
               onChange={(e) => setQuickAddName(e.target.value)}
-              className="w-full p-3 bg-[#0D121E] rounded-xl focus:ring-1 focus:ring-[#D4AF37] outline-none border border-white/5 text-white placeholder-gray-500"
-              placeholder="Nome do serviço (ex: Corte + Barba)"
+              className="w-full p-4 bg-black/20 rounded-2xl focus:ring-1 focus:ring-[#F0B35B] outline-none border border-white/5 text-white placeholder-gray-600 font-medium transition-all"
+              placeholder="Nome do serviço premium..."
             />
           </div>
           <div className="w-40">
@@ -303,19 +306,19 @@ const ServiceManagementPage: React.FC = () => {
           <motion.button
             type="submit"
             disabled={creating || !isValidTenant}
-            className="px-6 py-3 bg-[#D4AF37] text-black rounded-xl font-bold hover:bg-[#E6A555] transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-8 py-4 bg-gradient-to-r from-[#F0B35B] to-orange-500 text-black rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(240,179,91,0.3)] transition-all flex items-center gap-2 disabled:opacity-50"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            {creating ? <RefreshCw className="animate-spin h-4 w-4" /> : <Plus className="w-4 h-4" />}
+            {creating ? <RefreshCw className="animate-spin h-4 w-4" /> : <Plus className="w-4 h-4 stroke-[3px]" />}
             Adicionar
           </motion.button>
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-3 bg-[#0D121E] text-gray-300 rounded-xl font-medium hover:bg-[#1A1F2E] hover:text-white transition-all border border-white/5"
+            className="px-5 py-4 bg-white/5 text-gray-400 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-white/10 hover:text-white transition-all border border-white/5"
           >
-            Completo
+            Detalhes
           </button>
         </motion.form>
 
@@ -358,47 +361,49 @@ const ServiceManagementPage: React.FC = () => {
             </motion.button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {services.map((service, index) => (
               <motion.div
                 key={service.id}
-                className="bg-[#1A1F2E] p-5 rounded-2xl border border-white/5 hover:border-[#D4AF37]/30 transition-all group relative overflow-hidden"
+                className="bg-[#1A1F2E]/40 p-6 rounded-[2.3rem] border border-white/5 hover:border-[#F0B35B]/30 transition-all group relative overflow-hidden shadow-xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                whileHover={{ y: -4 }}
+                whileHover={{ y: -8 }}
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-[#D4AF37]/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-[#D4AF37]/10 transition-colors"></div>
+                {/* Removed shine animation */}
 
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-4">
+                <div className="relative z-10 space-y-5">
+                  <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-white truncate group-hover:text-[#D4AF37] transition-colors mb-1">
+                      <h3 className="text-xl font-black text-white truncate group-hover:text-[#F0B35B] transition-colors italic tracking-tight">
                         {service.name}
                       </h3>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Users className="w-3 h-3" />
-                        <span>{service.barbers?.length || 0} barbeiros</span>
+                      <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                        <div className="flex items-center gap-1">
+                          <Users className="w-3 h-3 text-[#F0B35B]/60" />
+                          <span>{service.barbers?.length || 0} Pros</span>
+                        </div>
                         {service.duration && (
-                          <>
-                            <span>•</span>
-                            <Clock className="w-3 h-3" />
-                            <span>{service.duration}min</span>
-                          </>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-[#F0B35B]/60" />
+                            <span>{service.duration} min</span>
+                          </div>
                         )}
                       </div>
                     </div>
-                    <div className="bg-[#0D121E] px-3 py-2 rounded-lg border border-white/5 group-hover:border-[#D4AF37]/20 transition-colors">
-                      <span className="text-[#D4AF37] font-bold text-sm">R$ {safeFixed(service.price, 2)}</span>
-                    </div>
+                  </div>
+
+                  <div className="flex items-baseline gap-1 bg-black/20 p-3 rounded-2xl border border-white/5">
+                    <span className="text-xs font-bold text-[#F0B35B]">R$</span>
+                    <span className="text-2xl font-black text-white tracking-tighter italic">{safeFixed(service.price, 2)}</span>
                   </div>
 
                   {service.description && (
-                    <p className="text-xs text-gray-400 mb-4 line-clamp-2">{service.description}</p>
+                    <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 min-h-[2.5rem] italic">"{service.description}"</p>
                   )}
 
-                  <div className="flex gap-2">
-                    {/* Equipe button - Only show for premium plans */}
+                  <div className="flex gap-2 pt-2">
                     {!isFreePlan && (
                       <motion.button
                         onClick={() => {
@@ -406,12 +411,12 @@ const ServiceManagementPage: React.FC = () => {
                           setSelectedBarbers([]);
                           setIsAssociateModalOpen(true);
                         }}
-                        className="flex-1 py-2 px-3 bg-[#0D121E] hover:bg-[#D4AF37]/10 text-gray-300 hover:text-[#D4AF37] rounded-lg transition-all border border-white/5 hover:border-[#D4AF37]/20 text-xs font-medium flex items-center justify-center gap-1.5"
+                        className="flex-1 py-3 px-4 bg-white/5 hover:bg-[#F0B35B]/10 text-gray-400 hover:text-[#F0B35B] rounded-2xl transition-all border border-white/5 hover:border-[#F0B35B]/20 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         disabled={!barbers || barbers.length === 0}
                       >
-                        <Users size={13} />
+                        <Users size={12} className="stroke-[3px]" />
                         Equipe
                       </motion.button>
                     )}
@@ -421,11 +426,11 @@ const ServiceManagementPage: React.FC = () => {
                         setServiceToEdit(service);
                         setIsEditModalOpen(true);
                       }}
-                      className="w-9 h-9 flex items-center justify-center bg-[#0D121E] hover:bg-[#D4AF37]/10 text-[#D4AF37] rounded-lg transition-all border border-white/5 hover:border-[#D4AF37]/20"
-                      whileHover={{ scale: 1.1 }}
+                      className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-[#F0B35B]/10 text-[#F0B35B] rounded-2xl transition-all border border-white/5 hover:border-[#F0B35B]/20 shadow-lg"
+                      whileHover={{ scale: 1.1, rotate: 5 }}
                       whileTap={{ scale: 0.9 }}
                     >
-                      <Edit size={14} />
+                      <Edit size={16} className="stroke-[2.5px]" />
                     </motion.button>
 
                     <motion.button
@@ -433,11 +438,11 @@ const ServiceManagementPage: React.FC = () => {
                         setServiceToDelete(service);
                         setIsDeleteModalOpen(true);
                       }}
-                      className="w-9 h-9 flex items-center justify-center bg-[#0D121E] hover:bg-red-500/10 text-red-400 hover:text-red-500 rounded-lg transition-all border border-white/5 hover:border-red-500/20"
-                      whileHover={{ scale: 1.1 }}
+                      className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-red-500/10 text-red-500/60 hover:text-red-500 rounded-2xl transition-all border border-white/5 hover:border-red-500/20 shadow-lg"
+                      whileHover={{ scale: 1.1, rotate: -5 }}
                       whileTap={{ scale: 0.9 }}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} className="stroke-[2.5px]" />
                     </motion.button>
                   </div>
                 </div>
