@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, X, BarChart2, Users, DollarSign, TrendingUp, Calendar, User, Ghost } from 'lucide-react';
+import { Search, X, BarChart2, Users, User, Ghost } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBarbers } from '../../hooks/useBarbers';
 import { useTenant } from '../../contexts/TenantContext';
@@ -28,6 +28,7 @@ interface ClientAnalyticsProps {
     appointments: Appointment[];
     onRefreshData?: () => Promise<void>;
     simpleMode?: boolean;
+    isOwner?: boolean;
 }
 
 interface ClientData {
@@ -87,7 +88,7 @@ const getUserId = (user: unknown): string | null => {
     return userObj.id || userObj.userId || userObj.uid || null;
 };
 
-const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleMode }) => {
+const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleMode, isOwner }) => {
     const { user } = useAuth();
     // const currentUser = user; // Simplification if needed, or just use user directly
 
@@ -105,18 +106,17 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleM
     const [showAllAppointments, setShowAllAppointments] = useState(false);
 
     // Get admin status and user ID using helper functions
-    const isAdmin = useMemo(() => checkIsAdmin(currentUser), [currentUser]);
+    const isAdmin = useMemo(() => isOwner || checkIsAdmin(currentUser), [currentUser, isOwner]);
     const userId = useMemo(() => getUserId(currentUser), [currentUser]);
 
     const COLORS = ['#F0B35B', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-
-
 
     // Debug: Log dos dados recebidos
     useEffect(() => {
         console.log('ClientAnalytics - Appointments recebidos:', appointments?.length || 0);
         console.log('ClientAnalytics - Usuário atual:', currentUser);
         console.log('ClientAnalytics - É admin (calculado):', isAdmin);
+        console.log('ClientAnalytics - É dono (prop):', isOwner);
         console.log('ClientAnalytics - User ID:', userId);
         console.log('ClientAnalytics - Agendamentos filtrados:', filteredAppointments?.length || 0);
 
@@ -124,7 +124,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleM
         if (!currentUser) {
             console.warn('ClientAnalytics - ATENÇÃO: currentUser está null! Usuário não autenticado.');
         }
-    }, [appointments, currentUser, isAdmin, userId]);
+    }, [appointments, currentUser, isAdmin, userId, isOwner]);
 
     // Carregar barbeiros ao montar o componente
     useEffect(() => {
@@ -143,7 +143,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleM
             return [];
         }
 
-        // Admin vê TODOS os agendamentos sem filtros
+        // Admin ou Dono vê TODOS os agendamentos sem filtros
         if (isAdmin) {
             return appointments;
         }
@@ -155,7 +155,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ appointments, simpleM
         }
 
         // Barbeiro vê apenas os seus agendamentos
-        return appointments.filter(app => app.barberId === userId);
+        return appointments.filter(app => app.barberId === userId || app.barberId === 'all');
     }, [appointments, currentUser, isAdmin, userId]);
 
     // Dados dos clientes agrupados

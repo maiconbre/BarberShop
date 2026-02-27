@@ -261,10 +261,8 @@ const LandingPage = () => {
               onClick={() => scrollToId('top')}
               className="flex items-center gap-3 text-left"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5A623] text-lg">
-                ✂️
-              </span>
-              <span className="text-sm font-semibold tracking-[0.25em] text-white">NA RÉGUA</span>
+              <img src="/img/logo app.png" alt="BarberCloud Logo" className="h-9 w-9 object-contain" />
+              <span className="text-sm font-semibold tracking-[0.25em] text-white">BARBERCLOUD</span>
             </button>
             <nav className="hidden items-center gap-6 text-sm text-gray-300 md:flex">
               <button onClick={() => scrollToId('features')} className="hover:text-white transition-colors">
@@ -502,14 +500,12 @@ const LandingPage = () => {
                 <span>Mensal</span>
                 <button
                   onClick={() => setIsAnnual(prev => !prev)}
-                  className={`relative h-7 w-12 rounded-full border border-[#2a2a2a] transition-colors ${
-                    isAnnual ? 'bg-[#F5A623]' : 'bg-[#1a1a1a]'
-                  }`}
+                  className={`relative h-7 w-12 rounded-full border border-[#2a2a2a] transition-colors ${isAnnual ? 'bg-[#F5A623]' : 'bg-[#1a1a1a]'
+                    }`}
                 >
                   <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      isAnnual ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
                 <span>Anual</span>
@@ -529,11 +525,10 @@ const LandingPage = () => {
                   return (
                     <div
                       key={plan.id}
-                      className={`relative rounded-3xl border p-6 ${
-                        plan.featured
+                      className={`relative rounded-3xl border p-6 ${plan.featured
                           ? 'border-[#F5A623] bg-gradient-to-b from-[#1f1a0e] to-[#141414] shadow-[0_0_40px_rgba(245,166,35,0.15)]'
                           : 'border-[#2a2a2a] bg-[#141414]'
-                      }`}
+                        }`}
                     >
                       {plan.featured && (
                         <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#F5A623] px-4 py-1 text-[10px] font-semibold text-black">
@@ -567,19 +562,18 @@ const LandingPage = () => {
                             className={`flex items-start gap-2 ${feature.included ? '' : 'text-gray-500 line-through'}`}
                           >
                             <span className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full ${feature.included ? 'bg-emerald-900 text-emerald-200' : 'bg-gray-700 text-gray-400'}`}>
-                          {feature.included ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                        </span>
+                              {feature.included ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                            </span>
                             {feature.label}
                           </div>
                         ))}
                       </div>
                       <button
                         onClick={handleCreateBarbershop}
-                        className={`mt-6 w-full rounded-xl px-4 py-2 text-xs font-semibold ${
-                          plan.featured
+                        className={`mt-6 w-full rounded-xl px-4 py-2 text-xs font-semibold ${plan.featured
                             ? 'bg-[#F5A623] text-black hover:bg-[#d4891a]'
                             : 'border border-[#2a2a2a] text-gray-200 hover:border-[#3a3a3a]'
-                        }`}
+                          }`}
                       >
                         {plan.cta}
                       </button>
@@ -721,10 +715,8 @@ const LandingPage = () => {
           <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[2fr_1fr_1fr_1fr]">
             <div>
               <div className="flex items-center gap-3 text-sm font-semibold text-white">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5A623] text-lg">
-                  ✂️
-                </span>
-                BARBERSHOP
+                <img src="/img/logo app.png" alt="BarberCloud Logo" className="h-8 w-8 object-contain" />
+                BARBERCLOUD
               </div>
               <p className="mt-4 max-w-xs text-xs text-white">
                 Transformando barbearias em negócios digitais modernos desde 2022.
@@ -774,7 +766,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="mx-auto mt-10 flex max-w-6xl flex-wrap items-center justify-between gap-3 text-xs text-white">
-            <span>© 2025 BarberShop · Todos os direitos reservados</span>
+            <span>© 2025 BarberCloud · Todos os direitos reservados</span>
             <button
               onClick={handleCreateBarbershop}
               className="rounded-full bg-[#F5A623] px-4 py-2 text-xs font-semibold text-black"

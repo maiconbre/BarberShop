@@ -33,18 +33,20 @@ interface Appointment {
 const APPOINTMENTS_PER_PAGE = 8; // Increased for table view
 
 const convertAppointment = (baseAppointment: BaseAppointment): Appointment => {
+  const appointmentDate = baseAppointment.date instanceof Date ? baseAppointment.date : new Date(baseAppointment.date);
+
   return {
     id: baseAppointment.id,
     clientName: baseAppointment._backendData?.clientName || (baseAppointment as unknown as { clientName: string }).clientName || baseAppointment.clientId,
     service: baseAppointment._backendData?.serviceName || (baseAppointment as unknown as { serviceName: string }).serviceName || baseAppointment.serviceId,
-    date: baseAppointment.date.toISOString().split('T')[0],
+    date: appointmentDate.toISOString().split('T')[0],
     time: baseAppointment._backendData ? baseAppointment.startTime : (baseAppointment.time || baseAppointment.startTime),
     status: baseAppointment.status,
     barberId: baseAppointment.barberId,
     barberName: baseAppointment._backendData?.barberName || baseAppointment.barberName || '',
     price: baseAppointment._backendData?.price || (baseAppointment as unknown as { price: number }).price || 0,
-    createdAt: baseAppointment.createdAt?.toISOString(),
-    updatedAt: baseAppointment.updatedAt?.toISOString()
+    createdAt: baseAppointment.createdAt ? (baseAppointment.createdAt instanceof Date ? baseAppointment.createdAt : new Date(baseAppointment.createdAt)).toISOString() : undefined,
+    updatedAt: baseAppointment.updatedAt ? (baseAppointment.updatedAt instanceof Date ? baseAppointment.updatedAt : new Date(baseAppointment.updatedAt)).toISOString() : undefined
   };
 };
 

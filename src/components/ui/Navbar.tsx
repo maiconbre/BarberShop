@@ -25,11 +25,15 @@ const Navbar: React.FC = () => {
               className="transform hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
               onClick={() => navigate('/')}
             >
-              <div className="inline-block relative">
-                <div className="text-[#F0B35B] text-lg font-medium tracking-wider border border-[#F0B35B]/70 px-2 py-1 rounded">
-                  BARBER<span className="text-white/80">SHOP</span>
+              <div className="flex items-center gap-3">
+                <img
+                  src="/img/logo app.png"
+                  alt="BarberCloud Logo"
+                  className="h-10 w-auto object-contain"
+                />
+                <div className="text-[#F0B35B] text-xl font-bold tracking-tight">
+                  Barber<span className="text-white">Cloud</span>
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-full h-full border border-white/10 rounded"></div>
               </div>
             </div>
           </div>

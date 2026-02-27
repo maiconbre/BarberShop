@@ -37,7 +37,7 @@ export class AppointmentRepository implements IAppointmentRepository {
         .from('Appointments')
         .select('*')
         .eq('id', id)
-        .eq('tenant_id', effectiveTenantId)
+        .or(`tenant_id.eq.${effectiveTenantId},barbershopId.eq.${effectiveTenantId}`)
         .single();
 
       if (error) {
@@ -78,7 +78,10 @@ export class AppointmentRepository implements IAppointmentRepository {
         return [];
       }
 
-      let query = supabase.from('Appointments').select('*').eq('tenant_id', effectiveTenantId);
+      let query = supabase.from('Appointments').select('*');
+      
+      // CRITICAL: Filter by tenant_id OR barbershopId (legacy/new account fallback)
+      query = query.or(`tenant_id.eq.${effectiveTenantId},barbershopId.eq.${effectiveTenantId}`);
       
       if (filters?.barberId) {
         query = query.eq('barberId', filters.barberId);
@@ -198,7 +201,9 @@ export class AppointmentRepository implements IAppointmentRepository {
         price: appointmentData._backendData?.price || 0,
         wppclient: appointmentData._backendData?.wppclient || '',
         status: appointmentData.status || 'pending',
-        tenant_id: effectiveTenantId
+        // CRITICAL: Only set tenant_id if it's actually different from barbershopId (avoiding FK errors)
+        tenant_id: (tenantId && tenantId !== barbershopId) ? tenantId : null,
+        barbershopId: barbershopId || effectiveTenantId
       };
 
       const { data, error } = await supabase.from('Appointments').insert(supabaseData).select().single();
@@ -262,7 +267,7 @@ export class AppointmentRepository implements IAppointmentRepository {
         .from('Appointments')
         .update(supabaseUpdates)
         .eq('id', id)
-        .eq('tenant_id', effectiveTenantId)
+        .or(`tenant_id.eq.${effectiveTenantId},barbershopId.eq.${effectiveTenantId}`)
         .select()
         .single();
 
@@ -309,7 +314,7 @@ export class AppointmentRepository implements IAppointmentRepository {
       .from('Appointments')
       .delete()
       .eq('id', id)
-      .eq('tenant_id', effectiveTenantId);
+      .or(`tenant_id.eq.${effectiveTenantId},barbershopId.eq.${effectiveTenantId}`);
       
     if (error) {
       console.error('AppointmentRepository.delete - Error:', error);

@@ -219,3 +219,23 @@ export const getPlanHistory = async (barbershopIdOrSlug?: string): Promise<PlanH
     throw error;
   }
 };
+
+/**
+ * Utilitários de formatação e cálculo
+ */
+export const getUsagePercentage = (current: number, limit: number): number => {
+  if (limit === Infinity || limit <= 0) return 0;
+  return Math.min((current / limit) * 100, 100);
+};
+
+export const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
+export const formatDate = (date: string | Date): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('pt-BR');
+};

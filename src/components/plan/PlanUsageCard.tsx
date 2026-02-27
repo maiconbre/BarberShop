@@ -8,18 +8,18 @@ interface PlanUsageCardProps {
   className?: string;
 }
 
-export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({ 
-  usage, 
+export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({
+  usage,
   onUpgrade,
-  className = '' 
+  className = ''
 }) => {
   const barbersPercentage = getUsagePercentage(
-    usage.usage.barbers.current, 
+    usage.usage.barbers.current,
     usage.usage.barbers.limit
   );
-  
+
   const appointmentsPercentage = getUsagePercentage(
-    usage.usage.appointments.current, 
+    usage.usage.appointments.current,
     usage.usage.appointments.limit
   );
 
@@ -30,7 +30,7 @@ export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({
   };
 
   const getPlanBadgeColor = (planType: string) => {
-    return planType === 'pro' 
+    return planType === 'pro'
       ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
       : 'bg-gray-600 text-gray-200';
   };
@@ -45,7 +45,7 @@ export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({
             {usage.planType === 'pro' ? '⭐ Plano Pro' : '🆓 Plano Gratuito'}
           </div>
         </div>
-        
+
         {usage.upgradeRecommended && usage.planType === 'free' && (
           <button
             onClick={onUpgrade}
@@ -66,16 +66,16 @@ export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({
               {usage.usage.barbers.current}/{usage.usage.barbers.limit === Infinity ? '∞' : usage.usage.barbers.limit}
             </span>
           </div>
-          
+
           {usage.usage.barbers.limit !== Infinity && (
             <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(barbersPercentage, usage.usage.barbers.nearLimit)}`}
                 style={{ width: `${barbersPercentage}%` }}
               />
             </div>
           )}
-          
+
           {usage.usage.barbers.nearLimit && (
             <p className="text-yellow-400 text-sm mt-1">
               ⚠️ Próximo do limite de barbeiros
@@ -91,16 +91,16 @@ export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({
               {usage.usage.appointments.current}/{usage.usage.appointments.limit === Infinity ? '∞' : usage.usage.appointments.limit}
             </span>
           </div>
-          
+
           {usage.usage.appointments.limit !== Infinity && (
             <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(appointmentsPercentage, usage.usage.appointments.nearLimit)}`}
                 style={{ width: `${appointmentsPercentage}%` }}
               />
             </div>
           )}
-          
+
           {usage.usage.appointments.nearLimit && (
             <p className="text-yellow-400 text-sm mt-1">
               ⚠️ Próximo do limite de agendamentos mensais
@@ -111,7 +111,7 @@ export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({
 
       {/* Upgrade Notification */}
       {usage.upgradeRequired && (
-        <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+        <div className="mt-6 p-4 bg-[#2D1D1E] border border-red-500/20 rounded-lg">
           <div className="flex items-start gap-3">
             <div className="text-red-400 text-xl">🚨</div>
             <div>
@@ -134,7 +134,7 @@ export const PlanUsageCard: React.FC<PlanUsageCardProps> = ({
 
       {/* Pro Plan Benefits */}
       {usage.planType === 'free' && !usage.upgradeRequired && (
-        <div className="mt-6 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+        <div className="mt-6 p-4 bg-[#1A1F2E] border border-purple-500/20 rounded-lg">
           <h4 className="text-purple-400 font-semibold mb-2">⭐ Benefícios do Plano Pro</h4>
           <ul className="text-purple-300 text-sm space-y-1">
             <li>• Barbeiros ilimitados</li>

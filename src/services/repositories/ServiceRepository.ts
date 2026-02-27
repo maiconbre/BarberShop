@@ -34,7 +34,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
         .from('Services')
         .select('*')
         .eq('id', id)
-        .eq('tenant_id', effectiveTenantId) // Add tenant_id filter for multi-tenant isolation
+        .eq('tenant_id', effectiveTenantId) 
         .single();
       
       if (error) {
@@ -69,7 +69,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
       
       // Use tenantId if available, otherwise use barbershopId as tenantId
       const effectiveTenantId = tenantId || barbershopId;
-      console.log('ServiceRepository.findAll - Using tenant_id:', effectiveTenantId);
+      console.log('ServiceRepository.findAll - Using tenant_id filter:', effectiveTenantId);
       query = query.eq('tenant_id', effectiveTenantId);
       
       if (filters?.name) {
@@ -159,6 +159,8 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
         .from('Services')
         .select('*')
         .eq('tenant_id', effectiveTenantId);
+        
+      console.log('ServiceRepository.search - Filtering by tenant_id:', effectiveTenantId);
       
       const { data, error } = await dbQuery.ilike('name', `%${query}%`);
 
@@ -254,7 +256,7 @@ export class ServiceRepository implements ISearchableRepository<ServiceType> {
          .from('Services')
          .update(dbUpdates)
          .eq('id', id)
-         .eq('tenant_id', effectiveTenantId) // Add tenant_id for RLS
+         .eq('tenant_id', effectiveTenantId) 
          .select()
          .single();
          

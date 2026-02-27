@@ -88,7 +88,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         {sidebarOpen && (
                             <div>
-                                <h1 className="text-white font-bold text-lg">BarberShop</h1>
+                                <h1 className="text-white font-bold text-lg">BarberCloud</h1>
                                 <p className="text-gray-500 text-xs">Admin Central</p>
                             </div>
                         )}
@@ -120,7 +120,7 @@ const AdminDashboard: React.FC = () => {
             {/* Main Content */}
             <main className="flex-1 overflow-auto">
                 {/* Top Bar */}
-                <header className="bg-[#0f1419]/80 backdrop-blur-lg border-b border-gray-800 sticky top-0 z-10">
+                <header className="bg-[#0f1419] border-b border-gray-800 sticky top-0 z-10">
                     <div className="flex items-center justify-between px-8 py-4">
                         <div className="flex items-center space-x-4">
                             <button
@@ -306,7 +306,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="bg-[#0f1419] rounded-2xl border border-gray-800 p-6">
+                        <div className="bg-[#0f1419] rounded-2xl border border-gray-800 p-6 transition-colors">
                             <h3 className="text-white text-lg font-semibold mb-4">Ações Rápidas</h3>
                             <div className="grid grid-cols-2 gap-3">
                                 <ActionButton
@@ -348,7 +348,7 @@ const NavItem: React.FC<{
         onClick={onClick}
         className={`flex items-center space-x-3 w-full p-3 rounded-lg transition-colors ${active
             ? 'bg-[#F0B35B]/10 text-[#F0B35B]'
-            : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            : 'text-gray-400'
             }`}
     >
         {icon}
@@ -365,7 +365,7 @@ const KPICard: React.FC<{
     icon: React.ReactNode;
     color: string;
 }> = ({ title, value, change, changeUp, icon, color }) => (
-    <div className="bg-[#0f1419] rounded-2xl border border-gray-800 p-6 hover:border-gray-700 transition-colors">
+    <div className="bg-[#0f1419] rounded-2xl border border-gray-800 p-6">
         <div className="flex items-center justify-between mb-4">
             <div className={`p-3 rounded-xl bg-gradient-to-br ${color} text-white`}>
                 {icon}
@@ -429,8 +429,8 @@ const ActionButton: React.FC<{
     primary?: boolean;
 }> = ({ label, icon, primary }) => (
     <button className={`flex items-center space-x-2 p-3 rounded-xl transition-colors ${primary
-        ? 'bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black font-semibold hover:opacity-90'
-        : 'bg-[#1a1f2e] text-gray-300 hover:bg-[#252b3b]'
+        ? 'bg-gradient-to-r from-[#F0B35B] to-[#D4943D] text-black font-semibold'
+        : 'bg-[#1a1f2e] text-gray-300'
         }`}>
         {icon}
         <span className="text-sm">{label}</span>

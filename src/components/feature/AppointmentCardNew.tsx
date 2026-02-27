@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, User, Check, Trash2, Eye, X } from 'lucide-react';
+import { Calendar, Clock, User, Check, Trash2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { safeFixed } from '../../utils/numberUtils';
@@ -68,8 +68,7 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ scale: 1.02 }}
-      className={`relative bg-[#1A1F2E] rounded-xl border border-white/5 p-3 flex flex-col justify-between group h-full shadow-sm hover:shadow-md hover:border-primary/30 transition-all ${className}`}
+      className={`relative bg-[#1A1F2E] rounded-xl border border-white/5 p-3 flex flex-col justify-between group h-full shadow-sm transition-all ${className}`}
     >
       {/* Top Section: Client & Service */}
       <div className="flex justify-between items-start mb-2">
@@ -118,10 +117,10 @@ const AppointmentCardNew = memo<Props>(({ appointment, onDelete, onToggleStatus,
         <button
           onClick={(e) => { e.stopPropagation(); onToggleStatus(); }}
           className={`p-1.5 rounded-lg transition-colors ${appointment.status === 'completed'
-              ? 'text-yellow-400 hover:bg-yellow-400/10'
-              : appointment.status === 'confirmed'
-                ? 'text-green-400 hover:bg-green-400/10'
-                : 'text-blue-400 hover:bg-blue-400/10'
+            ? 'text-yellow-400 hover:bg-yellow-400/10'
+            : appointment.status === 'confirmed'
+              ? 'text-green-400 hover:bg-green-400/10'
+              : 'text-blue-400 hover:bg-blue-400/10'
             }`}
           title={appointment.status === 'completed' ? 'Reabrir' : appointment.status === 'confirmed' ? 'Concluir' : 'Confirmar'}
         >

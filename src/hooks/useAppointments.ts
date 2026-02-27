@@ -72,15 +72,21 @@ export const useAppointments = () => {
         // Try cache first
         const cached = tenantCache.get<Appointment[]>(cacheKey);
         if (cached) {
-          setAppointments(cached);
-          return cached;
+          const rehydrated = cached.map(app => ({
+            ...app,
+            date: new Date(app.date),
+            createdAt: app.createdAt ? new Date(app.createdAt) : new Date(),
+            updatedAt: app.updatedAt ? new Date(app.updatedAt) : new Date()
+          })) as Appointment[];
+          setAppointments(rehydrated);
+          return rehydrated;
         }
         
         const result = await tenantRepository.findAll(filters);
         setAppointments(result);
         
-        // Cache the result
-        tenantCache.set(cacheKey, result, { ttl: 2 * 60 * 1000 }); // 2 minutes
+        // Cache the result (no persistence for real-time F5 updates)
+        tenantCache.set(cacheKey, result, { ttl: 30 * 1000, persist: false }); // 30 seconds
         
         return result;
       } catch (error) {
@@ -120,7 +126,7 @@ export const useAppointments = () => {
       }
       
       const result = await tenantRepository.findAll({ barberId });
-      tenantCache.set(cacheKey, result, { ttl: 2 * 60 * 1000 });
+      tenantCache.set(cacheKey, result, { ttl: 30 * 1000, persist: false });
       
       return result;
     },
@@ -141,7 +147,7 @@ export const useAppointments = () => {
       }
       
       const result = await tenantRepository.findAll({ status });
-      tenantCache.set(cacheKey, result, { ttl: 2 * 60 * 1000 });
+      tenantCache.set(cacheKey, result, { ttl: 30 * 1000, persist: false });
       
       return result;
     },
@@ -163,7 +169,7 @@ export const useAppointments = () => {
       }
       
       const result = await tenantRepository.findAll({ date: dateStr });
-      tenantCache.set(cacheKey, result, { ttl: 2 * 60 * 1000 });
+      tenantCache.set(cacheKey, result, { ttl: 30 * 1000, persist: false });
       
       return result;
     },
@@ -217,7 +223,7 @@ export const useAppointments = () => {
         endDate: tomorrow.toISOString().split('T')[0]
       });
       
-      tenantCache.set(cacheKey, result, { ttl: 5 * 60 * 1000 }); // 5 minutes
+      tenantCache.set(cacheKey, result, { ttl: 30 * 1000, persist: false }); // 30 seconds
       
       return result;
     },
@@ -255,7 +261,7 @@ export const useAppointments = () => {
         status: 'confirmed' 
       });
       
-      tenantCache.set(cacheKey, result, { ttl: 2 * 60 * 1000 });
+      tenantCache.set(cacheKey, result, { ttl: 30 * 1000, persist: false });
       
       return result;
     },
@@ -330,7 +336,7 @@ export const useAppointments = () => {
           price: data.price,
           wppclient: data.wppclient,
           status: data.status || 'pending'
-        } as Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>;
+        } as unknown as Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>;
         
         const newAppointment = await tenantRepository.create(appointmentData);
         
@@ -465,24 +471,29 @@ export const useAppointments = () => {
         completed: allAppointments.filter(a => a.status === 'completed').length,
         cancelled: allAppointments.filter(a => a.status === 'cancelled').length,
         today: allAppointments.filter(a => {
-          const today = new Date().toISOString().split('T')[0];
-          return new Date(a.date).toISOString().split('T')[0] === today;
+          const todayStr = new Date().toISOString().split('T')[0];
+          const appDate = a.date instanceof Date ? a.date : new Date(a.date);
+          return appDate.toISOString().split('T')[0] === todayStr;
         }).length,
-        thisWeek: allAppointments.filter(a => {
-          const appointmentDate = new Date(a.date);
+        upcoming: allAppointments.filter(a => {
           const today = new Date();
-          const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-          return appointmentDate >= weekStart;
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          const appDate = a.date instanceof Date ? a.date : new Date(a.date);
+          const appDateStr = appDate.toISOString().split('T')[0];
+          const todayStr = today.toISOString().split('T')[0];
+          const tomorrowStr = tomorrow.toISOString().split('T')[0];
+          
+          return appDateStr === todayStr || appDateStr === tomorrowStr;
         }).length,
-        thisMonth: allAppointments.filter(a => {
-          const appointmentDate = new Date(a.date);
-          const today = new Date();
-          return appointmentDate.getMonth() === today.getMonth() && 
-                 appointmentDate.getFullYear() === today.getFullYear();
-        }).length
+        byStatus: allAppointments.reduce((acc, appointment) => {
+          acc[appointment.status] = (acc[appointment.status] || 0) + 1;
+          return acc;
+        }, {} as Record<AppointmentStatus, number>)
       };
       
-      tenantCache.set(cacheKey, stats, { ttl: 5 * 60 * 1000 }); // 5 minutes
+      tenantCache.set(cacheKey, stats, { ttl: 30 * 1000, persist: false }); // 30 seconds
       
       return stats;
     },

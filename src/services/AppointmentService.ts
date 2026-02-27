@@ -237,9 +237,9 @@ export const loadAppointments = async (): Promise<AppointmentCacheItem[]> => {
             if (newData && Array.isArray(newData) && newData.length > 0) {
               lastFetchTime = Date.now();
               consecutiveFailures = 0;
-              // Atualizar cache com novos dados
+              // Atualizar cache com novos dados (no persistence for F5 updates)
               const tenantCache = getTenantCache();
-              tenantCache.set(APPOINTMENTS_CACHE_KEY, newData, { ttl: APPOINTMENTS_CACHE_TTL });
+              tenantCache.set(APPOINTMENTS_CACHE_KEY, newData, { ttl: 30 * 1000, persist: false });
             }
           })
           .catch(err => {
@@ -348,12 +348,11 @@ async function fetchAppointments(): Promise<AppointmentCacheItem[]> {
         apt && apt.date && apt.time && !apt.isCancelled
       );
       
-      // Armazenar no cache específico do usuário
+      // Armazenar no cache específico do usuário (no persistence)
       const tenantCache = getTenantCache();
-      tenantCache.set(APPOINTMENTS_CACHE_KEY, validAppointments);
+      tenantCache.set(APPOINTMENTS_CACHE_KEY, validAppointments, { ttl: 30 * 1000, persist: false });
       
-      // Também manter o cache local para compatibilidade
-      localStorage.setItem('appointments', JSON.stringify(validAppointments));
+      // Removed direct localStorage to ensure cache clears on F5
       
       AppointmentLogger.logCacheOperation('CACHE_SET', APPOINTMENTS_CACHE_KEY, { 
         count: validAppointments.length, 

@@ -6,14 +6,14 @@ import { motion } from 'framer-motion';
 import StandardLayout from '../components/layout/StandardLayout';
 import ClientAnalytics from '../components/feature/ClientAnalytics';
 import OnboardingModal from '../components/onboarding/OnboardingModal';
-import { loadAppointments as loadAppointmentsService } from '../services/AppointmentService';
+import { useAppointments } from '../hooks/useAppointments';
 import { useTenant } from '../contexts/TenantContext';
 
-// Local interface that matches the shape returned by loadAppointmentsService (flattened)
+// Local interface that matches the expected shape
 interface DashboardAppointment {
   id: string;
   clientName?: string;
-  serviceName?: string; // service -> serviceName
+  serviceName?: string;
   date: string;
   time: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -25,6 +25,23 @@ interface DashboardAppointment {
   viewed?: boolean;
   isBlocked?: boolean;
 }
+
+const convertToDashboardAppointment = (baseAppointment: any): DashboardAppointment => {
+  const appointmentDate = baseAppointment.date instanceof Date ? baseAppointment.date : new Date(baseAppointment.date);
+
+  return {
+    id: baseAppointment.id,
+    clientName: baseAppointment._backendData?.clientName || baseAppointment.clientName || baseAppointment.clientId,
+    serviceName: baseAppointment._backendData?.serviceName || baseAppointment.serviceName || baseAppointment.serviceId,
+    date: appointmentDate.toISOString().split('T')[0],
+    time: baseAppointment._backendData ? baseAppointment.startTime : (baseAppointment.time || baseAppointment.startTime),
+    status: baseAppointment.status,
+    barberId: baseAppointment.barberId,
+    barberName: baseAppointment._backendData?.barberName || baseAppointment.barberName || '',
+    price: baseAppointment._backendData?.price || baseAppointment.price || 0,
+    isBlocked: baseAppointment.isBlocked,
+  };
+};
 
 const safeFixed = (num: number | undefined, digits: number) => {
   if (num === undefined || num === null || isNaN(num)) return '0.00';
@@ -100,8 +117,7 @@ const Stats: React.FC<StatsProps> = ({ appointments }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="bg-[#1A1F2E]/40 p-5 sm:p-7 rounded-[2.5rem] border border-white/5 relative overflow-hidden group shadow-2xl"
+              className="bg-[#1A1F2E] p-5 sm:p-7 rounded-[2.5rem] border border-white/10 relative overflow-hidden group shadow-2xl"
             >
               {/* Background Glow */}
               <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-[40px] opacity-10 group-hover:opacity-20 transition-opacity ${stat.bgColor.replace('/10', '')}`}></div>
@@ -130,9 +146,13 @@ const DashboardPageNew: React.FC = () => {
   const { barbershopData, loading: tenantLoading } = useTenant();
   const { user } = useAuth(); // Get user for avatar
 
-  const [appointments, setAppointments] = useState<DashboardAppointment[]>([]);
+  const { appointments: rawAppointments, loadAppointments, loading: appointmentsLoading } = useAppointments();
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  const appointments = useMemo(() => {
+    if (!rawAppointments) return [];
+    return rawAppointments.map(convertToDashboardAppointment);
+  }, [rawAppointments]);
 
   useEffect(() => {
     // Verificar se deve mostrar onboarding
@@ -155,33 +175,21 @@ const DashboardPageNew: React.FC = () => {
   }, [location.state]);
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      try {
-        setLoading(true);
-        const data = await loadAppointmentsService();
-        setAppointments((data as unknown) as DashboardAppointment[]);
-      } catch (error) {
-        console.error('Erro ao carregar agendamentos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAppointments();
+    loadAppointments();
 
     const handleCacheUpdate = () => {
-      fetchAppointments();
+      loadAppointments();
     };
 
     window.addEventListener('cacheUpdated', handleCacheUpdate);
     return () => {
       window.removeEventListener('cacheUpdated', handleCacheUpdate);
     };
-  }, []);
+  }, [loadAppointments]);
 
   const filteredForAnalytics = appointments.filter(app => app.status === 'completed') as any[];
 
-  if (loading || tenantLoading) {
+  if (appointmentsLoading || tenantLoading) {
     return (
       <StandardLayout hideMobileHeader={true}>
         <div className="flex items-center justify-center h-[calc(100vh-100px)]">
@@ -224,8 +232,12 @@ const DashboardPageNew: React.FC = () => {
               <h3 className="text-sm font-black uppercase tracking-[0.2em] text-gray-500">Performance Metrics</h3>
             </div>
             {/* ClientAnalytics with simpleMode to hide internal stats */}
-            <div className="bg-[#1A1F2E]/30 rounded-[2.8rem] border border-white/5 p-2 overflow-hidden shadow-xl">
-              <ClientAnalytics appointments={filteredForAnalytics} simpleMode={true} />
+            <div className="bg-[#1A1F2E] rounded-[2.8rem] border border-white/10 p-2 overflow-hidden shadow-xl">
+              <ClientAnalytics
+                appointments={filteredForAnalytics}
+                simpleMode={true}
+                isOwner={user?.id === barbershopData?.owner_id}
+              />
             </div>
           </div>
 
@@ -247,7 +259,7 @@ const DashboardPageNew: React.FC = () => {
                     <motion.div
                       key={idx}
                       whileHover={{ x: 5 }}
-                      className="flex items-center justify-between p-5 rounded-[2rem] bg-[#1A1F2E]/40 border border-white/5 hover:border-[#F0B35B]/20 transition-all group"
+                      className="flex items-center justify-between p-5 rounded-[2rem] bg-[#1A1F2E] border border-white/10 transition-all group"
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-black to-[#1A1F2E] border border-white/5 flex items-center justify-center text-[#F0B35B] font-black italic uppercase text-lg shrink-0 group-hover:border-[#F0B35B]/30 transition-all shadow-lg">
@@ -268,7 +280,7 @@ const DashboardPageNew: React.FC = () => {
                   ))}
 
                 {appointments.filter(app => new Date(app.date + 'T' + app.time) >= new Date()).length === 0 && (
-                  <div className="p-10 rounded-[2.5rem] bg-[#1A1F2E]/20 border border-dashed border-white/10 text-center flex flex-col items-center gap-3">
+                  <div className="p-10 rounded-[2.5rem] bg-[#1A1F2E] border border-dashed border-white/10 text-center flex flex-col items-center gap-3">
                     <Calendar className="w-8 h-8 text-gray-700" />
                     <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Aguardando novos clientes...</p>
                   </div>

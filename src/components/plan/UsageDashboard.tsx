@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { usePlanContext } from '../../contexts/PlanContext';
-import { 
-  BarChart3, 
-  Users, 
-  Calendar, 
-  TrendingUp, 
-  Crown, 
+import {
+  BarChart3,
+  Users,
+  Calendar,
+  TrendingUp,
+  Crown,
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -20,12 +20,12 @@ interface UsageDashboardProps {
 }
 
 export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }) => {
-  const { 
-    usage, 
-    planInfo, 
+  const {
+    usage,
+    planInfo,
     history,
-    loading, 
-    error, 
+    loading,
+    error,
     upgradePlan,
     refreshHistory
   } = usePlanContext();
@@ -57,7 +57,7 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
 
   if (error) {
     return (
-      <div className={`bg-red-500/10 border border-red-500/20 rounded-lg p-6 ${className}`}>
+      <div className={`bg-[#2D1D1E] border border-red-500/20 rounded-lg p-6 ${className}`}>
         <div className="text-red-400">Erro ao carregar dashboard: {error}</div>
       </div>
     );
@@ -65,7 +65,7 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
 
   if (!usage || !planInfo) {
     return (
-      <div className={`bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-6 ${className}`}>
+      <div className={`bg-[#2D2A1E] border border-yellow-500/20 rounded-lg p-6 ${className}`}>
         <div className="text-yellow-400">Informações do plano não disponíveis</div>
       </div>
     );
@@ -83,17 +83,17 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
     return 'bg-green-500';
   };
 
-  const barbersPercentage = usage.usage?.barbers?.limit === Infinity 
-    ? 0 
+  const barbersPercentage = usage.usage?.barbers?.limit === Infinity
+    ? 0
     : Math.min((usage.usage?.barbers?.current || 0) / (usage.usage?.barbers?.limit || 1) * 100, 100);
 
-  const appointmentsPercentage = usage.usage?.appointments?.limit === Infinity 
-    ? 0 
+  const appointmentsPercentage = usage.usage?.appointments?.limit === Infinity
+    ? 0
     : Math.min((usage.usage?.appointments?.current || 0) / (usage.usage?.appointments?.limit || 1) * 100, 100);
 
   const shouldShowUpgrade = usage.planType === 'free' && (
-    usage.upgradeRecommended || 
-    usage.usage?.barbers?.nearLimit || 
+    usage.upgradeRecommended ||
+    usage.usage?.barbers?.nearLimit ||
     usage.usage?.appointments?.nearLimit
   );
 
@@ -109,12 +109,11 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
               <p className="text-gray-400 text-sm">{planInfo.name}</p>
             </div>
           </div>
-          
-          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-            planInfo.planType === 'pro' 
+
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${planInfo.planType === 'pro'
               ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
               : 'bg-gray-600 text-gray-200'
-          }`}>
+            }`}>
             {planInfo.planType === 'pro' ? (
               <span className="flex items-center gap-1">
                 <Crown className="w-4 h-4" />
@@ -131,12 +130,12 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Barbeiros */}
-          <div className="bg-gray-700/50 rounded-lg p-4">
+          <div className="bg-[#1A1F2E] rounded-lg p-4 border border-white/5">
             <div className="flex items-center gap-3 mb-3">
               <Users className="w-5 h-5 text-blue-400" />
               <h3 className="font-medium text-white">Barbeiros</h3>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-white">
@@ -146,16 +145,16 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
                   / {usage.usage?.barbers?.limit === Infinity ? '∞' : usage.usage?.barbers?.limit || 0}
                 </span>
               </div>
-              
+
               {usage.usage?.barbers?.limit !== Infinity && (
                 <div className="w-full bg-gray-600 rounded-full h-2">
-                  <div 
+                  <div
                     className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(barbersPercentage, usage.usage?.barbers?.nearLimit || false)}`}
                     style={{ width: `${barbersPercentage}%` }}
                   />
                 </div>
               )}
-              
+
               <div className="flex items-center justify-between text-sm">
                 <span className={getUsageColor(barbersPercentage, usage.usage?.barbers?.nearLimit || false)}>
                   {safeFixed(barbersPercentage, 0)}% usado
@@ -171,12 +170,12 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
           </div>
 
           {/* Agendamentos */}
-          <div className="bg-gray-700/50 rounded-lg p-4">
+          <div className="bg-[#1A1F2E] rounded-lg p-4 border border-white/5">
             <div className="flex items-center gap-3 mb-3">
               <Calendar className="w-5 h-5 text-green-400" />
               <h3 className="font-medium text-white">Agendamentos (mês atual)</h3>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-white">
@@ -186,16 +185,16 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
                   / {usage.usage?.appointments?.limit === Infinity ? '∞' : usage.usage?.appointments?.limit || 0}
                 </span>
               </div>
-              
+
               {usage.usage?.appointments?.limit !== Infinity && (
                 <div className="w-full bg-gray-600 rounded-full h-2">
-                  <div 
+                  <div
                     className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(appointmentsPercentage, usage.usage?.appointments?.nearLimit || false)}`}
                     style={{ width: `${appointmentsPercentage}%` }}
                   />
                 </div>
               )}
-              
+
               <div className="flex items-center justify-between text-sm">
                 <span className={getUsageColor(appointmentsPercentage, usage.usage?.appointments?.nearLimit || false)}>
                   {safeFixed(appointmentsPercentage, 0)}% usado
@@ -213,7 +212,7 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
 
         {/* Upgrade Section */}
         {shouldShowUpgrade && (
-          <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
+          <div className="bg-gradient-to-r from-purple-900/40 to-blue-900/40 border border-purple-500/20 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
               <TrendingUp className="w-6 h-6 text-purple-400 mt-1" />
               <div className="flex-1">
@@ -221,7 +220,7 @@ export const UsageDashboard: React.FC<UsageDashboardProps> = ({ className = '' }
                   {usage.upgradeRequired ? 'Upgrade Necessário' : 'Upgrade Recomendado'}
                 </h4>
                 <p className="text-purple-300 text-sm mb-3">
-                  {usage.upgradeRequired 
+                  {usage.upgradeRequired
                     ? 'Você atingiu os limites do plano gratuito. Faça upgrade para continuar.'
                     : 'Você está próximo dos limites. Considere fazer upgrade para o Plano Pro.'
                   }
@@ -322,7 +321,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction }) => {
   };
 
   return (
-    <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/50">
+    <div className="bg-[#1A1F2E] rounded-lg p-4 border border-white/5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {getStatusIcon(transaction.status)}
@@ -335,18 +334,18 @@ const TransactionCard: React.FC<TransactionCardProps> = ({ transaction }) => {
             </p>
           </div>
         </div>
-        
+
         <div className="text-right">
           <div className="text-white font-semibold">
             {transaction.amount > 0 ? formatCurrency(transaction.amount) : 'Gratuito'}
           </div>
           <div className={`text-xs ${getStatusColor(transaction.status)}`}>
-            {transaction.status === 'completed' ? 'Concluído' : 
-             transaction.status === 'pending' ? 'Pendente' : 'Falhou'}
+            {transaction.status === 'completed' ? 'Concluído' :
+              transaction.status === 'pending' ? 'Pendente' : 'Falhou'}
           </div>
         </div>
       </div>
-      
+
       <div className="mt-2 pt-2 border-t border-gray-600/30">
         <div className="flex items-center justify-between text-xs text-gray-400">
           <span>{formatDate(transaction.createdAt)}</span>

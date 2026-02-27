@@ -41,16 +41,21 @@ export interface SlugCheckResponse {
 
 export interface BarbershopData {
   id: string;
-  tenantId?: string;
   name: string;
   slug: string;
-  ownerEmail: string;
-  planType: string;
-  settings: Record<string, unknown>;
-  createdAt: string;
-  description?: string;
-  address?: string;
-  phone?: string;
+  address?: string | null;
+  phone?: string | null;
+  logo_url?: string | null;
+  description?: string | null;
+  settings: Record<string, any>;
+  tenant_id?: string | null;
+  tenantId?: string | null; // Compatibilidade
+  plan_type?: 'free' | 'pro' | string;
+  planType?: string; // Compatibilidade
+  owner_id?: string;
+  ownerId?: string; // Compatibilidade
+  ownerEmail?: string; // Compatibilidade
+  createdAt?: string;
 }
 
 export interface BarbershopResponse {
